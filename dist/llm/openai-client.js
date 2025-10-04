@@ -26,7 +26,6 @@ export class OpenAiClient {
                 effort: this.settings.reasoningMode,
                 summary: "auto",
             };
-            request.include = ["reasoning", "reasoning.encrypted_content"];
         }
         const response = await this.client.responses.create(request);
         const text = response.output_text?.trim();

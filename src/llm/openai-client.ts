@@ -41,7 +41,6 @@ export class OpenAiClient implements LlmClient {
         effort: this.settings.reasoningMode,
         summary: "auto",
       };
-      request.include = ["reasoning", "reasoning.encrypted_content"];
     }
 
     const response = await this.client.responses.create(request as never);
