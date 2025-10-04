@@ -40,7 +40,18 @@ export function createPrompter(): Prompter | null {
             reject(new Error("Input cancelled"));
             return;
           }
+          if (ch === "\u0008" || ch === "\u007f") {
+            if (chars.length > 0) {
+              chars.pop();
+              output.write("\b \b");
+            }
+            continue;
+          }
+          if (ch < " " || ch === "\u007f") {
+            continue;
+          }
           chars.push(ch);
+          output.write("*");
         }
       };
       const cleanup = () => {
