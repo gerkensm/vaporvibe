@@ -1,0 +1,54 @@
+export function buildMessages(context) {
+    const { brief, method, path, query, body, prevHtml, timestamp, includeInstructionPanel } = context;
+    const nowIso = timestamp.toISOString();
+    const systemLines = [
+        "You are a SINGLE-VIEW HTML generator for a 'sourcecodeless web app server'.",
+        "Your job: return ONLY a complete, valid, self-contained HTML document for the CURRENT VIEW.",
+        "",
+        "MANDATORY RULES:",
+        "1) NO SPA. Render only the current view for THIS request. Do NOT include routers, frameworks, or page containers for future states.",
+        "2) SELF-CONTAINED: All CSS/JS inline via <style> and <script>. Any images must use data: URLs. No external links, fonts, CDNs, or fetch/AJAX.",
+        "3) INTERACTIONS: Any user action that changes the view must submit via GET or POST to the server (full page reload). No AJAX, WebSockets, or background requests.",
+        "4) CONTEXT: You ONLY know the 'App Brief', the PREVIOUS HTML (server-provided), the request METHOD, PATH, QUERY, and BODY. You must not depend on any hidden server state.",
+        "5) STATE HANDOFF: If your UI needs state on the next view, include it explicitly in form fields or query params that you submit. Make state compact and human-readable when possible.",
+        "6) UX: Craft a clean, accessible UI for the current view. Prefer progressive enhancement, keyboard access, and semantic HTML.",
+        "7) OUTPUT: Respond with a single <html>...</html> document. No explanations or markdown.",
+        "8) SAFETY: Do not execute untrusted input. Avoid inline event handlers that eval arbitrary strings. Keep scripts minimal.",
+        "",
+        "Design Philosophy:",
+        "- Each response is a fresh render. Slight variation between renders is expected and welcomed.",
+        "- Build delightful micro-UX for the current step only (e.g., simple modal implemented in-page).",
+        "- Keep JS small; prefer server round-trips over complex client logic.",
+        "- Do NOT wrap your output in a Markdown wrapper (eg. ```html) - instead, output ONLY the full HTML without any wrappers.",
+        "",
+    ];
+    if (includeInstructionPanel) {
+        systemLines.splice(8, 0, "9) ITERATION OPPORTUNITY: The user may want to change the application while it's running and give additional instructions for the next iteration. At the bottom of the screen (floating and pinned to the bottom of the screen, with a CTA to hide/show), include an input box where the user can explicitly send instructions to the model, POSTed to the web server. The instructions are put in a field LLM_WEB_SERVER_INSTRUCTIONS (make sure to retain other state as well with this request). You will take these instructions into account for the generated HTML and, if relevant, carry them forward to the next requests.");
+    }
+    const system = systemLines.join("\n");
+    const user = [
+        `App Brief:\n${brief}`,
+        "",
+        "Current Request:",
+        `- Timestamp: ${nowIso}`,
+        `- Method: ${method}`,
+        `- Path: ${path}`,
+        `- Query Params (URL-decoded JSON): ${JSON.stringify(query, null, 2)}`,
+        `- Body Params (URL-decoded JSON): ${JSON.stringify(body, null, 2)}`,
+        "",
+        "Previous HTML (for context; may be empty if first view):",
+        "-----BEGIN PREVIOUS HTML-----",
+        prevHtml.slice(0, 200_000),
+        "-----END PREVIOUS HTML-----",
+        "",
+        "Remember:",
+        "- Render ONLY the current view as a full document.",
+        "- Include inline CSS/JS. No external dependencies.",
+        "- If you need to carry state forward, include it in forms or query strings you output NOW. This includes historical state that's been forwarded to you and needs to be retained.",
+        "- Provide clear primary actions (CTAs) and show the user what to do next.",
+    ].join("\n");
+    return [
+        { role: "system", content: system },
+        { role: "user", content: user },
+    ];
+}
