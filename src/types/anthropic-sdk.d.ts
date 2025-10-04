@@ -2,6 +2,7 @@ declare module "@anthropic-ai/sdk" {
   export interface AnthropicMessageContent {
     type?: string;
     text?: string;
+    thinking?: string;
   }
 
   export interface AnthropicMessage {
@@ -15,8 +16,8 @@ declare module "@anthropic-ai/sdk" {
 
   export interface AnthropicStreamEvent {
     type?: string;
-    delta?: { type?: string; text?: string };
-    content_block_delta?: { delta?: { type?: string; text?: string } };
+    delta?: { type?: string; text?: string; thinking?: string };
+    content_block_delta?: { delta?: { type?: string; text?: string; thinking?: string } };
   }
 
   export interface AnthropicStream extends AsyncIterable<AnthropicStreamEvent> {
@@ -29,13 +30,13 @@ declare module "@anthropic-ai/sdk" {
     messages: {
       create(params: {
         model: string;
-        max_output_tokens: number;
+        max_tokens: number;
         system?: string;
         messages: AnthropicMessage[];
       }): Promise<AnthropicMessageResponse>;
       stream(params: {
         model: string;
-        max_output_tokens: number;
+        max_tokens: number;
         system?: string;
         messages: AnthropicMessage[];
         thinking?: { type: "thinking"; budget_tokens: number };

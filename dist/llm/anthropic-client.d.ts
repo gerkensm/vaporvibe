@@ -7,6 +7,8 @@ export declare class AnthropicClient implements LlmClient {
     generateHtml(messages: ChatMessage[]): Promise<string>;
     private generateWithThinking;
     private extractStreamDelta;
+    private extractThinkingDelta;
     private combineContent;
+    private collectThinking;
     private logThinkingMetadata;
 }
