@@ -20,6 +20,6 @@ export const DEFAULT_MAX_OUTPUT_TOKENS = 128_000;
 export const DEFAULT_OPENAI_MODEL = "gpt-5";
 export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5-20250929";
 export const DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS = 64_000;
-export const DEFAULT_GEMINI_MODEL = "gemini-1.5-flash";
+export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 
 export const BRIEF_FORM_ROUTE = "/__set-brief";
