@@ -10,10 +10,12 @@ export function buildMessages(context) {
         "2) SELF-CONTAINED: All CSS/JS inline via <style> and <script>. Any images must use data: URLs. No external links, fonts, CDNs, or fetch/AJAX.",
         "3) INTERACTIONS: Any user action that changes the view must submit via GET or POST to the server (full page reload). No AJAX, WebSockets, or background requests.",
         "4) CONTEXT: You ONLY know the 'App Brief', the PREVIOUS HTML (server-provided), the request METHOD, PATH, QUERY, and BODY. You must not depend on any hidden server state.",
-        "5) STATE HANDOFF: If your UI needs state on the next view, include it explicitly in form fields or query params that you submit. Make state compact and human-readable when possible.",
-        "6) UX: Craft a clean, accessible UI for the current view. Prefer progressive enhancement, keyboard access, and semantic HTML.",
-        "7) OUTPUT: Respond with a single <html>...</html> document. No explanations or markdown.",
-        "8) SAFETY: Do not execute untrusted input. Avoid inline event handlers that eval arbitrary strings. Keep scripts minimal.",
+        "5) REQUEST INTERPRETATION: When a request targets a link or form from the previous HTML, use that source context (link text, surrounding content, data attributes, form field names) to infer the user's intent, interpret path/parameter semantics, and render the appropriate view.",
+        "6) STATE HANDOFF: If your UI needs state on the next view, include it explicitly in form fields or query params that you submit. Make state compact and human-readable when possible.",
+        "7) PERSISTENT STATE: When state must persist across views but shouldn't render or be re-submitted every time, embed it in HTML comments. Preserve and forward any such comment-based state you receive, even if it's not needed for the current view.",
+        "8) UX: Craft a clean, accessible UI for the current view. Prefer progressive enhancement, keyboard access, and semantic HTML.",
+        "9) OUTPUT: Respond with a single <html>...</html> document. No explanations or markdown.",
+        "10) SAFETY: Do not execute untrusted input. Avoid inline event handlers that eval arbitrary strings. Keep scripts minimal.",
         "",
         "Design Philosophy:",
         "- Each response is a fresh render. Slight variation between renders is expected and welcomed.",
@@ -23,7 +25,9 @@ export function buildMessages(context) {
         "",
     ];
     if (includeInstructionPanel) {
-        systemLines.splice(8, 0, "9) ITERATION OPPORTUNITY: The user may want to change the application while it's running and give additional instructions for the next iteration. At the bottom of the screen (floating and pinned to the bottom of the screen, with a CTA to hide/show), include an input box where the user can explicitly send instructions to the model, POSTed to the web server. The instructions are put in a field LLM_WEB_SERVER_INSTRUCTIONS (make sure to retain other state as well with this request). You will take these instructions into account for the generated HTML and, if relevant, carry them forward to the next requests.");
+        const safetyRuleIndex = systemLines.findIndex((line) => line.startsWith("10) SAFETY"));
+        const insertIndex = safetyRuleIndex === -1 ? systemLines.length : safetyRuleIndex + 1;
+        systemLines.splice(insertIndex, 0, "11) ITERATION OPPORTUNITY: The user may want to change the application while it's running and give additional instructions for the next iteration. At the bottom of the screen (floating and pinned to the lower-right, with a CTA to hide/show), include an input box where the user can explicitly send instructions to the model, POSTed to the web server. When collapsed, show ONLY a single button in the lower-right corner; when expanded, present the full instruction input. The instructions are put in a field LLM_WEB_SERVER_INSTRUCTIONS (make sure to retain other state as well with this request). You will take these instructions into account for the generated HTML and, if relevant, carry them forward to the next requests.");
     }
     const system = systemLines.join("\n");
     const user = [
@@ -44,7 +48,9 @@ export function buildMessages(context) {
         "Remember:",
         "- Render ONLY the current view as a full document.",
         "- Include inline CSS/JS. No external dependencies.",
+        "- Align the response with the requested path AND parameters by inferring which link or form was activated in the previous HTML and how its fields map to the submitted values.",
         "- If you need to carry state forward, include it in forms or query strings you output NOW. This includes historical state that's been forwarded to you and needs to be retained.",
+        "- For complex state that should persist invisibly, store it in HTML comments and preserve any comment-based state from the previous HTML, even if you don't need it for the current view.",
         "- Provide clear primary actions (CTAs) and show the user what to do next.",
     ].join("\n");
     return [

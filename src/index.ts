@@ -27,7 +27,8 @@ async function main(): Promise<void> {
 
     await new Promise<void>((resolve) => {
       server.listen(appConfig.runtime.port, () => {
-        logger.info({ port: appConfig.runtime.port }, "Sourcecodeless server ready");
+        const localUrl = `http://localhost:${appConfig.runtime.port}/`;
+        logger.info({ port: appConfig.runtime.port, url: localUrl }, `Sourcecodeless server ready at ${localUrl}`);
         if (appConfig.runtime.brief) {
           logger.info({ brief: appConfig.runtime.brief }, "Initial brief configured");
         } else {
