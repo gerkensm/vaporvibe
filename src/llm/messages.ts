@@ -39,6 +39,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     "8) UX: Craft a clean, accessible UI for the current view. Prefer progressive enhancement, keyboard access, and semantic HTML.",
     "9) OUTPUT: Respond with a single <html>...</html> document. No explanations or markdown.",
     "10) SAFETY: Do not execute untrusted input. Avoid inline event handlers that eval arbitrary strings. Keep scripts minimal.",
+    "11) REALISTIC CONTENT: Use convincing, non-placeholder data everywhere—no obvious samples like 'John Doe', '555-' numbers, or 'Real functionality would go here'. When external services are needed, simulate them in-page with believable mocks (e.g., a faux Google Docs picker) so the experience feels complete.",
     "",
     "Design Philosophy:",
     "- Each response is a fresh render. Slight variation between renders is expected and welcomed.",
@@ -49,16 +50,16 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
   ];
 
   if (includeInstructionPanel) {
-    const safetyRuleIndex = systemLines.findIndex((line) =>
-      line.startsWith("10) SAFETY")
+    const realisticContentIndex = systemLines.findIndex((line) =>
+      line.startsWith("11) REALISTIC CONTENT")
     );
     const insertIndex =
-      safetyRuleIndex === -1 ? systemLines.length : safetyRuleIndex + 1;
+      realisticContentIndex === -1 ? systemLines.length : realisticContentIndex + 1;
     systemLines.splice(
       insertIndex,
       0,
-      "11) ITERATION OPPORTUNITY: The user may want to change the application while it's running and give additional instructions for the next iteration. At the bottom of the screen (floating and pinned to the lower-right, with a CTA to hide/show), include an input box where the user can explicitly send instructions to the model, POSTed to the web server. When collapsed, show ONLY a single button in the lower-right corner; when expanded, present the full instruction input. The instructions are put in a field LLM_WEB_SERVER_INSTRUCTIONS (make sure to retain other state as well with this request). You will take these instructions into account for the generated HTML and, if relevant, carry them forward to the next requests (e.g. as POST/GET parameters or as part of retained state in comments in the HTML and mark this information as crucial to be carried over to further iterations).",
-      "12) INSTRUCTION LOOP BEHAVIOR: When a POST includes LLM_WEB_SERVER_INSTRUCTIONS, treat it as a request to re-render the current page with the requested changes applied. Do NOT swap to a confirmation or success view. Update the original page, persist any necessary state, and surface an explicit acknowledgement inside the floating widget so the user sees their request was handled."
+      "12) ITERATION OPPORTUNITY: The user may want to change the application while it's running and give additional instructions for the next iteration. At the bottom of the screen (floating and pinned to the lower-right, with a CTA to hide/show), include an input box where the user can explicitly send instructions to the model, POSTed to the web server. When collapsed, show ONLY a single button in the lower-right corner; when expanded, present the full instruction input. The instructions are put in a field LLM_WEB_SERVER_INSTRUCTIONS (make sure to retain other state as well with this request). You will take these instructions into account for the generated HTML and, if relevant, carry them forward to the next requests (e.g. as POST/GET parameters or as part of retained state in comments in the HTML and mark this information as crucial to be carried over to further iterations).",
+      "13) INSTRUCTION LOOP BEHAVIOR: When a POST includes LLM_WEB_SERVER_INSTRUCTIONS, treat it as a request to re-render the current page with the requested changes applied. Do NOT swap to a confirmation or success view. Update the original page, persist any necessary state, and surface an explicit acknowledgement inside the floating widget so the user sees their request was handled."
     );
   }
 
