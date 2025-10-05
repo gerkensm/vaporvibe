@@ -17,11 +17,9 @@ It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaw
 
 Watch how a single brief turns into an improv UI loop, then dive into the original captures if you want to study each screen.
 
-<video src="assets/demo/incident-walkthrough.mp4" controls autoplay muted loop playsinline style="border-radius: 16px; max-width: 100%; border: 1px solid #1f2937;">
-  Sorry, your browser doesn't support embedded videos. You can [download the walkthrough](assets/demo/incident-walkthrough.mp4) instead.
-</video>
+https://raw.githubusercontent.com/gerkensm/serve-llm/main/assets/demo/incident-walkthrough.mp4
 
-Prefer a GIF? Grab [assets/demo/incident-walkthrough-optimized.gif](assets/demo/incident-walkthrough-optimized.gif) (~2.2 MB).
+Prefer a GIF? Grab [assets/demo/incident-walkthrough.gif](assets/demo/incident-walkthrough.gif) (~2.2 MB).
 
 <details>
 <summary><strong>Step-by-step screenshots</strong></summary>
