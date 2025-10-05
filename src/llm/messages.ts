@@ -12,7 +12,16 @@ export interface MessageContext {
 }
 
 export function buildMessages(context: MessageContext): ChatMessage[] {
-  const { brief, method, path, query, body, prevHtml, timestamp, includeInstructionPanel } = context;
+  const {
+    brief,
+    method,
+    path,
+    query,
+    body,
+    prevHtml,
+    timestamp,
+    includeInstructionPanel,
+  } = context;
   const nowIso = timestamp.toISOString();
 
   const systemLines = [
@@ -26,7 +35,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     "4) CONTEXT: You ONLY know the 'App Brief', the PREVIOUS HTML (server-provided), the request METHOD, PATH, QUERY, and BODY. You must not depend on any hidden server state.",
     "5) REQUEST INTERPRETATION: When a request targets a link or form from the previous HTML, use that source context (link text, surrounding content, data attributes, form field names) to infer the user's intent, interpret path/parameter semantics, and render the appropriate view.",
     "6) STATE HANDOFF: If your UI needs state on the next view, include it explicitly in form fields or query params that you submit. Make state compact and human-readable when possible.",
-    "7) PERSISTENT STATE: When state must persist across views but shouldn't render or be re-submitted every time, embed it in HTML comments. Preserve and forward any such comment-based state you receive, even if it's not needed for the current view.",
+    "7) PERSISTENT STATE: When state must persist across views but shouldn't render or be re-submitted every time, embed it in HTML comments. Preserve and forward any such comment-based state you receive, even if it's not needed for the current view. Make sure to proactively persist state from your current or previous views for consistency, e.g. very relevant dummy data that you fill in, so that future views will use the same data.",
     "8) UX: Craft a clean, accessible UI for the current view. Prefer progressive enhancement, keyboard access, and semantic HTML.",
     "9) OUTPUT: Respond with a single <html>...</html> document. No explanations or markdown.",
     "10) SAFETY: Do not execute untrusted input. Avoid inline event handlers that eval arbitrary strings. Keep scripts minimal.",
@@ -40,12 +49,15 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
   ];
 
   if (includeInstructionPanel) {
-    const safetyRuleIndex = systemLines.findIndex((line) => line.startsWith("10) SAFETY"));
-    const insertIndex = safetyRuleIndex === -1 ? systemLines.length : safetyRuleIndex + 1;
+    const safetyRuleIndex = systemLines.findIndex((line) =>
+      line.startsWith("10) SAFETY")
+    );
+    const insertIndex =
+      safetyRuleIndex === -1 ? systemLines.length : safetyRuleIndex + 1;
     systemLines.splice(
       insertIndex,
       0,
-      "11) ITERATION OPPORTUNITY: The user may want to change the application while it's running and give additional instructions for the next iteration. At the bottom of the screen (floating and pinned to the lower-right, with a CTA to hide/show), include an input box where the user can explicitly send instructions to the model, POSTed to the web server. When collapsed, show ONLY a single button in the lower-right corner; when expanded, present the full instruction input. The instructions are put in a field LLM_WEB_SERVER_INSTRUCTIONS (make sure to retain other state as well with this request). You will take these instructions into account for the generated HTML and, if relevant, carry them forward to the next requests.",
+      "11) ITERATION OPPORTUNITY: The user may want to change the application while it's running and give additional instructions for the next iteration. At the bottom of the screen (floating and pinned to the lower-right, with a CTA to hide/show), include an input box where the user can explicitly send instructions to the model, POSTed to the web server. When collapsed, show ONLY a single button in the lower-right corner; when expanded, present the full instruction input. The instructions are put in a field LLM_WEB_SERVER_INSTRUCTIONS (make sure to retain other state as well with this request). You will take these instructions into account for the generated HTML and, if relevant, carry them forward to the next requests."
     );
   }
 
