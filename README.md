@@ -17,7 +17,8 @@ It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaw
 
 Watch how a single brief turns into an improv UI loop, then dive into the original captures if you want to study each screen.
 
-https://raw.githubusercontent.com/gerkensm/serve-llm/main/assets/demo/incident-walkthrough.mp4
+https://github.com/user-attachments/assets/749b04c7-7684-4e6f-ad46-98379bb63364
+
 
 Prefer a GIF? Grab [assets/demo/incident-walkthrough.gif](assets/demo/incident-walkthrough.gif) (~2.2 MB).
 
