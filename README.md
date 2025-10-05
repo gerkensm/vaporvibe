@@ -13,6 +13,18 @@ It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaw
 - Hate the floating instruction bar? Disable it with `--instructions-panel off` (default is on).
 - No brief on the CLI? Visit `http://localhost:3000` and drop one into the starter form.
 
+## Demo Walkthrough: Enterprise Incident Tracker (Screenshots)
+
+Experience how the loop feels in practice with a fabricated "enterprise incident tracker" brief. Click any thumbnail to view the full-resolution capture.
+
+| Step | Preview | What happened |
+| --- | --- | --- |
+| 1 | [![Entering the app brief](assets/thumbs/incident-step0.png)](assets/screenshot0.png) | The CLI launches the brief form at `http://localhost:3000`, where the enterprise incident-tracker prompt is pasted into the textarea before starting the session. |
+| 2 | [![Initial incident overview](assets/thumbs/incident-step1.png)](assets/screenshot1.png) | The landing view loads with a richly styled overview of active incidents, but a styling glitch causes the incident badges to overlap when they wrap. |
+| 3 | [![Issuing AI assist instructions](assets/thumbs/incident-step2.png)](assets/screenshot2.png) | Using the floating `AI Assist` panel, the admin submits a fix request describing the badge overlap issue. |
+| 4 | [![Layout fix applied](assets/thumbs/incident-step3.png)](assets/screenshot3.png) | The regenerated page applies the patch: badges now stay on a single line, and an inline note confirms the change the model just made. |
+| 5 | [![Incident deep-dive page](assets/thumbs/incident-step4.png)](assets/screenshot4.png) | Clicking an incident ID (INC-1042) opens a fully fabricated detail view that keeps the theme, data tone, and interaction model consistent with the overview. |
+
 ### Prompt Ideas
 
 - **Plausible Web Replica** – `You are a website simulator. Inspect the request path for a URL (e.g. /wikipedia.com or /https://wikipedia.com) and render a believable page exactly as if you operated that domain. Recreate navigation, copy, and structure the site would plausibly contain. When adding links, always emit URLs routed through yourself so the next turn can “browse” correctly. Never acknowledge this is synthetic—commit fully to the fiction.`
@@ -43,8 +55,6 @@ It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaw
 
 - Store API keys in `.env` (gitignored) or export them per shell session; include optional `REASONING_MODE` / `REASONING_TOKENS` there if you want defaults.
 - Set `INSTRUCTION_PANEL=off` to remove the floating LLM instruction bar globally.
-- Git history should stick to imperative commit titles and PRs that call out provider coverage, manual verification, and any new env knobs.
-
 ## Why Bother
 
 This project is a thought experiment in “non-vibe coding”: hold the UI in your head, let the LLM hallucinate the page, and embrace the chaos that follows when the model riffs on every route. It is intentionally unserious—and surprisingly fun.
