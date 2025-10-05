@@ -6,7 +6,7 @@ It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaw
 
 ## Quick Start
 
-- Install prerequisites: Node.js ≥ 20 (use `.nvmrc`) and an API key for OpenAI, Gemini, or Anthropic.
+- Install prerequisites: Node.js ≥ 24 (use `.nvmrc` to grab v24.9.0) and an API key for OpenAI, Gemini, or Anthropic.
 - Launch immediately: `npx github:gerkensm/serve-llm "You are a mood journal"`.
 - Prefer Gemini or Anthropic? Set `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` or pass `--provider gemini` / `--provider anthropic`.
 - Want model "thinking"? Pass `--reasoning-mode medium --reasoning-tokens 2048` for supported providers.

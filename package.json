@@ -23,7 +23,7 @@
     "cli",
     "server"
   ],
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
     "@google/genai": "^1.22.0",
@@ -37,6 +37,6 @@
     "typescript": "^5.4.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=24.0.0"
   }
 }
