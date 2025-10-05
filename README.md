@@ -13,9 +13,18 @@ It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaw
 - Hate the floating instruction bar? Disable it with `--instructions-panel off` (default is on).
 - No brief on the CLI? Visit `http://localhost:3000` and drop one into the starter form.
 
-## Demo Walkthrough: Enterprise Incident Tracker (Screenshots)
+## Demo Walkthrough: Enterprise Incident Tracker
 
-Experience how the loop feels in practice with a fabricated "enterprise incident tracker" brief. Click any thumbnail to view the full-resolution capture.
+Watch how a single brief turns into an improv UI loop, then dive into the original captures if you want to study each screen.
+
+<video src="assets/demo/incident-walkthrough.mp4" controls autoplay muted loop playsinline style="border-radius: 16px; max-width: 100%; border: 1px solid #1f2937;">
+  Sorry, your browser doesn't support embedded videos. You can [download the walkthrough](assets/demo/incident-walkthrough.mp4) instead.
+</video>
+
+Prefer a GIF? Grab [assets/demo/incident-walkthrough-optimized.gif](assets/demo/incident-walkthrough-optimized.gif) (~2.2 MB).
+
+<details>
+<summary><strong>Step-by-step screenshots</strong></summary>
 
 | Step | Preview | What happened |
 | --- | --- | --- |
@@ -24,6 +33,8 @@ Experience how the loop feels in practice with a fabricated "enterprise incident
 | 3 | [![Issuing AI assist instructions](assets/thumbs/incident-step2.png)](assets/screenshot2.png) | Using the floating `AI Assist` panel, the admin submits a fix request describing the badge overlap issue. |
 | 4 | [![Layout fix applied](assets/thumbs/incident-step3.png)](assets/screenshot3.png) | The regenerated page applies the patch: badges now stay on a single line, and an inline note confirms the change the model just made. |
 | 5 | [![Incident deep-dive page](assets/thumbs/incident-step4.png)](assets/screenshot4.png) | Clicking an incident ID (INC-1042) opens a fully fabricated detail view that keeps the theme, data tone, and interaction model consistent with the overview. |
+
+</details>
 
 ### Prompt Ideas
 
