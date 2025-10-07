@@ -16,7 +16,8 @@
     "build": "tsc",
     "prepare": "npm run build",
     "dev": "tsx src/index.ts",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "build:sea": "scripts/build-macos-sea.sh"
   },
   "keywords": [
     "llm",
@@ -34,7 +35,8 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsx": "^4.16.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "postject": "^1.2.0"
   },
   "engines": {
     "node": ">=24.0.0"
