@@ -19,3 +19,5 @@ pnpm-debug.log*
 .idea/
 *.swp
 .history/
+out
+out/*
