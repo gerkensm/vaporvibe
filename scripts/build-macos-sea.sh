@@ -30,15 +30,68 @@ SEA_OUT="${ROOT_DIR}/out/sea"
 rm -rf "${SEA_OUT}"
 mkdir -p "${SEA_OUT}"
 
+PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+
 ENTRY_SCRIPT="${SEA_OUT}/serve-llm-entry.cjs"
-cat > "${ENTRY_SCRIPT}" <<'CJS'
+cat > "${ENTRY_SCRIPT}" <<CJS
+const fs = require("node:fs");
+const path = require("node:path");
+const os = require("node:os");
 const { pathToFileURL } = require("node:url");
-const { resolve } = require("node:path");
+
+const ASSET_VERSION = "${PACKAGE_VERSION}";
+
+const { basename, resolve, join, dirname } = path;
+
+const execBasename = basename(process.execPath);
+const runningViaNode = execBasename === "node" || execBasename === "node.exe";
+
+async function runFromFilesystem(distRoot) {
+  const target = resolve(distRoot, "index.js");
+  await import(pathToFileURL(target).href);
+}
 
 (async () => {
   try {
-    const target = resolve(__dirname, "..", "..", "dist/index.js");
-    await import(pathToFileURL(target).href);
+    if (process.env.NODE_SEA_BUILD === "1") {
+      return;
+    }
+
+    if (runningViaNode) {
+      await runFromFilesystem(resolve(__dirname, "..", "..", "dist"));
+      return;
+    }
+
+    let sea;
+    try {
+      sea = require("node:sea");
+    } catch {
+      sea = null;
+    }
+
+    const inSea = sea && typeof sea.isSea === "function" && sea.isSea();
+    if (!inSea) {
+      await runFromFilesystem(resolve(__dirname, "..", "..", "dist"));
+      return;
+    }
+
+    const extractRoot = fs.mkdtempSync(join(os.tmpdir(), "serve-llm-" + ASSET_VERSION + "-"));
+    const distRoot = join(extractRoot, "dist");
+    fs.mkdirSync(distRoot, { recursive: true });
+
+    const keys = typeof sea.getAssetKeys === "function" ? sea.getAssetKeys() : [];
+    for (const key of keys) {
+      if (!key.startsWith("dist/") && !key.startsWith("node_modules/")) {
+        continue;
+      }
+      const asset = sea.getAsset(key);
+      const buffer = Buffer.from(asset);
+      const outputPath = join(extractRoot, key);
+      fs.mkdirSync(dirname(outputPath), { recursive: true });
+      fs.writeFileSync(outputPath, buffer);
+    }
+
+    await runFromFilesystem(distRoot);
   } catch (error) {
     console.error("Failed to start serve-llm from SEA bundle:", error);
     process.exit(1);
@@ -46,16 +99,116 @@ const { resolve } = require("node:path");
 })();
 CJS
 
-cat > "${SEA_OUT}/sea-config.json" <<'JSON'
-{
-  "main": "./out/sea/serve-llm-entry.cjs",
-  "output": "./out/sea/serve-llm.blob",
-  "disableExperimentalSEAWarning": true
+CONFIG_PATH="${SEA_OUT}/sea-config.json"
+node - "${ROOT_DIR}" "${CONFIG_PATH}" "${ENTRY_SCRIPT}" <<'NODE'
+const fs = require("node:fs");
+const path = require("node:path");
+
+const [rootDir, configPath, entryScriptPath] = process.argv.slice(2);
+const blobOutputPath = path.join(rootDir, "out", "sea", "serve-llm.blob");
+const distDir = path.join(rootDir, "dist");
+const nodeModulesDir = path.join(rootDir, "node_modules");
+const pkgJsonPath = path.join(rootDir, "package.json");
+
+if (!fs.existsSync(distDir)) {
+  console.error("dist directory missing. Run \"npm run build\" before building SEA.");
+  process.exit(1);
 }
-JSON
+
+const assets = {};
+
+/**
+ * Recursively collect dist assets so they can be hydrated at runtime.
+ */
+const skipSuffixes = [".d.ts", ".d.mts", ".d.cts", ".map"];
+
+const visit = dir => {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      visit(fullPath);
+      continue;
+    }
+    if (!entry.isFile()) {
+      continue;
+    }
+    if (skipSuffixes.some(suffix => entry.name.endsWith(suffix))) {
+      continue;
+    }
+    const relativeKey = path.relative(rootDir, fullPath).replace(/\\/g, "/");
+    assets[relativeKey] = fullPath;
+  }
+};
+
+visit(distDir);
+
+if (fs.existsSync(pkgJsonPath) && fs.existsSync(nodeModulesDir)) {
+  const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));
+  const dependencies = Object.keys(pkg.dependencies ?? {});
+  const lockPath = path.join(rootDir, "package-lock.json");
+
+  if (fs.existsSync(lockPath)) {
+    const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"));
+    const packages = lock.packages ?? {};
+    const visited = new Set();
+    const queue = [];
+
+    for (const depName of dependencies) {
+      queue.push(`node_modules/${depName}`);
+    }
+
+    while (queue.length > 0) {
+      const key = queue.shift();
+      if (visited.has(key)) {
+        continue;
+      }
+      visited.add(key);
+
+      const packageDir = path.join(rootDir, key);
+      if (fs.existsSync(packageDir)) {
+        visit(packageDir);
+      }
+
+      const meta = packages[key];
+      if (!meta || !meta.dependencies) {
+        continue;
+      }
+
+      for (const childName of Object.keys(meta.dependencies)) {
+        const nestedKey = `${key}/node_modules/${childName}`;
+        if (packages[nestedKey] || fs.existsSync(path.join(rootDir, nestedKey))) {
+          queue.push(nestedKey);
+          continue;
+        }
+
+        const rootKey = `node_modules/${childName}`;
+        if (!visited.has(rootKey) && (packages[rootKey] || fs.existsSync(path.join(rootDir, rootKey)))) {
+          queue.push(rootKey);
+        }
+      }
+    }
+  } else {
+    for (const depName of dependencies) {
+      const depDir = path.join(nodeModulesDir, depName);
+      if (fs.existsSync(depDir)) {
+        visit(depDir);
+      }
+    }
+  }
+}
+
+const config = {
+  main: path.relative(rootDir, entryScriptPath).replace(/\\/g, "/"),
+  output: path.relative(rootDir, blobOutputPath).replace(/\\/g, "/"),
+  disableExperimentalSEAWarning: true,
+  assets
+};
+
+fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+NODE
 
 echo "→ Generating SEA blob…"
-node --experimental-sea-config "${SEA_OUT}/sea-config.json"
+NODE_SEA_BUILD=1 node --experimental-sea-config "${SEA_OUT}/sea-config.json"
 
 NODE_BIN="$(command -v node)"
 TARGET_BIN="${SEA_OUT}/serve-llm-macos"
