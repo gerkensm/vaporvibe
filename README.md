@@ -1,6 +1,6 @@
 # serve-llm
 
-Serve-llm is a cheeky thought experiment, not a production stack: instead of vibe-coding a frontend and backend, you picture the page you want and let an LLM improvise the entire view—markup, copy, flow—on every request. The CLI (`npx serve-llm`) keeps only the last HTML around, so each navigation is a fresh act of hallucination with full interactivity. It’s intentionally unserious; half the joy is watching the model make it up as it goes.
+Serve-llm is a cheeky thought experiment, not a production stack: instead of vibe-coding a frontend and backend, you picture the page you want and let an LLM improvise the entire view—markup, copy, flow—on every request. The CLI (`npx serve-llm`) keeps a rolling history per session to feed better prompts and power the admin console, but each navigation is still a fresh act of hallucination with full interactivity. It’s intentionally unserious; half the joy is watching the model make it up as it goes.
 
 It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaway backend and pixel-tweaking a frontend just to sanity-check a UX flow or study a short interaction? Let the model “predict” what the app would render—if it quacks like a duck, that might be enough to validate the idea before investing real build time.
 
@@ -11,7 +11,19 @@ It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaw
 - Prefer Gemini or Anthropic? Set `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` or pass `--provider gemini` / `--provider anthropic`.
 - Want model "thinking"? Pass `--reasoning-mode medium --reasoning-tokens 2048` for supported providers.
 - Hate the floating instruction bar? Disable it with `--instructions-panel off` (default is on).
+- Need to tune history context? Use `--history-limit` and `--history-bytes` (or `HISTORY_LIMIT` / `HISTORY_MAX_BYTES`) to cap how much prior HTML the prompt feeds back in. Override the bind address with `--host` if you’re not staying on `127.0.0.1`.
 - No brief on the CLI? Visit `http://localhost:3000` and drop one into the starter form.
+- Want oversight on what the model has done? After the first brief is saved the app opens the user experience in a new tab and routes the original tab to the admin console at `/serve-llm`.
+
+## Admin Console
+
+The admin interface at `/serve-llm` now ships with a polished ShadCN-inspired light theme and a handful of operator tools:
+
+- **Brief & runtime controls** – Update the global brief, tweak history limits/byte budgets, and toggle the floating instruction panel without restarting the process.
+- **Provider management** – Switch between OpenAI, Gemini, and Anthropic, adjust model settings, and reuse existing API keys from environment variables without re-entering them. If a key is present, the input is locked until you opt to replace it.
+- **History explorer** – Inspect every generated page with expandable reasoning traces, token usage, and raw HTML. Badges, tabs, and status chips keep the view concise even for long sessions.
+- **Import/export** – Download JSON or prompt markdown snapshots, then drag-and-drop a saved history file back into the import card to restore a session in-place.
+- **Live refresh** – Auto-refresh controls keep the activity stream up to date while preserving which items you’ve expanded.
 
 ## Demo Walkthrough: Enterprise Incident Tracker
 
@@ -42,7 +54,7 @@ Prefer a GIF? Grab [assets/demo/incident-walkthrough.gif](assets/demo/incident-w
 
 ## What Makes It Weird
 
-- No stateful backend logic beyond the last HTML snapshot; every navigation is freshly reimagined, so routes and flows stay delightfully unstable.
+- Minimal backend logic beyond in-memory session history; every navigation is freshly reimagined, so routes and flows stay delightfully unstable.
 - The LLM must ad-lib both markup and UX per request, yielding an improv-style experience where the “app” keeps reinventing itself.
 - Server constraints enforce single-view, self-contained HTML—no external assets, no SPA sleight-of-hand.
 

@@ -28,32 +28,19 @@ export class OpenAiClient {
             };
         }
         const response = await this.client.responses.create(request);
-        const text = response.output_text?.trim();
-        if (text) {
-            maybeLogReasoning(response, this.settings.reasoningMode, this.settings.reasoningTokens);
-            return text;
-        }
-        const fallback = Array.isArray(response.output)
-            ? response.output
-                .map((item) => {
-                if (item.type === "message" && Array.isArray(item.content)) {
-                    return item.content
-                        .map((part) => part.type === "output_text" && typeof part.text === "string"
-                        ? part.text
-                        : "")
-                        .join("");
-                }
-                return "";
-            })
-                .join("")
-            : "";
-        maybeLogReasoning(response, this.settings.reasoningMode, this.settings.reasoningTokens);
-        return fallback.trim();
+        const html = extractHtml(response);
+        const reasoning = extractReasoning(response, this.settings.reasoningMode, this.settings.reasoningTokens);
+        return {
+            html,
+            usage: extractUsageMetrics(response),
+            reasoning,
+            raw: response,
+        };
     }
 }
-function maybeLogReasoning(response, mode, tokens) {
+function extractReasoning(response, mode, tokens) {
     if (!mode || mode === "none") {
-        return;
+        return undefined;
     }
     try {
         const usage = response?.usage ?? response?.usage_metadata;
@@ -80,12 +67,72 @@ function maybeLogReasoning(response, mode, tokens) {
                 message += `\nReasoning text:\n${reasoningTextBlocks.join("\n\n")}`;
             }
             logger.debug(message);
+            return {
+                summaries: reasoningSummaries.length > 0 ? reasoningSummaries : undefined,
+                details: reasoningTextBlocks.length > 0 ? reasoningTextBlocks : undefined,
+                raw: outputItems.filter((item) => item?.type === "reasoning"),
+            };
         }
         else if (reasoningTokens !== undefined) {
             logger.debug(`${header} — no textual reasoning returned.`);
         }
+        return undefined;
     }
     catch (error) {
         logger.warn(`Failed to capture OpenAI reasoning metadata: ${error.message}`);
+        return undefined;
     }
+}
+function extractHtml(response) {
+    const direct = response?.output_text;
+    if (typeof direct === "string" && direct.trim().length > 0) {
+        return direct.trim();
+    }
+    if (Array.isArray(response?.output)) {
+        const text = response.output
+            .map((item) => {
+            if (item?.type !== "message" || !Array.isArray(item?.content)) {
+                return "";
+            }
+            return item.content
+                .map((part) => part?.type === "output_text" && typeof part?.text === "string" ? part.text : "")
+                .join("");
+        })
+            .join("");
+        if (text.trim().length > 0) {
+            return text.trim();
+        }
+    }
+    return "";
+}
+function extractUsageMetrics(response) {
+    const usage = response?.usage ?? response?.usage_metadata;
+    if (!usage || typeof usage !== "object") {
+        return undefined;
+    }
+    const metrics = {};
+    const input = usage.input_tokens ?? usage.input_token_count;
+    const output = usage.output_tokens ?? usage.output_token_count;
+    const total = usage.total_tokens ?? usage.total_token_count;
+    const reasoning = usage.output_tokens_details?.reasoning_tokens ?? usage.reasoning_tokens;
+    if (Number.isFinite(input))
+        metrics.inputTokens = Number(input);
+    if (Number.isFinite(output))
+        metrics.outputTokens = Number(output);
+    if (Number.isFinite(total))
+        metrics.totalTokens = Number(total);
+    if (Number.isFinite(reasoning))
+        metrics.reasoningTokens = Number(reasoning);
+    const providerMetricsEntries = Object.entries(usage).filter(([, value]) => typeof value === "number" || typeof value === "string");
+    if (providerMetricsEntries.length > 0) {
+        metrics.providerMetrics = Object.fromEntries(providerMetricsEntries);
+    }
+    if (metrics.inputTokens === undefined
+        && metrics.outputTokens === undefined
+        && metrics.totalTokens === undefined
+        && metrics.reasoningTokens === undefined
+        && !metrics.providerMetrics) {
+        return undefined;
+    }
+    return metrics;
 }

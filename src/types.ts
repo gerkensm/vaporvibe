@@ -16,8 +16,70 @@ export interface ProviderSettings {
   reasoningTokens?: number;
 }
 
+export interface LlmUsageMetrics {
+  inputTokens?: number;
+  outputTokens?: number;
+  reasoningTokens?: number;
+  totalTokens?: number;
+  providerMetrics?: Record<string, unknown>;
+}
+
+export interface LlmReasoningTrace {
+  summaries?: string[];
+  details?: string[];
+  raw?: unknown;
+}
+
+export interface HistoryEntry {
+  id: string;
+  sessionId: string;
+  createdAt: string;
+  durationMs: number;
+  brief: string;
+  request: {
+    method: string;
+    path: string;
+    query: Record<string, unknown>;
+    body: Record<string, unknown>;
+    instructions?: string;
+  };
+  response: {
+    html: string;
+  };
+  llm: {
+    provider: ModelProvider;
+    model: string;
+    maxOutputTokens: number;
+    reasoningMode: ReasoningMode;
+    reasoningTokens?: number;
+  };
+  usage?: LlmUsageMetrics;
+  reasoning?: LlmReasoningTrace;
+}
+
+export interface ProviderSettingsSummary {
+  provider: ModelProvider;
+  model: string;
+  maxOutputTokens: number;
+  reasoningMode: ReasoningMode;
+  reasoningTokens?: number;
+  apiKeyMask?: string;
+}
+
+export interface HistorySnapshot {
+  version: 1;
+  exportedAt: string;
+  brief: string | null;
+  history: HistoryEntry[];
+  runtime: Pick<RuntimeConfig, "historyLimit" | "historyMaxBytes" | "includeInstructionPanel">;
+  llm: ProviderSettingsSummary;
+}
+
 export interface RuntimeConfig {
   port: number;
+  host: string;
+  historyLimit: number;
+  historyMaxBytes: number;
   brief?: string;
   promptPath: string;
   sessionTtlMs: number;

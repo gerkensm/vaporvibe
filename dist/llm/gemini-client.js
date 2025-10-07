@@ -38,16 +38,16 @@ export class GeminiClient {
             contents,
             config,
         });
-        maybeLogGeminiThinking(response, this.settings.reasoningMode, this.settings.reasoningTokens);
+        const reasoning = extractGeminiThinking(response, this.settings.reasoningMode, this.settings.reasoningTokens);
         const text = response.text?.trim();
         if (text) {
-            return text;
+            return { html: text, usage: extractUsage(response), reasoning, raw: response };
         }
         const firstCandidate = response.candidates?.[0];
         const fallback = firstCandidate?.content?.parts
             ?.map((part) => ("text" in part && typeof part.text === "string" ? part.text : ""))
             .join("") ?? "";
-        return fallback.trim();
+        return { html: fallback.trim(), usage: extractUsage(response), reasoning, raw: response };
     }
 }
 function clampGeminiBudget(requested, maxOutputTokens) {
@@ -60,9 +60,40 @@ function clampGeminiBudget(requested, maxOutputTokens) {
     const upperBound = Number.isFinite(maxOutputTokens) && maxOutputTokens > 0 ? maxOutputTokens : requested;
     return Math.max(0, Math.min(requested, upperBound));
 }
-function maybeLogGeminiThinking(response, mode, requestedTokens) {
+function extractUsage(response) {
+    const usage = response?.usageMetadata ?? response?.usage_metadata;
+    if (!usage || typeof usage !== "object") {
+        return undefined;
+    }
+    const metrics = {};
+    const input = usage.promptTokenCount ?? usage.prompt_token_count;
+    const output = usage.candidatesTokenCount ?? usage.candidates_token_count;
+    const total = usage.totalTokenCount ?? usage.total_token_count;
+    const thoughts = usage.thoughtsTokenCount ?? usage.thoughts_token_count;
+    if (Number.isFinite(input))
+        metrics.inputTokens = Number(input);
+    if (Number.isFinite(output))
+        metrics.outputTokens = Number(output);
+    if (Number.isFinite(total))
+        metrics.totalTokens = Number(total);
+    if (Number.isFinite(thoughts))
+        metrics.reasoningTokens = Number(thoughts);
+    const providerMetricsEntries = Object.entries(usage).filter(([, value]) => typeof value === "number" || typeof value === "string");
+    if (providerMetricsEntries.length > 0) {
+        metrics.providerMetrics = Object.fromEntries(providerMetricsEntries);
+    }
+    if (metrics.inputTokens === undefined
+        && metrics.outputTokens === undefined
+        && metrics.totalTokens === undefined
+        && metrics.reasoningTokens === undefined
+        && !metrics.providerMetrics) {
+        return undefined;
+    }
+    return metrics;
+}
+function extractGeminiThinking(response, mode, requestedTokens) {
     if (!mode || mode === "none") {
-        return;
+        return undefined;
     }
     try {
         const firstCandidate = response?.candidates?.[0];
@@ -76,12 +107,16 @@ function maybeLogGeminiThinking(response, mode, requestedTokens) {
         const header = `Gemini thinking (mode=${mode}, budget=${budgetLabel}, thoughtTokens=${thoughtsTokenCount ?? "n/a"})`;
         if (thoughtSummaries.length > 0) {
             logger.debug(`${header}\n${thoughtSummaries.join("\n\n")}`);
+            return {
+                summaries: thoughtSummaries,
+                raw: thoughtSummaries,
+            };
         }
-        else {
-            logger.debug(`${header} — no thought summaries returned.`);
-        }
+        logger.debug(`${header} — no thought summaries returned.`);
+        return undefined;
     }
     catch (error) {
         logger.warn(`Failed to capture Gemini thinking metadata: ${error.message}`);
+        return undefined;
     }
 }

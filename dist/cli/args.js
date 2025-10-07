@@ -13,6 +13,13 @@ const FLAG_MAP = {
     reasoningTokens: "reasoningTokens",
     instructions: "instructionPanel",
     "instructions-panel": "instructionPanel",
+    history: "historyLimit",
+    "history-limit": "historyLimit",
+    "historyLength": "historyLimit",
+    "history-length": "historyLimit",
+    "history-bytes": "historyMaxBytes",
+    "history-max-bytes": "historyMaxBytes",
+    host: "host",
 };
 export function parseCliArgs(argv) {
     const options = {};
@@ -67,7 +74,11 @@ export function parseCliArgs(argv) {
     return options;
 }
 function assignOption(options, key, value) {
-    if (key === "port" || key === "maxOutputTokens" || key === "reasoningTokens") {
+    if (key === "port"
+        || key === "maxOutputTokens"
+        || key === "reasoningTokens"
+        || key === "historyLimit"
+        || key === "historyMaxBytes") {
         const parsed = Number(value);
         if (!Number.isFinite(parsed) || parsed <= 0) {
             throw new Error(`Expected a positive numeric value for ${String(key)}, received: ${value}`);
@@ -75,7 +86,7 @@ function assignOption(options, key, value) {
         options[key] = parsed;
         return;
     }
-    if (key === "reasoningMode" || key === "instructionPanel") {
+    if (key === "reasoningMode" || key === "instructionPanel" || key === "host") {
         options[key] = value.trim();
         return;
     }

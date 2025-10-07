@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import type { ChatMessage, ProviderSettings } from "../types.js";
-import type { LlmClient } from "./client.js";
+import type { ChatMessage, LlmReasoningTrace, LlmUsageMetrics, ProviderSettings } from "../types.js";
+import type { LlmClient, LlmResult } from "./client.js";
 import { logger } from "../logger.js";
 
 type ContentPart = { text: string };
@@ -24,7 +24,7 @@ export class GeminiClient implements LlmClient {
     this.client = new GoogleGenAI({ apiKey: settings.apiKey });
   }
 
-  async generateHtml(messages: ChatMessage[]): Promise<string> {
+  async generateHtml(messages: ChatMessage[]): Promise<LlmResult> {
     const systemMessages = messages.filter((message) => message.role === "system");
     const userMessages = messages.filter((message) => message.role === "user");
 
@@ -60,11 +60,11 @@ export class GeminiClient implements LlmClient {
       config,
     });
 
-    maybeLogGeminiThinking(response, this.settings.reasoningMode, this.settings.reasoningTokens);
+    const reasoning = extractGeminiThinking(response, this.settings.reasoningMode, this.settings.reasoningTokens);
 
     const text = response.text?.trim();
     if (text) {
-      return text;
+      return { html: text, usage: extractUsage(response), reasoning, raw: response };
     }
 
     const firstCandidate = response.candidates?.[0];
@@ -72,7 +72,7 @@ export class GeminiClient implements LlmClient {
       ?.map((part) => ("text" in part && typeof part.text === "string" ? part.text : ""))
       .join("") ?? "";
 
-    return fallback.trim();
+    return { html: fallback.trim(), usage: extractUsage(response), reasoning, raw: response };
   }
 }
 
@@ -87,9 +87,45 @@ function clampGeminiBudget(requested: number, maxOutputTokens: number): number {
   return Math.max(0, Math.min(requested, upperBound));
 }
 
-function maybeLogGeminiThinking(response: any, mode: ProviderSettings["reasoningMode"], requestedTokens?: number): void {
+function extractUsage(response: any): LlmUsageMetrics | undefined {
+  const usage = response?.usageMetadata ?? response?.usage_metadata;
+  if (!usage || typeof usage !== "object") {
+    return undefined;
+  }
+  const metrics: LlmUsageMetrics = {};
+  const input = usage.promptTokenCount ?? usage.prompt_token_count;
+  const output = usage.candidatesTokenCount ?? usage.candidates_token_count;
+  const total = usage.totalTokenCount ?? usage.total_token_count;
+  const thoughts = usage.thoughtsTokenCount ?? usage.thoughts_token_count;
+  if (Number.isFinite(input)) metrics.inputTokens = Number(input);
+  if (Number.isFinite(output)) metrics.outputTokens = Number(output);
+  if (Number.isFinite(total)) metrics.totalTokens = Number(total);
+  if (Number.isFinite(thoughts)) metrics.reasoningTokens = Number(thoughts);
+  const providerMetricsEntries = Object.entries(usage).filter(
+    ([, value]) => typeof value === "number" || typeof value === "string",
+  );
+  if (providerMetricsEntries.length > 0) {
+    metrics.providerMetrics = Object.fromEntries(providerMetricsEntries);
+  }
+  if (
+    metrics.inputTokens === undefined
+    && metrics.outputTokens === undefined
+    && metrics.totalTokens === undefined
+    && metrics.reasoningTokens === undefined
+    && !metrics.providerMetrics
+  ) {
+    return undefined;
+  }
+  return metrics;
+}
+
+function extractGeminiThinking(
+  response: any,
+  mode: ProviderSettings["reasoningMode"],
+  requestedTokens?: number,
+): LlmReasoningTrace | undefined {
   if (!mode || mode === "none") {
-    return;
+    return undefined;
   }
   try {
     const firstCandidate = response?.candidates?.[0];
@@ -104,10 +140,15 @@ function maybeLogGeminiThinking(response: any, mode: ProviderSettings["reasoning
     const header = `Gemini thinking (mode=${mode}, budget=${budgetLabel}, thoughtTokens=${thoughtsTokenCount ?? "n/a"})`;
     if (thoughtSummaries.length > 0) {
       logger.debug(`${header}\n${thoughtSummaries.join("\n\n")}`);
-    } else {
-      logger.debug(`${header} — no thought summaries returned.`);
+      return {
+        summaries: thoughtSummaries,
+        raw: thoughtSummaries,
+      };
     }
+    logger.debug(`${header} — no thought summaries returned.`);
+    return undefined;
   } catch (error) {
     logger.warn(`Failed to capture Gemini thinking metadata: ${(error as Error).message}`);
+    return undefined;
   }
 }

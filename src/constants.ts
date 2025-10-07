@@ -8,6 +8,7 @@ export const AUTO_IGNORED_PATHS = new Set([
   "/site.webmanifest",
   "/manifest.json",
   "/browserconfig.xml",
+  "/.well-known/appspecific/com.chrome.devtools.json",
   "/robots.txt",
   "/safari-pinned-tab.svg",
   "/asset-manifest.json",
@@ -21,5 +22,9 @@ export const DEFAULT_OPENAI_MODEL = "gpt-5";
 export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5-20250929";
 export const DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS = 64_000;
 export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+export const DEFAULT_HISTORY_LIMIT = 30;
+export const DEFAULT_HISTORY_MAX_BYTES = 200_000;
+export const LOOPBACK_HOST = "127.0.0.1";
 
 export const BRIEF_FORM_ROUTE = "/__set-brief";
+export const ADMIN_ROUTE_PREFIX = "/serve-llm";

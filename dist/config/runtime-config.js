@@ -1,4 +1,4 @@
-import { DEFAULT_GEMINI_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_MODEL, DEFAULT_PORT, BRIEF_FORM_ROUTE, DEFAULT_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS } from "../constants.js";
+import { DEFAULT_GEMINI_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_MODEL, DEFAULT_PORT, BRIEF_FORM_ROUTE, DEFAULT_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_HISTORY_LIMIT, DEFAULT_HISTORY_MAX_BYTES, LOOPBACK_HOST } from "../constants.js";
 import { createPrompter } from "./prompter.js";
 const SESSION_TTL_MS = 15 * 60 * 1000;
 const SESSION_CAP = 200;
@@ -20,10 +20,16 @@ export async function resolveAppConfig(options, env) {
 }
 function resolveRuntime(options, env) {
     const port = options.port ?? parsePositiveInt(env.PORT) ?? DEFAULT_PORT;
+    const host = options.host?.trim() || env.HOST?.trim() || LOOPBACK_HOST;
     const maxOutputTokens = options.maxOutputTokens ?? parsePositiveInt(env.MAX_OUTPUT_TOKENS) ?? parsePositiveInt(env.MAX_TOKENS);
     const instructionSetting = options.instructionPanel ?? env.INSTRUCTION_PANEL ?? env.INSTRUCTIONS_PANEL;
+    const historyLimit = options.historyLimit ?? parsePositiveInt(env.HISTORY_LIMIT) ?? DEFAULT_HISTORY_LIMIT;
+    const historyMaxBytes = options.historyMaxBytes ?? parsePositiveInt(env.HISTORY_MAX_BYTES) ?? DEFAULT_HISTORY_MAX_BYTES;
     const runtime = {
         port,
+        host,
+        historyLimit,
+        historyMaxBytes,
         brief: undefined,
         promptPath: BRIEF_FORM_ROUTE,
         sessionTtlMs: SESSION_TTL_MS,

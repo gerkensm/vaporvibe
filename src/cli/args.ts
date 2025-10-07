@@ -9,6 +9,9 @@ export interface CliOptions {
   reasoningMode?: string;
   reasoningTokens?: number;
   instructionPanel?: string;
+  historyLimit?: number;
+  historyMaxBytes?: number;
+  host?: string;
   showHelp?: boolean;
 }
 
@@ -27,6 +30,13 @@ const FLAG_MAP: Record<string, keyof CliOptions> = {
   reasoningTokens: "reasoningTokens",
   instructions: "instructionPanel",
   "instructions-panel": "instructionPanel",
+  history: "historyLimit",
+  "history-limit": "historyLimit",
+  "historyLength": "historyLimit",
+  "history-length": "historyLimit",
+  "history-bytes": "historyMaxBytes",
+  "history-max-bytes": "historyMaxBytes",
+  host: "host",
 };
 
 export function parseCliArgs(argv: string[]): CliOptions {
@@ -88,7 +98,13 @@ export function parseCliArgs(argv: string[]): CliOptions {
 }
 
 function assignOption(options: CliOptions, key: keyof CliOptions, value: string): void {
-  if (key === "port" || key === "maxOutputTokens" || key === "reasoningTokens") {
+  if (
+    key === "port"
+    || key === "maxOutputTokens"
+    || key === "reasoningTokens"
+    || key === "historyLimit"
+    || key === "historyMaxBytes"
+  ) {
     const parsed = Number(value);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       throw new Error(`Expected a positive numeric value for ${String(key)}, received: ${value}`);
@@ -96,7 +112,7 @@ function assignOption(options: CliOptions, key: keyof CliOptions, value: string)
     (options as Record<string, unknown>)[key] = parsed;
     return;
   }
-  if (key === "reasoningMode" || key === "instructionPanel") {
+  if (key === "reasoningMode" || key === "instructionPanel" || key === "host") {
     (options as Record<string, unknown>)[key] = value.trim();
     return;
   }

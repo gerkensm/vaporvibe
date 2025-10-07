@@ -1,4 +1,6 @@
-import type { ChatMessage } from "../types.js";
+import type { ChatMessage, HistoryEntry } from "../types.js";
+
+const LINE_DIVIDER = "----------------------------------------";
 
 export interface MessageContext {
   brief: string;
@@ -9,6 +11,14 @@ export interface MessageContext {
   prevHtml: string;
   timestamp: Date;
   includeInstructionPanel: boolean;
+  history: HistoryEntry[];
+  historyTotal: number;
+  historyLimit: number;
+  historyMaxBytes: number;
+  historyBytesUsed: number;
+  historyLimitOmitted: number;
+  historyByteOmitted: number;
+  adminPath: string;
 }
 
 export function buildMessages(context: MessageContext): ChatMessage[] {
@@ -21,6 +31,14 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     prevHtml,
     timestamp,
     includeInstructionPanel,
+    history,
+    historyTotal,
+    historyLimit,
+    historyMaxBytes,
+    historyBytesUsed,
+    historyLimitOmitted,
+    historyByteOmitted,
+    adminPath,
   } = context;
   const nowIso = timestamp.toISOString();
 
@@ -59,11 +77,26 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       insertIndex,
       0,
       "12) ITERATION OPPORTUNITY: The user may want to change the application while it's running and give additional instructions for the next iteration. At the bottom of the screen (floating and pinned to the lower-right, with a CTA to hide/show), include an input box where the user can explicitly send instructions to the model, POSTed to the web server. When collapsed, show ONLY a single button in the lower-right corner; when expanded, present the full instruction input. The instructions are put in a field LLM_WEB_SERVER_INSTRUCTIONS (make sure to retain other state as well with this request). You will take these instructions into account for the generated HTML and, if relevant, carry them forward to the next requests (e.g. as POST/GET parameters or as part of retained state in comments in the HTML and mark this information as crucial to be carried over to further iterations).",
-      "13) INSTRUCTION LOOP BEHAVIOR: When a POST includes LLM_WEB_SERVER_INSTRUCTIONS, treat it as a request to re-render the current page with the requested changes applied. Do NOT swap to a confirmation or success view. Update the original page, persist any necessary state, and surface an explicit acknowledgement inside the floating widget so the user sees their request was handled."
+      `13) INSTRUCTION LOOP BEHAVIOR: When a POST includes LLM_WEB_SERVER_INSTRUCTIONS, treat it as a request to re-render the current page with the requested changes applied. Do NOT swap to a confirmation or success view. Update the original page, persist any necessary state, and surface an explicit acknowledgement inside the floating widget so the user sees their request was handled.`,
+      `14) ADMIN ACCESS: Inside the floating instructions UI, include a clear link labeled "Admin Panel" (or similar) that points to "${adminPath}".`
     );
+  } else {
+    systemLines.push(`ADMIN ACCESS: Mention that configuration and history are available at "${adminPath}" when it helps the user.`);
   }
 
   const system = systemLines.join("\n");
+
+  const historySection = buildHistorySection({
+    history,
+    historyTotal,
+    historyLimit,
+    historyMaxBytes,
+    historyBytesUsed,
+    historyLimitOmitted,
+    historyByteOmitted,
+  });
+
+  const prevHtmlSnippet = historyMaxBytes > 0 ? prevHtml.slice(0, historyMaxBytes) : prevHtml;
 
   const user = [
     `App Brief:\n${brief}`,
@@ -77,8 +110,10 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     "",
     "Previous HTML (for context; may be empty if first view):",
     "-----BEGIN PREVIOUS HTML-----",
-    prevHtml.slice(0, 200_000),
+    prevHtmlSnippet,
     "-----END PREVIOUS HTML-----",
+    "",
+    historySection,
     "",
     "Remember:",
     "- Render ONLY the current view as a full document.",
@@ -93,4 +128,104 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     { role: "system", content: system },
     { role: "user", content: user },
   ];
+}
+
+interface HistorySectionOptions {
+  history: HistoryEntry[];
+  historyTotal: number;
+  historyLimit: number;
+  historyMaxBytes: number;
+  historyBytesUsed: number;
+  historyLimitOmitted: number;
+  historyByteOmitted: number;
+}
+
+function buildHistorySection(options: HistorySectionOptions): string {
+  const {
+    history,
+    historyTotal,
+    historyLimit,
+    historyMaxBytes,
+    historyBytesUsed,
+    historyLimitOmitted,
+    historyByteOmitted,
+  } = options;
+
+  if (history.length === 0) {
+    return "History: No previous pages for this session yet.";
+  }
+
+  const budgetLabel = historyMaxBytes > 0 ? `${historyMaxBytes} bytes` : "unbounded";
+  const omittedTotal = historyLimitOmitted + historyByteOmitted;
+
+  const introParts = [
+    "History (oldest first)",
+    `showing ${history.length} of ${historyTotal} entries`,
+    `configured limit ${historyLimit}`,
+    `byte budget ${budgetLabel}`,
+    `~${historyBytesUsed} bytes included`,
+  ];
+
+  if (omittedTotal > 0) {
+    const omissionDetails: string[] = [];
+    if (historyLimitOmitted > 0) {
+      omissionDetails.push(`${historyLimitOmitted} via entry limit`);
+    }
+    if (historyByteOmitted > 0) {
+      omissionDetails.push(`${historyByteOmitted} via byte budget`);
+    }
+    introParts.push(`omitted ${omissionDetails.join(", ")}`);
+  }
+
+  const intro = [
+    `${introParts.join(" / ")}:`,
+    LINE_DIVIDER,
+  ];
+
+  const entries = history.map((entry, index) => {
+    const indexLabel = `Entry ${index + 1} — ${entry.request.method} ${entry.request.path}`;
+    const requestLines = [
+      `Timestamp: ${entry.createdAt}`,
+      `Session: ${entry.sessionId}`,
+      `Duration: ${entry.durationMs} ms`,
+      `Query Params (JSON): ${JSON.stringify(entry.request.query ?? {}, null, 2)}`,
+      `Body Params (JSON): ${JSON.stringify(entry.request.body ?? {}, null, 2)}`,
+    ];
+    if (entry.request.instructions) {
+      requestLines.push(`Instructions: ${entry.request.instructions}`);
+    }
+    requestLines.push(
+      `Provider: ${entry.llm.provider} (${entry.llm.model})`,
+      `Max Output Tokens: ${entry.llm.maxOutputTokens}`,
+      `Reasoning Mode: ${entry.llm.reasoningMode}`,
+      `Reasoning Tokens: ${entry.llm.reasoningTokens ?? "n/a"}`,
+    );
+
+    if (entry.usage) {
+      requestLines.push(`Usage Metrics: ${JSON.stringify(entry.usage, null, 2)}`);
+    }
+
+    if (entry.reasoning?.summaries || entry.reasoning?.details) {
+      const reasoningLines: string[] = [];
+      if (entry.reasoning.summaries?.length) {
+        reasoningLines.push(`Reasoning Summaries:\n${entry.reasoning.summaries.join("\n\n")}`);
+      }
+      if (entry.reasoning.details?.length) {
+        reasoningLines.push(`Reasoning Details:\n${entry.reasoning.details.join("\n\n")}`);
+      }
+      if (reasoningLines.length > 0) {
+        requestLines.push(reasoningLines.join("\n"));
+      }
+    }
+
+    requestLines.push("HTML:");
+    requestLines.push("-----BEGIN HTML-----");
+    requestLines.push(entry.response.html);
+    requestLines.push("-----END HTML-----");
+    requestLines.push(LINE_DIVIDER);
+
+    return [indexLabel, ...requestLines].join("\n");
+  });
+
+  return [...intro, ...entries].join("\n");
 }

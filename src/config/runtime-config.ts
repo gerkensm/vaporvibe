@@ -1,4 +1,4 @@
-import { DEFAULT_GEMINI_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_MODEL, DEFAULT_PORT, BRIEF_FORM_ROUTE, DEFAULT_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS } from "../constants.js";
+import { DEFAULT_GEMINI_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_MODEL, DEFAULT_PORT, BRIEF_FORM_ROUTE, DEFAULT_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_HISTORY_LIMIT, DEFAULT_HISTORY_MAX_BYTES, LOOPBACK_HOST } from "../constants.js";
 import type { AppConfig, ModelProvider, ProviderSettings, ReasoningMode, RuntimeConfig } from "../types.js";
 import type { CliOptions } from "../cli/args.js";
 import { createPrompter, type Prompter } from "./prompter.js";
@@ -24,10 +24,16 @@ export async function resolveAppConfig(options: CliOptions, env: NodeJS.ProcessE
 
 function resolveRuntime(options: CliOptions, env: NodeJS.ProcessEnv): RuntimeConfig {
   const port = options.port ?? parsePositiveInt(env.PORT) ?? DEFAULT_PORT;
+  const host = options.host?.trim() || env.HOST?.trim() || LOOPBACK_HOST;
   const maxOutputTokens = options.maxOutputTokens ?? parsePositiveInt(env.MAX_OUTPUT_TOKENS) ?? parsePositiveInt(env.MAX_TOKENS);
   const instructionSetting = options.instructionPanel ?? env.INSTRUCTION_PANEL ?? env.INSTRUCTIONS_PANEL;
+  const historyLimit = options.historyLimit ?? parsePositiveInt(env.HISTORY_LIMIT) ?? DEFAULT_HISTORY_LIMIT;
+  const historyMaxBytes = options.historyMaxBytes ?? parsePositiveInt(env.HISTORY_MAX_BYTES) ?? DEFAULT_HISTORY_MAX_BYTES;
   const runtime: RuntimeConfig = {
     port,
+    host,
+    historyLimit,
+    historyMaxBytes,
     brief: undefined,
     promptPath: BRIEF_FORM_ROUTE,
     sessionTtlMs: SESSION_TTL_MS,

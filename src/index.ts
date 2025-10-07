@@ -21,20 +21,26 @@ async function main(): Promise<void> {
 
     const server = createServer({
       runtime: appConfig.runtime,
+      provider: appConfig.provider,
       llmClient,
       sessionStore,
     });
 
     await new Promise<void>((resolve) => {
-      server.listen(appConfig.runtime.port, () => {
-        const localUrl = `http://localhost:${appConfig.runtime.port}/`;
-        logger.info({ port: appConfig.runtime.port, url: localUrl }, `Sourcecodeless server ready at ${localUrl}`);
+      server.listen(appConfig.runtime.port, appConfig.runtime.host, () => {
+        const host = appConfig.runtime.host.includes(":")
+          ? `[${appConfig.runtime.host}]`
+          : appConfig.runtime.host;
+        const localUrl = `http://${host}:${appConfig.runtime.port}/`;
+        const adminUrl = `${localUrl.replace(/\/$/, "")}/serve-llm`;
+        logger.info({ port: appConfig.runtime.port, host: appConfig.runtime.host, url: localUrl }, `Sourcecodeless server ready at ${localUrl}`);
         if (appConfig.runtime.brief) {
           logger.info({ brief: appConfig.runtime.brief }, "Initial brief configured");
         } else {
           logger.info("Waiting for brief via browser UI…");
         }
         logger.info({ provider: appConfig.provider.provider, model: appConfig.provider.model }, "LLM provider configured");
+        logger.info({ adminUrl }, `Admin interface available at ${adminUrl}`);
         resolve();
       });
     });
@@ -48,11 +54,14 @@ function printHelp(): void {
 
 Options:
   --port <number>            Port to bind the HTTP server (default: 3000)
+  --host <hostname>          Host interface to bind (default: 127.0.0.1)
   --model <name>             Override the model identifier for the chosen provider
   --provider <openai|gemini|anthropic> Select the LLM provider explicitly
   --max-tokens <number>      Set maximum output tokens (default: 128000)
   --reasoning-mode <none|low|medium|high>  Configure reasoning effort when supported
   --reasoning-tokens <number> Token budget for reasoning/thinking features
+  --history-limit <number>   Number of historical pages injected into prompts (default: 30)
+  --history-bytes <number>   Maximum combined size (bytes) of history context passed to the LLM (default: 200000)
   --instructions-panel <on|off> Toggle the floating instructions panel (default: on)
   -h, --help                 Show this help message
 
@@ -65,6 +74,9 @@ Environment variables:
   INSTRUCTION_PANEL          Toggle instruction panel (on/off)
   MODEL                      Default model name when not provided via CLI
   PORT                       Default port when --port is omitted
+  HOST                       Host interface to bind when --host is omitted
+  HISTORY_LIMIT              Number of historical pages injected into prompts when --history-limit is omitted
+  HISTORY_MAX_BYTES          Maximum combined size (bytes) of history context passed to the LLM
 `);
 }
 

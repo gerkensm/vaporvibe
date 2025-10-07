@@ -1,8 +1,10 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
+import { Buffer } from "node:buffer";
 import { URL } from "node:url";
+import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
-import { AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE } from "../constants.js";
-import type { RuntimeConfig } from "../types.js";
+import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD } from "../constants.js";
+import type { HistoryEntry, RuntimeConfig, ProviderSettings } from "../types.js";
 import type { LlmClient } from "../llm/client.js";
 import { buildMessages } from "../llm/messages.js";
 import { parseCookies } from "../utils/cookies.js";
@@ -11,16 +13,18 @@ import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
 import { SessionStore } from "./session-store.js";
 import { renderPromptRequestPage } from "../pages/prompt-request.js";
 import { logger } from "../logger.js";
+import { AdminController } from "./admin-controller.js";
 
 type RequestLogger = Logger;
 
 export interface ServerOptions {
   runtime: RuntimeConfig;
+  provider: ProviderSettings;
   llmClient: LlmClient;
   sessionStore: SessionStore;
 }
 
-interface RequestContext {
+export interface RequestContext {
   req: IncomingMessage;
   res: ServerResponse;
   url: URL;
@@ -28,11 +32,27 @@ interface RequestContext {
   path: string;
 }
 
+export interface MutableServerState {
+  brief: string | null;
+  runtime: RuntimeConfig;
+  provider: ProviderSettings;
+  llmClient: LlmClient;
+}
+
 export function createServer(options: ServerOptions): http.Server {
-  const { runtime, llmClient, sessionStore } = options;
-  const state: { brief: string | null } = {
-    brief: runtime.brief?.trim() || null,
+  const { runtime, provider, llmClient, sessionStore } = options;
+  const runtimeState: RuntimeConfig = { ...runtime };
+  const providerState: ProviderSettings = { ...provider };
+  const state: MutableServerState = {
+    brief: runtimeState.brief?.trim() || null,
+    runtime: runtimeState,
+    provider: providerState,
+    llmClient,
   };
+  const adminController = new AdminController({
+    state,
+    sessionStore,
+  });
 
   return http.createServer(async (req, res) => {
     const requestStart = Date.now();
@@ -51,6 +71,14 @@ export function createServer(options: ServerOptions): http.Server {
     }
 
     try {
+      if (context.path.startsWith(ADMIN_ROUTE_PREFIX)) {
+        const handled = await adminController.handle(context, requestStart, reqLogger);
+        if (handled) {
+          reqLogger.info(`Admin route completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
+          return;
+        }
+      }
+
       if (!state.brief) {
         await handleBriefSetup(context, state, reqLogger);
         reqLogger.info(`Completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
@@ -59,11 +87,10 @@ export function createServer(options: ServerOptions): http.Server {
 
       await handleLlmRequest(
         context,
-        state.brief,
-        llmClient,
+        state,
         sessionStore,
-        runtime.includeInstructionPanel,
         reqLogger,
+        requestStart,
       );
       reqLogger.info(`Completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
     } catch (error) {
@@ -105,7 +132,7 @@ function shouldEarly404(context: RequestContext): boolean {
 
 async function handleBriefSetup(
   context: RequestContext,
-  state: { brief: string | null },
+  state: MutableServerState,
   reqLogger: RequestLogger,
 ): Promise<void> {
   const { method, path, req, res } = context;
@@ -117,31 +144,119 @@ async function handleBriefSetup(
     if (!briefValue) {
       res.statusCode = 400;
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.end(renderPromptRequestPage());
+      res.end(renderPromptRequestPage({ adminPath: ADMIN_ROUTE_PREFIX }));
       reqLogger.warn({ status: res.statusCode }, "Rejected brief submission due to empty brief");
       return;
     }
     state.brief = briefValue;
     reqLogger.info("Stored new application brief from prompt page");
-    res.statusCode = 302;
-    res.setHeader("Location", "/");
-    res.end();
+    const adminUrl = escapeHtml(ADMIN_ROUTE_PREFIX);
+    const appUrl = escapeHtml("/");
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Redirecting…</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f6f8fb;
+      color: #0f172a;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 48px 24px;
+    }
+    main {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 32px;
+      max-width: 420px;
+      box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 16px;
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    p {
+      margin: 12px 0 0;
+      line-height: 1.6;
+      color: #475569;
+    }
+    .actions {
+      margin-top: 24px;
+      display: grid;
+      gap: 12px;
+    }
+    a {
+      color: #1d4ed8;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .primary {
+      display: inline-block;
+      padding: 10px 18px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1d4ed8, #1e3a8a);
+      color: #f8fafc;
+      font-weight: 600;
+      box-shadow: 0 16px 28px rgba(29, 78, 216, 0.18);
+    }
+  </style>
+  <script>
+    window.addEventListener("load", () => {
+      try {
+        const opened = window.open("${appUrl}", "_blank", "noopener");
+        if (!opened) {
+          console.warn("Popup blocked while opening application view");
+        }
+      } catch (error) {
+        console.warn("Failed to open application view", error);
+      }
+      window.location.replace("${adminUrl}");
+    });
+  </script>
+</head>
+<body>
+  <main>
+    <h1>Setting things up…</h1>
+    <p>Hold tight—we are opening your Flank experience in a new tab and routing this one to the admin console.</p>
+    <div class="actions">
+      <a class="primary" href="${appUrl}" target="_blank" rel="noopener">Open app manually</a>
+      <a href="${adminUrl}">Go to admin dashboard</a>
+    </div>
+  </main>
+</body>
+</html>`;
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.end(html);
     return;
   }
 
-  res.statusCode = 200;
-  res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.end(renderPromptRequestPage());
-  reqLogger.debug("Served brief configuration page");
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.end(renderPromptRequestPage({ adminPath: ADMIN_ROUTE_PREFIX }));
+    reqLogger.debug("Served brief configuration page");
 }
 
 async function handleLlmRequest(
   context: RequestContext,
-  brief: string,
-  llmClient: LlmClient,
+  state: MutableServerState,
   sessionStore: SessionStore,
-  includeInstructionPanel: boolean,
   reqLogger: RequestLogger,
+  requestStart: number,
 ): Promise<void> {
   const { req, res, url, method, path } = context;
 
@@ -162,24 +277,79 @@ async function handleLlmRequest(
     }
   }
 
-  const prevHtml = sessionStore.getPrevHtml(sid);
+  const fullHistory = sessionStore.getHistory(sid);
+  const historyLimit = Math.max(1, state.runtime.historyLimit);
+  const limitedHistory = historyLimit >= fullHistory.length ? fullHistory : fullHistory.slice(-historyLimit);
+  const limitOmitted = fullHistory.length - limitedHistory.length;
+  const selection = selectHistoryForPrompt(limitedHistory, state.runtime.historyMaxBytes);
+  const historyForPrompt = selection.entries;
+  const byteOmitted = limitedHistory.length - historyForPrompt.length;
+  const prevHtml = historyForPrompt.at(-1)?.response.html ?? limitedHistory.at(-1)?.response.html ?? sessionStore.getPrevHtml(sid);
+
+  reqLogger.debug({
+    historyTotal: fullHistory.length,
+    historyLimit,
+    historyIncluded: historyForPrompt.length,
+    historyBytesUsed: selection.bytes,
+    historyLimitOmitted: limitOmitted,
+    historyByteOmitted: byteOmitted,
+    historyMaxBytes: state.runtime.historyMaxBytes,
+  }, "History context prepared");
+
   const messages = buildMessages({
-    brief,
+    brief: state.brief ?? "",
     method,
     path,
     query,
     body: bodyData,
     prevHtml,
     timestamp: new Date(),
-    includeInstructionPanel,
+    includeInstructionPanel: state.runtime.includeInstructionPanel,
+    history: historyForPrompt,
+    historyTotal: fullHistory.length,
+    historyLimit,
+    historyMaxBytes: state.runtime.historyMaxBytes,
+    historyBytesUsed: selection.bytes,
+    historyLimitOmitted: limitOmitted,
+    historyByteOmitted: byteOmitted,
+    adminPath: ADMIN_ROUTE_PREFIX,
   });
   reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
 
-  const html = await llmClient.generateHtml(messages);
-  reqLogger.debug(`LLM response preview [${llmClient.settings.provider}]:\n${truncate(html, 500)}`);
-  const safeHtml = ensureHtmlDocument(html, { method, path });
+  const result = await state.llmClient.generateHtml(messages);
+  const durationMs = Date.now() - requestStart;
+  reqLogger.debug(`LLM response preview [${state.llmClient.settings.provider}]:\n${truncate(result.html, 500)}`);
+  const safeHtml = ensureHtmlDocument(result.html, { method, path });
 
   sessionStore.setPrevHtml(sid, safeHtml);
+
+  const instructions = extractInstructions(bodyData);
+  const historyEntry: HistoryEntry = {
+    id: randomUUID(),
+    sessionId: sid,
+    createdAt: new Date().toISOString(),
+    durationMs,
+    brief: state.brief ?? "",
+    request: {
+      method,
+      path,
+      query,
+      body: bodyData,
+      instructions,
+    },
+    response: { html: safeHtml },
+    llm: {
+      provider: state.llmClient.settings.provider,
+      model: state.llmClient.settings.model,
+      maxOutputTokens: state.llmClient.settings.maxOutputTokens,
+      reasoningMode: state.llmClient.settings.reasoningMode,
+      reasoningTokens: state.llmClient.settings.reasoningTokens,
+    },
+    usage: result.usage,
+    reasoning: result.reasoning,
+  };
+
+  sessionStore.appendHistoryEntry(sid, historyEntry);
 
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -214,6 +384,19 @@ function renderErrorPage(error: unknown): string {
 </html>`;
 }
 
+function extractInstructions(body: Record<string, unknown>): string | undefined {
+  const value = body?.[INSTRUCTIONS_FIELD];
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (Array.isArray(value)) {
+    const first = value.find((item) => typeof item === "string" && item.trim().length > 0);
+    return typeof first === "string" ? first.trim() : undefined;
+  }
+  return undefined;
+}
+
 function truncate(value: string, maxLength: number): string {
   if (value.length <= maxLength) {
     return value;
@@ -237,4 +420,51 @@ function formatJsonForLog(payload: unknown, label?: string): string {
   } catch {
     return `${prefix}${String(payload)}`;
   }
+}
+
+function selectHistoryForPrompt(history: HistoryEntry[], maxBytes: number): { entries: HistoryEntry[]; bytes: number } {
+  if (history.length === 0) {
+    return { entries: [], bytes: 0 };
+  }
+  const budget = maxBytes > 0 ? maxBytes : Number.POSITIVE_INFINITY;
+  const reversed: HistoryEntry[] = [];
+  let bytes = 0;
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const entry = history[index];
+    const size = estimateHistoryEntrySize(entry);
+    if (reversed.length > 0 && bytes + size > budget) {
+      break;
+    }
+    reversed.push(entry);
+    bytes += size;
+  }
+  const entries = reversed.reverse();
+  return { entries, bytes };
+}
+
+function estimateHistoryEntrySize(entry: HistoryEntry): number {
+  const fragments: string[] = [
+    entry.brief ?? "",
+    entry.request.method,
+    entry.request.path,
+    JSON.stringify(entry.request.query ?? {}, null, 2),
+    JSON.stringify(entry.request.body ?? {}, null, 2),
+    entry.request.instructions ?? "",
+    entry.response.html ?? "",
+  ];
+  if (entry.usage) {
+    fragments.push(JSON.stringify(entry.usage, null, 2));
+  }
+  if (entry.reasoning?.summaries?.length) {
+    fragments.push(entry.reasoning.summaries.join("\n"));
+  }
+  if (entry.reasoning?.details?.length) {
+    fragments.push(entry.reasoning.details.join("\n"));
+  }
+  let bytes = 0;
+  for (const fragment of fragments) {
+    bytes += Buffer.byteLength(fragment, "utf8");
+  }
+  // Add a cushion for labels and formatting noise in prompts.
+  return bytes + 1024;
 }

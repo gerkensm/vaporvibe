@@ -1,14 +1,14 @@
 import type { ChatMessage, ProviderSettings } from "../types.js";
-import type { LlmClient } from "./client.js";
+import type { LlmClient, LlmResult } from "./client.js";
 export declare class AnthropicClient implements LlmClient {
     readonly settings: ProviderSettings;
     private readonly client;
     constructor(settings: ProviderSettings);
-    generateHtml(messages: ChatMessage[]): Promise<string>;
+    generateHtml(messages: ChatMessage[]): Promise<LlmResult>;
     private generateWithThinking;
     private extractStreamDelta;
     private extractThinkingDelta;
     private combineContent;
     private collectThinking;
-    private logThinkingMetadata;
+    private logAndCollectThinking;
 }

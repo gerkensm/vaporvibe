@@ -1,4 +1,4 @@
-import type { ChatMessage } from "../types.js";
+import type { ChatMessage, HistoryEntry } from "../types.js";
 export interface MessageContext {
     brief: string;
     method: string;
@@ -8,5 +8,13 @@ export interface MessageContext {
     prevHtml: string;
     timestamp: Date;
     includeInstructionPanel: boolean;
+    history: HistoryEntry[];
+    historyTotal: number;
+    historyLimit: number;
+    historyMaxBytes: number;
+    historyBytesUsed: number;
+    historyLimitOmitted: number;
+    historyByteOmitted: number;
+    adminPath: string;
 }
 export declare function buildMessages(context: MessageContext): ChatMessage[];
