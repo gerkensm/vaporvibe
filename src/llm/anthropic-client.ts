@@ -51,7 +51,12 @@ export class AnthropicClient implements LlmClient {
       requestMessages.push({ role: "user", content: [{ type: "text", text: "" }] });
     }
 
-    if (this.settings.reasoningMode && this.settings.reasoningMode !== "none") {
+    const wantsThinking = (
+      (this.settings.reasoningMode && this.settings.reasoningMode !== "none")
+      || (typeof this.settings.reasoningTokens === "number" && this.settings.reasoningTokens > 0)
+    );
+
+    if (wantsThinking) {
       return this.generateWithThinking(systemMessages, requestMessages);
     }
 
@@ -176,7 +181,10 @@ export class AnthropicClient implements LlmClient {
     try {
       const thoughts = summaries;
       if (thoughts.length > 0) {
-        const header = `Anthropic thinking (mode=${this.settings.reasoningMode}, budget=${budgetTokens})`;
+        const modeLabel = this.settings.reasoningMode && this.settings.reasoningMode !== "none"
+          ? this.settings.reasoningMode
+          : "token-only";
+        const header = `Anthropic thinking (mode=${modeLabel}, budget=${budgetTokens})`;
         logger.debug(`${header}\n${thoughts.join("\n\n")}`);
         return {
           summaries: thoughts,
