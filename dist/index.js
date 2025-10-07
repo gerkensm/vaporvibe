@@ -14,11 +14,12 @@ async function main() {
             return;
         }
         const appConfig = await resolveAppConfig(cliOptions, process.env);
-        const llmClient = createLlmClient(appConfig.provider);
+        const llmClient = appConfig.providerReady ? createLlmClient(appConfig.provider) : null;
         const sessionStore = new SessionStore(appConfig.runtime.sessionTtlMs, appConfig.runtime.sessionCap);
         const server = createServer({
             runtime: appConfig.runtime,
             provider: appConfig.provider,
+            providerLocked: appConfig.providerLocked,
             llmClient,
             sessionStore,
         });
@@ -36,7 +37,12 @@ async function main() {
                 else {
                     logger.info("Waiting for brief via browser UI…");
                 }
-                logger.info({ provider: appConfig.provider.provider, model: appConfig.provider.model }, "LLM provider configured");
+                if (appConfig.providerReady) {
+                    logger.info({ provider: appConfig.provider.provider, model: appConfig.provider.model }, "LLM provider configured");
+                }
+                else {
+                    logger.info({ provider: appConfig.provider.provider, model: appConfig.provider.model }, "LLM provider awaiting API key via setup wizard");
+                }
                 logger.info({ adminUrl }, `Admin interface available at ${adminUrl}`);
                 resolve();
             });

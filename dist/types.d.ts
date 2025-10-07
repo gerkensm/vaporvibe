@@ -24,6 +24,10 @@ export interface LlmReasoningTrace {
     details?: string[];
     raw?: unknown;
 }
+export interface VerificationResult {
+    ok: boolean;
+    message?: string;
+}
 export interface HistoryEntry {
     id: string;
     sessionId: string;
@@ -80,4 +84,6 @@ export interface RuntimeConfig {
 export interface AppConfig {
     runtime: RuntimeConfig;
     provider: ProviderSettings;
+    providerReady: boolean;
+    providerLocked: boolean;
 }

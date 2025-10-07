@@ -1,4 +1,4 @@
-import type { ChatMessage, ProviderSettings } from "../types.js";
+import type { ChatMessage, ProviderSettings, VerificationResult } from "../types.js";
 import type { LlmClient, LlmResult } from "./client.js";
 export declare class AnthropicClient implements LlmClient {
     readonly settings: ProviderSettings;
@@ -12,3 +12,4 @@ export declare class AnthropicClient implements LlmClient {
     private collectThinking;
     private logAndCollectThinking;
 }
+export declare function verifyAnthropicApiKey(apiKey: string): Promise<VerificationResult>;

@@ -38,9 +38,9 @@ export function createPrompter(): Prompter | null {
 
     try {
       masked.setMasked(false);
-      output.write(question);
+      const prompt = question.endsWith("\n") ? question : `${question}\n`;
+      output.write(prompt);
       masked.setMasked(true);
-
       const answer = await rl.question("", { signal: abortController.signal });
       output.write("\n");
       return answer.trim();

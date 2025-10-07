@@ -6,7 +6,8 @@ import { SessionStore } from "./session-store.js";
 export interface ServerOptions {
     runtime: RuntimeConfig;
     provider: ProviderSettings;
-    llmClient: LlmClient;
+    providerLocked: boolean;
+    llmClient: LlmClient | null;
     sessionStore: SessionStore;
 }
 export interface RequestContext {
@@ -20,6 +21,8 @@ export interface MutableServerState {
     brief: string | null;
     runtime: RuntimeConfig;
     provider: ProviderSettings;
-    llmClient: LlmClient;
+    llmClient: LlmClient | null;
+    providerReady: boolean;
+    providerLocked: boolean;
 }
 export declare function createServer(options: ServerOptions): http.Server;

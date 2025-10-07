@@ -1,5 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { logger } from "../logger.js";
+const ANTHROPIC_MODELS_URL = "https://api.anthropic.com/v1/models";
+const ANTHROPIC_VERSION = "2023-06-01";
+const VERIFY_TIMEOUT_MS = 10_000;
 export class AnthropicClient {
     settings;
     client;
@@ -132,6 +135,56 @@ export class AnthropicClient {
         return undefined;
     }
 }
+export async function verifyAnthropicApiKey(apiKey) {
+    const trimmed = apiKey.trim();
+    if (!trimmed) {
+        return { ok: false, message: "Enter an Anthropic API key to continue." };
+    }
+    const client = new Anthropic({ apiKey: trimmed });
+    const modelsApi = client.models;
+    if (modelsApi?.list) {
+        try {
+            await modelsApi.list();
+            return { ok: true };
+        }
+        catch (error) {
+            const status = extractStatus(error);
+            const message = extractAnthropicError(error) ?? "Anthropic rejected that key. Confirm it has Messages API access.";
+            if (status === 401 || status === 403) {
+                return { ok: false, message };
+            }
+            return { ok: false, message };
+        }
+    }
+    try {
+        const response = await fetchWithTimeout(ANTHROPIC_MODELS_URL, {
+            method: "GET",
+            headers: {
+                "x-api-key": trimmed,
+                "anthropic-version": ANTHROPIC_VERSION,
+                "User-Agent": "serve-llm-setup/1.0",
+                Accept: "application/json",
+            },
+        });
+        if (response.ok) {
+            return { ok: true };
+        }
+        const detail = await extractAnthropicResponseMessage(response);
+        if (response.status === 401 || response.status === 403) {
+            return { ok: false, message: detail ?? "Anthropic rejected that key. Confirm it has Messages API access." };
+        }
+        return { ok: false, message: detail ?? `Anthropic responded with status ${response.status}. Try again shortly.` };
+    }
+    catch (error) {
+        const status = extractStatus(error);
+        const detail = extractAnthropicError(error);
+        if (status === 401 || status === 403) {
+            return { ok: false, message: detail ?? "Anthropic rejected that key. Confirm it has Messages API access." };
+        }
+        const message = detail ?? (error instanceof Error ? error.message : String(error));
+        return { ok: false, message: `Unable to reach Anthropic: ${message}` };
+    }
+}
 function extractUsage(response) {
     const usage = response?.usage ?? response?.usage_metadata;
     if (!usage || typeof usage !== "object") {
@@ -176,4 +229,58 @@ function resolveBetas(model) {
         return [CONTEXT_1M_BETA];
     }
     return undefined;
+}
+function extractStatus(error) {
+    if (!error || typeof error !== "object") {
+        return undefined;
+    }
+    const anyError = error;
+    const value = anyError.status ?? anyError.response?.status;
+    if (typeof value === "number") {
+        return value;
+    }
+    if (typeof value === "string") {
+        const parsed = Number.parseInt(value, 10);
+        if (Number.isFinite(parsed)) {
+            return parsed;
+        }
+    }
+    return undefined;
+}
+async function fetchWithTimeout(url, init) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), VERIFY_TIMEOUT_MS);
+    try {
+        return await fetch(url, { ...init, signal: controller.signal });
+    }
+    finally {
+        clearTimeout(timer);
+    }
+}
+function extractAnthropicError(error) {
+    if (!error || typeof error !== "object") {
+        return undefined;
+    }
+    const anyError = error;
+    const direct = typeof anyError.message === "string" ? anyError.message : undefined;
+    const nested = typeof anyError.error?.message === "string" ? anyError.error.message : undefined;
+    return nested ?? direct;
+}
+async function extractAnthropicResponseMessage(response) {
+    try {
+        const text = await response.text();
+        if (!text) {
+            return undefined;
+        }
+        try {
+            const parsed = JSON.parse(text);
+            return parsed?.error?.message ?? parsed?.message ?? text;
+        }
+        catch {
+            return text;
+        }
+    }
+    catch {
+        return undefined;
+    }
 }

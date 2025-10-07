@@ -2,16 +2,18 @@ import http from "node:http";
 import { Buffer } from "node:buffer";
 import { URL } from "node:url";
 import { randomUUID } from "node:crypto";
-import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD } from "../constants.js";
+import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD, SETUP_ROUTE, SETUP_VERIFY_ROUTE, DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, } from "../constants.js";
 import { buildMessages } from "../llm/messages.js";
 import { parseCookies } from "../utils/cookies.js";
 import { readBody } from "../utils/body.js";
 import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
-import { renderPromptRequestPage } from "../pages/prompt-request.js";
+import { renderSetupWizardPage } from "../pages/setup-wizard.js";
 import { logger } from "../logger.js";
 import { AdminController } from "./admin-controller.js";
+import { verifyProviderApiKey } from "../llm/verification.js";
+import { createLlmClient } from "../llm/factory.js";
 export function createServer(options) {
-    const { runtime, provider, llmClient, sessionStore } = options;
+    const { runtime, provider, providerLocked, llmClient, sessionStore } = options;
     const runtimeState = { ...runtime };
     const providerState = { ...provider };
     const state = {
@@ -19,6 +21,8 @@ export function createServer(options) {
         runtime: runtimeState,
         provider: providerState,
         llmClient,
+        providerReady: Boolean(llmClient && providerState.apiKey && providerState.apiKey.trim().length > 0),
+        providerLocked,
     };
     const adminController = new AdminController({
         state,
@@ -37,17 +41,17 @@ export function createServer(options) {
             return;
         }
         try {
+            if (!state.providerReady || !state.brief || isSetupRequest(context.path)) {
+                await handleSetupFlow(context, state, reqLogger);
+                reqLogger.info(`Setup flow completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
+                return;
+            }
             if (context.path.startsWith(ADMIN_ROUTE_PREFIX)) {
                 const handled = await adminController.handle(context, requestStart, reqLogger);
                 if (handled) {
                     reqLogger.info(`Admin route completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
                     return;
                 }
-            }
-            if (!state.brief) {
-                await handleBriefSetup(context, state, reqLogger);
-                reqLogger.info(`Completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
-                return;
             }
             await handleLlmRequest(context, state, sessionStore, reqLogger, requestStart);
             reqLogger.info(`Completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
@@ -89,20 +93,254 @@ function shouldEarly404(context) {
         return true;
     return false;
 }
-async function handleBriefSetup(context, state, reqLogger) {
-    const { method, path, req, res } = context;
+function isSetupRequest(path) {
+    if (path.startsWith(SETUP_ROUTE)) {
+        return true;
+    }
+    if (path === SETUP_VERIFY_ROUTE) {
+        return true;
+    }
+    if (path === BRIEF_FORM_ROUTE) {
+        return true;
+    }
+    return false;
+}
+async function handleSetupFlow(context, state, reqLogger) {
+    const { method, path, req, res, url } = context;
+    let providerLabel = getProviderLabel(state.provider.provider);
+    let providerName = providerLabel;
+    const verifyAction = SETUP_VERIFY_ROUTE;
+    const briefAction = BRIEF_FORM_ROUTE;
+    const canSelectProvider = !state.providerLocked;
+    let selectedProvider = state.provider.provider;
+    if (method === "POST" && path === SETUP_VERIFY_ROUTE) {
+        const body = await readBody(req);
+        const apiKey = typeof body.data.apiKey === "string" ? body.data.apiKey.trim() : "";
+        let submittedModel = typeof body.data.model === "string" ? body.data.model.trim() : "";
+        if (canSelectProvider) {
+            const submittedProvider = parseProviderValue(body.data.provider);
+            if (!submittedProvider) {
+                const html = renderSetupWizardPage({
+                    step: "provider",
+                    providerLabel,
+                    providerName,
+                    verifyAction,
+                    briefAction,
+                    setupPath: SETUP_ROUTE,
+                    adminPath: ADMIN_ROUTE_PREFIX,
+                    providerReady: state.providerReady,
+                    canSelectProvider,
+                    selectedProvider,
+                    selectedModel: submittedModel || state.provider.model || "",
+                    maxOutputTokens: state.provider.maxOutputTokens,
+                    reasoningMode: state.provider.reasoningMode ?? "none",
+                    reasoningTokens: getEffectiveReasoningTokens(state.provider),
+                    errorMessage: "Choose a provider before adding an API key.",
+                });
+                res.statusCode = 400;
+                res.setHeader("Content-Type", "text/html; charset=utf-8");
+                res.end(html);
+                return;
+            }
+            if (submittedProvider !== state.provider.provider) {
+                updateProviderSelection(state, submittedProvider, reqLogger);
+                providerLabel = getProviderLabel(state.provider.provider);
+                providerName = providerLabel;
+                selectedProvider = state.provider.provider;
+            }
+            else {
+                selectedProvider = submittedProvider;
+            }
+        }
+        if (!submittedModel) {
+            submittedModel = state.provider.model || "";
+        }
+        let submittedMaxTokens;
+        try {
+            submittedMaxTokens = parsePositiveInt(body.data.maxOutputTokens, state.provider.maxOutputTokens);
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : "Max output tokens must be a positive integer.";
+            const html = renderSetupWizardPage({
+                step: "provider",
+                providerLabel,
+                providerName,
+                verifyAction,
+                briefAction,
+                setupPath: SETUP_ROUTE,
+                adminPath: ADMIN_ROUTE_PREFIX,
+                providerReady: state.providerReady,
+                canSelectProvider,
+                selectedProvider,
+                selectedModel: submittedModel,
+                maxOutputTokens: state.provider.maxOutputTokens,
+                reasoningMode: state.provider.reasoningMode ?? "none",
+                reasoningTokens: getEffectiveReasoningTokens(state.provider),
+                errorMessage: message,
+            });
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "text/html; charset=utf-8");
+            res.end(html);
+            return;
+        }
+        const supportsMode = providerSupportsReasoningMode(state.provider.provider);
+        const supportsTokens = providerSupportsReasoningTokens(state.provider.provider);
+        let submittedReasoningMode = supportsMode
+            ? sanitizeReasoningModeValue(body.data.reasoningMode, state.provider.reasoningMode ?? "none")
+            : "none";
+        let submittedReasoningTokens;
+        if (supportsTokens) {
+            try {
+                submittedReasoningTokens = parseReasoningTokensInput(body.data.reasoningTokens, state.provider.provider);
+            }
+            catch (error) {
+                const message = error instanceof Error ? error.message : "Reasoning tokens must be valid for the selected provider.";
+                const html = renderSetupWizardPage({
+                    step: "provider",
+                    providerLabel,
+                    providerName,
+                    verifyAction,
+                    briefAction,
+                    setupPath: SETUP_ROUTE,
+                    adminPath: ADMIN_ROUTE_PREFIX,
+                    providerReady: state.providerReady,
+                    canSelectProvider,
+                    selectedProvider,
+                    selectedModel: submittedModel,
+                    maxOutputTokens: state.provider.maxOutputTokens,
+                    reasoningMode: state.provider.reasoningMode ?? "none",
+                    reasoningTokens: getEffectiveReasoningTokens(state.provider),
+                    errorMessage: message,
+                });
+                res.statusCode = 400;
+                res.setHeader("Content-Type", "text/html; charset=utf-8");
+                res.end(html);
+                return;
+            }
+        }
+        let adjustedReasoningTokens = supportsTokens ? submittedReasoningTokens : undefined;
+        if (state.provider.provider === "anthropic") {
+            if (typeof adjustedReasoningTokens === "number") {
+                adjustedReasoningTokens = Math.min(adjustedReasoningTokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS);
+            }
+            else {
+                adjustedReasoningTokens = DEFAULT_REASONING_TOKENS.anthropic;
+            }
+        }
+        else if (state.provider.provider === "gemini") {
+            if (typeof adjustedReasoningTokens !== "number") {
+                adjustedReasoningTokens = DEFAULT_REASONING_TOKENS.gemini;
+            }
+        }
+        state.provider.maxOutputTokens = submittedMaxTokens;
+        state.provider.reasoningMode = submittedReasoningMode;
+        state.provider.reasoningTokens = adjustedReasoningTokens;
+        state.provider.model = submittedModel;
+        reqLogger.debug({ provider: state.provider.provider }, "Setup wizard verifying API key");
+        const verification = await verifyProviderApiKey(state.provider.provider, apiKey);
+        if (verification.ok) {
+            try {
+                state.provider.apiKey = apiKey;
+                applyProviderEnv(state.provider);
+                state.llmClient = createLlmClient(state.provider);
+                state.providerReady = true;
+                reqLogger.info({ provider: state.provider.provider }, "API key verified via setup wizard");
+                res.statusCode = 303;
+                const redirectTarget = state.brief
+                    ? `${ADMIN_ROUTE_PREFIX}?status=Setup%20complete`
+                    : `${SETUP_ROUTE}?step=brief&status=API%20key%20verified`;
+                res.setHeader("Location", redirectTarget);
+                res.end();
+                return;
+            }
+            catch (error) {
+                reqLogger.error({ err: error }, "Failed to instantiate LLM client after verification");
+                state.providerReady = false;
+                state.provider.apiKey = "";
+                const message = error instanceof Error ? error.message : String(error);
+                const html = renderSetupWizardPage({
+                    step: "provider",
+                    providerLabel,
+                    providerName,
+                    verifyAction,
+                    briefAction,
+                    setupPath: SETUP_ROUTE,
+                    adminPath: ADMIN_ROUTE_PREFIX,
+                    providerReady: false,
+                    canSelectProvider,
+                    selectedProvider,
+                    selectedModel: state.provider.model || "",
+                    maxOutputTokens: state.provider.maxOutputTokens,
+                    reasoningMode: state.provider.reasoningMode ?? "none",
+                    reasoningTokens: getEffectiveReasoningTokens(state.provider),
+                    errorMessage: `Unable to configure provider: ${message}`,
+                });
+                res.statusCode = 500;
+                res.setHeader("Content-Type", "text/html; charset=utf-8");
+                res.end(html);
+                return;
+            }
+        }
+        reqLogger.warn({ provider: state.provider.provider }, `API key verification failed: ${verification.message ?? "unknown error"}`);
+        const html = renderSetupWizardPage({
+            step: "provider",
+            providerLabel,
+            providerName,
+            verifyAction,
+            briefAction,
+            setupPath: SETUP_ROUTE,
+            adminPath: ADMIN_ROUTE_PREFIX,
+            providerReady: state.providerReady,
+            canSelectProvider,
+            selectedProvider,
+            selectedModel: state.provider.model || "",
+            maxOutputTokens: state.provider.maxOutputTokens,
+            reasoningMode: state.provider.reasoningMode ?? "none",
+            reasoningTokens: getEffectiveReasoningTokens(state.provider),
+            errorMessage: verification.message ?? "We could not verify that key. Please try again.",
+        });
+        res.statusCode = 400;
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.end(html);
+        return;
+    }
     if (method === "POST" && path === BRIEF_FORM_ROUTE) {
         const body = await readBody(req);
         const briefValue = typeof body.data.brief === "string" ? body.data.brief.trim() : "";
         reqLogger.debug(formatJsonForLog(body.data, "Brief submission"));
+        if (!state.providerReady) {
+            res.statusCode = 303;
+            res.setHeader("Location", `${SETUP_ROUTE}?step=provider`);
+            res.end();
+            return;
+        }
         if (!briefValue) {
+            const html = renderSetupWizardPage({
+                step: "brief",
+                providerLabel,
+                providerName,
+                verifyAction,
+                briefAction,
+                setupPath: SETUP_ROUTE,
+                adminPath: ADMIN_ROUTE_PREFIX,
+                providerReady: state.providerReady,
+                canSelectProvider,
+                selectedProvider,
+                selectedModel: state.provider.model || "",
+                maxOutputTokens: state.provider.maxOutputTokens,
+                reasoningMode: state.provider.reasoningMode ?? "none",
+                reasoningTokens: getEffectiveReasoningTokens(state.provider),
+                errorMessage: "Add a short brief so we know where to begin.",
+                briefValue: "",
+            });
             res.statusCode = 400;
             res.setHeader("Content-Type", "text/html; charset=utf-8");
-            res.end(renderPromptRequestPage({ adminPath: ADMIN_ROUTE_PREFIX }));
+            res.end(html);
             reqLogger.warn({ status: res.statusCode }, "Rejected brief submission due to empty brief");
             return;
         }
         state.brief = briefValue;
+        state.runtime.brief = briefValue;
         reqLogger.info("Stored new application brief from prompt page");
         const adminUrl = escapeHtml(ADMIN_ROUTE_PREFIX);
         const appUrl = escapeHtml("/");
@@ -185,7 +423,7 @@ async function handleBriefSetup(context, state, reqLogger) {
 <body>
   <main>
     <h1>Setting things up…</h1>
-    <p>Hold tight—we are opening your Flank experience in a new tab and routing this one to the admin console.</p>
+    <p>We are opening your experience in a new tab and guiding this window to the admin console.</p>
     <div class="actions">
       <a class="primary" href="${appUrl}" target="_blank" rel="noopener">Open app manually</a>
       <a href="${adminUrl}">Go to admin dashboard</a>
@@ -198,13 +436,57 @@ async function handleBriefSetup(context, state, reqLogger) {
         res.end(html);
         return;
     }
+    if (state.providerReady && state.brief && path.startsWith(SETUP_ROUTE)) {
+        res.statusCode = 303;
+        res.setHeader("Location", ADMIN_ROUTE_PREFIX);
+        res.end();
+        return;
+    }
+    const requestedStep = url.searchParams.get("step");
+    let step;
+    if (!state.providerReady) {
+        step = "provider";
+    }
+    else if (!state.brief) {
+        step = requestedStep === "provider" ? "provider" : "brief";
+    }
+    else {
+        step = requestedStep === "provider" ? "provider" : "brief";
+    }
+    if (state.providerReady && state.brief && !requestedStep && path === SETUP_ROUTE) {
+        res.statusCode = 303;
+        res.setHeader("Location", ADMIN_ROUTE_PREFIX);
+        res.end();
+        return;
+    }
+    const html = renderSetupWizardPage({
+        step,
+        providerLabel,
+        providerName,
+        verifyAction,
+        briefAction,
+        setupPath: SETUP_ROUTE,
+        adminPath: ADMIN_ROUTE_PREFIX,
+        providerReady: state.providerReady,
+        canSelectProvider,
+        selectedProvider,
+        selectedModel: state.provider.model || "",
+        maxOutputTokens: state.provider.maxOutputTokens,
+        reasoningMode: state.provider.reasoningMode ?? "none",
+        reasoningTokens: getEffectiveReasoningTokens(state.provider),
+        statusMessage: url.searchParams.get("status") ?? undefined,
+    });
     res.statusCode = 200;
     res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.end(renderPromptRequestPage({ adminPath: ADMIN_ROUTE_PREFIX }));
-    reqLogger.debug("Served brief configuration page");
+    res.end(html);
+    reqLogger.debug({ step }, "Served setup wizard page");
 }
 async function handleLlmRequest(context, state, sessionStore, reqLogger, requestStart) {
     const { req, res, url, method, path } = context;
+    const llmClient = state.llmClient;
+    if (!llmClient) {
+        throw new Error("LLM client not configured");
+    }
     const cookies = parseCookies(req.headers.cookie);
     const sid = sessionStore.getOrCreateSessionId(cookies, res);
     const query = Object.fromEntries(url.searchParams.entries());
@@ -255,9 +537,9 @@ async function handleLlmRequest(context, state, sessionStore, reqLogger, request
         adminPath: ADMIN_ROUTE_PREFIX,
     });
     reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
-    const result = await state.llmClient.generateHtml(messages);
+    const result = await llmClient.generateHtml(messages);
     const durationMs = Date.now() - requestStart;
-    reqLogger.debug(`LLM response preview [${state.llmClient.settings.provider}]:\n${truncate(result.html, 500)}`);
+    reqLogger.debug(`LLM response preview [${llmClient.settings.provider}]:\n${truncate(result.html, 500)}`);
     const safeHtml = ensureHtmlDocument(result.html, { method, path });
     sessionStore.setPrevHtml(sid, safeHtml);
     const instructions = extractInstructions(bodyData);
@@ -276,11 +558,11 @@ async function handleLlmRequest(context, state, sessionStore, reqLogger, request
         },
         response: { html: safeHtml },
         llm: {
-            provider: state.llmClient.settings.provider,
-            model: state.llmClient.settings.model,
-            maxOutputTokens: state.llmClient.settings.maxOutputTokens,
-            reasoningMode: state.llmClient.settings.reasoningMode,
-            reasoningTokens: state.llmClient.settings.reasoningTokens,
+            provider: llmClient.settings.provider,
+            model: llmClient.settings.model,
+            maxOutputTokens: llmClient.settings.maxOutputTokens,
+            reasoningMode: llmClient.settings.reasoningMode,
+            reasoningTokens: llmClient.settings.reasoningTokens,
         },
         usage: result.usage,
         reasoning: result.reasoning,
@@ -328,6 +610,164 @@ function extractInstructions(body) {
         return typeof first === "string" ? first.trim() : undefined;
     }
     return undefined;
+}
+function applyProviderEnv(settings) {
+    const key = settings.apiKey?.trim();
+    if (!key) {
+        return;
+    }
+    if (settings.provider === "openai") {
+        process.env.OPENAI_API_KEY = key;
+        return;
+    }
+    if (settings.provider === "gemini") {
+        process.env.GEMINI_API_KEY = key;
+        return;
+    }
+    process.env.ANTHROPIC_API_KEY = key;
+}
+function getProviderLabel(provider) {
+    if (provider === "openai") {
+        return "OpenAI";
+    }
+    if (provider === "gemini") {
+        return "Gemini";
+    }
+    return "Anthropic";
+}
+function providerSupportsReasoningMode(provider) {
+    return provider === "openai";
+}
+function providerSupportsReasoningTokens(provider) {
+    return provider === "gemini" || provider === "anthropic";
+}
+function updateProviderSelection(state, provider, reqLogger) {
+    if (state.provider.provider === provider) {
+        return;
+    }
+    const previous = state.provider.provider;
+    let reasoningMode = "none";
+    let reasoningTokens;
+    if (provider === "openai") {
+        reasoningMode = state.provider.provider === "openai"
+            ? state.provider.reasoningMode ?? "low"
+            : "low";
+    }
+    else if (provider === "anthropic") {
+        reasoningMode = "none";
+        if (state.provider.provider === "anthropic" && typeof state.provider.reasoningTokens === "number") {
+            reasoningTokens = Math.min(state.provider.reasoningTokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS);
+        }
+        else {
+            reasoningTokens = DEFAULT_REASONING_TOKENS.anthropic;
+        }
+    }
+    else if (provider === "gemini") {
+        if (state.provider.provider === "gemini" && typeof state.provider.reasoningTokens === "number") {
+            reasoningTokens = state.provider.reasoningTokens;
+        }
+        else {
+            reasoningTokens = DEFAULT_REASONING_TOKENS.gemini;
+        }
+    }
+    state.provider = {
+        provider,
+        apiKey: "",
+        model: getDefaultModelForProvider(provider),
+        maxOutputTokens: getDefaultMaxTokensForProvider(provider),
+        reasoningMode,
+        reasoningTokens,
+    };
+    state.providerReady = false;
+    state.llmClient = null;
+    reqLogger.info({ from: previous, to: provider }, "Wizard switched provider selection");
+}
+function getDefaultModelForProvider(provider) {
+    if (provider === "openai") {
+        return DEFAULT_OPENAI_MODEL;
+    }
+    if (provider === "gemini") {
+        return DEFAULT_GEMINI_MODEL;
+    }
+    return DEFAULT_ANTHROPIC_MODEL;
+}
+function getDefaultMaxTokensForProvider(provider) {
+    if (provider === "anthropic") {
+        return DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS;
+    }
+    return DEFAULT_MAX_OUTPUT_TOKENS;
+}
+function getEffectiveReasoningTokens(provider) {
+    const tokens = provider.reasoningTokens;
+    if (typeof tokens === "number") {
+        return tokens;
+    }
+    return DEFAULT_REASONING_TOKENS[provider.provider];
+}
+function parseProviderValue(value) {
+    if (!value || typeof value !== "string") {
+        return undefined;
+    }
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "openai")
+        return "openai";
+    if (normalized === "gemini")
+        return "gemini";
+    if (normalized === "anthropic")
+        return "anthropic";
+    return undefined;
+}
+function sanitizeReasoningModeValue(value, fallback) {
+    if (typeof value === "string") {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === "low" || normalized === "medium" || normalized === "high") {
+            return normalized;
+        }
+        if (normalized === "none") {
+            return "none";
+        }
+    }
+    return fallback;
+}
+function parsePositiveInt(value, fallback) {
+    if (value === undefined || value === null || value === "") {
+        return fallback;
+    }
+    const parsed = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+        throw new Error(`Expected a positive integer, received: ${String(value)}`);
+    }
+    return Math.floor(parsed);
+}
+function parseOptionalPositiveInt(value) {
+    if (value === undefined || value === null || value === "") {
+        return undefined;
+    }
+    const parsed = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+        throw new Error(`Expected a non-negative integer, received: ${String(value)}`);
+    }
+    return Math.floor(parsed);
+}
+function parseReasoningTokensInput(value, provider) {
+    if (value === undefined || value === null || value === "") {
+        return undefined;
+    }
+    const parsed = typeof value === "number" ? value : Number(value);
+    if (!Number.isFinite(parsed)) {
+        throw new Error(`Expected a numeric value, received: ${String(value)}`);
+    }
+    const rounded = Math.floor(parsed);
+    if (provider === "gemini") {
+        if (rounded < -1) {
+            throw new Error("Reasoning tokens must be -1 (dynamic) or a non-negative integer.");
+        }
+        return rounded;
+    }
+    if (rounded < 0) {
+        throw new Error("Reasoning tokens must be zero or a positive integer.");
+    }
+    return rounded;
 }
 function truncate(value, maxLength) {
     if (value.length <= maxLength) {

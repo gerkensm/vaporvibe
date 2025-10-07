@@ -1,3 +1,4 @@
+import type { ModelProvider } from "./types.js";
 export declare const INSTRUCTIONS_FIELD = "LLM_WEB_SERVER_INSTRUCTIONS";
 export declare const AUTO_IGNORED_PATHS: Set<string>;
 export declare const DEFAULT_PORT = 3000;
@@ -9,5 +10,8 @@ export declare const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 export declare const DEFAULT_HISTORY_LIMIT = 30;
 export declare const DEFAULT_HISTORY_MAX_BYTES = 200000;
 export declare const LOOPBACK_HOST = "127.0.0.1";
+export declare const DEFAULT_REASONING_TOKENS: Record<ModelProvider, number | undefined>;
 export declare const BRIEF_FORM_ROUTE = "/__set-brief";
+export declare const SETUP_VERIFY_ROUTE = "/__setup/verify-key";
+export declare const SETUP_ROUTE = "/__setup";
 export declare const ADMIN_ROUTE_PREFIX = "/serve-llm";

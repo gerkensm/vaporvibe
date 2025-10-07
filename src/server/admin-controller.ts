@@ -246,6 +246,7 @@ export class AdminController {
       const newClient = createLlmClient(updatedSettings);
       this.state.llmClient = newClient;
       this.state.provider = { ...updatedSettings };
+      this.state.providerReady = true;
       if (updatedSettings.apiKey && updatedSettings.apiKey.trim().length > 0) {
         this.providerKeyMemory.set(updatedSettings.provider, updatedSettings.apiKey);
       }
@@ -356,6 +357,7 @@ export class AdminController {
       const refreshedSettings: ProviderSettings = { ...this.state.provider };
       this.state.llmClient = createLlmClient(refreshedSettings);
       this.state.provider = refreshedSettings;
+      this.state.providerReady = Boolean(refreshedSettings.apiKey && refreshedSettings.apiKey.trim().length > 0);
       this.applyProviderEnv(refreshedSettings);
 
       reqLogger.info({ entries: historyEntries.length }, "Imported history snapshot via admin console");

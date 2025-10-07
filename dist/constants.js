@@ -23,5 +23,12 @@ export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 export const DEFAULT_HISTORY_LIMIT = 30;
 export const DEFAULT_HISTORY_MAX_BYTES = 200_000;
 export const LOOPBACK_HOST = "127.0.0.1";
+export const DEFAULT_REASONING_TOKENS = {
+    openai: undefined,
+    gemini: -1,
+    anthropic: DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS,
+};
 export const BRIEF_FORM_ROUTE = "/__set-brief";
+export const SETUP_VERIFY_ROUTE = "/__setup/verify-key";
+export const SETUP_ROUTE = "/__setup";
 export const ADMIN_ROUTE_PREFIX = "/serve-llm";

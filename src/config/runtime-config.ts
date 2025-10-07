@@ -1,25 +1,27 @@
-import { DEFAULT_GEMINI_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_MODEL, DEFAULT_PORT, BRIEF_FORM_ROUTE, DEFAULT_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_HISTORY_LIMIT, DEFAULT_HISTORY_MAX_BYTES, LOOPBACK_HOST } from "../constants.js";
+import { DEFAULT_GEMINI_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_MODEL, DEFAULT_PORT, DEFAULT_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_HISTORY_LIMIT, DEFAULT_HISTORY_MAX_BYTES, DEFAULT_REASONING_TOKENS, LOOPBACK_HOST, SETUP_ROUTE } from "../constants.js";
 import type { AppConfig, ModelProvider, ProviderSettings, ReasoningMode, RuntimeConfig } from "../types.js";
 import type { CliOptions } from "../cli/args.js";
-import { createPrompter, type Prompter } from "./prompter.js";
 
 const SESSION_TTL_MS = 15 * 60 * 1000;
 const SESSION_CAP = 200;
 
 export async function resolveAppConfig(options: CliOptions, env: NodeJS.ProcessEnv): Promise<AppConfig> {
-  const prompter = createPrompter();
-  try {
-    const provider = await determineProvider(options, env, prompter);
-    const providerSettings = await resolveProviderSettings(provider, options, env, prompter);
-    const runtime = resolveRuntime(options, env);
-    runtime.brief = options.brief || env.BRIEF?.trim();
-    return {
-      provider: providerSettings,
-      runtime,
-    };
-  } finally {
-    await prompter?.close();
+  const providerResolution = determineProvider(options, env);
+  const providerSettings = resolveProviderSettings(providerResolution.provider, options, env);
+  const runtime = resolveRuntime(options, env);
+  runtime.brief = options.brief || env.BRIEF?.trim();
+
+  const hasApiKey = providerSettings.apiKey.trim().length > 0;
+  if (hasApiKey) {
+    applyProviderEnv(providerSettings);
   }
+
+  return {
+    provider: providerSettings,
+    runtime,
+    providerReady: hasApiKey,
+    providerLocked: providerResolution.locked,
+  };
 }
 
 function resolveRuntime(options: CliOptions, env: NodeJS.ProcessEnv): RuntimeConfig {
@@ -35,7 +37,7 @@ function resolveRuntime(options: CliOptions, env: NodeJS.ProcessEnv): RuntimeCon
     historyLimit,
     historyMaxBytes,
     brief: undefined,
-    promptPath: BRIEF_FORM_ROUTE,
+    promptPath: SETUP_ROUTE,
     sessionTtlMs: SESSION_TTL_MS,
     sessionCap: SESSION_CAP,
     includeInstructionPanel: parseInstructionPanelSetting(instructionSetting),
@@ -47,77 +49,77 @@ function resolveRuntime(options: CliOptions, env: NodeJS.ProcessEnv): RuntimeCon
   return runtime;
 }
 
-async function resolveProviderSettings(
+function resolveProviderSettings(
   provider: ModelProvider,
   options: CliOptions,
   env: NodeJS.ProcessEnv,
-  prompter: Prompter | null,
-): Promise<ProviderSettings> {
+): ProviderSettings {
   const modelFromCli = options.model?.trim();
   const maxOverride = options.maxOutputTokens ?? parsePositiveInt(env.MAX_OUTPUT_TOKENS) ?? parsePositiveInt(env.MAX_TOKENS);
   const reasoning = resolveReasoningOptions(options, env);
+  const apiKey = (lookupEnvApiKey(provider, env) ?? "").trim();
 
   if (provider === "openai") {
-    const apiKey = await ensureApiKey(provider, env, prompter);
     const model = modelFromCli || env.MODEL?.trim() || DEFAULT_OPENAI_MODEL;
     const maxOutputTokens = maxOverride ?? DEFAULT_MAX_OUTPUT_TOKENS;
-    process.env.OPENAI_API_KEY = apiKey;
+    const reasoningMode = reasoning.modeExplicit ? reasoning.mode : "low";
     return {
       provider,
       apiKey,
       model,
       maxOutputTokens,
-      reasoningMode: reasoning.mode,
-      reasoningTokens: reasoning.mode === "none" ? undefined : reasoning.tokens,
+      reasoningMode,
+      reasoningTokens: undefined,
     };
   }
 
   if (provider === "gemini") {
-    const apiKey = await ensureApiKey(provider, env, prompter);
     const model = modelFromCli || env.GEMINI_MODEL?.trim() || env.MODEL?.trim() || DEFAULT_GEMINI_MODEL;
     const maxOutputTokens = maxOverride ?? DEFAULT_MAX_OUTPUT_TOKENS;
-    process.env.GEMINI_API_KEY = apiKey;
+    let reasoningTokens: number | undefined;
+    if (reasoning.tokensExplicit && typeof reasoning.tokens === "number") {
+      reasoningTokens = reasoning.tokens;
+    } else {
+      reasoningTokens = DEFAULT_REASONING_TOKENS.gemini;
+    }
     return {
       provider,
       apiKey,
       model,
       maxOutputTokens,
       reasoningMode: reasoning.mode,
-      reasoningTokens: reasoning.mode === "none" ? undefined : reasoning.tokens,
+      reasoningTokens,
     };
   }
 
-  const apiKey = await ensureApiKey(provider, env, prompter);
   const model = modelFromCli || env.ANTHROPIC_MODEL?.trim() || env.MODEL?.trim() || DEFAULT_ANTHROPIC_MODEL;
   const maxOutputTokens = typeof maxOverride === "number"
     ? Math.min(maxOverride, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
     : DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS;
-  const reasoningTokens = reasoning.mode === "none"
-    ? undefined
-    : Math.min(reasoning.tokens ?? DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS);
-  process.env.ANTHROPIC_API_KEY = apiKey;
+  let reasoningTokens = reasoning.tokensExplicit && typeof reasoning.tokens === "number"
+    ? Math.min(reasoning.tokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
+    : DEFAULT_REASONING_TOKENS.anthropic;
   return {
     provider,
     apiKey,
     model,
     maxOutputTokens,
-    reasoningMode: reasoning.mode,
+    reasoningMode: "none",
     reasoningTokens,
   };
 }
 
-async function determineProvider(
+function determineProvider(
   options: CliOptions,
   env: NodeJS.ProcessEnv,
-  prompter: Prompter | null,
-): Promise<ModelProvider> {
+): { provider: ModelProvider; locked: boolean } {
   const explicit = parseProviderValue(options.provider)
     || parseProviderValue(env.SERVE_LLM_PROVIDER)
     || parseProviderValue(env.LLM_PROVIDER)
     || parseProviderValue(env.PROVIDER);
 
   if (explicit) {
-    return explicit;
+    return { provider: explicit, locked: true };
   }
 
   const hasOpenAiKey = Boolean(getOpenAiKey(env));
@@ -125,79 +127,60 @@ async function determineProvider(
   const hasAnthropicKey = Boolean(getAnthropicKey(env));
 
   if (hasOpenAiKey && !hasGeminiKey && !hasAnthropicKey) {
-    return "openai";
+    return { provider: "openai", locked: false };
   }
   if (hasGeminiKey && !hasOpenAiKey && !hasAnthropicKey) {
-    return "gemini";
+    return { provider: "gemini", locked: false };
   }
   if (hasAnthropicKey && !hasOpenAiKey && !hasGeminiKey) {
-    return "anthropic";
+    return { provider: "anthropic", locked: false };
   }
 
-  if (!prompter) {
-    // Non-interactive fallback: prefer OpenAI to match historical default
-    return "openai";
+  if (hasOpenAiKey) {
+    return { provider: "openai", locked: false };
+  }
+  if (hasGeminiKey) {
+    return { provider: "gemini", locked: false };
+  }
+  if (hasAnthropicKey) {
+    return { provider: "anthropic", locked: false };
   }
 
-  while (true) {
-    const answer = await prompter.ask("Choose model provider [openai/gemini/anthropic]: ");
-    const parsed = parseProviderValue(answer);
-    if (parsed) {
-      return parsed;
-    }
-    console.error("Invalid provider. Please enter 'openai', 'gemini', or 'anthropic'.");
-  }
-}
-
-async function ensureApiKey(
-  provider: ModelProvider,
-  env: NodeJS.ProcessEnv,
-  prompter: Prompter | null,
-): Promise<string> {
-  const existing =
-    provider === "openai"
-      ? getOpenAiKey(env)
-      : provider === "gemini"
-        ? getGeminiKey(env)
-        : getAnthropicKey(env);
-  if (existing) {
-    return existing;
-  }
-
-  if (!prompter) {
-    throw new Error(`${provider} API key is required. Set it via environment variable before launching.`);
-  }
-
-  const label = provider === "openai" ? "OpenAI" : provider === "gemini" ? "Gemini" : "Anthropic";
-  while (true) {
-    try {
-      const answer = await prompter.askHidden(`Enter ${label} API key: `);
-      if (answer) {
-        return answer;
-      }
-      console.error("API key cannot be empty.");
-    } catch (err) {
-      throw new Error(`Cancelled while entering ${label} API key.`);
-    }
-  }
+  // Default to OpenAI when no preference is supplied.
+  return { provider: "openai", locked: false };
 }
 
 interface ResolvedReasoningOptions {
   mode: ReasoningMode;
   tokens?: number;
+  modeExplicit: boolean;
+  tokensExplicit: boolean;
 }
 
 function resolveReasoningOptions(options: CliOptions, env: NodeJS.ProcessEnv): ResolvedReasoningOptions {
-  let mode = parseReasoningMode(options.reasoningMode ?? env.REASONING_MODE);
-  const tokensFromCli = options.reasoningTokens;
-  const tokensFromEnv = parsePositiveInt(env.REASONING_TOKENS);
-  const tokens = tokensFromCli ?? tokensFromEnv;
-  if ((tokens ?? 0) > 0 && mode === "none") {
+  const rawMode = options.reasoningMode ?? env.REASONING_MODE;
+  const modeExplicit = typeof rawMode === "string" && rawMode.trim() !== "";
+  let mode = parseReasoningMode(modeExplicit ? rawMode : undefined);
+
+  const rawTokens = options.reasoningTokens ?? env.REASONING_TOKENS;
+  const tokensExplicit = rawTokens !== undefined && !(typeof rawTokens === "string" && rawTokens.trim() === "");
+  let tokens: number | undefined;
+  if (tokensExplicit) {
+    const parsed = typeof rawTokens === "number" ? rawTokens : Number.parseInt(String(rawTokens), 10);
+    if (Number.isFinite(parsed) && (parsed === -1 || parsed >= 0)) {
+      tokens = Math.floor(parsed);
+    }
+  }
+
+  if (tokensExplicit && (tokens ?? 0) > 0 && mode === "none") {
     mode = "medium";
   }
+
   return {
     mode,
-    tokens: typeof tokens === "number" ? tokens : undefined,
+    tokens,
+    modeExplicit,
+    tokensExplicit,
   };
 }
 
@@ -275,4 +258,29 @@ function getGeminiKey(env: NodeJS.ProcessEnv): string | undefined {
 
 function getAnthropicKey(env: NodeJS.ProcessEnv): string | undefined {
   return env.ANTHROPIC_API_KEY || env.ANTHROPIC_KEY || undefined;
+}
+
+function lookupEnvApiKey(provider: ModelProvider, env: NodeJS.ProcessEnv): string | undefined {
+  if (provider === "openai") {
+    return getOpenAiKey(env);
+  }
+  if (provider === "gemini") {
+    return getGeminiKey(env);
+  }
+  return getAnthropicKey(env);
+}
+
+function applyProviderEnv(settings: ProviderSettings): void {
+  if (!settings.apiKey || settings.apiKey.trim().length === 0) {
+    return;
+  }
+  if (settings.provider === "openai") {
+    process.env.OPENAI_API_KEY = settings.apiKey;
+    return;
+  }
+  if (settings.provider === "gemini") {
+    process.env.GEMINI_API_KEY = settings.apiKey;
+    return;
+  }
+  process.env.ANTHROPIC_API_KEY = settings.apiKey;
 }

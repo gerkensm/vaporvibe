@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import type { ChatMessage, LlmReasoningTrace, LlmUsageMetrics, ProviderSettings } from "../types.js";
+import type { ChatMessage, LlmReasoningTrace, LlmUsageMetrics, ProviderSettings, VerificationResult } from "../types.js";
 import type { LlmClient, LlmResult } from "./client.js";
 import { logger } from "../logger.js";
 
@@ -73,6 +73,25 @@ export class GeminiClient implements LlmClient {
       .join("") ?? "";
 
     return { html: fallback.trim(), usage: extractUsage(response), reasoning, raw: response };
+  }
+}
+
+export async function verifyGeminiApiKey(apiKey: string): Promise<VerificationResult> {
+  const trimmed = apiKey.trim();
+  if (!trimmed) {
+    return { ok: false, message: "Enter a Gemini API key to continue." };
+  }
+  const client = new GoogleGenAI({ apiKey: trimmed });
+  try {
+    await client.models.list({ config: { pageSize: 1 } });
+    return { ok: true };
+  } catch (error) {
+    const status = extractStatus(error);
+    if (status === 401 || status === 403) {
+      return { ok: false, message: "Gemini rejected that key. Confirm the key has Generative Language API access." };
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    return { ok: false, message: `Unable to reach Gemini: ${message}` };
   }
 }
 
@@ -151,4 +170,21 @@ function extractGeminiThinking(
     logger.warn(`Failed to capture Gemini thinking metadata: ${(error as Error).message}`);
     return undefined;
   }
+}
+
+function extractStatus(error: unknown): number | undefined {
+  if (!error || typeof error !== "object") {
+    return undefined;
+  }
+  const anyError = error as { status?: unknown };
+  if (typeof anyError.status === "number") {
+    return anyError.status;
+  }
+  if (typeof anyError.status === "string") {
+    const parsed = Number.parseInt(anyError.status, 10);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
 }

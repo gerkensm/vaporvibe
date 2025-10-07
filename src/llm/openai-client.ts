@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { ChatMessage, LlmReasoningTrace, LlmUsageMetrics, ProviderSettings } from "../types.js";
+import type { ChatMessage, LlmReasoningTrace, LlmUsageMetrics, ProviderSettings, VerificationResult } from "../types.js";
 import type { LlmClient, LlmResult } from "./client.js";
 import { logger } from "../logger.js";
 
@@ -54,6 +54,25 @@ export class OpenAiClient implements LlmClient {
       reasoning,
       raw: response,
     };
+  }
+}
+
+export async function verifyOpenAiApiKey(apiKey: string): Promise<VerificationResult> {
+  const trimmed = apiKey.trim();
+  if (!trimmed) {
+    return { ok: false, message: "Enter an OpenAI API key to continue." };
+  }
+  const client = new OpenAI({ apiKey: trimmed });
+  try {
+    await client.models.list();
+    return { ok: true };
+  } catch (error) {
+    const status = extractStatus(error);
+    if (status === 401 || status === 403) {
+      return { ok: false, message: "OpenAI rejected that key. Confirm the value and try again." };
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    return { ok: false, message: `Unable to reach OpenAI: ${message}` };
   }
 }
 
@@ -165,4 +184,17 @@ function extractUsageMetrics(response: any): LlmUsageMetrics | undefined {
     return undefined;
   }
   return metrics;
+}
+
+function extractStatus(error: unknown): number | undefined {
+  if (!error || typeof error !== "object") {
+    return undefined;
+  }
+  const anyError = error as { status?: unknown; response?: { status?: unknown } };
+  const statusValue = anyError.status ?? anyError.response?.status;
+  if (typeof statusValue === "number") {
+    return statusValue;
+  }
+  const maybeString = typeof statusValue === "string" ? Number.parseInt(statusValue, 10) : undefined;
+  return Number.isFinite(maybeString) ? maybeString : undefined;
 }

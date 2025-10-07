@@ -50,6 +50,25 @@ export class GeminiClient {
         return { html: fallback.trim(), usage: extractUsage(response), reasoning, raw: response };
     }
 }
+export async function verifyGeminiApiKey(apiKey) {
+    const trimmed = apiKey.trim();
+    if (!trimmed) {
+        return { ok: false, message: "Enter a Gemini API key to continue." };
+    }
+    const client = new GoogleGenAI({ apiKey: trimmed });
+    try {
+        await client.models.list({ config: { pageSize: 1 } });
+        return { ok: true };
+    }
+    catch (error) {
+        const status = extractStatus(error);
+        if (status === 401 || status === 403) {
+            return { ok: false, message: "Gemini rejected that key. Confirm the key has Generative Language API access." };
+        }
+        const message = error instanceof Error ? error.message : String(error);
+        return { ok: false, message: `Unable to reach Gemini: ${message}` };
+    }
+}
 function clampGeminiBudget(requested, maxOutputTokens) {
     if (requested === 0) {
         return 0;
@@ -119,4 +138,20 @@ function extractGeminiThinking(response, mode, requestedTokens) {
         logger.warn(`Failed to capture Gemini thinking metadata: ${error.message}`);
         return undefined;
     }
+}
+function extractStatus(error) {
+    if (!error || typeof error !== "object") {
+        return undefined;
+    }
+    const anyError = error;
+    if (typeof anyError.status === "number") {
+        return anyError.status;
+    }
+    if (typeof anyError.status === "string") {
+        const parsed = Number.parseInt(anyError.status, 10);
+        if (Number.isFinite(parsed)) {
+            return parsed;
+        }
+    }
+    return undefined;
 }

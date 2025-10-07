@@ -1,4 +1,4 @@
-import type { ChatMessage, ProviderSettings } from "../types.js";
+import type { ChatMessage, ProviderSettings, VerificationResult } from "../types.js";
 import type { LlmClient, LlmResult } from "./client.js";
 export declare class GeminiClient implements LlmClient {
     readonly settings: ProviderSettings;
@@ -6,3 +6,4 @@ export declare class GeminiClient implements LlmClient {
     constructor(settings: ProviderSettings);
     generateHtml(messages: ChatMessage[]): Promise<LlmResult>;
 }
+export declare function verifyGeminiApiKey(apiKey: string): Promise<VerificationResult>;
