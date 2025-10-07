@@ -15,16 +15,6 @@ It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaw
 - No brief on the CLI? Visit `http://localhost:3000` and drop one into the starter form.
 - Want oversight on what the model has done? After the first brief is saved the app opens the user experience in a new tab and routes the original tab to the admin console at `/serve-llm`.
 
-## Admin Console
-
-The admin interface at `/serve-llm` now ships with a polished ShadCN-inspired light theme and a handful of operator tools:
-
-- **Brief & runtime controls** – Update the global brief, tweak history limits/byte budgets, and toggle the floating instruction panel without restarting the process.
-- **Provider management** – Switch between OpenAI, Gemini, and Anthropic, adjust model settings, and reuse existing API keys from environment variables without re-entering them. If a key is present, the input is locked until you opt to replace it.
-- **History explorer** – Inspect every generated page with expandable reasoning traces, token usage, and raw HTML. Badges, tabs, and status chips keep the view concise even for long sessions.
-- **Import/export** – Download JSON or prompt markdown snapshots, then drag-and-drop a saved history file back into the import card to restore a session in-place.
-- **Live refresh** – Auto-refresh controls keep the activity stream up to date while preserving which items you’ve expanded.
-
 ## Demo Walkthrough: Enterprise Incident Tracker
 
 Watch how a single brief turns into an improv UI loop, then dive into the original captures if you want to study each screen.
@@ -65,6 +55,16 @@ Prefer a GIF? Grab [assets/demo/incident-walkthrough.gif](assets/demo/incident-w
 - Sessions are cookie-scoped and capped; the only persisted context is the latest HTML string per session.
 - CLI flags (`--reasoning-mode`, `--reasoning-tokens`) let you opt into OpenAI reasoning effort or Anthropic "thinking" budgets on demand.
 
+## Admin Console
+
+The admin interface at `/serve-llm` now ships with a polished ShadCN-inspired light theme and a handful of operator tools:
+
+- **Brief & runtime controls** – Update the global brief, tweak history limits/byte budgets, and toggle the floating instruction panel without restarting the process.
+- **Provider management** – Switch between OpenAI, Gemini, and Anthropic, adjust model settings, and reuse existing API keys from environment variables without re-entering them. If a key is present, the input is locked until you opt to replace it.
+- **History explorer** – Inspect every generated page with expandable reasoning traces, token usage, and raw HTML. Badges, tabs, and status chips keep the view concise even for long sessions.
+- **Import/export** – Download JSON or prompt markdown snapshots, then drag-and-drop a saved history file back into the import card to restore a session in-place.
+- **Live refresh** – Auto-refresh controls keep the activity stream up to date while preserving which items you’ve expanded.
+
 ## Developing
 
 - `nvm use` → `npm install` → `npm run dev` for TypeScript live-reloading, or `npm run build` to refresh the distributable in `dist/`.
@@ -77,6 +77,7 @@ Prefer a GIF? Grab [assets/demo/incident-walkthrough.gif](assets/demo/incident-w
 
 - Store API keys in `.env` (gitignored) or export them per shell session; include optional `REASONING_MODE` / `REASONING_TOKENS` there if you want defaults.
 - Set `INSTRUCTION_PANEL=off` to remove the floating LLM instruction bar globally.
+
 ## Why Bother
 
 This project is a thought experiment in “non-vibe coding”: hold the UI in your head, let the LLM hallucinate the page, and embrace the chaos that follows when the model riffs on every route. It is intentionally unserious—and surprisingly fun.
