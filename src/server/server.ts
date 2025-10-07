@@ -16,6 +16,7 @@ import {
   DEFAULT_MAX_OUTPUT_TOKENS,
   DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS,
   DEFAULT_REASONING_TOKENS,
+  LLM_RESULT_ROUTE_PREFIX,
 } from "../constants.js";
 import type { HistoryEntry, RuntimeConfig, ProviderSettings, ReasoningMode } from "../types.js";
 import type { LlmClient } from "../llm/client.js";
@@ -25,6 +26,7 @@ import { readBody } from "../utils/body.js";
 import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
 import { SessionStore } from "./session-store.js";
 import { renderSetupWizardPage } from "../pages/setup-wizard.js";
+import { renderLoadingShell, renderResultHydrationScript, renderLoaderErrorScript } from "../pages/loading-shell.js";
 import { logger } from "../logger.js";
 import { AdminController } from "./admin-controller.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
@@ -55,7 +57,15 @@ export interface MutableServerState {
   llmClient: LlmClient | null;
   providerReady: boolean;
   providerLocked: boolean;
+  pendingHtml: Map<string, PendingHtmlEntry>;
 }
+
+interface PendingHtmlEntry {
+  html: string;
+  expiresAt: number;
+}
+
+const PENDING_HTML_TTL_MS = 3 * 60 * 1000;
 
 export function createServer(options: ServerOptions): http.Server {
   const { runtime, provider, providerLocked, llmClient, sessionStore } = options;
@@ -68,6 +78,7 @@ export function createServer(options: ServerOptions): http.Server {
     llmClient,
     providerReady: Boolean(llmClient && providerState.apiKey && providerState.apiKey.trim().length > 0),
     providerLocked,
+    pendingHtml: new Map(),
   };
   const adminController = new AdminController({
     state,
@@ -91,6 +102,11 @@ export function createServer(options: ServerOptions): http.Server {
     }
 
     try {
+      if (handlePendingHtmlRequest(context, state, reqLogger)) {
+        reqLogger.info(`Pending render delivered with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
+        return;
+      }
+
       if (!state.providerReady || !state.brief || isSetupRequest(context.path)) {
         await handleSetupFlow(context, state, reqLogger);
         reqLogger.info(`Setup flow completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
@@ -551,6 +567,15 @@ async function handleSetupFlow(
   reqLogger.debug({ step }, "Served setup wizard page");
 }
 
+function cleanupPendingHtml(state: MutableServerState): void {
+  const now = Date.now();
+  for (const [token, entry] of state.pendingHtml.entries()) {
+    if (entry.expiresAt <= now) {
+      state.pendingHtml.delete(token);
+    }
+  }
+}
+
 async function handleLlmRequest(
   context: RequestContext,
   state: MutableServerState,
@@ -563,6 +588,7 @@ async function handleLlmRequest(
   if (!llmClient) {
     throw new Error("LLM client not configured");
   }
+  const originalPath = `${url.pathname}${url.search}`;
 
   const cookies = parseCookies(req.headers.cookie);
   const sid = sessionStore.getOrCreateSessionId(cookies, res);
@@ -620,44 +646,83 @@ async function handleLlmRequest(
   });
   reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
 
-  const result = await llmClient.generateHtml(messages);
-  const durationMs = Date.now() - requestStart;
-  reqLogger.debug(`LLM response preview [${llmClient.settings.provider}]:\n${truncate(result.html, 500)}`);
-  const safeHtml = ensureHtmlDocument(result.html, { method, path });
-
-  sessionStore.setPrevHtml(sid, safeHtml);
-
-  const instructions = extractInstructions(bodyData);
-  const historyEntry: HistoryEntry = {
-    id: randomUUID(),
-    sessionId: sid,
-    createdAt: new Date().toISOString(),
-    durationMs,
-    brief: state.brief ?? "",
-    request: {
-      method,
-      path,
-      query,
-      body: bodyData,
-      instructions,
-    },
-    response: { html: safeHtml },
-    llm: {
-      provider: llmClient.settings.provider,
-      model: llmClient.settings.model,
-      maxOutputTokens: llmClient.settings.maxOutputTokens,
-      reasoningMode: llmClient.settings.reasoningMode,
-      reasoningTokens: llmClient.settings.reasoningTokens,
-    },
-    usage: result.usage,
-    reasoning: result.reasoning,
-  };
-
-  sessionStore.appendHistoryEntry(sid, historyEntry);
-
+  const shouldStreamBody = method !== "HEAD";
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  res.end(safeHtml);
+  if (shouldStreamBody) {
+    const providerLabel = getProviderLabel(llmClient.settings.provider);
+    const loadingMessage = `Asking ${providerLabel} (${llmClient.settings.model}) to refresh this page.`;
+    res.write(renderLoadingShell({
+      message: loadingMessage,
+      originalPath,
+      resultRoutePrefix: LLM_RESULT_ROUTE_PREFIX,
+    }));
+    if (typeof res.flushHeaders === "function") {
+      res.flushHeaders();
+    }
+  }
+
+  try {
+    const result = await llmClient.generateHtml(messages);
+    const durationMs = Date.now() - requestStart;
+    reqLogger.debug(`LLM response preview [${llmClient.settings.provider}]:\n${truncate(result.html, 500)}`);
+    const safeHtml = ensureHtmlDocument(result.html, { method, path });
+
+    sessionStore.setPrevHtml(sid, safeHtml);
+
+    const instructions = extractInstructions(bodyData);
+    const historyEntry: HistoryEntry = {
+      id: randomUUID(),
+      sessionId: sid,
+      createdAt: new Date().toISOString(),
+      durationMs,
+      brief: state.brief ?? "",
+      request: {
+        method,
+        path,
+        query,
+        body: bodyData,
+        instructions,
+      },
+      response: { html: safeHtml },
+      llm: {
+        provider: llmClient.settings.provider,
+        model: llmClient.settings.model,
+        maxOutputTokens: llmClient.settings.maxOutputTokens,
+        reasoningMode: llmClient.settings.reasoningMode,
+        reasoningTokens: llmClient.settings.reasoningTokens,
+      },
+      usage: result.usage,
+      reasoning: result.reasoning,
+    };
+
+    sessionStore.appendHistoryEntry(sid, historyEntry);
+
+    cleanupPendingHtml(state);
+    const token = randomUUID();
+    state.pendingHtml.set(token, {
+      html: safeHtml,
+      expiresAt: Date.now() + PENDING_HTML_TTL_MS,
+    });
+    const pendingPath = `${LLM_RESULT_ROUTE_PREFIX}/${token}`;
+
+    if (shouldStreamBody) {
+      res.write(renderResultHydrationScript(token, originalPath));
+    } else {
+      // For HEAD requests we expose the target via header so clients can follow-up with GET.
+      res.setHeader("Link", `<${pendingPath}>; rel="render"`);
+    }
+    res.end();
+  } catch (error) {
+    const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    reqLogger.error(`LLM generation failed: ${message}`);
+    if (shouldStreamBody) {
+      res.write(renderLoaderErrorScript("The model response took too long or failed. Please retry in a moment."));
+    } else if (!res.headersSent) {
+      res.statusCode = 500;
+    }
+    res.end();
+  }
 }
 
 function renderErrorPage(error: unknown): string {
@@ -940,4 +1005,48 @@ function estimateHistoryEntrySize(entry: HistoryEntry): number {
   }
   // Add a cushion for labels and formatting noise in prompts.
   return bytes + 1024;
+}
+function handlePendingHtmlRequest(
+  context: RequestContext,
+  state: MutableServerState,
+  reqLogger: RequestLogger,
+): boolean {
+  const { path, method, res } = context;
+  if (!path.startsWith(LLM_RESULT_ROUTE_PREFIX)) {
+    return false;
+  }
+
+  cleanupPendingHtml(state);
+
+  if (method !== "GET") {
+    res.statusCode = 405;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Allow", "GET");
+    res.end("Method Not Allowed");
+    return true;
+  }
+
+  const token = path.slice(LLM_RESULT_ROUTE_PREFIX.length).replace(/^\/+/, "");
+  if (!token) {
+    res.statusCode = 404;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("Not Found");
+    return true;
+  }
+
+  const entry = state.pendingHtml.get(token);
+  if (!entry) {
+    reqLogger.warn({ token }, "No pending HTML found for token");
+    res.statusCode = 404;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("Not Found");
+    return true;
+  }
+
+  state.pendingHtml.delete(token);
+  res.statusCode = 200;
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.end(entry.html);
+  return true;
 }

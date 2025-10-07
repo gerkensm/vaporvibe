@@ -24,5 +24,11 @@ export interface MutableServerState {
     llmClient: LlmClient | null;
     providerReady: boolean;
     providerLocked: boolean;
+    pendingHtml: Map<string, PendingHtmlEntry>;
+}
+interface PendingHtmlEntry {
+    html: string;
+    expiresAt: number;
 }
 export declare function createServer(options: ServerOptions): http.Server;
+export {};

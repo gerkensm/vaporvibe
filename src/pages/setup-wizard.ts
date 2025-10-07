@@ -203,18 +203,24 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
   :root {
     color-scheme: light;
     --font: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --bg: #f5f7fb;
+    --bg: #f6f8fb;
+    --bg-soft: #eef2f8;
     --surface: #ffffff;
-    --surface-muted: rgba(255, 255, 255, 0.82);
+    --surface-muted: rgba(255, 255, 255, 0.9);
+    --surface-glass: rgba(255, 255, 255, 0.78);
     --border: #e2e8f0;
+    --border-strong: #cbd5e1;
     --text: #0f172a;
     --muted: #475569;
     --subtle: #64748b;
     --accent: #1d4ed8;
     --accent-dark: #1e3a8a;
+    --accent-soft: rgba(29, 78, 216, 0.08);
     --ring: rgba(29, 78, 216, 0.18);
-    --success: #047857;
+    --success: #0f766e;
     --error: #b91c1c;
+    --shadow-strong: 0 46px 96px rgba(15, 23, 42, 0.18);
+    --shadow-soft: 0 28px 70px rgba(15, 23, 42, 0.12);
   }
   * { box-sizing: border-box; }
   body {
@@ -224,7 +230,7 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
     justify-content: center;
     align-items: flex-start;
     padding: clamp(32px, 6vw, 72px);
-    background: radial-gradient(130% 100% at 50% 10%, #ffffff 20%, var(--bg) 70%, #e8ecf6 100%);
+    background: radial-gradient(130% 120% at 50% 0%, #ffffff 0%, var(--bg) 55%, var(--bg-soft) 100%);
     font-family: var(--font);
     color: var(--text);
     line-height: 1.6;
@@ -235,7 +241,7 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
     background: linear-gradient(180deg, var(--surface) 0%, var(--surface-muted) 100%);
     border-radius: 28px;
     border: 1px solid var(--border);
-    box-shadow: 0 38px 80px rgba(15, 23, 42, 0.14);
+    box-shadow: var(--shadow-strong);
     padding: clamp(40px, 5vw, 56px);
     display: grid;
     gap: clamp(28px, 3vw, 40px);
@@ -267,9 +273,10 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
     gap: 20px;
     padding: clamp(28px, 4vw, 36px);
     border-radius: 22px;
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--surface) 0%, var(--surface-glass) 100%);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(18px);
   }
   .provider-grid {
     display: grid;
@@ -281,15 +288,15 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
     gap: 16px;
     padding: 16px 18px;
     border-radius: 18px;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid var(--border);
+    background: var(--surface-glass);
     cursor: pointer;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
   }
   .provider-option:hover {
     transform: translateY(-1px);
     border-color: rgba(29, 78, 216, 0.35);
-    box-shadow: 0 16px 28px rgba(15, 23, 42, 0.12);
+    box-shadow: 0 18px 34px rgba(15, 23, 42, 0.16);
   }
   .provider-option[data-active="true"] {
     border-color: var(--accent);
@@ -329,7 +336,7 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
     gap: 8px;
     padding: 8px 14px;
     border-radius: 999px;
-    background: rgba(29, 78, 216, 0.08);
+    background: var(--accent-soft);
     color: var(--accent);
     font-size: 0.82rem;
     font-weight: 500;

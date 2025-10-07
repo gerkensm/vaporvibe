@@ -32,3 +32,4 @@ export const BRIEF_FORM_ROUTE = "/__set-brief";
 export const SETUP_VERIFY_ROUTE = "/__setup/verify-key";
 export const SETUP_ROUTE = "/__setup";
 export const ADMIN_ROUTE_PREFIX = "/serve-llm";
+export const LLM_RESULT_ROUTE_PREFIX = "/__serve-llm/result";
