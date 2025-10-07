@@ -2,7 +2,7 @@ import http from "node:http";
 import { Buffer } from "node:buffer";
 import { URL } from "node:url";
 import { randomUUID } from "node:crypto";
-import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD, SETUP_ROUTE, SETUP_VERIFY_ROUTE, DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, LLM_RESULT_ROUTE_PREFIX, } from "../constants.js";
+import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD, SETUP_ROUTE, SETUP_VERIFY_ROUTE, DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, LLM_RESULT_ROUTE_PREFIX, } from "../constants.js";
 import { buildMessages } from "../llm/messages.js";
 import { parseCookies } from "../utils/cookies.js";
 import { readBody } from "../utils/body.js";
@@ -680,6 +680,10 @@ function applyProviderEnv(settings) {
         process.env.GEMINI_API_KEY = key;
         return;
     }
+    if (settings.provider === "grok") {
+        process.env.XAI_API_KEY = key;
+        return;
+    }
     process.env.ANTHROPIC_API_KEY = key;
 }
 function getProviderLabel(provider) {
@@ -689,10 +693,13 @@ function getProviderLabel(provider) {
     if (provider === "gemini") {
         return "Gemini";
     }
+    if (provider === "grok") {
+        return "xAI (Grok)";
+    }
     return "Anthropic";
 }
 function providerSupportsReasoningMode(provider) {
-    return provider === "openai";
+    return provider === "openai" || provider === "grok";
 }
 function providerSupportsReasoningTokens(provider) {
     return provider === "gemini" || provider === "anthropic";
@@ -726,6 +733,9 @@ function updateProviderSelection(state, provider, reqLogger) {
             reasoningTokens = DEFAULT_REASONING_TOKENS.gemini;
         }
     }
+    else if (provider === "grok") {
+        reasoningMode = "none";
+    }
     state.provider = {
         provider,
         apiKey: "",
@@ -744,6 +754,9 @@ function getDefaultModelForProvider(provider) {
     }
     if (provider === "gemini") {
         return DEFAULT_GEMINI_MODEL;
+    }
+    if (provider === "grok") {
+        return DEFAULT_GROK_MODEL;
     }
     return DEFAULT_ANTHROPIC_MODEL;
 }
@@ -771,6 +784,8 @@ function parseProviderValue(value) {
         return "gemini";
     if (normalized === "anthropic")
         return "anthropic";
+    if (normalized === "grok" || normalized === "xai" || normalized === "x.ai")
+        return "grok";
     return undefined;
 }
 function sanitizeReasoningModeValue(value, fallback) {

@@ -13,6 +13,7 @@ import {
   DEFAULT_OPENAI_MODEL,
   DEFAULT_GEMINI_MODEL,
   DEFAULT_ANTHROPIC_MODEL,
+  DEFAULT_GROK_MODEL,
   DEFAULT_MAX_OUTPUT_TOKENS,
   DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS,
   DEFAULT_REASONING_TOKENS,
@@ -779,6 +780,10 @@ function applyProviderEnv(settings: ProviderSettings): void {
     process.env.GEMINI_API_KEY = key;
     return;
   }
+  if (settings.provider === "grok") {
+    process.env.XAI_API_KEY = key;
+    return;
+  }
   process.env.ANTHROPIC_API_KEY = key;
 }
 
@@ -789,11 +794,14 @@ function getProviderLabel(provider: ProviderSettings["provider"]): string {
   if (provider === "gemini") {
     return "Gemini";
   }
+  if (provider === "grok") {
+    return "xAI (Grok)";
+  }
   return "Anthropic";
 }
 
 function providerSupportsReasoningMode(provider: ProviderSettings["provider"]): boolean {
-  return provider === "openai";
+  return provider === "openai" || provider === "grok";
 }
 
 function providerSupportsReasoningTokens(provider: ProviderSettings["provider"]): boolean {
@@ -825,6 +833,8 @@ function updateProviderSelection(state: MutableServerState, provider: ProviderSe
     } else {
       reasoningTokens = DEFAULT_REASONING_TOKENS.gemini;
     }
+  } else if (provider === "grok") {
+    reasoningMode = "none";
   }
 
   state.provider = {
@@ -846,6 +856,9 @@ function getDefaultModelForProvider(provider: ProviderSettings["provider"]): str
   }
   if (provider === "gemini") {
     return DEFAULT_GEMINI_MODEL;
+  }
+  if (provider === "grok") {
+    return DEFAULT_GROK_MODEL;
   }
   return DEFAULT_ANTHROPIC_MODEL;
 }
@@ -873,6 +886,7 @@ function parseProviderValue(value: unknown): ProviderSettings["provider"] | unde
   if (normalized === "openai") return "openai";
   if (normalized === "gemini") return "gemini";
   if (normalized === "anthropic") return "anthropic";
+  if (normalized === "grok" || normalized === "xai" || normalized === "x.ai") return "grok";
   return undefined;
 }
 

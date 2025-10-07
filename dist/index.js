@@ -59,7 +59,7 @@ Options:
   --port <number>            Port to bind the HTTP server (default: 3000)
   --host <hostname>          Host interface to bind (default: 127.0.0.1)
   --model <name>             Override the model identifier for the chosen provider
-  --provider <openai|gemini|anthropic> Select the LLM provider explicitly
+  --provider <openai|gemini|anthropic|grok> Select the LLM provider explicitly
   --max-tokens <number>      Set maximum output tokens (default: 128000)
   --reasoning-mode <none|low|medium|high>  Configure reasoning effort when supported
   --reasoning-tokens <number> Token budget for reasoning/thinking features
@@ -72,6 +72,7 @@ Environment variables:
   OPENAI_API_KEY             API key for OpenAI models
   GEMINI_API_KEY             API key for Gemini models
   ANTHROPIC_API_KEY          API key for Anthropic models
+  XAI_API_KEY                API key for Grok (xAI) models
   REASONING_MODE             Default reasoning mode (none|low|medium|high)
   REASONING_TOKENS           Default reasoning/thinking token budget
   INSTRUCTION_PANEL          Toggle instruction panel (on/off)

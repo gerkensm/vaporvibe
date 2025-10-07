@@ -1,4 +1,17 @@
-import { DEFAULT_GEMINI_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_MODEL, DEFAULT_PORT, DEFAULT_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_HISTORY_LIMIT, DEFAULT_HISTORY_MAX_BYTES, DEFAULT_REASONING_TOKENS, LOOPBACK_HOST, SETUP_ROUTE } from "../constants.js";
+import {
+  DEFAULT_GEMINI_MODEL,
+  DEFAULT_GROK_MODEL,
+  DEFAULT_MAX_OUTPUT_TOKENS,
+  DEFAULT_OPENAI_MODEL,
+  DEFAULT_PORT,
+  DEFAULT_ANTHROPIC_MODEL,
+  DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS,
+  DEFAULT_HISTORY_LIMIT,
+  DEFAULT_HISTORY_MAX_BYTES,
+  DEFAULT_REASONING_TOKENS,
+  LOOPBACK_HOST,
+  SETUP_ROUTE,
+} from "../constants.js";
 import type { AppConfig, ModelProvider, ProviderSettings, ReasoningMode, RuntimeConfig } from "../types.js";
 import type { CliOptions } from "../cli/args.js";
 
@@ -92,6 +105,24 @@ function resolveProviderSettings(
     };
   }
 
+  if (provider === "grok") {
+    const model = modelFromCli
+      || env.GROK_MODEL?.trim()
+      || env.XAI_MODEL?.trim()
+      || env.MODEL?.trim()
+      || DEFAULT_GROK_MODEL;
+    const maxOutputTokens = maxOverride ?? DEFAULT_MAX_OUTPUT_TOKENS;
+    const reasoningMode = reasoning.modeExplicit ? reasoning.mode : "low";
+    return {
+      provider,
+      apiKey,
+      model,
+      maxOutputTokens,
+      reasoningMode,
+      reasoningTokens: undefined,
+    };
+  }
+
   const model = modelFromCli || env.ANTHROPIC_MODEL?.trim() || env.MODEL?.trim() || DEFAULT_ANTHROPIC_MODEL;
   const maxOutputTokens = typeof maxOverride === "number"
     ? Math.min(maxOverride, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
@@ -125,6 +156,7 @@ function determineProvider(
   const hasOpenAiKey = Boolean(getOpenAiKey(env));
   const hasGeminiKey = Boolean(getGeminiKey(env));
   const hasAnthropicKey = Boolean(getAnthropicKey(env));
+  const hasGrokKey = Boolean(getGrokKey(env));
 
   if (hasOpenAiKey && !hasGeminiKey && !hasAnthropicKey) {
     return { provider: "openai", locked: false };
@@ -135,6 +167,9 @@ function determineProvider(
   if (hasAnthropicKey && !hasOpenAiKey && !hasGeminiKey) {
     return { provider: "anthropic", locked: false };
   }
+  if (hasGrokKey && !hasOpenAiKey && !hasGeminiKey && !hasAnthropicKey) {
+    return { provider: "grok", locked: false };
+  }
 
   if (hasOpenAiKey) {
     return { provider: "openai", locked: false };
@@ -144,6 +179,9 @@ function determineProvider(
   }
   if (hasAnthropicKey) {
     return { provider: "anthropic", locked: false };
+  }
+  if (hasGrokKey) {
+    return { provider: "grok", locked: false };
   }
 
   // Default to OpenAI when no preference is supplied.
@@ -234,6 +272,7 @@ function parseProviderValue(value: unknown): ModelProvider | undefined {
   if (normalized === "openai") return "openai";
   if (normalized === "gemini") return "gemini";
   if (normalized === "anthropic") return "anthropic";
+  if (normalized === "grok" || normalized === "xai" || normalized === "x.ai") return "grok";
   return undefined;
 }
 
@@ -260,12 +299,19 @@ function getAnthropicKey(env: NodeJS.ProcessEnv): string | undefined {
   return env.ANTHROPIC_API_KEY || env.ANTHROPIC_KEY || undefined;
 }
 
+function getGrokKey(env: NodeJS.ProcessEnv): string | undefined {
+  return env.XAI_API_KEY || env.GROK_API_KEY || env.XAI_KEY || undefined;
+}
+
 function lookupEnvApiKey(provider: ModelProvider, env: NodeJS.ProcessEnv): string | undefined {
   if (provider === "openai") {
     return getOpenAiKey(env);
   }
   if (provider === "gemini") {
     return getGeminiKey(env);
+  }
+  if (provider === "grok") {
+    return getGrokKey(env);
   }
   return getAnthropicKey(env);
 }
@@ -280,6 +326,10 @@ function applyProviderEnv(settings: ProviderSettings): void {
   }
   if (settings.provider === "gemini") {
     process.env.GEMINI_API_KEY = settings.apiKey;
+    return;
+  }
+  if (settings.provider === "grok") {
+    process.env.XAI_API_KEY = settings.apiKey;
     return;
   }
   process.env.ANTHROPIC_API_KEY = settings.apiKey;

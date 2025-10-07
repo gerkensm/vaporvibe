@@ -2,6 +2,7 @@ import type { ProviderSettings } from "../types.js";
 import { OpenAiClient } from "./openai-client.js";
 import { GeminiClient } from "./gemini-client.js";
 import { AnthropicClient } from "./anthropic-client.js";
+import { GrokClient } from "./grok-client.js";
 import type { LlmClient } from "./client.js";
 
 export function createLlmClient(settings: ProviderSettings): LlmClient {
@@ -10,6 +11,9 @@ export function createLlmClient(settings: ProviderSettings): LlmClient {
   }
   if (settings.provider === "gemini") {
     return new GeminiClient(settings);
+  }
+  if (settings.provider === "grok") {
+    return new GrokClient(settings);
   }
   return new AnthropicClient(settings);
 }

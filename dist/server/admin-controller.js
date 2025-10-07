@@ -370,6 +370,9 @@ export class AdminController {
         else if (settings.provider === "anthropic") {
             process.env.ANTHROPIC_API_KEY = settings.apiKey;
         }
+        else if (settings.provider === "grok") {
+            process.env.XAI_API_KEY = settings.apiKey;
+        }
     }
     toAdminHistoryItem(entry) {
         const querySummary = summarizeRecord(entry.request.query);
@@ -454,12 +457,20 @@ function lookupEnvApiKey(provider) {
     if (provider === "anthropic") {
         return process.env.ANTHROPIC_API_KEY?.trim() || undefined;
     }
+    if (provider === "grok") {
+        return process.env.XAI_API_KEY?.trim()
+            || process.env.GROK_API_KEY?.trim()
+            || undefined;
+    }
     return undefined;
 }
 function sanitizeProvider(value) {
     const normalized = value.toLowerCase();
     if (normalized === "gemini" || normalized === "anthropic" || normalized === "openai") {
         return normalized;
+    }
+    if (normalized === "grok" || normalized === "xai" || normalized === "x.ai") {
+        return "grok";
     }
     return "openai";
 }

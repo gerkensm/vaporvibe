@@ -1,4 +1,4 @@
-export type ModelProvider = "openai" | "gemini" | "anthropic";
+export type ModelProvider = "openai" | "gemini" | "anthropic" | "grok";
 
 export type ReasoningMode = "none" | "low" | "medium" | "high";
 

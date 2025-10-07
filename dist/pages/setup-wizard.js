@@ -1,5 +1,5 @@
 import { escapeHtml } from "../utils/html.js";
-import { DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, } from "../constants.js";
+import { DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, } from "../constants.js";
 const PROVIDER_CHOICES = [
     {
         value: "openai",
@@ -16,6 +16,13 @@ const PROVIDER_CHOICES = [
         placeholder: "AIza...",
     },
     {
+        value: "grok",
+        title: "xAI Grok",
+        subtitle: "Fast frontier reasoning",
+        description: "Frontier reasoning with realtime context. Choose the reasoning or non-reasoning Grok 4 variants, or scale down to Grok 3 for lighter latency.",
+        placeholder: "xai-...",
+    },
+    {
         value: "anthropic",
         title: "Anthropic",
         subtitle: "Claude Sonnet · Claude Opus",
@@ -29,16 +36,19 @@ const DEFAULT_MODEL_BY_PROVIDER = {
     openai: DEFAULT_OPENAI_MODEL,
     gemini: DEFAULT_GEMINI_MODEL,
     anthropic: DEFAULT_ANTHROPIC_MODEL,
+    grok: DEFAULT_GROK_MODEL,
 };
 const DEFAULT_MAX_TOKENS_BY_PROVIDER = {
     openai: DEFAULT_MAX_OUTPUT_TOKENS,
     gemini: DEFAULT_MAX_OUTPUT_TOKENS,
     anthropic: DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS,
+    grok: DEFAULT_MAX_OUTPUT_TOKENS,
 };
 const REASONING_TOKEN_MIN_BY_PROVIDER = {
     openai: 0,
     gemini: -1,
     anthropic: 0,
+    grok: 0,
 };
 const REASONING_MODE_CHOICES = [
     { value: "none", label: "None", description: "Disable the provider’s structured reasoning traces." },
@@ -50,6 +60,7 @@ const PROVIDER_REASONING_CAPABILITIES = {
     openai: { mode: true, tokens: false },
     gemini: { mode: false, tokens: true },
     anthropic: { mode: false, tokens: true },
+    grok: { mode: true, tokens: false },
 };
 const PROVIDER_MODEL_CHOICES = {
     openai: [
@@ -97,6 +108,14 @@ const PROVIDER_MODEL_CHOICES = {
         { value: "claude-opus-4-20250514", label: "Claude Opus 4" },
         { value: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku" },
         { value: "claude-3-haiku-20240307", label: "Claude 3 Haiku" },
+    ],
+    grok: [
+        { value: DEFAULT_MODEL_BY_PROVIDER.grok, label: "Grok 4 Fast Reasoning (default)" },
+        { value: "grok-4-fast-non-reasoning", label: "Grok 4 Fast Non-Reasoning" },
+        { value: "grok-4-0709", label: "Grok 4 0709" },
+        { value: "grok-3", label: "Grok 3" },
+        { value: "grok-3-mini", label: "Grok 3 Mini" },
+        { value: "grok-code-fast-1", label: "Grok Code Fast 1" },
     ],
 };
 export function renderSetupWizardPage(options) {

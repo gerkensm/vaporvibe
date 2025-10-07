@@ -6,9 +6,10 @@ It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaw
 
 ## Quick Start
 
-- Install prerequisites: Node.js ≥ 24 (use `.nvmrc` to grab v24.9.0) and an API key for OpenAI, Gemini, or Anthropic.
+- Install prerequisites: Node.js ≥ 24 (use `.nvmrc` to grab v24.9.0) and an API key for OpenAI, Gemini, Anthropic, or xAI Grok.
 - Launch immediately: `npx github:gerkensm/serve-llm "You are a mood journal"`.
-- Prefer Gemini or Anthropic? Set `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` or pass `--provider gemini` / `--provider anthropic`.
+- Prefer Gemini, Anthropic, or Grok? Set `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, or `XAI_API_KEY` (aliases: `GROK_API_KEY`) or pass `--provider gemini`, `--provider anthropic`, or `--provider grok`.
+- Grok defaults to `grok-4-fast-reasoning`; switch to `grok-4-fast-non-reasoning` or `grok-3-mini` via `--model` (or in the admin dashboard) if you want cheaper or reasoning-optional variants.
 - Want model "thinking"? Pass `--reasoning-mode medium --reasoning-tokens 2048` for supported providers.
 - Hate the floating instruction bar? Disable it with `--instructions-panel off` (default is on).
 - Need to tune history context? Use `--history-limit` and `--history-bytes` (or `HISTORY_LIMIT` / `HISTORY_MAX_BYTES`) to cap how much prior HTML the prompt feeds back in. Override the bind address with `--host` if you’re not staying on `127.0.0.1`.
@@ -53,14 +54,14 @@ Prefer a GIF? Grab [assets/demo/incident-walkthrough.gif](assets/demo/incident-w
 - TypeScript orchestrates the CLI, config resolution, session store, and provider adapters (`openai`, `@google/genai`, `@anthropic-ai/sdk`).
 - Each request funnels through a strict prompt, handing over the brief, current route, submitted form data, and the previously generated HTML.
 - Sessions are cookie-scoped and capped; the only persisted context is the latest HTML string per session.
-- CLI flags (`--reasoning-mode`, `--reasoning-tokens`) let you opt into OpenAI reasoning effort or Anthropic "thinking" budgets on demand.
+- CLI flags (`--reasoning-mode`, `--reasoning-tokens`) let you opt into OpenAI effort controls, Anthropic "thinking" budgets, or Grok reasoning-effort toggles when supported by the chosen model.
 
 ## Admin Console
 
 The admin interface at `/serve-llm` now ships with a polished ShadCN-inspired light theme and a handful of operator tools:
 
 - **Brief & runtime controls** – Update the global brief, tweak history limits/byte budgets, and toggle the floating instruction panel without restarting the process.
-- **Provider management** – Switch between OpenAI, Gemini, and Anthropic, adjust model settings, and reuse existing API keys from environment variables without re-entering them. If a key is present, the input is locked until you opt to replace it.
+- **Provider management** – Switch between OpenAI, Gemini, Anthropic, and xAI Grok, adjust model settings, and reuse existing API keys from environment variables without re-entering them. If a key is present, the input is locked until you opt to replace it.
 - **History explorer** – Inspect every generated page with expandable reasoning traces, token usage, and raw HTML. Badges, tabs, and status chips keep the view concise even for long sessions.
 - **Import/export** – Download JSON or prompt markdown snapshots, then drag-and-drop a saved history file back into the import card to restore a session in-place.
 - **Live refresh** – Auto-refresh controls keep the activity stream up to date while preserving which items you’ve expanded.

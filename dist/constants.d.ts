@@ -7,6 +7,7 @@ export declare const DEFAULT_OPENAI_MODEL = "gpt-5";
 export declare const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5-20250929";
 export declare const DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS = 64000;
 export declare const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+export declare const DEFAULT_GROK_MODEL = "grok-4-fast-reasoning";
 export declare const DEFAULT_HISTORY_LIMIT = 30;
 export declare const DEFAULT_HISTORY_MAX_BYTES = 200000;
 export declare const LOOPBACK_HOST = "127.0.0.1";

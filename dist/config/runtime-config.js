@@ -1,4 +1,4 @@
-import { DEFAULT_GEMINI_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_MODEL, DEFAULT_PORT, DEFAULT_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_HISTORY_LIMIT, DEFAULT_HISTORY_MAX_BYTES, DEFAULT_REASONING_TOKENS, LOOPBACK_HOST, SETUP_ROUTE } from "../constants.js";
+import { DEFAULT_GEMINI_MODEL, DEFAULT_GROK_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_OPENAI_MODEL, DEFAULT_PORT, DEFAULT_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_HISTORY_LIMIT, DEFAULT_HISTORY_MAX_BYTES, DEFAULT_REASONING_TOKENS, LOOPBACK_HOST, SETUP_ROUTE, } from "../constants.js";
 const SESSION_TTL_MS = 15 * 60 * 1000;
 const SESSION_CAP = 200;
 export async function resolveAppConfig(options, env) {
@@ -78,6 +78,23 @@ function resolveProviderSettings(provider, options, env) {
             reasoningTokens,
         };
     }
+    if (provider === "grok") {
+        const model = modelFromCli
+            || env.GROK_MODEL?.trim()
+            || env.XAI_MODEL?.trim()
+            || env.MODEL?.trim()
+            || DEFAULT_GROK_MODEL;
+        const maxOutputTokens = maxOverride ?? DEFAULT_MAX_OUTPUT_TOKENS;
+        const reasoningMode = reasoning.modeExplicit ? reasoning.mode : "low";
+        return {
+            provider,
+            apiKey,
+            model,
+            maxOutputTokens,
+            reasoningMode,
+            reasoningTokens: undefined,
+        };
+    }
     const model = modelFromCli || env.ANTHROPIC_MODEL?.trim() || env.MODEL?.trim() || DEFAULT_ANTHROPIC_MODEL;
     const maxOutputTokens = typeof maxOverride === "number"
         ? Math.min(maxOverride, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
@@ -105,6 +122,7 @@ function determineProvider(options, env) {
     const hasOpenAiKey = Boolean(getOpenAiKey(env));
     const hasGeminiKey = Boolean(getGeminiKey(env));
     const hasAnthropicKey = Boolean(getAnthropicKey(env));
+    const hasGrokKey = Boolean(getGrokKey(env));
     if (hasOpenAiKey && !hasGeminiKey && !hasAnthropicKey) {
         return { provider: "openai", locked: false };
     }
@@ -114,6 +132,9 @@ function determineProvider(options, env) {
     if (hasAnthropicKey && !hasOpenAiKey && !hasGeminiKey) {
         return { provider: "anthropic", locked: false };
     }
+    if (hasGrokKey && !hasOpenAiKey && !hasGeminiKey && !hasAnthropicKey) {
+        return { provider: "grok", locked: false };
+    }
     if (hasOpenAiKey) {
         return { provider: "openai", locked: false };
     }
@@ -122,6 +143,9 @@ function determineProvider(options, env) {
     }
     if (hasAnthropicKey) {
         return { provider: "anthropic", locked: false };
+    }
+    if (hasGrokKey) {
+        return { provider: "grok", locked: false };
     }
     // Default to OpenAI when no preference is supplied.
     return { provider: "openai", locked: false };
@@ -200,6 +224,8 @@ function parseProviderValue(value) {
         return "gemini";
     if (normalized === "anthropic")
         return "anthropic";
+    if (normalized === "grok" || normalized === "xai" || normalized === "x.ai")
+        return "grok";
     return undefined;
 }
 function parsePositiveInt(value) {
@@ -221,12 +247,18 @@ function getGeminiKey(env) {
 function getAnthropicKey(env) {
     return env.ANTHROPIC_API_KEY || env.ANTHROPIC_KEY || undefined;
 }
+function getGrokKey(env) {
+    return env.XAI_API_KEY || env.GROK_API_KEY || env.XAI_KEY || undefined;
+}
 function lookupEnvApiKey(provider, env) {
     if (provider === "openai") {
         return getOpenAiKey(env);
     }
     if (provider === "gemini") {
         return getGeminiKey(env);
+    }
+    if (provider === "grok") {
+        return getGrokKey(env);
     }
     return getAnthropicKey(env);
 }
@@ -240,6 +272,10 @@ function applyProviderEnv(settings) {
     }
     if (settings.provider === "gemini") {
         process.env.GEMINI_API_KEY = settings.apiKey;
+        return;
+    }
+    if (settings.provider === "grok") {
+        process.env.XAI_API_KEY = settings.apiKey;
         return;
     }
     process.env.ANTHROPIC_API_KEY = settings.apiKey;

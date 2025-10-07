@@ -1,5 +1,5 @@
 import { escapeHtml } from "../utils/html.js";
-import { DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL } from "../constants.js";
+import { DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL } from "../constants.js";
 export function renderAdminDashboard(props) {
     const { brief, provider, runtime, history, totalHistoryCount, sessionCount, statusMessage, errorMessage, exportJsonUrl, exportMarkdownUrl, historyEndpoint, } = props;
     const briefText = brief && brief.trim().length > 0 ? brief : "(brief not set yet)";
@@ -557,6 +557,7 @@ export function renderAdminDashboard(props) {
           data-default-openai="${escapeHtml(DEFAULT_OPENAI_MODEL)}"
           data-default-gemini="${escapeHtml(DEFAULT_GEMINI_MODEL)}"
           data-default-anthropic="${escapeHtml(DEFAULT_ANTHROPIC_MODEL)}"
+          data-default-grok="${escapeHtml(DEFAULT_GROK_MODEL)}"
         >
           <label>
             Provider
@@ -564,6 +565,7 @@ export function renderAdminDashboard(props) {
               ${renderProviderOption("openai", provider.provider)}
               ${renderProviderOption("gemini", provider.provider)}
               ${renderProviderOption("anthropic", provider.provider)}
+              ${renderProviderOption("grok", provider.provider)}
             </select>
           </label>
           <div class="inline-inputs">
@@ -789,6 +791,7 @@ export function renderAdminDashboard(props) {
             openai: providerForm.dataset.defaultOpenai || "",
             gemini: providerForm.dataset.defaultGemini || "",
             anthropic: providerForm.dataset.defaultAnthropic || "",
+            grok: providerForm.dataset.defaultGrok || "",
           };
           providerSelect.addEventListener("change", () => {
             const selected = providerSelect.value;
@@ -1006,7 +1009,19 @@ function renderStatus(status, error) {
     return "";
 }
 function renderProviderOption(value, current) {
-    const label = value === "openai" ? "OpenAI" : value === "gemini" ? "Gemini" : "Anthropic";
+    let label;
+    if (value === "openai") {
+        label = "OpenAI";
+    }
+    else if (value === "gemini") {
+        label = "Gemini";
+    }
+    else if (value === "anthropic") {
+        label = "Anthropic";
+    }
+    else {
+        label = "xAI Grok";
+    }
     const selected = value === current ? "selected" : "";
     return `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(label)}</option>`;
 }
