@@ -10,7 +10,7 @@
 - `npm run dev` starts the TypeScript entry with `tsx` for rapid iteration.
 - `npm run build` compiles to `dist/`; this is also triggered automatically by `npm install` via the `prepare` script.
 - `npm run start` runs the compiled CLI (`dist/index.js`).
-- `npx github:torben/serve-llm "You are a mood journal"` is the expected zero-setup launch path once changes are pushed.
+- `npx github:gerkensm/serve-llm "You are a mood journal"` is the expected zero-setup launch path once changes are pushed.
 - Reasoning flags: `--reasoning-mode <none|low|medium|high>` and `--reasoning-tokens <number>` flow through to OpenAI (effort) and Anthropic (thinking budgets).
 - Set `LOG_LEVEL` to tune the Pino logger (default `debug` locally, `info` in production); use `PINO_PRETTY=false` to opt out of colorized logs when scripting.
 - Debug logs surface reasoning summaries and token counts when thinking modes are enabled—keep the level at `debug` to capture them during development.
