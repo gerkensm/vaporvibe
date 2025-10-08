@@ -1,4 +1,4 @@
-import type { ReasoningMode } from "../types.js";
+import type { ModelProvider, ReasoningMode } from "../types.js";
 export interface AdminProviderInfo {
     provider: string;
     model: string;
@@ -40,6 +40,10 @@ export interface AdminPageProps {
     exportJsonUrl: string;
     exportMarkdownUrl: string;
     historyEndpoint: string;
+    providerKeyStatuses: Record<ModelProvider, {
+        hasKey: boolean;
+        verified: boolean;
+    }>;
 }
 export declare function renderAdminDashboard(props: AdminPageProps): string;
 export declare function renderHistory(history: AdminHistoryItem[]): string;

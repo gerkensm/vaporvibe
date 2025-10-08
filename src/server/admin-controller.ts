@@ -114,6 +114,7 @@ export class AdminController {
     const statusMessage = url.searchParams.get("status") ?? undefined;
     const errorMessage = url.searchParams.get("error") ?? undefined;
 
+    const providerKeyStatuses = this.computeProviderKeyStatuses();
     const html = renderAdminDashboard({
       brief: this.state.brief,
       provider: providerInfo,
@@ -126,12 +127,31 @@ export class AdminController {
       exportJsonUrl: JSON_EXPORT_PATH,
       exportMarkdownUrl: MARKDOWN_EXPORT_PATH,
       historyEndpoint: `${ADMIN_ROUTE_PREFIX}/history/latest`,
+      providerKeyStatuses,
     });
 
     res.statusCode = 200;
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.end(html);
     reqLogger.debug({ historyCount: sortedHistory.length }, "Served admin dashboard");
+  }
+
+  private computeProviderKeyStatuses(): Record<"openai" | "gemini" | "anthropic" | "grok", { hasKey: boolean; verified: boolean }> {
+    const providers: Array<ProviderSettings["provider"]> = ["openai", "gemini", "anthropic", "grok"];
+    const result: Record<"openai" | "gemini" | "anthropic" | "grok", { hasKey: boolean; verified: boolean }> = {
+      openai: { hasKey: false, verified: false },
+      gemini: { hasKey: false, verified: false },
+      anthropic: { hasKey: false, verified: false },
+      grok: { hasKey: false, verified: false },
+    };
+    for (const p of providers) {
+      const remembered = this.providerKeyMemory.get(p);
+      const envKey = lookupEnvApiKey(p);
+      const hasKey = Boolean((remembered && remembered.trim().length > 0) || (envKey && envKey.trim().length > 0));
+      const verified = p === this.state.provider.provider && Boolean(this.state.providerReady && this.state.provider.apiKey && this.state.provider.apiKey.trim().length > 0);
+      result[p as "openai" | "gemini" | "anthropic" | "grok"] = { hasKey, verified };
+    }
+    return result;
   }
 
   private handleHistoryJson(context: RequestContext): void {

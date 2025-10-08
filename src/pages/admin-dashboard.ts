@@ -57,6 +57,10 @@ export interface AdminPageProps {
   exportJsonUrl: string;
   exportMarkdownUrl: string;
   historyEndpoint: string;
+  providerKeyStatuses: Record<
+    ModelProvider,
+    { hasKey: boolean; verified: boolean }
+  >;
 }
 
 export function renderAdminDashboard(props: AdminPageProps): string {
@@ -123,6 +127,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
   const providerPlaceholdersPayload = JSON.stringify(PROVIDER_PLACEHOLDERS).replace(/</g, "\\u003C");
   const modelDefaultsPayload = JSON.stringify(DEFAULT_MODEL_BY_PROVIDER).replace(/</g, "\\u003C");
   const maxTokenDefaultsPayload = JSON.stringify(DEFAULT_MAX_TOKENS_BY_PROVIDER).replace(/</g, "\\u003C");
+  const keyStatusPayload = JSON.stringify(props.providerKeyStatuses).replace(/</g, "\\u003C");
   const reasoningDefaultsPayload = JSON.stringify(
     Object.fromEntries(
       (Object.entries(DEFAULT_REASONING_TOKENS) as Array<[ModelProvider, number | undefined]>)
@@ -825,7 +830,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
           action="${escapeHtml(`/serve-llm/update-provider`)}"
           data-provider-form
           data-initial-provider="${escapeHtml(providerKey)}"
-          data-initial-has-key="${hasStoredKey ? "true" : "false"}"
+          data-initial-has-key="${props.providerKeyStatuses[providerKey as ModelProvider]?.hasKey ? "true" : "false"}"
         >
           <div class="provider-status">
             <span class="pill pill-muted" data-provider-active>Active · ${escapeHtml(providerLabel)}</span>
@@ -940,9 +945,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
                 ${hasStoredKey ? "disabled" : ""}
                 ${hasStoredKey ? "" : "required"}
               />
-              ${hasStoredKey
-                ? `<button type="button" class="api-key-edit" data-api-key-toggle>Replace key</button>`
-                : ""}
+              <button type="button" class="api-key-edit" data-api-key-toggle style="${hasStoredKey ? "" : "display:none;"}">Replace key</button>
             </div>
             <p class="api-key-hint">
               Stored value: <strong>${escapeHtml(provider.apiKeyMask)}</strong>.
@@ -1126,6 +1129,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
         const placeholderMap = ${providerPlaceholdersPayload};
         const modelDefaults = ${modelDefaultsPayload};
         const maxTokenDefaults = ${maxTokenDefaultsPayload};
+        const providerKeyStatus = ${keyStatusPayload};
         const reasoningDefaults = ${reasoningDefaultsPayload};
         const reasoningCapabilities = ${reasoningCapabilitiesPayload};
         const reasoningMins = ${reasoningMinsPayload};
@@ -1185,8 +1189,9 @@ export function renderAdminDashboard(props: AdminPageProps): string {
             if (placeholder) {
               apiInput.placeholder = placeholder;
             }
+            const status = providerKeyStatus[provider] || { hasKey: false, verified: false };
             const isInitial = provider === initialProvider;
-            const shouldLock = isInitial && initialHasKey && !forcedKeyEntry;
+            const shouldLock = status.hasKey && !(isInitial && forcedKeyEntry === true);
             apiInput.disabled = shouldLock;
             if (shouldLock) {
               apiInput.removeAttribute("required");

@@ -12,6 +12,7 @@ export declare class AdminController {
     constructor(options: AdminControllerOptions);
     handle(context: RequestContext, _requestStart: number, reqLogger: Logger): Promise<boolean>;
     private renderDashboard;
+    private computeProviderKeyStatuses;
     private handleHistoryJson;
     private handlePromptMarkdown;
     private handleHistoryResource;
