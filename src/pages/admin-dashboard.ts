@@ -1,6 +1,17 @@
 import { escapeHtml } from "../utils/html.js";
-import { DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL } from "../constants.js";
-import type { ReasoningMode } from "../types.js";
+import { DEFAULT_REASONING_TOKENS } from "../constants.js";
+import type { ModelProvider, ReasoningMode } from "../types.js";
+import {
+  PROVIDER_CHOICES,
+  PROVIDER_LABELS,
+  PROVIDER_PLACEHOLDERS,
+  DEFAULT_MODEL_BY_PROVIDER,
+  DEFAULT_MAX_TOKENS_BY_PROVIDER,
+  REASONING_MODE_CHOICES,
+  PROVIDER_REASONING_CAPABILITIES,
+  REASONING_TOKEN_MIN_BY_PROVIDER,
+  getDefaultReasoningTokens,
+} from "../constants/providers.js";
 
 export interface AdminProviderInfo {
   provider: string;
@@ -64,6 +75,68 @@ export function renderAdminDashboard(props: AdminPageProps): string {
   } = props;
 
   const briefText = brief && brief.trim().length > 0 ? brief : "(brief not set yet)";
+  const providerKey = isModelProvider(provider.provider) ? provider.provider : "openai";
+  const providerLabel = PROVIDER_LABELS[providerKey] ?? provider.provider;
+  const providerPlaceholder = PROVIDER_PLACEHOLDERS[providerKey] ?? "sk-...";
+  const defaultModel = DEFAULT_MODEL_BY_PROVIDER[providerKey] ?? provider.model;
+  const defaultMaxTokens = DEFAULT_MAX_TOKENS_BY_PROVIDER[providerKey] ?? provider.maxOutputTokens;
+  const hasStoredKey = provider.apiKeyMask !== "not set";
+  const reasoningCapability = PROVIDER_REASONING_CAPABILITIES[providerKey] ?? { mode: false, tokens: false };
+  const defaultReasoningTokens = getDefaultReasoningTokens(providerKey);
+  const baselineReasoningTokens = typeof defaultReasoningTokens === "number" ? defaultReasoningTokens : undefined;
+  const currentReasoningTokens = provider.reasoningTokens ?? null;
+  const maxTokensValue = provider.maxOutputTokens !== defaultMaxTokens ? String(provider.maxOutputTokens) : "";
+  const reasoningTokenInputValue = (() => {
+    if (currentReasoningTokens === null || currentReasoningTokens === undefined) {
+      return "";
+    }
+    if (baselineReasoningTokens !== undefined && currentReasoningTokens === baselineReasoningTokens) {
+      return "";
+    }
+    return String(currentReasoningTokens);
+  })();
+  const reasoningTokensDisabled = !reasoningCapability.tokens || (reasoningCapability.mode && provider.reasoningMode === "none");
+  const reasoningTokenMin = REASONING_TOKEN_MIN_BY_PROVIDER[providerKey] ?? 0;
+  const reasoningTokensChanged = (() => {
+    if (!reasoningCapability.tokens) {
+      return false;
+    }
+    if (currentReasoningTokens === null || currentReasoningTokens === undefined) {
+      return false;
+    }
+    if (baselineReasoningTokens === undefined) {
+      // Providers without a defined baseline treat any explicit value as a change.
+      return true;
+    }
+    return currentReasoningTokens !== baselineReasoningTokens;
+  })();
+  const advancedOpen = provider.maxOutputTokens !== defaultMaxTokens
+    || (reasoningCapability.mode && provider.reasoningMode !== "none")
+    || reasoningTokensChanged;
+  const reasoningHelperText = REASONING_MODE_CHOICES.find((choice) => choice.value === provider.reasoningMode)?.description ?? "";
+  const modelInputId = "admin-model";
+  const apiInputId = "admin-api-key";
+  const maxTokensId = "admin-max-output";
+  const reasoningModeId = "admin-reasoning-mode";
+  const reasoningTokensId = "admin-reasoning-tokens";
+  const providerLabelsPayload = JSON.stringify(PROVIDER_LABELS).replace(/</g, "\\u003C");
+  const providerPlaceholdersPayload = JSON.stringify(PROVIDER_PLACEHOLDERS).replace(/</g, "\\u003C");
+  const modelDefaultsPayload = JSON.stringify(DEFAULT_MODEL_BY_PROVIDER).replace(/</g, "\\u003C");
+  const maxTokenDefaultsPayload = JSON.stringify(DEFAULT_MAX_TOKENS_BY_PROVIDER).replace(/</g, "\\u003C");
+  const reasoningDefaultsPayload = JSON.stringify(
+    Object.fromEntries(
+      (Object.entries(DEFAULT_REASONING_TOKENS) as Array<[ModelProvider, number | undefined]>)
+        .map(([key, value]) => [key, value ?? null]),
+    ),
+  ).replace(/</g, "\\u003C");
+  const reasoningCapabilitiesPayload = JSON.stringify(PROVIDER_REASONING_CAPABILITIES).replace(/</g, "\\u003C");
+  const reasoningMinsPayload = JSON.stringify(REASONING_TOKEN_MIN_BY_PROVIDER).replace(/</g, "\\u003C");
+  const reasoningDescriptionsPayload = JSON.stringify(
+    Object.fromEntries(REASONING_MODE_CHOICES.map((choice) => [choice.value, choice.description] as const)),
+  ).replace(/</g, "\\u003C");
+  const initialReasoningTokensLiteral = currentReasoningTokens !== null && currentReasoningTokens !== undefined
+    ? JSON.stringify(String(currentReasoningTokens)).replace(/</g, "\\u003C")
+    : "null";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -225,6 +298,134 @@ export function renderAdminDashboard(props: AdminPageProps): string {
     .panel-body {
       display: grid;
       gap: 20px;
+    }
+    .provider-panel {
+      gap: 24px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .pill-muted {
+      background: rgba(15, 23, 42, 0.08);
+      color: var(--muted);
+    }
+    .pill-soft {
+      background: rgba(15, 23, 42, 0.06);
+      color: var(--subtle);
+    }
+    .provider-status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .provider-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .provider-option {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.94);
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    }
+    .provider-option:hover {
+      transform: translateY(-1px);
+      border-color: rgba(29, 78, 216, 0.32);
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+    }
+    .provider-option[data-active="true"] {
+      border-color: var(--accent);
+      background: linear-gradient(135deg, rgba(29, 78, 216, 0.12), rgba(29, 78, 216, 0.04));
+      box-shadow: 0 16px 30px rgba(29, 78, 216, 0.18);
+    }
+    .provider-option input {
+      margin-top: 4px;
+    }
+    .provider-meta {
+      display: grid;
+      gap: 4px;
+    }
+    .provider-meta strong {
+      font-size: 0.98rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+    .provider-meta span {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .provider-meta p {
+      margin: 0;
+      color: var(--subtle);
+      font-size: 0.8rem;
+      max-width: 48ch;
+      line-height: 1.5;
+    }
+    .field-group {
+      display: grid;
+      gap: 8px;
+    }
+    .field-helper {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--subtle);
+    }
+    .advanced {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: rgba(248, 250, 255, 0.72);
+      padding: 0;
+    }
+    .advanced summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.88rem;
+    }
+    .advanced summary::-webkit-details-marker {
+      display: none;
+    }
+    .advanced[open] summary {
+      border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+    }
+    .advanced-subtitle {
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: var(--subtle);
+    }
+    .advanced-body {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+    .advanced-grid {
+      display: grid;
+      gap: 14px;
+    }
+    .field-group[data-disabled="true"] {
+      opacity: 0.6;
     }
     .panel-note {
       margin: 0;
@@ -597,81 +798,156 @@ export function renderAdminDashboard(props: AdminPageProps): string {
       </nav>
       <div class="tab-panels">
         <section class="tab-panel" id="tab-brief" role="tabpanel">
-          <div class="panel-body">
-            <p class="panel-note">The brief shapes every render. Adjust it to steer the experience mid-session.</p>
+          <div class="panel-body brief-panel">
+            <div class="pill">Craft the brief</div>
+            <p class="panel-note">Describe the product vision just like you did in setup—tone, audience, signature moments. Updates land instantly for the next render.</p>
             <form method="post" action="${escapeHtml(`/serve-llm/update-brief`)}">
-              <label>
-                Current brief
-                <textarea name="brief" placeholder="Describe the product vision">${escapeHtml(briefText)}</textarea>
+              <label class="field-group">
+                <span class="field-label">What are we building?</span>
+                <textarea
+                  name="brief"
+                  placeholder="Example: You are a ritual planning companion. Focus on warm light, generous whitespace, and a sense of calm. Surfaces should feel curated and tactile."
+                  spellcheck="true"
+                >${escapeHtml(briefText)}</textarea>
               </label>
+              <p class="field-helper">We’ll keep a live snapshot of this brief on every request so you can iterate mid-session.</p>
               <button type="submit" class="action-button">Save brief</button>
             </form>
           </div>
         </section>
 
         <section class="tab-panel" id="tab-provider" role="tabpanel" hidden>
-      <div class="panel-body">
-        <p class="panel-note">Switch providers or tune models without restarting. Keys remain masked.</p>
+      <div class="panel-body provider-panel">
+        <div class="pill">Provider &amp; model</div>
+        <p class="panel-note">Switch providers or tune models without restarting. Leave the key blank to keep the current secret.</p>
         <form
           method="post"
           action="${escapeHtml(`/serve-llm/update-provider`)}"
           data-provider-form
-          data-default-openai="${escapeHtml(DEFAULT_OPENAI_MODEL)}"
-          data-default-gemini="${escapeHtml(DEFAULT_GEMINI_MODEL)}"
-          data-default-anthropic="${escapeHtml(DEFAULT_ANTHROPIC_MODEL)}"
-          data-default-grok="${escapeHtml(DEFAULT_GROK_MODEL)}"
+          data-initial-provider="${escapeHtml(providerKey)}"
+          data-initial-has-key="${hasStoredKey ? "true" : "false"}"
         >
-          <label>
-            Provider
-            <select name="provider">
-              ${renderProviderOption("openai", provider.provider)}
-              ${renderProviderOption("gemini", provider.provider)}
-              ${renderProviderOption("anthropic", provider.provider)}
-              ${renderProviderOption("grok", provider.provider)}
-            </select>
-          </label>
-          <div class="inline-inputs">
-            <label>
-              Model name
-              <input type="text" name="model" value="${escapeHtml(provider.model)}" autocomplete="off" />
-            </label>
-            <label>
-              Max output tokens
-              <input type="number" min="1" name="maxOutputTokens" value="${provider.maxOutputTokens}" />
-            </label>
-            <label>
-              Reasoning mode
-              <select name="reasoningMode">
-                ${renderReasoningOption("none", provider.reasoningMode)}
-                ${renderReasoningOption("low", provider.reasoningMode)}
-                ${renderReasoningOption("medium", provider.reasoningMode)}
-                ${renderReasoningOption("high", provider.reasoningMode)}
-              </select>
-            </label>
-            <label>
-              Reasoning tokens budget
-              <input type="number" min="0" name="reasoningTokens" value="${provider.reasoningTokens ?? ""}" />
-            </label>
+          <div class="provider-status">
+            <span class="pill pill-muted" data-provider-active>Active · ${escapeHtml(providerLabel)}</span>
+            <span class="pill pill-soft" data-provider-model>Model · ${escapeHtml(provider.model)}</span>
           </div>
-          <label>
-            <span class="field-label">API key</span>
+          <div class="provider-grid" role="radiogroup" aria-label="Model provider" data-provider-options>
+            ${PROVIDER_CHOICES.map((choice) => {
+              const active = choice.value === providerKey;
+              const inputId = `admin-provider-${choice.value}`;
+              return `<label class="provider-option" data-active="${active}" for="${inputId}">
+                <input
+                  id="${inputId}"
+                  type="radio"
+                  name="provider"
+                  value="${escapeHtml(choice.value)}"
+                  ${active ? "checked" : ""}
+                  data-placeholder="${escapeHtml(choice.placeholder)}"
+                  data-provider-label="${escapeHtml(choice.title)}"
+                />
+                <div class="provider-meta">
+                  <strong>${escapeHtml(choice.title)}</strong>
+                  <span>${escapeHtml(choice.subtitle)}</span>
+                  <p>${escapeHtml(choice.description)}</p>
+                </div>
+              </label>`;
+            }).join("\n")}
+          </div>
+          <div class="field-group">
+            <label for="${modelInputId}">
+              <span data-model-label>Model · ${escapeHtml(providerLabel)}</span>
+            </label>
+            <input
+              id="${modelInputId}"
+              type="text"
+              name="model"
+              value="${escapeHtml(provider.model || defaultModel)}"
+              autocomplete="off"
+              spellcheck="false"
+              data-model-input
+            />
+            <p class="field-helper">Curated defaults are pre-filled. Override with an exact identifier to target preview builds.</p>
+          </div>
+          <details class="advanced" data-advanced ${advancedOpen ? "open" : ""}>
+            <summary>
+              <span>Advanced controls</span>
+              <span class="advanced-subtitle">Tune token budgets and reasoning traces.</span>
+            </summary>
+            <div class="advanced-body">
+              <div class="advanced-grid">
+                <div class="field-group">
+                  <label for="${maxTokensId}">
+                    <span>Max output tokens</span>
+                  </label>
+                  <input
+                    id="${maxTokensId}"
+                    name="maxOutputTokens"
+                    type="number"
+                    min="1"
+                    step="1"
+                    inputmode="numeric"
+                    placeholder="${escapeHtml(String(defaultMaxTokens))}"
+                    value="${escapeHtml(maxTokensValue)}"
+                    data-max-tokens
+                  />
+                  <p class="field-helper">Leave blank to stick with the provider default.</p>
+                </div>
+                <div class="field-group" data-reasoning-mode-wrapper ${reasoningCapability.mode ? "" : "hidden"}>
+                  <label for="${reasoningModeId}">
+                    <span>Reasoning mode</span>
+                  </label>
+                  <select id="${reasoningModeId}" name="reasoningMode" data-reasoning-mode>
+                    ${REASONING_MODE_CHOICES.map((choice) => {
+                      const selectedAttr = choice.value === provider.reasoningMode ? " selected" : "";
+                      return `<option value="${escapeHtml(choice.value)}"${selectedAttr}>${escapeHtml(choice.label)}</option>`;
+                    }).join("\n")}
+                  </select>
+                  <p class="field-helper" data-reasoning-helper>${escapeHtml(reasoningHelperText)}</p>
+                </div>
+                <div class="field-group" data-reasoning-tokens-wrapper ${reasoningCapability.tokens ? "" : "hidden"} ${reasoningTokensDisabled ? 'data-disabled="true"' : ""}>
+                  <label for="${reasoningTokensId}">
+                    <span>Reasoning max tokens</span>
+                  </label>
+                  <input
+                    id="${reasoningTokensId}"
+                    name="reasoningTokens"
+                    type="number"
+                    min="${escapeHtml(String(reasoningTokenMin))}"
+                    step="1"
+                    inputmode="numeric"
+                    value="${escapeHtml(reasoningTokenInputValue)}"
+                    ${reasoningTokensDisabled ? "disabled" : ""}
+                    data-reasoning-tokens
+                  />
+                  <p class="field-helper">Leave blank to defer to provider defaults.</p>
+                </div>
+              </div>
+            </div>
+          </details>
+          <label class="field-group api-key-field" for="${apiInputId}">
+            <span class="field-label">
+              <span data-provider-label-text>${escapeHtml(providerLabel)} API key</span>
+            </span>
             <div class="api-key-control">
               <input
+                id="${apiInputId}"
                 type="password"
                 name="apiKey"
-                placeholder="Paste new API key"
+                placeholder="${escapeHtml(providerPlaceholder)}"
                 autocomplete="new-password"
+                spellcheck="false"
                 data-api-key-input
-                ${provider.apiKeyMask !== "not set" ? "disabled" : ""}
+                ${hasStoredKey ? "disabled" : ""}
+                ${hasStoredKey ? "" : "required"}
               />
-              ${provider.apiKeyMask !== "not set"
+              ${hasStoredKey
                 ? `<button type="button" class="api-key-edit" data-api-key-toggle>Replace key</button>`
                 : ""}
             </div>
             <p class="api-key-hint">
               Stored value: <strong>${escapeHtml(provider.apiKeyMask)}</strong>.
-              ${provider.apiKeyMask !== "not set"
-                ? "View-only for safety. Choose “Replace key” to provide a new secret; otherwise the existing key (including values from environment variables) stays active."
+              ${hasStoredKey
+                ? "Choose “Replace key” to provide a new secret. Leaving the field blank keeps the current key (including values sourced from environment variables)."
                 : "Provide the API key for this provider. Values from environment variables will appear here on restart."}
             </p>
           </label>
@@ -831,8 +1107,199 @@ export function renderAdminDashboard(props: AdminPageProps): string {
         const apiInput = providerForm.querySelector("[data-api-key-input]");
         const toggleKeyButton = providerForm.querySelector("[data-api-key-toggle]");
         const hint = providerForm.querySelector(".api-key-hint");
-        const providerSelect = providerForm.querySelector("select[name='provider']");
-        const modelInput = providerForm.querySelector("input[name='model']");
+        const providerContainer = providerForm.querySelector("[data-provider-options]");
+        const providerRadios = providerContainer ? Array.from(providerContainer.querySelectorAll("input[name='provider']")) : [];
+        const providerCards = providerContainer ? Array.from(providerContainer.querySelectorAll(".provider-option")) : [];
+        const providerActivePill = providerForm.querySelector("[data-provider-active]");
+        const providerModelPill = providerForm.querySelector("[data-provider-model]");
+        const providerLabelTargets = Array.from(providerForm.querySelectorAll("[data-provider-label-text]"));
+        const modelLabelEl = providerForm.querySelector("[data-model-label]");
+        const modelInput = providerForm.querySelector("[data-model-input]");
+        const maxTokensInput = providerForm.querySelector("[data-max-tokens]");
+        const reasoningModeWrapper = providerForm.querySelector("[data-reasoning-mode-wrapper]");
+        const reasoningModeSelect = providerForm.querySelector("[data-reasoning-mode]");
+        const reasoningTokensWrapper = providerForm.querySelector("[data-reasoning-tokens-wrapper]");
+        const reasoningTokensInput = providerForm.querySelector("[data-reasoning-tokens]");
+        const reasoningHelper = providerForm.querySelector("[data-reasoning-helper]");
+        const advanced = providerForm.querySelector("[data-advanced]");
+        const providerLabels = ${providerLabelsPayload};
+        const placeholderMap = ${providerPlaceholdersPayload};
+        const modelDefaults = ${modelDefaultsPayload};
+        const maxTokenDefaults = ${maxTokenDefaultsPayload};
+        const reasoningDefaults = ${reasoningDefaultsPayload};
+        const reasoningCapabilities = ${reasoningCapabilitiesPayload};
+        const reasoningMins = ${reasoningMinsPayload};
+        const reasoningDescriptions = ${reasoningDescriptionsPayload};
+        const initialProvider = providerForm.dataset.initialProvider || "";
+        const initialHasKey = providerForm.dataset.initialHasKey === "true";
+        let forcedKeyEntry = !initialHasKey;
+        const cachedModelByProvider = Object.create(null);
+        const cachedReasoningTokensByProvider = Object.create(null);
+        let currentProvider = providerRadios.find((radio) => radio.checked)?.value || initialProvider;
+        const initialReasoningTokens = ${initialReasoningTokensLiteral};
+        if (modelInput instanceof HTMLInputElement) {
+          cachedModelByProvider[currentProvider] = modelInput.value;
+        }
+        if (typeof initialReasoningTokens === "string") {
+          cachedReasoningTokensByProvider[currentProvider] = initialReasoningTokens;
+        } else if (reasoningTokensInput instanceof HTMLInputElement && reasoningTokensInput.value) {
+          cachedReasoningTokensByProvider[currentProvider] = reasoningTokensInput.value;
+        }
+
+        const updateModelPill = () => {
+          if (providerModelPill instanceof HTMLElement && modelInput instanceof HTMLInputElement) {
+            const text = modelInput.value.trim();
+            providerModelPill.textContent = "Model · " + (text || "—");
+          }
+        };
+
+        const updateReasoningHelper = (mode) => {
+          if (reasoningHelper instanceof HTMLElement) {
+            reasoningHelper.textContent = reasoningDescriptions[mode] || "";
+          }
+        };
+
+        const setActiveCard = (activeProvider) => {
+          providerCards.forEach((card) => {
+            const radio = card.querySelector("input[name='provider']");
+            const isMatch = radio instanceof HTMLInputElement && radio.value === activeProvider;
+            card.dataset.active = isMatch ? "true" : "false";
+          });
+        };
+
+        const syncApiInput = (provider) => {
+          const label = providerLabels[provider] || provider;
+          const placeholder = placeholderMap[provider] || "";
+          providerLabelTargets.forEach((node) => {
+            if (node instanceof HTMLElement) {
+              node.textContent = label + " API key";
+            }
+          });
+          if (modelLabelEl instanceof HTMLElement) {
+            modelLabelEl.textContent = "Model · " + label;
+          }
+          if (providerActivePill instanceof HTMLElement) {
+            providerActivePill.textContent = "Active · " + label;
+          }
+          if (apiInput instanceof HTMLInputElement) {
+            if (placeholder) {
+              apiInput.placeholder = placeholder;
+            }
+            const isInitial = provider === initialProvider;
+            const shouldLock = isInitial && initialHasKey && !forcedKeyEntry;
+            apiInput.disabled = shouldLock;
+            if (shouldLock) {
+              apiInput.removeAttribute("required");
+              apiInput.value = "";
+            } else {
+              apiInput.disabled = false;
+              apiInput.removeAttribute("required");
+              apiInput.value = "";
+            }
+            if (toggleKeyButton instanceof HTMLButtonElement) {
+              toggleKeyButton.style.display = shouldLock ? "" : "none";
+            }
+            if (hint instanceof HTMLElement) {
+              hint.textContent = shouldLock
+                ? "Choose “Replace key” to provide a new secret. Leaving the field blank keeps the current key (including values sourced from environment variables)."
+                : "Enter the " + label + " API key. Leave blank to rely on environment configuration.";
+            }
+          }
+          if (maxTokensInput instanceof HTMLInputElement) {
+            const maxDefault = maxTokenDefaults[provider];
+            if (typeof maxDefault === "number") {
+              maxTokensInput.placeholder = String(maxDefault);
+            }
+          }
+        };
+
+        const configureReasoning = (provider) => {
+          const capability = reasoningCapabilities[provider] || { mode: false, tokens: false };
+          if (reasoningModeWrapper instanceof HTMLElement) {
+            reasoningModeWrapper.hidden = !capability.mode;
+          }
+          if (reasoningTokensWrapper instanceof HTMLElement) {
+            reasoningTokensWrapper.hidden = !capability.tokens;
+            if (!capability.tokens) {
+              reasoningTokensWrapper.removeAttribute("data-disabled");
+            }
+          }
+          if (reasoningModeSelect instanceof HTMLSelectElement) {
+            if (!capability.mode) {
+              reasoningModeSelect.value = "none";
+            }
+            updateReasoningHelper(reasoningModeSelect.value);
+          }
+          if (reasoningTokensInput instanceof HTMLInputElement) {
+            const min = reasoningMins[provider];
+            if (typeof min === "number") {
+              reasoningTokensInput.min = String(min);
+            } else {
+              reasoningTokensInput.removeAttribute("min");
+            }
+            const defaultTokens = reasoningDefaults.hasOwnProperty(provider) ? reasoningDefaults[provider] : null;
+            const cached = cachedReasoningTokensByProvider[provider];
+            let valueToApply = "";
+            if (typeof cached === "string" && cached.length > 0) {
+              valueToApply = cached;
+            } else if (defaultTokens !== null && defaultTokens !== undefined && defaultTokens !== "") {
+              valueToApply = String(defaultTokens);
+            }
+            const disableForMode = capability.mode && reasoningModeSelect instanceof HTMLSelectElement && reasoningModeSelect.value === "none";
+            if (disableForMode) {
+              if (valueToApply.length > 0) {
+                cachedReasoningTokensByProvider[provider] = valueToApply;
+              }
+              reasoningTokensInput.value = "";
+              reasoningTokensInput.disabled = true;
+              reasoningTokensWrapper?.setAttribute("data-disabled", "true");
+            } else {
+              reasoningTokensInput.disabled = !capability.tokens;
+              if (capability.tokens) {
+                reasoningTokensWrapper?.removeAttribute("data-disabled");
+                reasoningTokensInput.value = valueToApply;
+              } else {
+                reasoningTokensInput.value = "";
+              }
+            }
+          }
+        };
+
+        const switchProvider = (nextProvider) => {
+          if (!nextProvider || nextProvider === currentProvider) {
+            return;
+          }
+          if (modelInput instanceof HTMLInputElement) {
+            cachedModelByProvider[currentProvider] = modelInput.value;
+          }
+          if (reasoningTokensInput instanceof HTMLInputElement && !reasoningTokensInput.disabled) {
+            cachedReasoningTokensByProvider[currentProvider] = reasoningTokensInput.value;
+          }
+          currentProvider = nextProvider;
+          const label = providerLabels[nextProvider] || nextProvider;
+          if (modelInput instanceof HTMLInputElement) {
+            const cachedModel = cachedModelByProvider[nextProvider];
+            if (typeof cachedModel === "string") {
+              modelInput.value = cachedModel;
+            } else {
+              const fallbackModel = modelDefaults[nextProvider];
+              modelInput.value = typeof fallbackModel === "string" ? fallbackModel : "";
+            }
+            updateModelPill();
+          }
+          syncApiInput(nextProvider);
+          configureReasoning(nextProvider);
+          setActiveCard(nextProvider);
+          if (advanced instanceof HTMLElement && !advanced.open) {
+            const capability = reasoningCapabilities[nextProvider] || { mode: false, tokens: false };
+            if (capability.mode || capability.tokens) {
+              advanced.open = true;
+            }
+          }
+          if (modelInput instanceof HTMLInputElement) {
+            cachedModelByProvider[nextProvider] = modelInput.value;
+          }
+        };
 
         if (toggleKeyButton instanceof HTMLButtonElement && apiInput instanceof HTMLInputElement) {
           toggleKeyButton.addEventListener("click", (event) => {
@@ -841,30 +1308,50 @@ export function renderAdminDashboard(props: AdminPageProps): string {
             apiInput.value = "";
             apiInput.focus();
             apiInput.setAttribute("required", "required");
-            toggleKeyButton.remove();
+            forcedKeyEntry = true;
+            toggleKeyButton.style.display = "none";
             if (hint instanceof HTMLElement) {
               hint.textContent = "Enter the replacement API key. Leaving this blank will keep the existing one.";
             }
           });
         }
 
-        if (providerSelect instanceof HTMLSelectElement && modelInput instanceof HTMLInputElement) {
-          const defaults = {
-            openai: providerForm.dataset.defaultOpenai || "",
-            gemini: providerForm.dataset.defaultGemini || "",
-            anthropic: providerForm.dataset.defaultAnthropic || "",
-            grok: providerForm.dataset.defaultGrok || "",
-          };
-          providerSelect.addEventListener("change", () => {
-            const selected = providerSelect.value;
-            if (Object.prototype.hasOwnProperty.call(defaults, selected)) {
-              const fallback = defaults[selected];
-              if (fallback && fallback.length > 0) {
-                modelInput.value = fallback;
-              }
+        providerRadios.forEach((radio) => {
+          if (!(radio instanceof HTMLInputElement)) {
+            return;
+          }
+          radio.addEventListener("change", () => {
+            if (!radio.checked) {
+              return;
             }
+            switchProvider(radio.value);
+          });
+        });
+
+        if (modelInput instanceof HTMLInputElement) {
+          modelInput.addEventListener("input", () => {
+            cachedModelByProvider[currentProvider] = modelInput.value;
+            updateModelPill();
           });
         }
+
+        if (reasoningModeSelect instanceof HTMLSelectElement) {
+          reasoningModeSelect.addEventListener("change", () => {
+            updateReasoningHelper(reasoningModeSelect.value);
+            configureReasoning(currentProvider);
+          });
+        }
+
+        if (reasoningTokensInput instanceof HTMLInputElement) {
+          reasoningTokensInput.addEventListener("input", () => {
+            cachedReasoningTokensByProvider[currentProvider] = reasoningTokensInput.value;
+          });
+        }
+
+        setActiveCard(currentProvider);
+        syncApiInput(currentProvider);
+        configureReasoning(currentProvider);
+        updateModelPill();
       }
 
       const importForm = document.querySelector("[data-import-form]");
@@ -1072,25 +1559,8 @@ function renderStatus(status?: string, error?: string): string {
   return "";
 }
 
-function renderProviderOption(value: string, current: string): string {
-  let label: string;
-  if (value === "openai") {
-    label = "OpenAI";
-  } else if (value === "gemini") {
-    label = "Gemini";
-  } else if (value === "anthropic") {
-    label = "Anthropic";
-  } else {
-    label = "xAI Grok";
-  }
-  const selected = value === current ? "selected" : "";
-  return `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(label)}</option>`;
-}
-
-function renderReasoningOption(value: ReasoningMode, current: ReasoningMode): string {
-  const label = value === "none" ? "None" : value === "low" ? "Low" : value === "medium" ? "Medium" : "High";
-  const selected = value === current ? "selected" : "";
-  return `<option value="${escapeHtml(value)}" ${selected}>${escapeHtml(label)}</option>`;
+function isModelProvider(value: string): value is ModelProvider {
+  return value === "openai" || value === "gemini" || value === "anthropic" || value === "grok";
 }
 
 export function renderHistory(history: AdminHistoryItem[]): string {

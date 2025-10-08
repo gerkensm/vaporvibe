@@ -20,6 +20,8 @@ async function main() {
             runtime: appConfig.runtime,
             provider: appConfig.provider,
             providerLocked: appConfig.providerLocked,
+            providerSelectionRequired: appConfig.providerSelectionRequired,
+            providersWithKeys: appConfig.providersWithKeys,
             llmClient,
             sessionStore,
         });

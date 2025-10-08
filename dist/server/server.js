@@ -15,7 +15,7 @@ import { verifyProviderApiKey } from "../llm/verification.js";
 import { createLlmClient } from "../llm/factory.js";
 const PENDING_HTML_TTL_MS = 3 * 60 * 1000;
 export function createServer(options) {
-    const { runtime, provider, providerLocked, llmClient, sessionStore } = options;
+    const { runtime, provider, providerLocked, providerSelectionRequired, providersWithKeys, llmClient, sessionStore } = options;
     const runtimeState = { ...runtime };
     const providerState = { ...provider };
     const state = {
@@ -25,6 +25,11 @@ export function createServer(options) {
         llmClient,
         providerReady: Boolean(llmClient && providerState.apiKey && providerState.apiKey.trim().length > 0),
         providerLocked,
+        providerSelectionRequired,
+        providersWithKeys: new Set(providersWithKeys),
+        verifiedProviders: providerState.apiKey && providerState.apiKey.trim().length > 0
+            ? { [providerState.provider]: Boolean(llmClient) }
+            : {},
         pendingHtml: new Map(),
     };
     const adminController = new AdminController({
@@ -48,7 +53,7 @@ export function createServer(options) {
                 reqLogger.info(`Pending render delivered with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
                 return;
             }
-            if (!state.providerReady || !state.brief || isSetupRequest(context.path)) {
+            if (!state.providerReady || state.providerSelectionRequired || !state.brief || isSetupRequest(context.path)) {
                 await handleSetupFlow(context, state, reqLogger);
                 reqLogger.info(`Setup flow completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
                 return;
@@ -122,7 +127,7 @@ async function handleSetupFlow(context, state, reqLogger) {
     let selectedProvider = state.provider.provider;
     if (method === "POST" && path === SETUP_VERIFY_ROUTE) {
         const body = await readBody(req);
-        const apiKey = typeof body.data.apiKey === "string" ? body.data.apiKey.trim() : "";
+        const apiKeyInput = typeof body.data.apiKey === "string" ? body.data.apiKey.trim() : "";
         let submittedModel = typeof body.data.model === "string" ? body.data.model.trim() : "";
         if (canSelectProvider) {
             const submittedProvider = parseProviderValue(body.data.provider);
@@ -139,6 +144,8 @@ async function handleSetupFlow(context, state, reqLogger) {
                     canSelectProvider,
                     selectedProvider,
                     selectedModel: submittedModel || state.provider.model || "",
+                    providerSelectionRequired: state.providerSelectionRequired,
+                    providerKeyStatuses: buildProviderKeyStatuses(state),
                     maxOutputTokens: state.provider.maxOutputTokens,
                     reasoningMode: state.provider.reasoningMode ?? "none",
                     reasoningTokens: getEffectiveReasoningTokens(state.provider),
@@ -180,6 +187,8 @@ async function handleSetupFlow(context, state, reqLogger) {
                 canSelectProvider,
                 selectedProvider,
                 selectedModel: submittedModel,
+                providerSelectionRequired: state.providerSelectionRequired,
+                providerKeyStatuses: buildProviderKeyStatuses(state),
                 maxOutputTokens: state.provider.maxOutputTokens,
                 reasoningMode: state.provider.reasoningMode ?? "none",
                 reasoningTokens: getEffectiveReasoningTokens(state.provider),
@@ -214,6 +223,8 @@ async function handleSetupFlow(context, state, reqLogger) {
                     canSelectProvider,
                     selectedProvider,
                     selectedModel: submittedModel,
+                    providerSelectionRequired: state.providerSelectionRequired,
+                    providerKeyStatuses: buildProviderKeyStatuses(state),
                     maxOutputTokens: state.provider.maxOutputTokens,
                     reasoningMode: state.provider.reasoningMode ?? "none",
                     reasoningTokens: getEffectiveReasoningTokens(state.provider),
@@ -243,19 +254,63 @@ async function handleSetupFlow(context, state, reqLogger) {
         state.provider.reasoningMode = submittedReasoningMode;
         state.provider.reasoningTokens = adjustedReasoningTokens;
         state.provider.model = submittedModel;
-        reqLogger.debug({ provider: state.provider.provider }, "Setup wizard verifying API key");
-        const verification = await verifyProviderApiKey(state.provider.provider, apiKey);
-        if (verification.ok) {
+        const existingKey = state.provider.apiKey?.trim() ?? "";
+        const finalApiKey = apiKeyInput || existingKey;
+        if (!finalApiKey) {
+            const html = renderSetupWizardPage({
+                step: "provider",
+                providerLabel,
+                providerName,
+                verifyAction,
+                briefAction,
+                setupPath: SETUP_ROUTE,
+                adminPath: ADMIN_ROUTE_PREFIX,
+                providerReady: state.providerReady,
+                canSelectProvider,
+                selectedProvider,
+                selectedModel: state.provider.model || "",
+                providerSelectionRequired: state.providerSelectionRequired,
+                providerKeyStatuses: buildProviderKeyStatuses(state),
+                maxOutputTokens: state.provider.maxOutputTokens,
+                reasoningMode: state.provider.reasoningMode ?? "none",
+                reasoningTokens: getEffectiveReasoningTokens(state.provider),
+                errorMessage: "Add an API key or leave the field blank to reuse the stored key.",
+            });
+            res.statusCode = 400;
+            res.setHeader("Content-Type", "text/html; charset=utf-8");
+            res.end(html);
+            return;
+        }
+        const reusingStoredKey = !apiKeyInput && state.providerReady && existingKey === finalApiKey;
+        let verificationOk = false;
+        let verificationMessage;
+        if (reusingStoredKey) {
+            verificationOk = true;
+            reqLogger.debug({ provider: state.provider.provider }, "Reusing previously verified API key");
+        }
+        else {
+            reqLogger.debug({ provider: state.provider.provider }, "Setup wizard verifying API key");
+            const verification = await verifyProviderApiKey(state.provider.provider, finalApiKey);
+            verificationOk = verification.ok;
+            verificationMessage = verification.message;
+        }
+        if (verificationOk) {
             try {
-                state.provider.apiKey = apiKey;
+                state.provider.apiKey = finalApiKey;
                 applyProviderEnv(state.provider);
-                state.llmClient = createLlmClient(state.provider);
+                if (!state.llmClient || !reusingStoredKey || state.llmClient.settings.provider !== state.provider.provider) {
+                    state.llmClient = createLlmClient(state.provider);
+                }
                 state.providerReady = true;
-                reqLogger.info({ provider: state.provider.provider }, "API key verified via setup wizard");
+                state.providerSelectionRequired = false;
+                state.providersWithKeys.add(state.provider.provider);
+                state.verifiedProviders[state.provider.provider] = true;
+                reqLogger.info({ provider: state.provider.provider }, reusingStoredKey ? "Using stored API key" : "API key verified via setup wizard");
                 res.statusCode = 303;
+                const statusMessage = reusingStoredKey ? "Provider selected" : "API key verified";
                 const redirectTarget = state.brief
                     ? `${ADMIN_ROUTE_PREFIX}?status=Setup%20complete`
-                    : `${SETUP_ROUTE}?step=brief&status=API%20key%20verified`;
+                    : `${SETUP_ROUTE}?step=brief&status=${encodeURIComponent(statusMessage)}`;
                 res.setHeader("Location", redirectTarget);
                 res.end();
                 return;
@@ -263,7 +318,8 @@ async function handleSetupFlow(context, state, reqLogger) {
             catch (error) {
                 reqLogger.error({ err: error }, "Failed to instantiate LLM client after verification");
                 state.providerReady = false;
-                state.provider.apiKey = "";
+                state.llmClient = null;
+                state.verifiedProviders[state.provider.provider] = false;
                 const message = error instanceof Error ? error.message : String(error);
                 const html = renderSetupWizardPage({
                     step: "provider",
@@ -277,6 +333,8 @@ async function handleSetupFlow(context, state, reqLogger) {
                     canSelectProvider,
                     selectedProvider,
                     selectedModel: state.provider.model || "",
+                    providerSelectionRequired: state.providerSelectionRequired,
+                    providerKeyStatuses: buildProviderKeyStatuses(state),
                     maxOutputTokens: state.provider.maxOutputTokens,
                     reasoningMode: state.provider.reasoningMode ?? "none",
                     reasoningTokens: getEffectiveReasoningTokens(state.provider),
@@ -288,7 +346,11 @@ async function handleSetupFlow(context, state, reqLogger) {
                 return;
             }
         }
-        reqLogger.warn({ provider: state.provider.provider }, `API key verification failed: ${verification.message ?? "unknown error"}`);
+        reqLogger.warn({ provider: state.provider.provider }, `API key verification failed: ${verificationMessage ?? "unknown error"}`);
+        state.providerReady = false;
+        state.llmClient = null;
+        state.providerSelectionRequired = true;
+        state.verifiedProviders[state.provider.provider] = false;
         const html = renderSetupWizardPage({
             step: "provider",
             providerLabel,
@@ -301,10 +363,12 @@ async function handleSetupFlow(context, state, reqLogger) {
             canSelectProvider,
             selectedProvider,
             selectedModel: state.provider.model || "",
+            providerSelectionRequired: state.providerSelectionRequired,
+            providerKeyStatuses: buildProviderKeyStatuses(state),
             maxOutputTokens: state.provider.maxOutputTokens,
             reasoningMode: state.provider.reasoningMode ?? "none",
             reasoningTokens: getEffectiveReasoningTokens(state.provider),
-            errorMessage: verification.message ?? "We could not verify that key. Please try again.",
+            errorMessage: verificationMessage ?? "We could not verify that key. Please try again.",
         });
         res.statusCode = 400;
         res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -315,7 +379,7 @@ async function handleSetupFlow(context, state, reqLogger) {
         const body = await readBody(req);
         const briefValue = typeof body.data.brief === "string" ? body.data.brief.trim() : "";
         reqLogger.debug(formatJsonForLog(body.data, "Brief submission"));
-        if (!state.providerReady) {
+        if (!state.providerReady || state.providerSelectionRequired) {
             res.statusCode = 303;
             res.setHeader("Location", `${SETUP_ROUTE}?step=provider`);
             res.end();
@@ -334,6 +398,8 @@ async function handleSetupFlow(context, state, reqLogger) {
                 canSelectProvider,
                 selectedProvider,
                 selectedModel: state.provider.model || "",
+                providerSelectionRequired: state.providerSelectionRequired,
+                providerKeyStatuses: buildProviderKeyStatuses(state),
                 maxOutputTokens: state.provider.maxOutputTokens,
                 reasoningMode: state.provider.reasoningMode ?? "none",
                 reasoningTokens: getEffectiveReasoningTokens(state.provider),
@@ -412,29 +478,31 @@ async function handleSetupFlow(context, state, reqLogger) {
       font-weight: 600;
       box-shadow: 0 16px 28px rgba(29, 78, 216, 0.18);
     }
+    .secondary {
+      display: inline-block;
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #1d4ed8;
+      font-weight: 600;
+      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+    }
+    .secondary:hover {
+      background: #eff6ff;
+    }
   </style>
-  <script>
-    window.addEventListener("load", () => {
-      try {
-        const opened = window.open("${appUrl}", "_blank", "noopener");
-        if (!opened) {
-          console.warn("Popup blocked while opening application view");
-        }
-      } catch (error) {
-        console.warn("Failed to open application view", error);
-      }
-      window.location.replace("${adminUrl}");
-    });
-  </script>
 </head>
 <body>
   <main>
-    <h1>Setting things up…</h1>
-    <p>We are opening your experience in a new tab and guiding this window to the admin console.</p>
+    <h1>Studio is ready</h1>
+    <p>Your brief is live. Open the live canvas to see it in action, or head to the admin console to tune the experience.</p>
+    <p>The canvas opens in a new tab so you can keep this page handy for controls.</p>
     <div class="actions">
-      <a class="primary" href="${appUrl}" target="_blank" rel="noopener">Open app manually</a>
-      <a href="${adminUrl}">Go to admin dashboard</a>
+      <a class="primary" href="${appUrl}" target="_blank" rel="noopener">Open the live canvas</a>
+      <a class="secondary" href="${adminUrl}">Go to admin console</a>
     </div>
+    <p>You can return to the console at any time via <a href="${adminUrl}">${adminUrl}</a>. Consider bookmarking it for later tweaks.</p>
   </main>
 </body>
 </html>`;
@@ -443,7 +511,7 @@ async function handleSetupFlow(context, state, reqLogger) {
         res.end(html);
         return;
     }
-    if (state.providerReady && state.brief && path.startsWith(SETUP_ROUTE)) {
+    if (state.providerReady && !state.providerSelectionRequired && state.brief && path.startsWith(SETUP_ROUTE)) {
         res.statusCode = 303;
         res.setHeader("Location", ADMIN_ROUTE_PREFIX);
         res.end();
@@ -451,7 +519,7 @@ async function handleSetupFlow(context, state, reqLogger) {
     }
     const requestedStep = url.searchParams.get("step");
     let step;
-    if (!state.providerReady) {
+    if (!state.providerReady || state.providerSelectionRequired) {
         step = "provider";
     }
     else if (!state.brief) {
@@ -460,7 +528,7 @@ async function handleSetupFlow(context, state, reqLogger) {
     else {
         step = requestedStep === "provider" ? "provider" : "brief";
     }
-    if (state.providerReady && state.brief && !requestedStep && path === SETUP_ROUTE) {
+    if (state.providerReady && !state.providerSelectionRequired && state.brief && !requestedStep && path === SETUP_ROUTE) {
         res.statusCode = 303;
         res.setHeader("Location", ADMIN_ROUTE_PREFIX);
         res.end();
@@ -478,6 +546,8 @@ async function handleSetupFlow(context, state, reqLogger) {
         canSelectProvider,
         selectedProvider,
         selectedModel: state.provider.model || "",
+        providerSelectionRequired: state.providerSelectionRequired,
+        providerKeyStatuses: buildProviderKeyStatuses(state),
         maxOutputTokens: state.provider.maxOutputTokens,
         reasoningMode: state.provider.reasoningMode ?? "none",
         reasoningTokens: getEffectiveReasoningTokens(state.provider),
@@ -686,6 +756,30 @@ function applyProviderEnv(settings) {
     }
     process.env.ANTHROPIC_API_KEY = key;
 }
+function getEnvApiKeyForProvider(provider) {
+    if (provider === "openai") {
+        return process.env.OPENAI_API_KEY
+            || process.env.OPENAI_APIKEY
+            || process.env.OPENAI_KEY
+            || undefined;
+    }
+    if (provider === "gemini") {
+        return process.env.GEMINI_API_KEY
+            || process.env.GEMINI_KEY
+            || process.env.GOOGLE_API_KEY
+            || process.env.GOOGLE_GENAI_KEY
+            || undefined;
+    }
+    if (provider === "grok") {
+        return process.env.XAI_API_KEY
+            || process.env.GROK_API_KEY
+            || process.env.XAI_KEY
+            || undefined;
+    }
+    return process.env.ANTHROPIC_API_KEY
+        || process.env.ANTHROPIC_KEY
+        || undefined;
+}
 function getProviderLabel(provider) {
     if (provider === "openai") {
         return "OpenAI";
@@ -709,6 +803,7 @@ function updateProviderSelection(state, provider, reqLogger) {
         return;
     }
     const previous = state.provider.provider;
+    state.verifiedProviders[previous] = state.providerReady && Boolean(state.provider.apiKey?.trim());
     let reasoningMode = "none";
     let reasoningTokens;
     if (provider === "openai") {
@@ -736,15 +831,25 @@ function updateProviderSelection(state, provider, reqLogger) {
     else if (provider === "grok") {
         reasoningMode = "none";
     }
+    const envKey = getEnvApiKeyForProvider(provider)?.trim() ?? "";
+    const verified = Boolean(state.verifiedProviders[provider]) && envKey.length > 0;
     state.provider = {
         provider,
-        apiKey: "",
+        apiKey: envKey,
         model: getDefaultModelForProvider(provider),
         maxOutputTokens: getDefaultMaxTokensForProvider(provider),
         reasoningMode,
         reasoningTokens,
     };
-    state.providerReady = false;
+    if (envKey) {
+        state.providersWithKeys.add(provider);
+    }
+    else {
+        state.providersWithKeys.delete(provider);
+    }
+    state.providerReady = verified;
+    state.verifiedProviders[provider] = verified;
+    state.providerSelectionRequired = true;
     state.llmClient = null;
     reqLogger.info({ from: previous, to: provider }, "Wizard switched provider selection");
 }
@@ -772,6 +877,23 @@ function getEffectiveReasoningTokens(provider) {
         return tokens;
     }
     return DEFAULT_REASONING_TOKENS[provider.provider];
+}
+function buildProviderKeyStatuses(state) {
+    const providers = ["openai", "gemini", "anthropic", "grok"];
+    return providers.reduce((acc, provider) => {
+        const isCurrent = state.provider.provider === provider;
+        const hasKeyInState = isCurrent ? Boolean(state.provider.apiKey?.trim()) : state.providersWithKeys.has(provider);
+        const hasKey = hasKeyInState;
+        const verifiedFlag = Boolean(state.verifiedProviders[provider]);
+        const verified = hasKey && (isCurrent ? state.providerReady && verifiedFlag : verifiedFlag);
+        acc[provider] = { hasKey, verified };
+        return acc;
+    }, {
+        openai: { hasKey: false, verified: false },
+        gemini: { hasKey: false, verified: false },
+        anthropic: { hasKey: false, verified: false },
+        grok: { hasKey: false, verified: false },
+    });
 }
 function parseProviderValue(value) {
     if (!value || typeof value !== "string") {

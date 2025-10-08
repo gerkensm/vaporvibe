@@ -1,4 +1,8 @@
 import type { ModelProvider, ReasoningMode } from "../types.js";
+type ProviderKeyStatus = {
+    hasKey: boolean;
+    verified: boolean;
+};
 export type SetupWizardStep = "provider" | "brief";
 interface SetupWizardPageOptions {
     step: SetupWizardStep;
@@ -12,6 +16,8 @@ interface SetupWizardPageOptions {
     canSelectProvider: boolean;
     selectedProvider: ModelProvider;
     selectedModel: string;
+    providerSelectionRequired: boolean;
+    providerKeyStatuses: Record<ModelProvider, ProviderKeyStatus>;
     maxOutputTokens: number;
     reasoningMode: ReasoningMode;
     reasoningTokens?: number;

@@ -15,6 +15,54 @@ export function renderLoadingShell(options = {}) {
         "Asking the model to phone a friend",
         "Baking semantic breadcrumbs",
         "Syncing narratives with UX atoms",
+        "Coaxing latent space into a moodboard",
+        "Listening for whispers from hidden layers",
+        "Debating prompt tone with the alignment committee",
+        "Sampling gradients from a transformer’s daydream",
+        "Replaying vector memories for Easter eggs",
+        "Translating embeddings into interface decisions",
+        "Rehearsing a cold start apology just in case",
+        "Sweeping stray tokens under the style guide",
+        "Harmonizing typography with diffusion noise",
+        "Downscaling hallucinations into viable features",
+        "Spinning up a mirror world for copy edits",
+        "Cross-checking vibes with a safety classifier",
+        "Peeking at the model’s scratch pad doodles",
+        "Asking guardrails to approve the hero gradient",
+        "Bottling synthetic inspiration for later prompts",
+        "Fending off rogue autocomplete suggestions",
+        "Negotiating whitespace with a chain-of-thought",
+        "Placing easter eggs in the latent manifold",
+        "Queuing a parallel universe for user testing",
+        "Assembling quick sketches from token confetti",
+        "Greeting the moderation bot with a latte",
+        "Letting the reward model tune microcopy warmth",
+        "Patching prompt leaks with friendly regex",
+        "Syncing color tokens with think tokens",
+        "Refreshing the knowledge cutoff on interior design",
+        "Scrubbing prompt engineering notes for clarity",
+        "Asking the simulator to imagine delight",
+        "Mapping tone of voice across embeddings",
+        "Sketching onboarding with synthetic personas",
+        "Tuning conversational guardrails to whisper mode",
+        "Crossfading between reasoning modes for flair",
+        "Bottling emergent behavior into hero copy",
+        "Aligning call-to-action courage with log probabilities",
+        "Consulting few-shot examples for tasteful animation",
+        "Translating confidence intervals into layout rhythm",
+        "Debugging an overenthusiastic summary subroutine",
+        "Telling the model a bedtime brief for inspiration",
+        "Running style transfer on yesterday’s feedback",
+        "Reindexing the prompt library for serendipity",
+        "Rerouting creative overflow to sandbox memory",
+        "Chatting with the self-critique about polish",
+        "Drafting accessibility notes with the safety net",
+        "Letting the assistant sketch with synthetic chalk",
+        "Sampling temperature curves for witty tooltips",
+        "Polishing edge cases in the instruction buffer",
+        "Teaching the fallback model a new dad joke",
+        "Cross-referencing tone with long-term memory",
+        "Capturing lightning in a latent bottle",
     ];
     return `<!DOCTYPE html>
 <html lang="en">
@@ -115,7 +163,7 @@ export function renderLoadingShell(options = {}) {
         setInterval(function() {
           index = (index + 1) % unique.length;
           target.textContent = unique[index];
-        }, 3400);
+        }, 6000);
       } else if (target && unique.length === 1) {
         target.textContent = unique[0] || base;
       }

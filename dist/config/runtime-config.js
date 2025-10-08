@@ -10,11 +10,16 @@ export async function resolveAppConfig(options, env) {
     if (hasApiKey) {
         applyProviderEnv(providerSettings);
     }
+    const providersWithKeys = providerResolution.providersWithKeys;
+    const providerSelectionRequired = !providerResolution.locked
+        && providersWithKeys.filter((value, index) => providersWithKeys.indexOf(value) === index).length > 1;
     return {
         provider: providerSettings,
         runtime,
         providerReady: hasApiKey,
         providerLocked: providerResolution.locked,
+        providerSelectionRequired,
+        providersWithKeys,
     };
 }
 function resolveRuntime(options, env) {
@@ -117,38 +122,60 @@ function determineProvider(options, env) {
         || parseProviderValue(env.LLM_PROVIDER)
         || parseProviderValue(env.PROVIDER);
     if (explicit) {
-        return { provider: explicit, locked: true };
+        const detected = detectProvidersWithKeys(env);
+        return { provider: explicit, locked: true, providersWithKeys: detected };
     }
     const hasOpenAiKey = Boolean(getOpenAiKey(env));
     const hasGeminiKey = Boolean(getGeminiKey(env));
     const hasAnthropicKey = Boolean(getAnthropicKey(env));
     const hasGrokKey = Boolean(getGrokKey(env));
+    const providersWithKeys = [];
+    if (hasOpenAiKey)
+        providersWithKeys.push("openai");
+    if (hasGeminiKey)
+        providersWithKeys.push("gemini");
+    if (hasAnthropicKey)
+        providersWithKeys.push("anthropic");
+    if (hasGrokKey)
+        providersWithKeys.push("grok");
     if (hasOpenAiKey && !hasGeminiKey && !hasAnthropicKey) {
-        return { provider: "openai", locked: false };
+        return { provider: "openai", locked: false, providersWithKeys };
     }
     if (hasGeminiKey && !hasOpenAiKey && !hasAnthropicKey) {
-        return { provider: "gemini", locked: false };
+        return { provider: "gemini", locked: false, providersWithKeys };
     }
     if (hasAnthropicKey && !hasOpenAiKey && !hasGeminiKey) {
-        return { provider: "anthropic", locked: false };
+        return { provider: "anthropic", locked: false, providersWithKeys };
     }
     if (hasGrokKey && !hasOpenAiKey && !hasGeminiKey && !hasAnthropicKey) {
-        return { provider: "grok", locked: false };
+        return { provider: "grok", locked: false, providersWithKeys };
     }
     if (hasOpenAiKey) {
-        return { provider: "openai", locked: false };
+        return { provider: "openai", locked: false, providersWithKeys };
     }
     if (hasGeminiKey) {
-        return { provider: "gemini", locked: false };
+        return { provider: "gemini", locked: false, providersWithKeys };
     }
     if (hasAnthropicKey) {
-        return { provider: "anthropic", locked: false };
+        return { provider: "anthropic", locked: false, providersWithKeys };
     }
     if (hasGrokKey) {
-        return { provider: "grok", locked: false };
+        return { provider: "grok", locked: false, providersWithKeys };
     }
     // Default to OpenAI when no preference is supplied.
-    return { provider: "openai", locked: false };
+    return { provider: "openai", locked: false, providersWithKeys };
+}
+function detectProvidersWithKeys(env) {
+    const detected = [];
+    if (getOpenAiKey(env))
+        detected.push("openai");
+    if (getGeminiKey(env))
+        detected.push("gemini");
+    if (getAnthropicKey(env))
+        detected.push("anthropic");
+    if (getGrokKey(env))
+        detected.push("grok");
+    return detected;
 }
 function resolveReasoningOptions(options, env) {
     const rawMode = options.reasoningMode ?? env.REASONING_MODE;

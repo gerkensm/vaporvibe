@@ -1,12 +1,14 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import { URL } from "node:url";
-import type { RuntimeConfig, ProviderSettings } from "../types.js";
+import type { RuntimeConfig, ProviderSettings, ModelProvider } from "../types.js";
 import type { LlmClient } from "../llm/client.js";
 import { SessionStore } from "./session-store.js";
 export interface ServerOptions {
     runtime: RuntimeConfig;
     provider: ProviderSettings;
     providerLocked: boolean;
+    providerSelectionRequired: boolean;
+    providersWithKeys: ModelProvider[];
     llmClient: LlmClient | null;
     sessionStore: SessionStore;
 }
@@ -24,6 +26,9 @@ export interface MutableServerState {
     llmClient: LlmClient | null;
     providerReady: boolean;
     providerLocked: boolean;
+    providerSelectionRequired: boolean;
+    providersWithKeys: Set<ModelProvider>;
+    verifiedProviders: Partial<Record<ModelProvider, boolean>>;
     pendingHtml: Map<string, PendingHtmlEntry>;
 }
 interface PendingHtmlEntry {

@@ -97,4 +97,6 @@ export interface AppConfig {
   provider: ProviderSettings;
   providerReady: boolean;
   providerLocked: boolean;
+  providerSelectionRequired: boolean;
+  providersWithKeys: ModelProvider[];
 }

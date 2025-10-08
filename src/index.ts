@@ -23,6 +23,8 @@ async function main(): Promise<void> {
       runtime: appConfig.runtime,
       provider: appConfig.provider,
       providerLocked: appConfig.providerLocked,
+      providerSelectionRequired: appConfig.providerSelectionRequired,
+      providersWithKeys: appConfig.providersWithKeys,
       llmClient,
       sessionStore,
     });

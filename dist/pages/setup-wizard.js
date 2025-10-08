@@ -1,67 +1,6 @@
 import { escapeHtml } from "../utils/html.js";
-import { DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, } from "../constants.js";
-const PROVIDER_CHOICES = [
-    {
-        value: "openai",
-        title: "OpenAI",
-        subtitle: "GPT-5 Pro · o3 · GPT-4.1",
-        description: "Flagship frontier models with rich reasoning and polished UX—ideal when you want maximum quality and ecosystem reach.",
-        placeholder: "sk-...",
-    },
-    {
-        value: "gemini",
-        title: "Google Gemini",
-        subtitle: "1M context · Flash & Pro",
-        description: "Flash is blisteringly fast for iteration; Pro delivers frontier depth with the same expansive context window.",
-        placeholder: "AIza...",
-    },
-    {
-        value: "grok",
-        title: "xAI Grok",
-        subtitle: "Fast frontier reasoning",
-        description: "Frontier reasoning with realtime context. Choose the reasoning or non-reasoning Grok 4 variants, or scale down to Grok 3 for lighter latency.",
-        placeholder: "xai-...",
-    },
-    {
-        value: "anthropic",
-        title: "Anthropic",
-        subtitle: "Claude Sonnet · Claude Opus",
-        description: "Sonnet balances quality and speed for product and code; Opus is the premium deep-thinker when you need Anthropic's top shelf.",
-        placeholder: "sk-ant-...",
-    },
-];
-const PROVIDER_LABELS = Object.fromEntries(PROVIDER_CHOICES.map((choice) => [choice.value, choice.title]));
-const PROVIDER_PLACEHOLDERS = Object.fromEntries(PROVIDER_CHOICES.map((choice) => [choice.value, choice.placeholder]));
-const DEFAULT_MODEL_BY_PROVIDER = {
-    openai: DEFAULT_OPENAI_MODEL,
-    gemini: DEFAULT_GEMINI_MODEL,
-    anthropic: DEFAULT_ANTHROPIC_MODEL,
-    grok: DEFAULT_GROK_MODEL,
-};
-const DEFAULT_MAX_TOKENS_BY_PROVIDER = {
-    openai: DEFAULT_MAX_OUTPUT_TOKENS,
-    gemini: DEFAULT_MAX_OUTPUT_TOKENS,
-    anthropic: DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS,
-    grok: DEFAULT_MAX_OUTPUT_TOKENS,
-};
-const REASONING_TOKEN_MIN_BY_PROVIDER = {
-    openai: 0,
-    gemini: -1,
-    anthropic: 0,
-    grok: 0,
-};
-const REASONING_MODE_CHOICES = [
-    { value: "none", label: "None", description: "Disable the provider’s structured reasoning traces." },
-    { value: "low", label: "Low", description: "Allow short reasoning bursts for tricky prompts." },
-    { value: "medium", label: "Medium", description: "Balance latency and introspection for complex flows." },
-    { value: "high", label: "High", description: "Maximize deliberate reasoning when quality is critical." },
-];
-const PROVIDER_REASONING_CAPABILITIES = {
-    openai: { mode: true, tokens: false },
-    gemini: { mode: false, tokens: true },
-    anthropic: { mode: false, tokens: true },
-    grok: { mode: true, tokens: false },
-};
+import { DEFAULT_REASONING_TOKENS, DEFAULT_MAX_OUTPUT_TOKENS } from "../constants.js";
+import { PROVIDER_CHOICES, PROVIDER_LABELS, PROVIDER_PLACEHOLDERS, DEFAULT_MODEL_BY_PROVIDER, DEFAULT_MAX_TOKENS_BY_PROVIDER, REASONING_MODE_CHOICES, PROVIDER_REASONING_CAPABILITIES, REASONING_TOKEN_MIN_BY_PROVIDER, } from "../constants/providers.js";
 const PROVIDER_MODEL_CHOICES = {
     openai: [
         { value: DEFAULT_MODEL_BY_PROVIDER.openai, label: "GPT-5 (default)" },
@@ -119,7 +58,7 @@ const PROVIDER_MODEL_CHOICES = {
     ],
 };
 export function renderSetupWizardPage(options) {
-    const { step, providerLabel, providerName, verifyAction, briefAction, setupPath, adminPath, providerReady, canSelectProvider, selectedProvider, selectedModel, maxOutputTokens, reasoningMode, reasoningTokens, statusMessage, errorMessage, briefValue, } = options;
+    const { step, providerLabel, providerName, verifyAction, briefAction, setupPath, adminPath, providerReady, canSelectProvider, selectedProvider, selectedModel, providerSelectionRequired, providerKeyStatuses, maxOutputTokens, reasoningMode, reasoningTokens, statusMessage, errorMessage, briefValue, } = options;
     const heading = step === "provider" ? "Welcome to serve-llm" : "Shape the experience";
     const description = step === "provider"
         ? "Serve-llm hosts a living web canvas that your chosen model reimagines on every request—pick a provider and supply a secure API key to begin."
@@ -135,12 +74,14 @@ export function renderSetupWizardPage(options) {
             canSelectProvider,
             selectedProvider,
             selectedModel,
+            providerSelectionRequired,
+            providerKeyStatuses,
             maxOutputTokens,
             reasoningMode,
             reasoningTokens,
         })
         : renderBriefStep({ briefAction, setupPath, adminPath, briefValue });
-    const script = renderProviderScript(canSelectProvider, selectedProvider, selectedModel, reasoningMode, reasoningTokens, maxOutputTokens);
+    const script = renderProviderScript(canSelectProvider, selectedProvider, selectedModel, reasoningMode, reasoningTokens, maxOutputTokens, providerKeyStatuses);
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -362,6 +303,19 @@ export function renderSetupWizardPage(options) {
     font-size: 0.85rem;
     color: var(--subtle);
   }
+  .key-status {
+    margin: 8px 0 0;
+    font-size: 0.9rem;
+    color: var(--subtle);
+  }
+  .key-status[data-key-variant="verified"] {
+    color: #047857;
+    font-weight: 600;
+  }
+  .key-status[data-key-variant="detected"] {
+    color: #2563eb;
+    font-weight: 500;
+  }
   .advanced {
     border: 1px solid var(--border);
     border-radius: 16px;
@@ -507,16 +461,11 @@ function buildBanner(statusMessage, errorMessage) {
     return "";
 }
 function renderProviderStep(options) {
-    const { providerLabel, providerName, verifyAction, providerReady, canSelectProvider, selectedProvider, selectedModel, maxOutputTokens, reasoningMode, reasoningTokens, } = options;
+    const { providerLabel, providerName, verifyAction, providerReady, canSelectProvider, selectedProvider, selectedModel, providerSelectionRequired, providerKeyStatuses, maxOutputTokens, reasoningMode, reasoningTokens, } = options;
     const capabilities = PROVIDER_REASONING_CAPABILITIES[selectedProvider] ?? { mode: false, tokens: false };
     const providerSupportsReasoningMode = capabilities.mode;
     const providerSupportsReasoningTokens = capabilities.tokens;
     const defaultReasoningTokens = DEFAULT_REASONING_TOKENS[selectedProvider];
-    const statusPill = providerReady
-        ? `<span class="pill" aria-live="polite">Key verified · ${escapeHtml(providerLabel)}</span>`
-        : canSelectProvider
-            ? `<span class="pill">Choose your model partner</span>`
-            : `<span class="pill">${escapeHtml(providerLabel)} required</span>`;
     const defaultMaxTokens = DEFAULT_MAX_TOKENS_BY_PROVIDER[selectedProvider] ?? DEFAULT_MAX_OUTPUT_TOKENS;
     const effectiveReasoningTokens = reasoningTokens ?? defaultReasoningTokens;
     const reasoningTokenValue = effectiveReasoningTokens !== undefined && effectiveReasoningTokens !== null
@@ -529,6 +478,28 @@ function renderProviderStep(options) {
     const reasoningTokensDisabled = !providerSupportsReasoningTokens
         || (providerSupportsReasoningMode && reasoningMode === "none");
     const reasoningInputMin = String(REASONING_TOKEN_MIN_BY_PROVIDER[selectedProvider] ?? 0);
+    const selectedStatus = providerKeyStatuses[selectedProvider] ?? { hasKey: false, verified: false };
+    const keyOnFile = Boolean(selectedStatus.hasKey);
+    const keyVerified = Boolean(selectedStatus.verified);
+    const copyText = keyVerified
+        ? `Pick your creative partner. We already have a verified ${providerLabel} key on file—leave the field blank to keep it, or paste a new one to replace it.`
+        : keyOnFile
+            ? `Pick your creative partner. We detected a ${providerLabel} key from your environment—continue to verify it or paste a different key.`
+            : `Pick your creative partner and hand us a fresh API key—we will secure it locally and wire ${providerName} into the experience.`;
+    const keyStatusMessage = keyVerified
+        ? `${providerLabel} key verified on this machine. Leave the field blank to keep using it, or paste a replacement.`
+        : keyOnFile
+            ? `${providerLabel} key detected from environment variables. Continue to verify it or paste a different key here.`
+            : "Paste your API key. We verify it instantly and keep it in-memory only for this session.";
+    const keyStatusVariant = keyVerified ? "verified" : keyOnFile ? "detected" : "missing";
+    const apiInputRequired = !keyOnFile;
+    const statusPill = keyVerified
+        ? `<span class="pill" aria-live="polite">Key verified · ${escapeHtml(providerLabel)}</span>`
+        : keyOnFile
+            ? `<span class="pill" aria-live="polite">Key detected · ${escapeHtml(providerLabel)}</span>`
+            : canSelectProvider
+                ? `<span class="pill">Choose your model partner</span>`
+                : `<span class="pill">${escapeHtml(providerLabel)} required</span>`;
     const providerSelection = canSelectProvider
         ? `<div class="provider-grid" role="radiogroup" aria-label="Model provider" data-provider-options>
         ${PROVIDER_CHOICES.map((choice, index) => {
@@ -564,8 +535,8 @@ function renderProviderStep(options) {
     }).join("\n");
     return `<section class="card">
     <div>${statusPill}</div>
-    <p data-provider-copy>Pick your creative partner and hand us a fresh API key—we will secure it locally and wire ${escapeHtml(providerName)} into the experience.</p>
-    <form method="post" action="${escapeHtml(verifyAction)}" autocomplete="off">
+    <p data-provider-copy>${escapeHtml(copyText)}</p>
+    <form method="post" action="${escapeHtml(verifyAction)}" autocomplete="off" data-key-state="${escapeHtml(keyStatusVariant)}" data-selection-required="${providerSelectionRequired ? "true" : "false"}">
       ${providerSelection}
       <input type="hidden" name="model" value="${escapeHtml(initialModel)}" data-model-value />
       <label for="${modelOptionsId}">
@@ -593,7 +564,19 @@ function renderProviderStep(options) {
       <label for="apiKey">
         <span data-provider-label-text>${escapeHtml(providerLabel)} API key</span>
       </label>
-      <input id="apiKey" name="apiKey" type="password" inputmode="latin" spellcheck="false" autocapitalize="none" placeholder="${escapeHtml(apiPlaceholder)}" autocomplete="new-password" required />
+      <input
+        id="apiKey"
+        name="apiKey"
+        type="password"
+        inputmode="latin"
+        spellcheck="false"
+        autocapitalize="none"
+        placeholder="${escapeHtml(apiPlaceholder)}"
+        autocomplete="new-password"
+        ${apiInputRequired ? "required" : ""}
+        data-key-input
+      />
+      <p class="key-status" data-key-status data-key-variant="${escapeHtml(keyStatusVariant)}">${escapeHtml(keyStatusMessage)}</p>
       <details class="advanced" data-advanced ${advancedOpen ? "open" : ""}>
         <summary>
           <span>Advanced controls</span>
@@ -684,7 +667,7 @@ function renderBriefStep(options) {
     <p><a href="${escapeHtml(adminPath)}">Preview the admin tools</a> (opens once setup completes).</p>
   </section>`;
 }
-function renderProviderScript(_canSelectProvider, selectedProvider, selectedModel, reasoningMode, reasoningTokens, maxOutputTokens) {
+function renderProviderScript(_canSelectProvider, selectedProvider, selectedModel, reasoningMode, reasoningTokens, maxOutputTokens, providerKeyStatuses) {
     const modelMapJson = JSON.stringify(PROVIDER_MODEL_CHOICES).replace(/</g, "\\u003c");
     const defaultModelJson = JSON.stringify(DEFAULT_MODEL_BY_PROVIDER).replace(/</g, "\\u003c");
     const providerLabelJson = JSON.stringify(PROVIDER_LABELS).replace(/</g, "\\u003c");
@@ -694,6 +677,7 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
     const reasoningCapabilitiesJson = JSON.stringify(PROVIDER_REASONING_CAPABILITIES).replace(/</g, "\\u003c");
     const reasoningDefaultsJson = JSON.stringify(DEFAULT_REASONING_TOKENS).replace(/</g, "\\u003c");
     const reasoningMinJson = JSON.stringify(REASONING_TOKEN_MIN_BY_PROVIDER).replace(/</g, "\\u003c");
+    const providerStatusJson = JSON.stringify(providerKeyStatuses).replace(/</g, "\\u003c");
     const initialProviderJson = JSON.stringify(selectedProvider);
     const initialModelJson = JSON.stringify(selectedModel);
     const initialReasoningModeJson = JSON.stringify(reasoningMode);
@@ -711,6 +695,19 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
       const reasoningDefaults = ${reasoningDefaultsJson};
       const reasoningMins = ${reasoningMinJson};
       const cachedReasoningTokensByProvider = {};
+      const providerKeyStatus = ${providerStatusJson};
+      const initialProviderKeyStatus = JSON.parse(JSON.stringify(providerKeyStatus));
+      const cachedApiInputs = {};
+      const copyTemplates = {
+        verified: "Pick your creative partner. We already have a verified {provider} key on file—leave the field blank to keep it, or paste a new one to replace it.",
+        detected: "Pick your creative partner. We detected a {provider} key from your environment—continue to verify it or paste a different key.",
+        missing: "Pick your creative partner and hand us a fresh API key—we will secure it locally and wire {provider} into the experience."
+      };
+      const keyStatusTemplates = {
+        verified: "{provider} key verified on this machine. Leave the field blank to keep using it, or paste a replacement.",
+        detected: "{provider} key detected from environment variables. Continue to verify it or paste a different key here.",
+        missing: "Paste your API key. We verify it instantly and keep it in-memory only for this session."
+      };
       let activeProvider = ${initialProviderJson} || 'openai';
       let currentModel = ${initialModelJson} || '';
       let currentReasoningMode = ${initialReasoningModeJson} || 'none';
@@ -735,7 +732,8 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
       const reasoningTokensWrapper = document.querySelector('[data-reasoning-tokens-wrapper]');
       const reasoningTokensInput = document.querySelector('[data-reasoning-tokens]');
       const reasoningHelper = document.querySelector('[data-reasoning-helper]');
-      const baseCopy = "Pick your creative partner and hand us a fresh API key—we will secure it locally and wire {provider} into the experience.";
+      const keyStatusEl = document.querySelector('[data-key-status]');
+      const formEl = document.querySelector('form[data-key-state]');
 
       const setActiveOption = (radio) => {
         if (!optionEls.length) return;
@@ -745,7 +743,38 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
         });
       };
 
-      const updateProviderUI = (provider, explicitLabel) => {
+      const getKeyVariantForProvider = (provider) => {
+        const status = providerKeyStatus[provider] || { hasKey: false, verified: false };
+        if (status.verified) return 'verified';
+        if (status.hasKey) return 'detected';
+        return 'missing';
+      };
+
+      const applyKeyVariant = (provider, providerLabel, overrideVariant) => {
+        const variant = overrideVariant || getKeyVariantForProvider(provider);
+        const copyTemplate = copyTemplates[variant] || copyTemplates.missing;
+        const statusTemplate = keyStatusTemplates[variant] || keyStatusTemplates.missing;
+        if (copyEl) {
+          copyEl.textContent = copyTemplate.replace('{provider}', providerLabel);
+        }
+        if (keyStatusEl) {
+          keyStatusEl.textContent = statusTemplate.replace('{provider}', providerLabel);
+          keyStatusEl.dataset.keyVariant = variant;
+        }
+        if (formEl) {
+          formEl.dataset.keyState = variant;
+        }
+        if (apiInput instanceof HTMLInputElement) {
+          if (variant === 'missing') {
+            apiInput.setAttribute('required', 'true');
+          } else {
+            apiInput.removeAttribute('required');
+          }
+        }
+        return variant;
+      };
+
+      const updateProviderUI = (provider, explicitLabel, overrideVariant) => {
         const providerLabel = explicitLabel || providerLabels[provider] || provider;
         const placeholder = placeholderMap[provider];
         if (labelEl) {
@@ -753,9 +782,6 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
         }
         if (modelLabelEl) {
           modelLabelEl.textContent = 'Model · ' + providerLabel;
-        }
-        if (copyEl) {
-          copyEl.textContent = baseCopy.replace('{provider}', providerLabel);
         }
         if (apiInput instanceof HTMLInputElement && placeholder) {
           apiInput.placeholder = placeholder;
@@ -766,6 +792,7 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
             maxTokensInput.placeholder = String(defaultMax);
           }
         }
+        applyKeyVariant(provider, providerLabel, overrideVariant);
       };
 
       const ensureModelValue = (value) => {
@@ -999,6 +1026,9 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
         if (previousCaps.tokens && reasoningTokensInput instanceof HTMLInputElement) {
           cachedReasoningTokensByProvider[previousProvider] = reasoningTokensInput.value.trim();
         }
+        if (apiInput instanceof HTMLInputElement) {
+          cachedApiInputs[previousProvider] = apiInput.value;
+        }
         activeProvider = radio.value;
         cachedReasoningTokens = cachedReasoningTokensByProvider[activeProvider] || '';
         setActiveOption(radio);
@@ -1006,13 +1036,44 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
           ensureModelValue('');
         }
         rebuildModelOptions(activeProvider, preserveModel);
-        updateProviderUI(activeProvider, radio.dataset.providerLabel);
+        let overrideVariant;
+        const providerLabel = radio.dataset.providerLabel || providerLabels[activeProvider] || activeProvider;
+        if (apiInput instanceof HTMLInputElement) {
+          const cachedValue = cachedApiInputs[activeProvider] ?? '';
+          apiInput.value = cachedValue;
+          const trimmed = cachedValue.trim();
+          if (trimmed.length > 0) {
+            providerKeyStatus[activeProvider] = { hasKey: true, verified: false };
+            overrideVariant = 'detected';
+          } else {
+            const original = initialProviderKeyStatus[activeProvider] || providerKeyStatus[activeProvider] || { hasKey: false, verified: false };
+            providerKeyStatus[activeProvider] = { ...original };
+          }
+        }
+        updateProviderUI(activeProvider, providerLabel, overrideVariant);
         const overridePlaceholder = radio.dataset.placeholder;
         if (apiInput instanceof HTMLInputElement && overridePlaceholder) {
           apiInput.placeholder = overridePlaceholder;
         }
         syncReasoningAvailability();
       };
+
+      if (apiInput instanceof HTMLInputElement) {
+        cachedApiInputs[activeProvider] = apiInput.value;
+        apiInput.addEventListener('input', () => {
+          const trimmed = apiInput.value.trim();
+          cachedApiInputs[activeProvider] = apiInput.value;
+          const label = providerLabels[activeProvider] || activeProvider;
+          if (trimmed.length > 0) {
+            providerKeyStatus[activeProvider] = { hasKey: true, verified: false };
+            applyKeyVariant(activeProvider, label, 'detected');
+          } else {
+            const original = initialProviderKeyStatus[activeProvider] || providerKeyStatus[activeProvider] || { hasKey: false, verified: false };
+            providerKeyStatus[activeProvider] = { ...original };
+            applyKeyVariant(activeProvider, label);
+          }
+        });
+      }
 
       if (modelSelect instanceof HTMLSelectElement) {
         modelSelect.addEventListener('change', () => {
@@ -1074,12 +1135,34 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
           applyProvider(initialRadio, true);
         } else {
           rebuildModelOptions(activeProvider, true);
-          updateProviderUI(activeProvider);
+          let overrideVariant;
+          const label = providerLabels[activeProvider] || activeProvider;
+          if (apiInput instanceof HTMLInputElement) {
+            const cachedValue = cachedApiInputs[activeProvider] ?? apiInput.value;
+            apiInput.value = cachedValue;
+            const trimmed = cachedValue.trim();
+            if (trimmed.length > 0) {
+              providerKeyStatus[activeProvider] = { hasKey: true, verified: false };
+              overrideVariant = 'detected';
+            }
+          }
+          updateProviderUI(activeProvider, label, overrideVariant);
           syncReasoningAvailability();
         }
       } else {
         rebuildModelOptions(activeProvider, true);
-        updateProviderUI(activeProvider);
+        let overrideVariant;
+        const label = providerLabels[activeProvider] || activeProvider;
+        if (apiInput instanceof HTMLInputElement) {
+          const cachedValue = cachedApiInputs[activeProvider] ?? apiInput.value;
+          apiInput.value = cachedValue;
+          const trimmed = cachedValue.trim();
+          if (trimmed.length > 0) {
+            providerKeyStatus[activeProvider] = { hasKey: true, verified: false };
+            overrideVariant = 'detected';
+          }
+        }
+        updateProviderUI(activeProvider, label, overrideVariant);
         syncReasoningAvailability();
       }
     })();
