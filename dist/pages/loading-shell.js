@@ -156,14 +156,25 @@ export function renderLoadingShell(options = {}) {
       var base = ${JSON.stringify(defaultMessage)};
       var provided = ${JSON.stringify(message)};
       var statuses = ${JSON.stringify(statusMessages)};
-      var unique = [provided].concat(statuses.filter(function(entry) { return entry !== provided; }));
+      var pool = statuses.filter(function(entry) { return entry !== provided; });
+      // Fisher-Yates shuffle for randomness across sessions
+      for (var i = pool.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+      }
+      var unique = [provided].concat(pool);
       var target = document.querySelector("[data-status]");
       var index = 0;
       if (target && unique.length > 1) {
+        // Nudge an early change so short waits still show variety
+        setTimeout(function() {
+          index = (index + 1) % unique.length;
+          target.textContent = unique[index];
+        }, 900);
         setInterval(function() {
           index = (index + 1) % unique.length;
           target.textContent = unique[index];
-        }, 6000);
+        }, 3500);
       } else if (target && unique.length === 1) {
         target.textContent = unique[0] || base;
       }

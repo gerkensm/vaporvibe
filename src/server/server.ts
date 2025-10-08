@@ -28,6 +28,7 @@ import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
 import { SessionStore } from "./session-store.js";
 import { renderSetupWizardPage } from "../pages/setup-wizard.js";
 import { renderLoadingShell, renderResultHydrationScript, renderLoaderErrorScript } from "../pages/loading-shell.js";
+import { getNavigationInterceptorScript } from "../utils/navigation-interceptor.js";
 import { logger } from "../logger.js";
 import { AdminController } from "./admin-controller.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
@@ -113,6 +114,14 @@ export function createServer(options: ServerOptions): http.Server {
     }
 
     try {
+      // Serve the interceptor client as a static asset to avoid inline parsing issues
+      if (context.path === "/__serve-llm/interceptor.js") {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+        res.end(getNavigationInterceptorScript());
+        reqLogger.info(`Served interceptor client in ${Date.now() - requestStart} ms`);
+        return;
+      }
       if (handlePendingHtmlRequest(context, state, reqLogger)) {
         reqLogger.info(`Pending render delivered with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
         return;
@@ -724,7 +733,13 @@ async function handleLlmRequest(
   });
   reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
 
-  const shouldStreamBody = method !== "HEAD";
+  const interceptorHeader = req.headers["x-serve-llm-request"];
+  const isInterceptorHeader = Array.isArray(interceptorHeader)
+    ? interceptorHeader.includes("interceptor")
+    : interceptorHeader === "interceptor";
+  const isInterceptorQuery = url.searchParams.get("__serve-llm") === "interceptor";
+  const isInterceptorRequest = isInterceptorHeader || isInterceptorQuery;
+  const shouldStreamBody = method !== "HEAD" && !isInterceptorRequest;
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   if (shouldStreamBody) {
@@ -744,7 +759,13 @@ async function handleLlmRequest(
     const result = await llmClient.generateHtml(messages);
     const durationMs = Date.now() - requestStart;
     reqLogger.debug(`LLM response preview [${llmClient.settings.provider}]:\n${truncate(result.html, 500)}`);
-    const safeHtml = ensureHtmlDocument(result.html, { method, path });
+    const rawHtml = ensureHtmlDocument(result.html, { method, path });
+
+    // Inject navigation interceptor script before </body> to enable smooth client-side navigation
+    const safeHtml = rawHtml.replace(
+      /(<\/body\s*>)/i,
+      `<script id="serve-llm-interceptor-script" src="/__serve-llm/interceptor.js"></script>$1`,
+    );
 
     sessionStore.setPrevHtml(sid, safeHtml);
 
@@ -776,6 +797,13 @@ async function handleLlmRequest(
 
     sessionStore.appendHistoryEntry(sid, historyEntry);
 
+    if (isInterceptorRequest) {
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.end(safeHtml);
+      return;
+    }
+
     cleanupPendingHtml(state);
     const token = randomUUID();
     state.pendingHtml.set(token, {
@@ -794,6 +822,12 @@ async function handleLlmRequest(
   } catch (error) {
     const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     reqLogger.error(`LLM generation failed: ${message}`);
+    if (isInterceptorRequest && !res.headersSent) {
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.end(renderErrorPage(error));
+      return;
+    }
     if (shouldStreamBody) {
       res.write(renderLoaderErrorScript("The model response took too long or failed. Please retry in a moment."));
     } else if (!res.headersSent) {
