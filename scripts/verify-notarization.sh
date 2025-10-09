@@ -10,27 +10,51 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BINARY_PATH="${1:-$ROOT_DIR/out/sea/serve-llm-macos}"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+DEFAULT_PATH=""
+if [[ -f "${REPO_ROOT}/out/macos-app/ServeLLM.dmg" ]]; then
+  DEFAULT_PATH="${REPO_ROOT}/out/macos-app/ServeLLM.dmg"
+elif [[ -d "${REPO_ROOT}/out/macos-app/ServeLLM.app" ]]; then
+  DEFAULT_PATH="${REPO_ROOT}/out/macos-app/ServeLLM.app"
+elif [[ -f "${REPO_ROOT}/out/sea/serve-llm-macos" ]]; then
+  DEFAULT_PATH="${REPO_ROOT}/out/sea/serve-llm-macos"
+fi
+
+TARGET_PATH="${1:-$DEFAULT_PATH}"
+
+if [[ -z "$TARGET_PATH" ]]; then
+  echo -e "${RED}Error: No artifact found. Provide a path explicitly.${NC}" >&2
+  echo -e "${YELLOW}Usage: $0 /path/to/ServeLLM.dmg|ServeLLM.app|serve-llm-macos${NC}" >&2
+  exit 1
+fi
+
+if [[ ! -e "$TARGET_PATH" ]]; then
+  echo -e "${RED}Error: Artifact not found at $TARGET_PATH${NC}" >&2
+  exit 1
+fi
+
+TARGET_TYPE="binary"
+case "$TARGET_PATH" in
+  *.dmg) TARGET_TYPE="dmg" ;;
+  *.app|*/ServeLLM.app) TARGET_TYPE="app" ;;
+esac
+if [[ -d "$TARGET_PATH" ]]; then
+  TARGET_TYPE="app"
+fi
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║     Verifying Notarization Status                 ║${NC}"
 echo -e "${BLUE}╚════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Check if binary exists
-if [[ ! -f "$BINARY_PATH" ]]; then
-  echo -e "${RED}Error: Binary not found at $BINARY_PATH${NC}" >&2
-  echo -e "${YELLOW}Usage: $0 [path-to-binary]${NC}" >&2
-  exit 1
-fi
-
-echo -e "Binary path: ${YELLOW}$BINARY_PATH${NC}"
+echo -e "Target path: ${YELLOW}$TARGET_PATH${NC}"
+echo -e "Artifact type: ${YELLOW}$TARGET_TYPE${NC}"
 echo ""
 
 # Test 1: Check code signature
 echo -e "${BLUE}[1/5] Checking code signature...${NC}"
-if codesign --verify --deep --strict --verbose=2 "$BINARY_PATH" 2>&1; then
+if codesign --verify --deep --strict --verbose=2 "$TARGET_PATH" 2>&1; then
   echo -e "${GREEN}✓ Code signature is valid${NC}"
 else
   echo -e "${RED}✗ Code signature is invalid or missing${NC}"
@@ -40,11 +64,11 @@ echo ""
 
 # Test 2: Display signature details
 echo -e "${BLUE}[2/5] Signature details:${NC}"
-codesign -dvvv "$BINARY_PATH" 2>&1 | grep -E "(Authority|TeamIdentifier|Timestamp|Runtime)" | sed 's/^/  /'
+codesign -dvvv "$TARGET_PATH" 2>&1 | grep -E "(Authority|TeamIdentifier|Timestamp|Runtime)" | sed 's/^/  /'
 echo ""
 # Test 3: Check if notarization ticket is stapled
 echo -e "${BLUE}[3/5] Checking for stapled notarization ticket...${NC}"
-STAPLE_OUTPUT=$(xcrun stapler validate "$BINARY_PATH" 2>&1)
+STAPLE_OUTPUT=$(xcrun stapler validate "$TARGET_PATH" 2>&1)
 if echo "$STAPLE_OUTPUT" | grep -q "The validate action worked"; then
   echo -e "${GREEN}✓ Notarization ticket is stapled${NC}"
   STAPLED=true
@@ -62,7 +86,13 @@ echo ""
 
 # Test 4: Gatekeeper assessment
 echo -e "${BLUE}[4/5] Running Gatekeeper assessment (spctl)...${NC}"
-SPCTL_OUTPUT=$(spctl --assess --type execute --verbose "$BINARY_PATH" 2>&1)
+if [[ "$TARGET_TYPE" == "dmg" ]]; then
+  SPCTL_OUTPUT=$(spctl -a -t open --verbose "$TARGET_PATH" 2>&1)
+elif [[ "$TARGET_TYPE" == "app" ]]; then
+  SPCTL_OUTPUT=$(spctl --assess --type execute --verbose "$TARGET_PATH" 2>&1)
+else
+  SPCTL_OUTPUT=$(spctl --assess --type execute --verbose "$TARGET_PATH" 2>&1)
+fi
 echo "$SPCTL_OUTPUT" | sed 's/^/  /'
 
 if echo "$SPCTL_OUTPUT" | grep -q "accepted"; then
@@ -73,7 +103,7 @@ elif echo "$SPCTL_OUTPUT" | grep -q "rejected (the code is valid but does not se
   echo -e "${GREEN}✓ Code signature is valid, notarization will be checked online${NC}"
   GATEKEEPER_OK=true  # CLI tools are OK even with this message
 else
-  echo -e "${RED}✗ Binary rejected by Gatekeeper${NC}"
+  echo -e "${RED}✗ Artifact rejected by Gatekeeper${NC}"
   GATEKEEPER_OK=false
 fi
 echo ""
@@ -109,24 +139,30 @@ echo -e "${BLUE}╚════════════════════�
 
 if [[ "$GATEKEEPER_OK" == true ]]; then
   if [[ "$STAPLED" == true ]]; then
-    echo -e "${GREEN}✓ Binary is fully notarized with stapled ticket${NC}"
-    echo -e "${GREEN}✓ Will run offline without warnings${NC}"
-  elif [[ "$NOTARIZED_ONLINE" == true ]]; then
-    echo -e "${GREEN}✓ Binary is fully notarized (online verification)${NC}"
-    echo -e "${YELLOW}ℹ Users need internet on first run for verification${NC}"
-    echo -e "${YELLOW}ℹ After first run, works offline${NC}"
-  else
-    echo -e "${GREEN}✓ Binary is properly signed and passes Gatekeeper${NC}"
-    echo -e "${YELLOW}ℹ Notarization status: Verified locally${NC}"
-  fi
-  echo ""
-  echo -e "${GREEN}Safe to distribute! Users can run it with:${NC}"
-  echo -e "  ${YELLOW}curl -L -o serve-llm <download-url>${NC}"
-  echo -e "  ${YELLOW}chmod +x serve-llm${NC}"
-  echo -e "  ${YELLOW}./serve-llm \"Your brief here\"${NC}"
+  echo -e "${GREEN}✓ Artifact is fully notarized with stapled ticket${NC}"
+  echo -e "${GREEN}✓ Will open/run offline without warnings${NC}"
+elif [[ "$NOTARIZED_ONLINE" == true ]]; then
+  echo -e "${GREEN}✓ Artifact is fully notarized (online verification)${NC}"
+  echo -e "${YELLOW}ℹ Users need internet on first run for verification${NC}"
+  echo -e "${YELLOW}ℹ After first run, works offline${NC}"
 else
-  echo -e "${RED}✗ Binary is NOT properly notarized${NC}"
-  echo -e "${RED}  Run 'npm run notarize:sea' to sign and notarize${NC}"
+  echo -e "${GREEN}✓ Artifact is properly signed and passes Gatekeeper${NC}"
+  echo -e "${YELLOW}ℹ Notarization status: Verified locally${NC}"
+fi
+echo ""
+  if [[ "$TARGET_TYPE" == "dmg" ]]; then
+    echo -e "${GREEN}Safe to distribute! Users can mount the DMG and drag Serve LLM into Applications.${NC}"
+  elif [[ "$TARGET_TYPE" == "app" ]]; then
+    echo -e "${GREEN}Safe to distribute! Ship ServeLLM.app inside a DMG/ZIP for users to drag into Applications.${NC}"
+  else
+    echo -e "${GREEN}Safe to distribute! Users can run it with:${NC}"
+    echo -e "  ${YELLOW}curl -L -o serve-llm <download-url>${NC}"
+    echo -e "  ${YELLOW}chmod +x serve-llm${NC}"
+    echo -e "  ${YELLOW}./serve-llm \"Your brief here\"${NC}"
+  fi
+else
+  echo -e "${RED}✗ Artifact is NOT properly notarized${NC}"
+  echo -e "${RED}  Run 'npm run macos:notarize' and try again${NC}"
   exit 1
 fi
 

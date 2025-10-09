@@ -20,7 +20,11 @@
     "build:sea": "scripts/build-macos-sea.sh",
     "build:sea:notarize": "NOTARIZE=true scripts/build-macos-sea.sh",
     "notarize:sea": "scripts/notarize-macos-sea.sh",
-    "verify:notarization": "scripts/verify-notarization.sh"
+    "verify:notarization": "scripts/verify-notarization.sh",
+    "macos:icon": "scripts/macos-app/create-icon-assets.sh",
+    "macos:app": "scripts/macos-app/build-app-bundle.sh",
+    "macos:dmg": "scripts/macos-app/create-dmg.sh",
+    "macos:notarize": "scripts/macos-app/notarize-app.sh"
   },
   "keywords": [
     "llm",
