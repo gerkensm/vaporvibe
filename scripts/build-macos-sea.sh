@@ -228,8 +228,35 @@ npx --yes postject@1.0.0-alpha.6 "${TARGET_BIN}" NODE_SEA_BLOB "${SEA_OUT}/serve
 chmod +x "${TARGET_BIN}"
 
 if [[ "$(uname)" == "Darwin" ]] && command -v codesign >/dev/null 2>&1; then
-  echo "→ Applying ad-hoc code signature…"
-  codesign --force --sign - "${TARGET_BIN}"
+  # Check if we should use Developer ID signing for notarization
+  if [[ -n "${APPLE_TEAM_ID:-}" ]] && [[ "${NOTARIZE:-false}" == "true" ]]; then
+    echo "→ Applying Developer ID code signature with entitlements…"
+    ENTITLEMENTS_PATH="${ROOT_DIR}/scripts/entitlements.plist"
+    
+    # Find Developer ID certificate
+    CERT_NAME=$(security find-identity -v -p codesigning | \
+      grep "Developer ID Application" | \
+      grep "$APPLE_TEAM_ID" | \
+      head -1 | \
+      sed -E 's/.*"(.+)"/\1/')
+    
+    if [[ -n "$CERT_NAME" ]]; then
+      echo "   Using certificate: $CERT_NAME"
+      codesign --force \
+        --sign "$CERT_NAME" \
+        --options runtime \
+        --timestamp \
+        --entitlements "$ENTITLEMENTS_PATH" \
+        "${TARGET_BIN}"
+      echo "   Binary signed for notarization"
+    else
+      echo "   Warning: No Developer ID certificate found, using ad-hoc signature"
+      codesign --force --sign - "${TARGET_BIN}"
+    fi
+  else
+    echo "→ Applying ad-hoc code signature…"
+    codesign --force --sign - "${TARGET_BIN}"
+  fi
 fi
 
 echo ""

@@ -17,7 +17,10 @@
     "prepare": "npm run build",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
-    "build:sea": "scripts/build-macos-sea.sh"
+    "build:sea": "scripts/build-macos-sea.sh",
+    "build:sea:notarize": "NOTARIZE=true scripts/build-macos-sea.sh",
+    "notarize:sea": "scripts/notarize-macos-sea.sh",
+    "verify:notarization": "scripts/verify-notarization.sh"
   },
   "keywords": [
     "llm",
@@ -28,15 +31,16 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
     "@google/genai": "^1.22.0",
+    "open": "^10.2.0",
     "openai": "^6.1.0",
     "pino": "^9.3.0",
     "pino-pretty": "^11.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "postject": "^1.0.0-alpha.6",
     "tsx": "^4.16.0",
-    "typescript": "^5.4.0",
-    "postject": "^1.0.0-alpha.6"
+    "typescript": "^5.4.0"
   },
   "engines": {
     "node": ">=24.0.0"

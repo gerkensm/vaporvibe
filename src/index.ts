@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import process from "node:process";
+import open from "open";
 import { parseCliArgs } from "./cli/args.js";
 import { resolveAppConfig } from "./config/runtime-config.js";
 import { createLlmClient } from "./llm/factory.js";
@@ -16,8 +17,13 @@ async function main(): Promise<void> {
     }
 
     const appConfig = await resolveAppConfig(cliOptions, process.env);
-    const llmClient = appConfig.providerReady ? createLlmClient(appConfig.provider) : null;
-    const sessionStore = new SessionStore(appConfig.runtime.sessionTtlMs, appConfig.runtime.sessionCap);
+    const llmClient = appConfig.providerReady
+      ? createLlmClient(appConfig.provider)
+      : null;
+    const sessionStore = new SessionStore(
+      appConfig.runtime.sessionTtlMs,
+      appConfig.runtime.sessionCap
+    );
 
     const server = createServer({
       runtime: appConfig.runtime,
@@ -29,41 +35,139 @@ async function main(): Promise<void> {
       sessionStore,
     });
 
-    await new Promise<void>((resolve) => {
-      server.listen(appConfig.runtime.port, appConfig.runtime.host, () => {
-        const host = appConfig.runtime.host.includes(":")
-          ? `[${appConfig.runtime.host}]`
-          : appConfig.runtime.host;
-        const localUrl = `http://${host}:${appConfig.runtime.port}/`;
-        const adminUrl = `${localUrl.replace(/\/$/, "")}/serve-llm`;
-        logger.info({ port: appConfig.runtime.port, host: appConfig.runtime.host, url: localUrl }, `Sourcecodeless server ready at ${localUrl}`);
-        if (appConfig.runtime.brief) {
-          logger.info({ brief: appConfig.runtime.brief }, "Initial brief configured");
-        } else {
-          logger.info("Waiting for brief via browser UI…");
-        }
-        if (appConfig.providerReady) {
-          logger.info({ provider: appConfig.provider.provider, model: appConfig.provider.model }, "LLM provider configured");
-        } else {
-          logger.info(
-            { provider: appConfig.provider.provider, model: appConfig.provider.model },
-            "LLM provider awaiting API key via setup wizard",
-          );
-        }
-        logger.info({ adminUrl }, `Admin interface available at ${adminUrl}`);
-        resolve();
-      });
-    });
+    // Only use port fallback if port was not explicitly specified via CLI or environment
+    const portExplicitlySpecified =
+      cliOptions.port !== undefined || process.env.PORT !== undefined;
+    const actualPort = portExplicitlySpecified
+      ? await startServerOnExactPort(
+          server,
+          appConfig.runtime.port,
+          appConfig.runtime.host
+        )
+      : await startServerWithPortFallback(
+          server,
+          appConfig.runtime.port,
+          appConfig.runtime.host
+        );
+
+    const host = appConfig.runtime.host.includes(":")
+      ? `[${appConfig.runtime.host}]`
+      : appConfig.runtime.host;
+    const localUrl = `http://${host}:${actualPort}/`;
+    const adminUrl = `${localUrl.replace(/\/$/, "")}/serve-llm`;
+
+    logger.info(
+      { port: actualPort, host: appConfig.runtime.host, url: localUrl },
+      `Sourcecodeless server ready at ${localUrl}`
+    );
+    if (appConfig.runtime.brief) {
+      logger.info(
+        { brief: appConfig.runtime.brief },
+        "Initial brief configured"
+      );
+    } else {
+      logger.info("Waiting for brief via browser UI…");
+    }
+    if (appConfig.providerReady) {
+      logger.info(
+        {
+          provider: appConfig.provider.provider,
+          model: appConfig.provider.model,
+        },
+        "LLM provider configured"
+      );
+    } else {
+      logger.info(
+        {
+          provider: appConfig.provider.provider,
+          model: appConfig.provider.model,
+        },
+        "LLM provider awaiting API key via setup wizard"
+      );
+    }
+    logger.info({ adminUrl }, `Admin interface available at ${adminUrl}`);
+
+    // Auto-launch browser
+    try {
+      await open(localUrl);
+      logger.info("Browser launched automatically");
+    } catch (error) {
+      logger.warn({ err: error }, "Failed to auto-launch browser");
+    }
   } catch (error) {
     handleFatalError(error);
   }
+}
+
+async function startServerOnExactPort(
+  server: ReturnType<typeof createServer>,
+  port: number,
+  host: string
+): Promise<number> {
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, host, () => {
+      server.removeListener("error", reject);
+      resolve();
+    });
+  });
+  return port;
+}
+
+async function startServerWithPortFallback(
+  server: ReturnType<typeof createServer>,
+  preferredPort: number,
+  host: string
+): Promise<number> {
+  const MAX_PORT = preferredPort + 10;
+
+  for (let port = preferredPort; port <= MAX_PORT; port += 1) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const errorHandler = (error: NodeJS.ErrnoException) => {
+          if (error.code === "EADDRINUSE") {
+            logger.debug({ port }, `Port ${port} is in use, trying next port`);
+            reject(error);
+          } else {
+            reject(error);
+          }
+        };
+
+        server.once("error", errorHandler);
+        server.listen(port, host, () => {
+          server.removeListener("error", errorHandler);
+          resolve();
+        });
+      });
+
+      return port;
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        error.code === "EADDRINUSE"
+      ) {
+        if (port === MAX_PORT) {
+          throw new Error(
+            `No available ports found in range ${preferredPort}-${MAX_PORT}`
+          );
+        }
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error(
+    `Failed to start server on any port in range ${preferredPort}-${MAX_PORT}`
+  );
 }
 
 function printHelp(): void {
   console.log(`Usage: serve-llm [options] "App brief here"
 
 Options:
-  --port <number>            Port to bind the HTTP server (default: 3000)
+  --port <number>            Port to bind the HTTP server (default: 3000, will try 3001-3010 if occupied)
   --host <hostname>          Host interface to bind (default: 127.0.0.1)
   --model <name>             Override the model identifier for the chosen provider
   --provider <openai|gemini|anthropic|grok> Select the LLM provider explicitly
@@ -88,6 +192,8 @@ Environment variables:
   HOST                       Host interface to bind when --host is omitted
   HISTORY_LIMIT              Number of historical pages injected into prompts when --history-limit is omitted
   HISTORY_MAX_BYTES          Maximum combined size (bytes) of history context passed to the LLM
+
+Note: The server will automatically open your default web browser and try ports 3000-3010 if the preferred port is occupied.
 `);
 }
 
