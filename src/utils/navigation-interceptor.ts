@@ -181,6 +181,24 @@ export function getNavigationInterceptorScript(): string {
     var method = (form.getAttribute('method') || 'GET').toUpperCase();
     if (method === 'GET') {
       var url = new URL(form.action || window.location.href);
+      try {
+        var submitter = event.submitter || null;
+        var formData;
+        try {
+          formData = submitter ? new FormData(form, submitter) : new FormData(form);
+        } catch (_) {
+          formData = new FormData(form);
+          if (submitter && submitter.name) {
+            formData.append(submitter.name, submitter.value);
+          }
+        }
+        formData.forEach(function(value, key) {
+          if (value instanceof File) return;
+          url.searchParams.append(key, String(value));
+        });
+      } catch (error) {
+        console.warn('serve-llm form encoding failed:', error);
+      }
       handleRequest(url, { method: 'GET' });
     } else {
       // For non-GET, add a hidden field and submit normally to preserve method/body

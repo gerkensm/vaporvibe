@@ -848,15 +848,31 @@ async function handleLlmRequest(
   const cookies = parseCookies(req.headers.cookie);
   const sid = sessionStore.getOrCreateSessionId(cookies, res);
 
-  const query = Object.fromEntries(url.searchParams.entries());
+  const rawQueryEntries = Array.from(url.searchParams.entries());
+  const isInterceptorQuery = rawQueryEntries.some(
+    ([key, value]) => key === "__serve-llm" && value === "interceptor"
+  );
+  const query = Object.fromEntries(
+    rawQueryEntries.filter(([key]) => key !== "__serve-llm")
+  );
   if (Object.keys(query).length > 0) {
     reqLogger.debug(formatJsonForLog(query, "Query parameters"));
   }
 
   let bodyData: Record<string, unknown> = {};
+  let isInterceptorBody = false;
   if (method === "POST" || method === "PUT" || method === "PATCH") {
     const parsed = await readBody(req);
     bodyData = parsed.data ?? {};
+    const interceptorMarker = bodyData["__serve-llm"];
+    const hasInterceptorMarker =
+      interceptorMarker === "interceptor" ||
+      (Array.isArray(interceptorMarker) &&
+        interceptorMarker.includes("interceptor"));
+    if (hasInterceptorMarker) {
+      isInterceptorBody = true;
+      delete bodyData["__serve-llm"];
+    }
     if (parsed.raw) {
       reqLogger.debug(formatJsonForLog(bodyData, "Request body"));
     }
@@ -917,9 +933,8 @@ async function handleLlmRequest(
   const isInterceptorHeader = Array.isArray(interceptorHeader)
     ? interceptorHeader.includes("interceptor")
     : interceptorHeader === "interceptor";
-  const isInterceptorQuery =
-    url.searchParams.get("__serve-llm") === "interceptor";
-  const isInterceptorRequest = isInterceptorHeader || isInterceptorQuery;
+  const isInterceptorRequest =
+    isInterceptorHeader || isInterceptorQuery || isInterceptorBody;
   const shouldStreamBody = method !== "HEAD" && !isInterceptorRequest;
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
