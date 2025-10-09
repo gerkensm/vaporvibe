@@ -1,17 +1,30 @@
 #!/usr/bin/env bash
+# Notarize and staple macOS artifacts
+# Usage: notarize-app.sh [app|dmg]
+#
+# IMPORTANT: For proper DMG distribution:
+#   1. First run with 'app' to notarize/staple the app bundle
+#   2. Then create the DMG from the stapled app
+#   3. Finally run with 'dmg' to notarize/staple the DMG
+#
+# This ensures both the app inside the DMG and the DMG itself have stapled tickets
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-DEFAULT_TARGET="dmg"
+DEFAULT_TARGET="app"
 TARGET="${1:-$DEFAULT_TARGET}"
 
 case "$TARGET" in
   dmg|app) ;;
   *)
-    echo "Usage: $0 [dmg|app]" >&2
+    echo "Usage: $0 [app|dmg]" >&2
+    echo "" >&2
+    echo "Options:" >&2
+    echo "  app  - Notarize and staple the app bundle (do this BEFORE creating DMG)" >&2
+    echo "  dmg  - Notarize and staple the DMG (do this AFTER creating DMG)" >&2
     exit 1
     ;;
 esac
@@ -31,14 +44,6 @@ if [[ "$TARGET" == "app" && ! -d "$APP_PATH" ]]; then
   exit 1
 fi
 
-if [[ "$TARGET" == "dmg" ]]; then
-  ARTIFACT_PATH="$DMG_PATH"
-  ARTIFACT_LABEL="ServeLLM.dmg"
-else
-  ARTIFACT_PATH="$ZIP_PATH"
-  ARTIFACT_LABEL="ServeLLM.app (zip)"
-fi
-
 REQUIRED_VARS=("APPLE_KEYCHAIN_PROFILE")
 MISSING=()
 for var in "${REQUIRED_VARS[@]}"; do
@@ -54,38 +59,68 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
 fi
 
 if [[ "$TARGET" == "app" ]]; then
-  echo "→ Preparing zip archive for notarizing ServeLLM.app…"
+  ARTIFACT_PATH="$ZIP_PATH"
+  ARTIFACT_LABEL="ServeLLM.app"
+  
+  # Notarize and staple the app bundle
+  echo "→ Notarizing and stapling ServeLLM.app…"
   rm -f "$ZIP_PATH"
   /usr/bin/ditto -c -k --keepParent "$APP_PATH" "$ZIP_PATH"
-fi
 
-echo "→ Submitting $ARTIFACT_LABEL to Apple Notary Service (this may take a few minutes)…"
+  echo "→ Submitting ServeLLM.app to Apple Notary Service (this may take a few minutes)…"
+  if ! xcrun notarytool submit "$ZIP_PATH" --keychain-profile "$APPLE_KEYCHAIN_PROFILE" --wait; then
+    echo "❌ App bundle notarization failed. Inspect the submission log via:" >&2
+    echo "   xcrun notarytool history --keychain-profile $APPLE_KEYCHAIN_PROFILE" >&2
+    exit 1
+  fi
 
-if ! xcrun notarytool submit "$ARTIFACT_PATH" --keychain-profile "$APPLE_KEYCHAIN_PROFILE" --wait; then
-  echo "❌ Notarization failed. Inspect the submission log via:" >&2
-  echo "   xcrun notarytool history --keychain-profile $APPLE_KEYCHAIN_PROFILE" >&2
-  exit 1
-fi
-
-if [[ "$TARGET" == "dmg" ]]; then
+  echo "→ Stapling notarization ticket to ServeLLM.app…"
+  xcrun stapler staple "$APP_PATH"
+  echo "→ Validating stapled app bundle…"
+  xcrun stapler validate "$APP_PATH"
+else
+  ARTIFACT_PATH="$DMG_PATH"
+  ARTIFACT_LABEL="ServeLLM.dmg"
+  
+  # Notarize and staple the DMG (app should already be stapled)
+  echo "→ Notarizing and stapling ServeLLM.dmg…"
+  echo "ℹ️  Note: The app bundle inside should already be notarized and stapled"
+  
+  if ! xcrun notarytool submit "$DMG_PATH" --keychain-profile "$APPLE_KEYCHAIN_PROFILE" --wait; then
+    echo "❌ DMG notarization failed. Inspect the submission log via:" >&2
+    echo "   xcrun notarytool history --keychain-profile $APPLE_KEYCHAIN_PROFILE" >&2
+    exit 1
+  fi
+  
   echo "→ Stapling notarization ticket to DMG…"
   xcrun stapler staple "$DMG_PATH"
   echo "→ Validating stapled DMG…"
   xcrun stapler validate "$DMG_PATH"
-else
-  echo "→ Stapling notarization ticket to ServeLLM.app…"
-  xcrun stapler staple "$APP_PATH"
 fi
 
-echo "→ Gatekeeper check (spctl)"
-if [[ "$TARGET" == "dmg" ]]; then
-  spctl -a -t open -vv "$DMG_PATH"
-else
-  spctl -a -t exec -vv "$APP_PATH"
-fi
-
-echo "✅ Notarization and stapling complete for $ARTIFACT_LABEL"
-
+# Final verification
+echo ""
+echo "-> Final Gatekeeper check for ${ARTIFACT_LABEL}..."
 if [[ "$TARGET" == "app" ]]; then
-  echo "ℹ️  The intermediate zip remains at $ZIP_PATH (remove manually if desired)."
+  spctl -a -t exec -vv "$APP_PATH"
+else
+  spctl -a -t open -vv "$DMG_PATH"
 fi
+
+echo ""
+echo "✅ Notarization and stapling complete for ${ARTIFACT_LABEL}"
+echo ""
+if [[ "$TARGET" == "dmg" ]]; then
+  echo "The DMG and the app bundle inside are both stapled:"
+  echo "  • App:  $APP_PATH (stapled before DMG creation)"
+  echo "  • DMG:  $DMG_PATH (stapled after creation)"
+  echo ""
+  echo "Users can mount the DMG or extract the app - both work offline!"
+else
+  echo "App bundle is notarized and stapled at:"
+  echo "  • $APP_PATH"
+  echo ""
+  echo "Next step: Create DMG with 'npm run build:macos:dmg'"
+fi
+echo ""
+echo "ℹ️  The intermediate zip remains at $ZIP_PATH (remove manually if desired)."

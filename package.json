@@ -18,13 +18,17 @@
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "build:sea": "scripts/build-macos-sea.sh",
-    "build:sea:notarize": "NOTARIZE=true scripts/build-macos-sea.sh",
-    "notarize:sea": "scripts/notarize-macos-sea.sh",
-    "verify:notarization": "scripts/verify-notarization.sh",
-    "macos:icon": "scripts/macos-app/create-icon-assets.sh",
-    "macos:app": "scripts/macos-app/build-app-bundle.sh",
-    "macos:dmg": "scripts/macos-app/create-dmg.sh",
-    "macos:notarize": "scripts/macos-app/notarize-app.sh"
+    "build:sea:signed": "NOTARIZE=true scripts/build-macos-sea.sh",
+    "build:sea:submit": "scripts/notarize-macos-sea.sh",
+    "build:sea:verify": "scripts/verify-notarization.sh",
+    "build:macos:icon": "scripts/macos-app/create-icon-assets.sh",
+    "build:macos:app": "scripts/macos-app/build-app-bundle.sh",
+    "build:macos:sign": "scripts/macos-app/sign-app-bundle.sh",
+    "build:macos:notarize-app": "scripts/macos-app/notarize-app.sh app",
+    "build:macos:dmg": "scripts/macos-app/create-dmg.sh",
+    "build:macos:notarize-dmg": "scripts/macos-app/notarize-app.sh dmg",
+    "build:macos:verify": "scripts/macos-app/verify-app-notarization.sh",
+    "build:macos": "npm run build:sea:signed && npm run build:macos:app && npm run build:macos:sign && npm run build:macos:notarize-app && npm run build:macos:dmg && npm run build:macos:notarize-dmg"
   },
   "keywords": [
     "llm",
@@ -35,6 +39,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
     "@google/genai": "^1.22.0",
+    "keytar": "^7.9.0",
     "open": "^10.2.0",
     "openai": "^6.1.0",
     "pino": "^9.3.0",

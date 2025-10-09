@@ -55,7 +55,7 @@ cat > "${INFO_PLIST}" <<PLIST
   <key>CFBundleVersion</key>
   <string>${VERSION}</string>
   <key>LSMinimumSystemVersion</key>
-  <string>13.0</string>
+  <string>11.0</string>
   <key>NSHighResolutionCapable</key>
   <true/>
 </dict>
@@ -76,6 +76,7 @@ mkdir -p "${MODULE_CACHE}"
 
 "${SWIFT_BIN}" \
   -module-cache-path "${MODULE_CACHE}" \
+  -target arm64-apple-macos11.0 \
   "${SCRIPT_DIR}/ServeLLMLauncher.swift" \
   -o "${MACOS_DIR}/ServeLLMLauncher"
 

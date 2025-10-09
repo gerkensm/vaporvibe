@@ -1,15 +1,30 @@
 import type { ServerResponse } from "node:http";
 import type { Logger } from "pino";
 import { ADMIN_ROUTE_PREFIX } from "../constants.js";
-import type { HistoryEntry, ProviderSettings, ReasoningMode } from "../types.js";
+import type {
+  HistoryEntry,
+  ProviderSettings,
+  ReasoningMode,
+} from "../types.js";
 import { createLlmClient } from "../llm/factory.js";
 import { readBody } from "../utils/body.js";
 import { maskSensitive } from "../utils/sensitive.js";
-import { createHistorySnapshot, createPromptMarkdown } from "../utils/history-export.js";
-import { renderAdminDashboard, renderHistory } from "../pages/admin-dashboard.js";
-import type { AdminHistoryItem, AdminProviderInfo, AdminRuntimeInfo } from "../pages/admin-dashboard.js";
+import {
+  createHistorySnapshot,
+  createPromptMarkdown,
+} from "../utils/history-export.js";
+import {
+  renderAdminDashboard,
+  renderHistory,
+} from "../pages/admin-dashboard.js";
+import type {
+  AdminHistoryItem,
+  AdminProviderInfo,
+  AdminRuntimeInfo,
+} from "../pages/admin-dashboard.js";
 import type { MutableServerState, RequestContext } from "./server.js";
 import { SessionStore } from "./session-store.js";
+import { getCredentialStore } from "../utils/credential-store.js";
 
 const JSON_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.json`;
 const MARKDOWN_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history/prompt.md`;
@@ -22,18 +37,30 @@ interface AdminControllerOptions {
 export class AdminController {
   private readonly state: MutableServerState;
   private readonly sessionStore: SessionStore;
-  private readonly providerKeyMemory: Map<ProviderSettings["provider"], string>;
+  private readonly credentialStore = getCredentialStore();
 
   constructor(options: AdminControllerOptions) {
     this.state = options.state;
     this.sessionStore = options.sessionStore;
-    this.providerKeyMemory = new Map();
-    if (this.state.provider.apiKey) {
-      this.providerKeyMemory.set(this.state.provider.provider, this.state.provider.apiKey);
+
+    // Initialize credential store with current key if it came from UI
+    if (
+      this.state.provider.apiKey &&
+      !this.isKeyFromEnvironment(this.state.provider.provider)
+    ) {
+      this.credentialStore
+        .saveApiKey(this.state.provider.provider, this.state.provider.apiKey)
+        .catch(() => {
+          // Ignore errors - will use memory fallback
+        });
     }
   }
 
-  async handle(context: RequestContext, _requestStart: number, reqLogger: Logger): Promise<boolean> {
+  async handle(
+    context: RequestContext,
+    _requestStart: number,
+    reqLogger: Logger
+  ): Promise<boolean> {
     const { method, path } = context;
     if (!path.startsWith(ADMIN_ROUTE_PREFIX)) {
       return false;
@@ -89,12 +116,18 @@ export class AdminController {
     return false;
   }
 
-  private async renderDashboard(context: RequestContext, reqLogger: Logger): Promise<void> {
+  private async renderDashboard(
+    context: RequestContext,
+    reqLogger: Logger
+  ): Promise<void> {
     const { res, url } = context;
     const sortedHistory = this.getSortedHistoryEntries();
-    const sessionCount = new Set(sortedHistory.map((entry) => entry.sessionId)).size;
+    const sessionCount = new Set(sortedHistory.map((entry) => entry.sessionId))
+      .size;
 
-    const historyItems = sortedHistory.map((entry) => this.toAdminHistoryItem(entry));
+    const historyItems = sortedHistory.map((entry) =>
+      this.toAdminHistoryItem(entry)
+    );
 
     const providerInfo: AdminProviderInfo = {
       provider: this.state.provider.provider,
@@ -114,7 +147,7 @@ export class AdminController {
     const statusMessage = url.searchParams.get("status") ?? undefined;
     const errorMessage = url.searchParams.get("error") ?? undefined;
 
-    const providerKeyStatuses = this.computeProviderKeyStatuses();
+    const providerKeyStatuses = await this.computeProviderKeyStatuses();
     const html = renderAdminDashboard({
       brief: this.state.brief,
       provider: providerInfo,
@@ -133,24 +166,54 @@ export class AdminController {
     res.statusCode = 200;
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.end(html);
-    reqLogger.debug({ historyCount: sortedHistory.length }, "Served admin dashboard");
+    reqLogger.debug(
+      { historyCount: sortedHistory.length },
+      "Served admin dashboard"
+    );
   }
 
-  private computeProviderKeyStatuses(): Record<"openai" | "gemini" | "anthropic" | "grok", { hasKey: boolean; verified: boolean }> {
-    const providers: Array<ProviderSettings["provider"]> = ["openai", "gemini", "anthropic", "grok"];
-    const result: Record<"openai" | "gemini" | "anthropic" | "grok", { hasKey: boolean; verified: boolean }> = {
+  private async computeProviderKeyStatuses(): Promise<
+    Record<
+      "openai" | "gemini" | "anthropic" | "grok",
+      { hasKey: boolean; verified: boolean }
+    >
+  > {
+    const providers: Array<ProviderSettings["provider"]> = [
+      "openai",
+      "gemini",
+      "anthropic",
+      "grok",
+    ];
+    const result: Record<
+      "openai" | "gemini" | "anthropic" | "grok",
+      { hasKey: boolean; verified: boolean }
+    > = {
       openai: { hasKey: false, verified: false },
       gemini: { hasKey: false, verified: false },
       anthropic: { hasKey: false, verified: false },
       grok: { hasKey: false, verified: false },
     };
+
     for (const p of providers) {
-      const remembered = this.providerKeyMemory.get(p);
+      const storedKey = await this.credentialStore.getApiKey(p);
       const envKey = lookupEnvApiKey(p);
-      const hasKey = Boolean((remembered && remembered.trim().length > 0) || (envKey && envKey.trim().length > 0));
-      const verified = p === this.state.provider.provider && Boolean(this.state.providerReady && this.state.provider.apiKey && this.state.provider.apiKey.trim().length > 0);
-      result[p as "openai" | "gemini" | "anthropic" | "grok"] = { hasKey, verified };
+      const hasKey = Boolean(
+        (storedKey && storedKey.trim().length > 0) ||
+          (envKey && envKey.trim().length > 0)
+      );
+      const verified =
+        p === this.state.provider.provider &&
+        Boolean(
+          this.state.providerReady &&
+            this.state.provider.apiKey &&
+            this.state.provider.apiKey.trim().length > 0
+        );
+      result[p as "openai" | "gemini" | "anthropic" | "grok"] = {
+        hasKey,
+        verified,
+      };
     }
+
     return result;
   }
 
@@ -185,9 +248,15 @@ export class AdminController {
     res.end(markdown);
   }
 
-  private async handleHistoryResource(context: RequestContext, reqLogger: Logger): Promise<void> {
+  private async handleHistoryResource(
+    context: RequestContext,
+    reqLogger: Logger
+  ): Promise<void> {
     const { res, url, path } = context;
-    const segments = path.slice(ADMIN_ROUTE_PREFIX.length).split("/").filter(Boolean);
+    const segments = path
+      .slice(ADMIN_ROUTE_PREFIX.length)
+      .split("/")
+      .filter(Boolean);
     if (segments.length < 2) {
       this.respondNotFound(res);
       return;
@@ -209,40 +278,69 @@ export class AdminController {
     res.setHeader("Content-Type", "text/html; charset=utf-8");
 
     if (action === "download" || url.searchParams.get("download") === "1") {
-      res.setHeader("Content-Disposition", `attachment; filename=history-${filenameSafeId}.html`);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename=history-${filenameSafeId}.html`
+      );
     }
 
     res.end(html);
     reqLogger.debug({ entryId, action }, "Served history entry");
   }
 
-  private async handleProviderUpdate(context: RequestContext, reqLogger: Logger): Promise<void> {
+  private async handleProviderUpdate(
+    context: RequestContext,
+    reqLogger: Logger
+  ): Promise<void> {
     const { req, res } = context;
     const body = await readBody(req);
     const data = body.data;
 
-    const provider = sanitizeProvider(String(data.provider ?? this.state.provider.provider));
-    const model = typeof data.model === "string" && data.model.trim().length > 0
-      ? data.model.trim()
-      : this.state.provider.model;
-    const maxOutputTokens = parsePositiveInt(data.maxOutputTokens, this.state.provider.maxOutputTokens);
-    const reasoningMode = sanitizeReasoningMode(String(data.reasoningMode ?? this.state.provider.reasoningMode));
-    const reasoningTokens = parseOptionalPositiveInt(data.reasoningTokens, this.state.provider.reasoningTokens);
+    const provider = sanitizeProvider(
+      String(data.provider ?? this.state.provider.provider)
+    );
+    const model =
+      typeof data.model === "string" && data.model.trim().length > 0
+        ? data.model.trim()
+        : this.state.provider.model;
+    const maxOutputTokens = parsePositiveInt(
+      data.maxOutputTokens,
+      this.state.provider.maxOutputTokens
+    );
+    const reasoningMode = sanitizeReasoningMode(
+      String(data.reasoningMode ?? this.state.provider.reasoningMode)
+    );
+    const reasoningTokens = parseOptionalPositiveInt(
+      data.reasoningTokens,
+      this.state.provider.reasoningTokens
+    );
     const newApiKey = typeof data.apiKey === "string" ? data.apiKey.trim() : "";
     const previousProvider = this.state.provider.provider;
 
     let apiKeyCandidate = newApiKey;
+    let keySourceIsUI = Boolean(newApiKey); // Track if this key came from UI input
+
     if (!apiKeyCandidate) {
-      if (provider === previousProvider && typeof this.state.provider.apiKey === "string" && this.state.provider.apiKey.length > 0) {
+      // Try current key if same provider
+      if (
+        provider === previousProvider &&
+        typeof this.state.provider.apiKey === "string" &&
+        this.state.provider.apiKey.length > 0
+      ) {
         apiKeyCandidate = this.state.provider.apiKey;
+        keySourceIsUI = !this.isKeyFromEnvironment(provider);
       } else {
-        const remembered = this.providerKeyMemory.get(provider);
-        if (remembered && remembered.trim().length > 0) {
-          apiKeyCandidate = remembered;
+        // Try stored credential (from previous UI input)
+        const storedKey = await this.credentialStore.getApiKey(provider);
+        if (storedKey && storedKey.trim().length > 0) {
+          apiKeyCandidate = storedKey;
+          keySourceIsUI = true;
         } else {
+          // Fall back to environment variable
           const envKey = lookupEnvApiKey(provider);
           if (envKey) {
             apiKeyCandidate = envKey;
+            keySourceIsUI = false;
           }
         }
       }
@@ -267,11 +365,25 @@ export class AdminController {
       this.state.llmClient = newClient;
       this.state.provider = { ...updatedSettings };
       this.state.providerReady = true;
-      if (updatedSettings.apiKey && updatedSettings.apiKey.trim().length > 0) {
-        this.providerKeyMemory.set(updatedSettings.provider, updatedSettings.apiKey);
+
+      // Store UI-entered credentials securely (not env/CLI keys)
+      if (
+        keySourceIsUI &&
+        updatedSettings.apiKey &&
+        updatedSettings.apiKey.trim().length > 0
+      ) {
+        await this.credentialStore
+          .saveApiKey(updatedSettings.provider, updatedSettings.apiKey)
+          .catch(() => {
+            // Ignore storage errors - key still works in memory
+          });
       }
+
       this.applyProviderEnv(updatedSettings);
-      reqLogger.info({ provider }, "Updated LLM provider settings via admin console");
+      reqLogger.info(
+        { provider },
+        "Updated LLM provider settings via admin console"
+      );
       this.redirectWithMessage(res, "Provider configuration updated", false);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -280,23 +392,36 @@ export class AdminController {
     }
   }
 
-  private async handleRuntimeUpdate(context: RequestContext, reqLogger: Logger): Promise<void> {
+  private async handleRuntimeUpdate(
+    context: RequestContext,
+    reqLogger: Logger
+  ): Promise<void> {
     const { req, res } = context;
     const body = await readBody(req);
     const data = body.data;
 
     try {
-      const historyLimit = parsePositiveInt(data.historyLimit, this.state.runtime.historyLimit);
-      const historyMaxBytes = parsePositiveInt(data.historyMaxBytes, this.state.runtime.historyMaxBytes);
-      const instructionPanelValue = typeof data.instructionPanel === "string" ? data.instructionPanel.toLowerCase() : "";
-      const includeInstructionPanel = instructionPanelValue === "on" || instructionPanelValue === "true";
+      const historyLimit = parsePositiveInt(
+        data.historyLimit,
+        this.state.runtime.historyLimit
+      );
+      const historyMaxBytes = parsePositiveInt(
+        data.historyMaxBytes,
+        this.state.runtime.historyMaxBytes
+      );
+      const instructionPanelValue =
+        typeof data.instructionPanel === "string"
+          ? data.instructionPanel.toLowerCase()
+          : "";
+      const includeInstructionPanel =
+        instructionPanelValue === "on" || instructionPanelValue === "true";
 
       this.state.runtime.historyLimit = historyLimit;
       this.state.runtime.historyMaxBytes = historyMaxBytes;
       this.state.runtime.includeInstructionPanel = includeInstructionPanel;
       reqLogger.info(
         { historyLimit, historyMaxBytes, includeInstructionPanel },
-        "Updated runtime settings via admin console",
+        "Updated runtime settings via admin console"
       );
       this.redirectWithMessage(res, "Runtime settings saved", false);
     } catch (error) {
@@ -305,21 +430,42 @@ export class AdminController {
     }
   }
 
-  private async handleBriefUpdate(context: RequestContext, reqLogger: Logger): Promise<void> {
+  private async handleBriefUpdate(
+    context: RequestContext,
+    reqLogger: Logger
+  ): Promise<void> {
     const { req, res } = context;
     const body = await readBody(req);
-    const rawBrief = typeof body.data.brief === "string" ? body.data.brief.trim() : "";
+    const rawBrief =
+      typeof body.data.brief === "string" ? body.data.brief.trim() : "";
     this.state.brief = rawBrief.length > 0 ? rawBrief : null;
-    reqLogger.info({ hasBrief: Boolean(this.state.brief) }, "Updated brief via admin console");
-    this.redirectWithMessage(res, this.state.brief ? "Brief updated" : "Brief cleared", false);
+    reqLogger.info(
+      { hasBrief: Boolean(this.state.brief) },
+      "Updated brief via admin console"
+    );
+    this.redirectWithMessage(
+      res,
+      this.state.brief ? "Brief updated" : "Brief cleared",
+      false
+    );
   }
 
-  private async handleHistoryImport(context: RequestContext, reqLogger: Logger): Promise<void> {
+  private async handleHistoryImport(
+    context: RequestContext,
+    reqLogger: Logger
+  ): Promise<void> {
     const { req, res } = context;
     const body = await readBody(req);
-    const raw = typeof body.data.historyJson === "string" ? body.data.historyJson.trim() : "";
+    const raw =
+      typeof body.data.historyJson === "string"
+        ? body.data.historyJson.trim()
+        : "";
     if (!raw) {
-      this.redirectWithMessage(res, "History import failed: no JSON provided", true);
+      this.redirectWithMessage(
+        res,
+        "History import failed: no JSON provided",
+        true
+      );
       return;
     }
     try {
@@ -331,11 +477,13 @@ export class AdminController {
         throw new Error("Unsupported snapshot format");
       }
 
-      const historyEntries = (parsed.history as HistoryEntry[]).map((entry) => ({
-        ...entry,
-        createdAt: entry.createdAt,
-        response: entry.response,
-      }));
+      const historyEntries = (parsed.history as HistoryEntry[]).map(
+        (entry) => ({
+          ...entry,
+          createdAt: entry.createdAt,
+          response: entry.response,
+        })
+      );
       this.sessionStore.replaceHistory(historyEntries);
 
       if (typeof parsed.brief === "string") {
@@ -343,33 +491,57 @@ export class AdminController {
       }
 
       if (parsed.runtime && typeof parsed.runtime === "object") {
-        const runtimeData = parsed.runtime as Partial<{ historyLimit: number; historyMaxBytes: number; includeInstructionPanel: boolean }>;
-        if (typeof runtimeData.historyLimit === "number" && runtimeData.historyLimit > 0) {
+        const runtimeData = parsed.runtime as Partial<{
+          historyLimit: number;
+          historyMaxBytes: number;
+          includeInstructionPanel: boolean;
+        }>;
+        if (
+          typeof runtimeData.historyLimit === "number" &&
+          runtimeData.historyLimit > 0
+        ) {
           this.state.runtime.historyLimit = runtimeData.historyLimit;
         }
-        if (typeof runtimeData.historyMaxBytes === "number" && runtimeData.historyMaxBytes > 0) {
+        if (
+          typeof runtimeData.historyMaxBytes === "number" &&
+          runtimeData.historyMaxBytes > 0
+        ) {
           this.state.runtime.historyMaxBytes = runtimeData.historyMaxBytes;
         }
         if (typeof runtimeData.includeInstructionPanel === "boolean") {
-          this.state.runtime.includeInstructionPanel = runtimeData.includeInstructionPanel;
+          this.state.runtime.includeInstructionPanel =
+            runtimeData.includeInstructionPanel;
         }
       }
 
       if (parsed.llm && typeof parsed.llm === "object") {
-        const summary = parsed.llm as Partial<ProviderSettings> & { provider?: string };
+        const summary = parsed.llm as Partial<ProviderSettings> & {
+          provider?: string;
+        };
         if (summary.provider && typeof summary.provider === "string") {
           this.state.provider.provider = sanitizeProvider(summary.provider);
         }
         if (summary.model && typeof summary.model === "string") {
           this.state.provider.model = summary.model;
         }
-        if (typeof summary.maxOutputTokens === "number" && summary.maxOutputTokens > 0) {
+        if (
+          typeof summary.maxOutputTokens === "number" &&
+          summary.maxOutputTokens > 0
+        ) {
           this.state.provider.maxOutputTokens = summary.maxOutputTokens;
         }
-        if (summary.reasoningMode && typeof summary.reasoningMode === "string") {
-          this.state.provider.reasoningMode = sanitizeReasoningMode(summary.reasoningMode);
+        if (
+          summary.reasoningMode &&
+          typeof summary.reasoningMode === "string"
+        ) {
+          this.state.provider.reasoningMode = sanitizeReasoningMode(
+            summary.reasoningMode
+          );
         }
-        if (typeof summary.reasoningTokens === "number" && summary.reasoningTokens > 0) {
+        if (
+          typeof summary.reasoningTokens === "number" &&
+          summary.reasoningTokens > 0
+        ) {
           this.state.provider.reasoningTokens = summary.reasoningTokens;
         }
       }
@@ -377,10 +549,15 @@ export class AdminController {
       const refreshedSettings: ProviderSettings = { ...this.state.provider };
       this.state.llmClient = createLlmClient(refreshedSettings);
       this.state.provider = refreshedSettings;
-      this.state.providerReady = Boolean(refreshedSettings.apiKey && refreshedSettings.apiKey.trim().length > 0);
+      this.state.providerReady = Boolean(
+        refreshedSettings.apiKey && refreshedSettings.apiKey.trim().length > 0
+      );
       this.applyProviderEnv(refreshedSettings);
 
-      reqLogger.info({ entries: historyEntries.length }, "Imported history snapshot via admin console");
+      reqLogger.info(
+        { entries: historyEntries.length },
+        "Imported history snapshot via admin console"
+      );
       this.redirectWithMessage(res, "History snapshot imported", false);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -422,10 +599,17 @@ export class AdminController {
     return this.sessionStore
       .exportHistory()
       .slice()
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
   }
 
-  private redirectWithMessage(res: ServerResponse, message: string, isError: boolean): void {
+  private redirectWithMessage(
+    res: ServerResponse,
+    message: string,
+    isError: boolean
+  ): void {
     const target = isError
       ? `${ADMIN_ROUTE_PREFIX}?error=${encodeURIComponent(message)}`
       : `${ADMIN_ROUTE_PREFIX}?status=${encodeURIComponent(message)}`;
@@ -456,12 +640,23 @@ export class AdminController {
     }
   }
 
+  private isKeyFromEnvironment(
+    provider: ProviderSettings["provider"]
+  ): boolean {
+    const envKey = lookupEnvApiKey(provider);
+    return Boolean(envKey && envKey.trim().length > 0);
+  }
+
   private toAdminHistoryItem(entry: HistoryEntry): AdminHistoryItem {
     const querySummary = summarizeRecord(entry.request.query);
     const bodySummary = summarizeRecord(entry.request.body);
     const usageSummary = summarizeUsage(entry);
-    const reasoningSummaries = entry.reasoning?.summaries ? [...entry.reasoning.summaries] : undefined;
-    const reasoningDetails = entry.reasoning?.details ? [...entry.reasoning.details] : undefined;
+    const reasoningSummaries = entry.reasoning?.summaries
+      ? [...entry.reasoning.summaries]
+      : undefined;
+    const reasoningDetails = entry.reasoning?.details
+      ? [...entry.reasoning.details]
+      : undefined;
 
     return {
       id: entry.id,
@@ -476,8 +671,12 @@ export class AdminController {
       reasoningSummaries,
       reasoningDetails,
       html: entry.response.html,
-      viewUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(entry.id)}/view`,
-      downloadUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(entry.id)}/download`,
+      viewUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(
+        entry.id
+      )}/view`,
+      downloadUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(
+        entry.id
+      )}/download`,
     };
   }
 }
@@ -498,10 +697,14 @@ function summarizeUsage(entry: HistoryEntry): string | undefined {
   const usage = entry.usage;
   if (!usage) return undefined;
   const parts: string[] = [];
-  if (typeof usage.inputTokens === "number") parts.push(`in ${usage.inputTokens}`);
-  if (typeof usage.outputTokens === "number") parts.push(`out ${usage.outputTokens}`);
-  if (typeof usage.reasoningTokens === "number") parts.push(`reasoning ${usage.reasoningTokens}`);
-  if (typeof usage.totalTokens === "number") parts.push(`total ${usage.totalTokens}`);
+  if (typeof usage.inputTokens === "number")
+    parts.push(`in ${usage.inputTokens}`);
+  if (typeof usage.outputTokens === "number")
+    parts.push(`out ${usage.outputTokens}`);
+  if (typeof usage.reasoningTokens === "number")
+    parts.push(`reasoning ${usage.reasoningTokens}`);
+  if (typeof usage.totalTokens === "number")
+    parts.push(`total ${usage.totalTokens}`);
   if (parts.length === 0) return undefined;
   return parts.join(" · ");
 }
@@ -517,18 +720,25 @@ function parsePositiveInt(value: unknown, fallback: number): number {
   return Math.floor(parsed);
 }
 
-function parseOptionalPositiveInt(value: unknown, fallback?: number): number | undefined {
+function parseOptionalPositiveInt(
+  value: unknown,
+  fallback?: number
+): number | undefined {
   if (value === undefined || value === null || value === "") {
     return fallback;
   }
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0) {
-    throw new Error(`Expected a non-negative integer, received: ${String(value)}`);
+    throw new Error(
+      `Expected a non-negative integer, received: ${String(value)}`
+    );
   }
   return Math.floor(parsed);
 }
 
-function lookupEnvApiKey(provider: ProviderSettings["provider"]): string | undefined {
+function lookupEnvApiKey(
+  provider: ProviderSettings["provider"]
+): string | undefined {
   if (provider === "openai") {
     return process.env.OPENAI_API_KEY?.trim() || undefined;
   }
@@ -539,16 +749,22 @@ function lookupEnvApiKey(provider: ProviderSettings["provider"]): string | undef
     return process.env.ANTHROPIC_API_KEY?.trim() || undefined;
   }
   if (provider === "grok") {
-    return process.env.XAI_API_KEY?.trim()
-      || process.env.GROK_API_KEY?.trim()
-      || undefined;
+    return (
+      process.env.XAI_API_KEY?.trim() ||
+      process.env.GROK_API_KEY?.trim() ||
+      undefined
+    );
   }
   return undefined;
 }
 
 function sanitizeProvider(value: string): ProviderSettings["provider"] {
   const normalized = value.toLowerCase();
-  if (normalized === "gemini" || normalized === "anthropic" || normalized === "openai") {
+  if (
+    normalized === "gemini" ||
+    normalized === "anthropic" ||
+    normalized === "openai"
+  ) {
     return normalized;
   }
   if (normalized === "grok" || normalized === "xai" || normalized === "x.ai") {
@@ -559,7 +775,11 @@ function sanitizeProvider(value: string): ProviderSettings["provider"] {
 
 function sanitizeReasoningMode(value: string): ReasoningMode {
   const normalized = value.toLowerCase();
-  if (normalized === "low" || normalized === "medium" || normalized === "high") {
+  if (
+    normalized === "low" ||
+    normalized === "medium" ||
+    normalized === "high"
+  ) {
     return normalized;
   }
   return "none";

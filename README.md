@@ -129,6 +129,23 @@ Once your app is running, the admin interface at `/serve-llm` becomes your missi
 - The `dist/` output is committed so `npx` consumers get a frictionless run. Remember to `npm run build` before committing changes.
 - Set `LOG_LEVEL` (`debug`, `info`, `warn`) to control log verbosity.
 
+### Linux Build Requirements
+
+For secure credential storage (keytar), Linux systems need `libsecret` for native compilation:
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install libsecret-1-dev
+
+# Fedora/RHEL
+sudo dnf install libsecret-devel
+
+# Arch
+sudo pacman -S libsecret
+```
+
+If `libsecret` is unavailable, `npm install` may fail to compile keytar's native bindings. The app will still work with a graceful fallback to memory-only credential storage.
+
 ---
 
 ## Why Bother?

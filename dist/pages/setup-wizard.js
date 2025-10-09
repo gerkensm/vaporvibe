@@ -1,5 +1,5 @@
 import { escapeHtml } from "../utils/html.js";
-import { DEFAULT_REASONING_TOKENS, DEFAULT_MAX_OUTPUT_TOKENS } from "../constants.js";
+import { DEFAULT_REASONING_TOKENS, DEFAULT_MAX_OUTPUT_TOKENS, } from "../constants.js";
 import { PROVIDER_CHOICES, PROVIDER_LABELS, PROVIDER_PLACEHOLDERS, DEFAULT_MODEL_BY_PROVIDER, DEFAULT_MAX_TOKENS_BY_PROVIDER, REASONING_MODE_CHOICES, PROVIDER_REASONING_CAPABILITIES, REASONING_TOKEN_MIN_BY_PROVIDER, } from "../constants/providers.js";
 const PROVIDER_MODEL_CHOICES = {
     openai: [
@@ -10,7 +10,10 @@ const PROVIDER_MODEL_CHOICES = {
         { value: "gpt-5-nano", label: "GPT-5 Nano" },
         { value: "gpt-5-nano-2025-08-07", label: "GPT-5 Nano · 2025-08-07" },
         { value: "gpt-4.5-preview", label: "GPT-4.5 Preview" },
-        { value: "gpt-4.5-preview-2025-02-27", label: "GPT-4.5 Preview · 2025-02-27" },
+        {
+            value: "gpt-4.5-preview-2025-02-27",
+            label: "GPT-4.5 Preview · 2025-02-27",
+        },
         { value: "gpt-4o", label: "GPT-4o" },
         { value: "chatgpt-4o-latest", label: "ChatGPT-4o Latest" },
         { value: "gpt-4o-mini", label: "GPT-4o Mini" },
@@ -34,13 +37,19 @@ const PROVIDER_MODEL_CHOICES = {
         { value: "o4-mini", label: "o4 Mini" },
     ],
     gemini: [
-        { value: DEFAULT_MODEL_BY_PROVIDER.gemini, label: "Gemini 2.5 Flash (default)" },
+        {
+            value: DEFAULT_MODEL_BY_PROVIDER.gemini,
+            label: "Gemini 2.5 Flash (default)",
+        },
         { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
         { value: "gemini-2.0-pro-exp", label: "Gemini 2.0 Pro" },
         { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
     ],
     anthropic: [
-        { value: DEFAULT_MODEL_BY_PROVIDER.anthropic, label: "Claude 4.5 Sonnet (default)" },
+        {
+            value: DEFAULT_MODEL_BY_PROVIDER.anthropic,
+            label: "Claude 4.5 Sonnet (default)",
+        },
         { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
         { value: "claude-3-7-sonnet-latest", label: "Claude 3.7 Sonnet" },
         { value: "claude-opus-4-1-20250805", label: "Claude Opus 4.1" },
@@ -49,7 +58,10 @@ const PROVIDER_MODEL_CHOICES = {
         { value: "claude-3-haiku-20240307", label: "Claude 3 Haiku" },
     ],
     grok: [
-        { value: DEFAULT_MODEL_BY_PROVIDER.grok, label: "Grok 4 Fast Reasoning (default)" },
+        {
+            value: DEFAULT_MODEL_BY_PROVIDER.grok,
+            label: "Grok 4 Fast Reasoning (default)",
+        },
         { value: "grok-4-fast-non-reasoning", label: "Grok 4 Fast Non-Reasoning" },
         { value: "grok-4-0709", label: "Grok 4 0709" },
         { value: "grok-3", label: "Grok 3" },
@@ -462,36 +474,49 @@ function buildBanner(statusMessage, errorMessage) {
 }
 function renderProviderStep(options) {
     const { providerLabel, providerName, verifyAction, providerReady, canSelectProvider, selectedProvider, selectedModel, providerSelectionRequired, providerKeyStatuses, maxOutputTokens, reasoningMode, reasoningTokens, } = options;
-    const capabilities = PROVIDER_REASONING_CAPABILITIES[selectedProvider] ?? { mode: false, tokens: false };
+    const capabilities = PROVIDER_REASONING_CAPABILITIES[selectedProvider] ?? {
+        mode: false,
+        tokens: false,
+    };
     const providerSupportsReasoningMode = capabilities.mode;
     const providerSupportsReasoningTokens = capabilities.tokens;
     const defaultReasoningTokens = DEFAULT_REASONING_TOKENS[selectedProvider];
-    const defaultMaxTokens = DEFAULT_MAX_TOKENS_BY_PROVIDER[selectedProvider] ?? DEFAULT_MAX_OUTPUT_TOKENS;
+    const defaultMaxTokens = DEFAULT_MAX_TOKENS_BY_PROVIDER[selectedProvider] ??
+        DEFAULT_MAX_OUTPUT_TOKENS;
     const effectiveReasoningTokens = reasoningTokens ?? defaultReasoningTokens;
     const reasoningTokenValue = effectiveReasoningTokens !== undefined && effectiveReasoningTokens !== null
         ? String(effectiveReasoningTokens)
         : "";
     const maxTokensValue = maxOutputTokens !== defaultMaxTokens ? String(maxOutputTokens) : "";
-    const advancedOpen = (providerSupportsReasoningMode && reasoningMode !== "none")
-        || (providerSupportsReasoningTokens && reasoningTokens !== undefined && reasoningTokens !== defaultReasoningTokens)
-        || maxOutputTokens !== defaultMaxTokens;
-    const reasoningTokensDisabled = !providerSupportsReasoningTokens
-        || (providerSupportsReasoningMode && reasoningMode === "none");
+    const advancedOpen = (providerSupportsReasoningMode && reasoningMode !== "none") ||
+        (providerSupportsReasoningTokens &&
+            reasoningTokens !== undefined &&
+            reasoningTokens !== defaultReasoningTokens) ||
+        maxOutputTokens !== defaultMaxTokens;
+    const reasoningTokensDisabled = !providerSupportsReasoningTokens ||
+        (providerSupportsReasoningMode && reasoningMode === "none");
     const reasoningInputMin = String(REASONING_TOKEN_MIN_BY_PROVIDER[selectedProvider] ?? 0);
-    const selectedStatus = providerKeyStatuses[selectedProvider] ?? { hasKey: false, verified: false };
+    const selectedStatus = providerKeyStatuses[selectedProvider] ?? {
+        hasKey: false,
+        verified: false,
+    };
     const keyOnFile = Boolean(selectedStatus.hasKey);
     const keyVerified = Boolean(selectedStatus.verified);
     const copyText = keyVerified
         ? `Pick your creative partner. We already have a verified ${providerLabel} key on file—leave the field blank to keep it, or paste a new one to replace it.`
         : keyOnFile
             ? `Pick your creative partner. We detected a ${providerLabel} key from your environment—continue to verify it or paste a different key.`
-            : `Pick your creative partner and hand us a fresh API key—we will secure it locally and wire ${providerName} into the experience.`;
+            : `Pick your creative partner and hand us a fresh API key—we will secure it in your OS keychain and wire ${providerName} into the experience.`;
     const keyStatusMessage = keyVerified
-        ? `${providerLabel} key verified on this machine. Leave the field blank to keep using it, or paste a replacement.`
+        ? `${providerLabel} key verified and stored in your OS keychain. Leave the field blank to keep using it, or paste a replacement.`
         : keyOnFile
-            ? `${providerLabel} key detected from environment variables. Continue to verify it or paste a different key here.`
-            : "Paste your API key. We verify it instantly and keep it in-memory only for this session.";
-    const keyStatusVariant = keyVerified ? "verified" : keyOnFile ? "detected" : "missing";
+            ? `${providerLabel} key detected from environment variables (not stored). Continue to verify it or paste a different key to store in your OS keychain.`
+            : "Paste your API key. Keys entered here are securely stored in your OS keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service). Keys from environment variables or CLI options are never stored.";
+    const keyStatusVariant = keyVerified
+        ? "verified"
+        : keyOnFile
+            ? "detected"
+            : "missing";
     const apiInputRequired = !keyOnFile;
     const statusPill = keyVerified
         ? `<span class="pill" aria-live="polite">Key verified · ${escapeHtml(providerLabel)}</span>`
@@ -519,7 +544,9 @@ function renderProviderStep(options) {
       <input type="hidden" name="provider" value="${escapeHtml(selectedProvider)}" />`;
     const apiPlaceholder = PROVIDER_PLACEHOLDERS[selectedProvider] ?? "sk-...";
     const defaultModel = DEFAULT_MODEL_BY_PROVIDER[selectedProvider] ?? "";
-    let initialModel = selectedModel && selectedModel.trim().length > 0 ? selectedModel.trim() : "";
+    let initialModel = selectedModel && selectedModel.trim().length > 0
+        ? selectedModel.trim()
+        : "";
     if (!initialModel) {
         initialModel = defaultModel;
     }
@@ -529,10 +556,12 @@ function renderProviderStep(options) {
     const selectValue = includesInitial ? initialModel : "__custom";
     const customValue = includesInitial ? "" : initialModel;
     const modelOptionsId = "model-options";
-    const modelOptions = suggestions.map((option) => {
+    const modelOptions = suggestions
+        .map((option) => {
         const selectedAttr = option.value === selectValue ? " selected" : "";
         return `<option value="${escapeHtml(option.value)}"${selectedAttr}>${escapeHtml(option.label)}</option>`;
-    }).join("\n");
+    })
+        .join("\n");
     return `<section class="card">
     <div>${statusPill}</div>
     <p data-provider-copy>${escapeHtml(copyText)}</p>
@@ -701,12 +730,12 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
       const copyTemplates = {
         verified: "Pick your creative partner. We already have a verified {provider} key on file—leave the field blank to keep it, or paste a new one to replace it.",
         detected: "Pick your creative partner. We detected a {provider} key from your environment—continue to verify it or paste a different key.",
-        missing: "Pick your creative partner and hand us a fresh API key—we will secure it locally and wire {provider} into the experience."
+        missing: "Pick your creative partner and hand us a fresh API key—we will secure it in your OS keychain and wire {provider} into the experience."
       };
       const keyStatusTemplates = {
-        verified: "{provider} key verified on this machine. Leave the field blank to keep using it, or paste a replacement.",
-        detected: "{provider} key detected from environment variables. Continue to verify it or paste a different key here.",
-        missing: "Paste your API key. We verify it instantly and keep it in-memory only for this session."
+        verified: "{provider} key verified and stored in your OS keychain. Leave the field blank to keep using it, or paste a replacement.",
+        detected: "{provider} key detected from environment variables (not stored). Continue to verify it or paste a different key to store in your OS keychain.",
+        missing: "Paste your API key. Keys entered here are securely stored in your OS keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service). Keys from environment variables or CLI options are never stored."
       };
       let activeProvider = ${initialProviderJson} || 'openai';
       let currentModel = ${initialModelJson} || '';

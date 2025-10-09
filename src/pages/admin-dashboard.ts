@@ -78,34 +78,58 @@ export function renderAdminDashboard(props: AdminPageProps): string {
     historyEndpoint,
   } = props;
 
-  const briefText = brief && brief.trim().length > 0 ? brief : "(brief not set yet)";
-  const providerKey = isModelProvider(provider.provider) ? provider.provider : "openai";
+  const briefText =
+    brief && brief.trim().length > 0 ? brief : "(brief not set yet)";
+  const providerKey = isModelProvider(provider.provider)
+    ? provider.provider
+    : "openai";
   const providerLabel = PROVIDER_LABELS[providerKey] ?? provider.provider;
   const providerPlaceholder = PROVIDER_PLACEHOLDERS[providerKey] ?? "sk-...";
   const defaultModel = DEFAULT_MODEL_BY_PROVIDER[providerKey] ?? provider.model;
-  const defaultMaxTokens = DEFAULT_MAX_TOKENS_BY_PROVIDER[providerKey] ?? provider.maxOutputTokens;
+  const defaultMaxTokens =
+    DEFAULT_MAX_TOKENS_BY_PROVIDER[providerKey] ?? provider.maxOutputTokens;
   const hasStoredKey = provider.apiKeyMask !== "not set";
-  const reasoningCapability = PROVIDER_REASONING_CAPABILITIES[providerKey] ?? { mode: false, tokens: false };
+  const reasoningCapability = PROVIDER_REASONING_CAPABILITIES[providerKey] ?? {
+    mode: false,
+    tokens: false,
+  };
   const defaultReasoningTokens = getDefaultReasoningTokens(providerKey);
-  const baselineReasoningTokens = typeof defaultReasoningTokens === "number" ? defaultReasoningTokens : undefined;
+  const baselineReasoningTokens =
+    typeof defaultReasoningTokens === "number"
+      ? defaultReasoningTokens
+      : undefined;
   const currentReasoningTokens = provider.reasoningTokens ?? null;
-  const maxTokensValue = provider.maxOutputTokens !== defaultMaxTokens ? String(provider.maxOutputTokens) : "";
+  const maxTokensValue =
+    provider.maxOutputTokens !== defaultMaxTokens
+      ? String(provider.maxOutputTokens)
+      : "";
   const reasoningTokenInputValue = (() => {
-    if (currentReasoningTokens === null || currentReasoningTokens === undefined) {
+    if (
+      currentReasoningTokens === null ||
+      currentReasoningTokens === undefined
+    ) {
       return "";
     }
-    if (baselineReasoningTokens !== undefined && currentReasoningTokens === baselineReasoningTokens) {
+    if (
+      baselineReasoningTokens !== undefined &&
+      currentReasoningTokens === baselineReasoningTokens
+    ) {
       return "";
     }
     return String(currentReasoningTokens);
   })();
-  const reasoningTokensDisabled = !reasoningCapability.tokens || (reasoningCapability.mode && provider.reasoningMode === "none");
+  const reasoningTokensDisabled =
+    !reasoningCapability.tokens ||
+    (reasoningCapability.mode && provider.reasoningMode === "none");
   const reasoningTokenMin = REASONING_TOKEN_MIN_BY_PROVIDER[providerKey] ?? 0;
   const reasoningTokensChanged = (() => {
     if (!reasoningCapability.tokens) {
       return false;
     }
-    if (currentReasoningTokens === null || currentReasoningTokens === undefined) {
+    if (
+      currentReasoningTokens === null ||
+      currentReasoningTokens === undefined
+    ) {
       return false;
     }
     if (baselineReasoningTokens === undefined) {
@@ -114,34 +138,62 @@ export function renderAdminDashboard(props: AdminPageProps): string {
     }
     return currentReasoningTokens !== baselineReasoningTokens;
   })();
-  const advancedOpen = provider.maxOutputTokens !== defaultMaxTokens
-    || (reasoningCapability.mode && provider.reasoningMode !== "none")
-    || reasoningTokensChanged;
-  const reasoningHelperText = REASONING_MODE_CHOICES.find((choice) => choice.value === provider.reasoningMode)?.description ?? "";
+  const advancedOpen =
+    provider.maxOutputTokens !== defaultMaxTokens ||
+    (reasoningCapability.mode && provider.reasoningMode !== "none") ||
+    reasoningTokensChanged;
+  const reasoningHelperText =
+    REASONING_MODE_CHOICES.find(
+      (choice) => choice.value === provider.reasoningMode
+    )?.description ?? "";
   const modelInputId = "admin-model";
   const apiInputId = "admin-api-key";
   const maxTokensId = "admin-max-output";
   const reasoningModeId = "admin-reasoning-mode";
   const reasoningTokensId = "admin-reasoning-tokens";
-  const providerLabelsPayload = JSON.stringify(PROVIDER_LABELS).replace(/</g, "\\u003C");
-  const providerPlaceholdersPayload = JSON.stringify(PROVIDER_PLACEHOLDERS).replace(/</g, "\\u003C");
-  const modelDefaultsPayload = JSON.stringify(DEFAULT_MODEL_BY_PROVIDER).replace(/</g, "\\u003C");
-  const maxTokenDefaultsPayload = JSON.stringify(DEFAULT_MAX_TOKENS_BY_PROVIDER).replace(/</g, "\\u003C");
-  const keyStatusPayload = JSON.stringify(props.providerKeyStatuses).replace(/</g, "\\u003C");
+  const providerLabelsPayload = JSON.stringify(PROVIDER_LABELS).replace(
+    /</g,
+    "\\u003C"
+  );
+  const providerPlaceholdersPayload = JSON.stringify(
+    PROVIDER_PLACEHOLDERS
+  ).replace(/</g, "\\u003C");
+  const modelDefaultsPayload = JSON.stringify(
+    DEFAULT_MODEL_BY_PROVIDER
+  ).replace(/</g, "\\u003C");
+  const maxTokenDefaultsPayload = JSON.stringify(
+    DEFAULT_MAX_TOKENS_BY_PROVIDER
+  ).replace(/</g, "\\u003C");
+  const keyStatusPayload = JSON.stringify(props.providerKeyStatuses).replace(
+    /</g,
+    "\\u003C"
+  );
   const reasoningDefaultsPayload = JSON.stringify(
     Object.fromEntries(
-      (Object.entries(DEFAULT_REASONING_TOKENS) as Array<[ModelProvider, number | undefined]>)
-        .map(([key, value]) => [key, value ?? null]),
-    ),
+      (
+        Object.entries(DEFAULT_REASONING_TOKENS) as Array<
+          [ModelProvider, number | undefined]
+        >
+      ).map(([key, value]) => [key, value ?? null])
+    )
   ).replace(/</g, "\\u003C");
-  const reasoningCapabilitiesPayload = JSON.stringify(PROVIDER_REASONING_CAPABILITIES).replace(/</g, "\\u003C");
-  const reasoningMinsPayload = JSON.stringify(REASONING_TOKEN_MIN_BY_PROVIDER).replace(/</g, "\\u003C");
+  const reasoningCapabilitiesPayload = JSON.stringify(
+    PROVIDER_REASONING_CAPABILITIES
+  ).replace(/</g, "\\u003C");
+  const reasoningMinsPayload = JSON.stringify(
+    REASONING_TOKEN_MIN_BY_PROVIDER
+  ).replace(/</g, "\\u003C");
   const reasoningDescriptionsPayload = JSON.stringify(
-    Object.fromEntries(REASONING_MODE_CHOICES.map((choice) => [choice.value, choice.description] as const)),
+    Object.fromEntries(
+      REASONING_MODE_CHOICES.map(
+        (choice) => [choice.value, choice.description] as const
+      )
+    )
   ).replace(/</g, "\\u003C");
-  const initialReasoningTokensLiteral = currentReasoningTokens !== null && currentReasoningTokens !== undefined
-    ? JSON.stringify(String(currentReasoningTokens)).replace(/</g, "\\u003C")
-    : "null";
+  const initialReasoningTokensLiteral =
+    currentReasoningTokens !== null && currentReasoningTokens !== undefined
+      ? JSON.stringify(String(currentReasoningTokens)).replace(/</g, "\\u003C")
+      : "null";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -785,9 +837,15 @@ export function renderAdminDashboard(props: AdminPageProps): string {
       <div class="status-bar">
         <div class="status-pill" data-status="historyTotal">History entries: ${totalHistoryCount}</div>
         <div class="status-pill" data-status="sessions">Active sessions tracked: ${sessionCount}</div>
-        <div class="status-pill" data-status="provider">Current provider: ${escapeHtml(provider.provider)} · ${escapeHtml(provider.model)}</div>
-        <div class="status-pill" data-status="historyLimit">History limit: ${escapeHtml(String(runtime.historyLimit))}</div>
-        <div class="status-pill" data-status="historyBytes">Byte budget: ${escapeHtml(String(runtime.historyMaxBytes))}</div>
+        <div class="status-pill" data-status="provider">Current provider: ${escapeHtml(
+          provider.provider
+        )} · ${escapeHtml(provider.model)}</div>
+        <div class="status-pill" data-status="historyLimit">History limit: ${escapeHtml(
+          String(runtime.historyLimit)
+        )}</div>
+        <div class="status-pill" data-status="historyBytes">Byte budget: ${escapeHtml(
+          String(runtime.historyMaxBytes)
+        )}</div>
       </div>
       ${renderStatus(statusMessage, errorMessage)}
     </header>
@@ -806,7 +864,9 @@ export function renderAdminDashboard(props: AdminPageProps): string {
           <div class="panel-body brief-panel">
             <div class="pill">Craft the brief</div>
             <p class="panel-note">Describe the product vision just like you did in setup—tone, audience, signature moments. Updates land instantly for the next render.</p>
-            <form method="post" action="${escapeHtml(`/serve-llm/update-brief`)}">
+            <form method="post" action="${escapeHtml(
+              `/serve-llm/update-brief`
+            )}">
               <label class="field-group">
                 <span class="field-label">What are we building?</span>
                 <textarea
@@ -830,11 +890,19 @@ export function renderAdminDashboard(props: AdminPageProps): string {
           action="${escapeHtml(`/serve-llm/update-provider`)}"
           data-provider-form
           data-initial-provider="${escapeHtml(providerKey)}"
-          data-initial-has-key="${props.providerKeyStatuses[providerKey as ModelProvider]?.hasKey ? "true" : "false"}"
+          data-initial-has-key="${
+            props.providerKeyStatuses[providerKey as ModelProvider]?.hasKey
+              ? "true"
+              : "false"
+          }"
         >
           <div class="provider-status">
-            <span class="pill pill-muted" data-provider-active>Active · ${escapeHtml(providerLabel)}</span>
-            <span class="pill pill-soft" data-provider-model>Model · ${escapeHtml(provider.model)}</span>
+            <span class="pill pill-muted" data-provider-active>Active · ${escapeHtml(
+              providerLabel
+            )}</span>
+            <span class="pill pill-soft" data-provider-model>Model · ${escapeHtml(
+              provider.model
+            )}</span>
           </div>
           <div class="provider-grid" role="radiogroup" aria-label="Model provider" data-provider-options>
             ${PROVIDER_CHOICES.map((choice) => {
@@ -897,19 +965,30 @@ export function renderAdminDashboard(props: AdminPageProps): string {
                   />
                   <p class="field-helper">Leave blank to stick with the provider default.</p>
                 </div>
-                <div class="field-group" data-reasoning-mode-wrapper ${reasoningCapability.mode ? "" : "hidden"}>
+                <div class="field-group" data-reasoning-mode-wrapper ${
+                  reasoningCapability.mode ? "" : "hidden"
+                }>
                   <label for="${reasoningModeId}">
                     <span>Reasoning mode</span>
                   </label>
                   <select id="${reasoningModeId}" name="reasoningMode" data-reasoning-mode>
                     ${REASONING_MODE_CHOICES.map((choice) => {
-                      const selectedAttr = choice.value === provider.reasoningMode ? " selected" : "";
-                      return `<option value="${escapeHtml(choice.value)}"${selectedAttr}>${escapeHtml(choice.label)}</option>`;
+                      const selectedAttr =
+                        choice.value === provider.reasoningMode
+                          ? " selected"
+                          : "";
+                      return `<option value="${escapeHtml(
+                        choice.value
+                      )}"${selectedAttr}>${escapeHtml(choice.label)}</option>`;
                     }).join("\n")}
                   </select>
-                  <p class="field-helper" data-reasoning-helper>${escapeHtml(reasoningHelperText)}</p>
+                  <p class="field-helper" data-reasoning-helper>${escapeHtml(
+                    reasoningHelperText
+                  )}</p>
                 </div>
-                <div class="field-group" data-reasoning-tokens-wrapper ${reasoningCapability.tokens ? "" : "hidden"} ${reasoningTokensDisabled ? 'data-disabled="true"' : ""}>
+                <div class="field-group" data-reasoning-tokens-wrapper ${
+                  reasoningCapability.tokens ? "" : "hidden"
+                } ${reasoningTokensDisabled ? 'data-disabled="true"' : ""}>
                   <label for="${reasoningTokensId}">
                     <span>Reasoning max tokens</span>
                   </label>
@@ -931,7 +1010,9 @@ export function renderAdminDashboard(props: AdminPageProps): string {
           </details>
           <label class="field-group api-key-field" for="${apiInputId}">
             <span class="field-label">
-              <span data-provider-label-text>${escapeHtml(providerLabel)} API key</span>
+              <span data-provider-label-text>${escapeHtml(
+                providerLabel
+              )} API key</span>
             </span>
             <div class="api-key-control">
               <input
@@ -945,13 +1026,18 @@ export function renderAdminDashboard(props: AdminPageProps): string {
                 ${hasStoredKey ? "disabled" : ""}
                 ${hasStoredKey ? "" : "required"}
               />
-              <button type="button" class="api-key-edit" data-api-key-toggle style="${hasStoredKey ? "" : "display:none;"}">Replace key</button>
+              <button type="button" class="api-key-edit" data-api-key-toggle style="${
+                hasStoredKey ? "" : "display:none;"
+              }">Replace key</button>
             </div>
             <p class="api-key-hint">
               Stored value: <strong>${escapeHtml(provider.apiKeyMask)}</strong>.
-              ${hasStoredKey
-                ? "Choose “Replace key” to provide a new secret. Leaving the field blank keeps the current key (including values sourced from environment variables)."
-                : "Provide the API key for this provider. Values from environment variables will appear here on restart."}
+              ${
+                hasStoredKey
+                  ? 'Choose "Replace key" to provide a new secret. Leaving the field blank keeps the current key (including values sourced from environment variables).'
+                  : "Provide the API key for this provider. Values from environment variables will appear here on restart."
+              }<br><br>
+              <strong>Secure Storage:</strong> API keys entered in the UI are stored securely in your OS keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service). Keys supplied via environment variables or CLI options are never stored—they remain in memory only for the current session.
             </p>
           </label>
           <button type="submit" class="action-button">Apply provider settings</button>
@@ -966,17 +1052,25 @@ export function renderAdminDashboard(props: AdminPageProps): string {
           <div class="inline-inputs">
             <label>
               Prompt history limit
-              <input type="number" min="1" name="historyLimit" value="${escapeHtml(String(runtime.historyLimit))}" />
+              <input type="number" min="1" name="historyLimit" value="${escapeHtml(
+                String(runtime.historyLimit)
+              )}" />
             </label>
             <label>
               Prompt history byte budget
-              <input type="number" min="1" name="historyMaxBytes" value="${escapeHtml(String(runtime.historyMaxBytes))}" />
+              <input type="number" min="1" name="historyMaxBytes" value="${escapeHtml(
+                String(runtime.historyMaxBytes)
+              )}" />
             </label>
             <label>
               Instruction panel
               <select name="instructionPanel">
-                <option value="on" ${runtime.includeInstructionPanel ? "selected" : ""}>On</option>
-                <option value="off" ${runtime.includeInstructionPanel ? "" : "selected"}>Off</option>
+                <option value="on" ${
+                  runtime.includeInstructionPanel ? "selected" : ""
+                }>On</option>
+                <option value="off" ${
+                  runtime.includeInstructionPanel ? "" : "selected"
+                }>Off</option>
               </select>
             </label>
           </div>
@@ -988,7 +1082,9 @@ export function renderAdminDashboard(props: AdminPageProps): string {
     <section class="tab-panel" id="tab-import" role="tabpanel" hidden>
       <div class="panel-body">
         <p class="panel-note">Restore a previous run. Existing history and settings will be replaced.</p>
-        <form method="post" action="${escapeHtml(`/serve-llm/history/import`)}" data-import-form>
+        <form method="post" action="${escapeHtml(
+          `/serve-llm/history/import`
+        )}" data-import-form>
           <label>
             History JSON
             <textarea name="historyJson" placeholder="Paste the JSON snapshot here"></textarea>
@@ -1009,8 +1105,12 @@ export function renderAdminDashboard(props: AdminPageProps): string {
       <div class="panel-body">
         <p class="panel-note">Download the current state for safekeeping or to resume elsewhere.</p>
         <div class="actions">
-          <a class="action-button" href="${escapeHtml(exportJsonUrl)}" download>Download JSON snapshot</a>
-          <a class="action-button" href="${escapeHtml(exportMarkdownUrl)}" download>Download prompt.md</a>
+          <a class="action-button" href="${escapeHtml(
+            exportJsonUrl
+          )}" download>Download JSON snapshot</a>
+          <a class="action-button" href="${escapeHtml(
+            exportMarkdownUrl
+          )}" download>Download prompt.md</a>
         </div>
       </div>
     </section>
@@ -1205,9 +1305,10 @@ export function renderAdminDashboard(props: AdminPageProps): string {
               toggleKeyButton.style.display = shouldLock ? "" : "none";
             }
             if (hint instanceof HTMLElement) {
-              hint.textContent = shouldLock
-                ? "Choose “Replace key” to provide a new secret. Leaving the field blank keeps the current key (including values sourced from environment variables)."
-                : "Enter the " + label + " API key. Leave blank to rely on environment configuration.";
+              const lockMessage = 'Choose "Replace key" to provide a new secret. Leaving the field blank keeps the current key (including values sourced from environment variables).';
+              const unlockMessage = "Enter the " + label + " API key. Leave blank to rely on environment configuration.";
+              const storageNote = " API keys entered in the UI are stored securely in your OS keychain. Keys from environment variables or CLI options are never stored.";
+              hint.textContent = shouldLock ? lockMessage + " " + storageNote : unlockMessage + " " + storageNote;
             }
           }
           if (maxTokensInput instanceof HTMLInputElement) {
@@ -1316,7 +1417,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
             forcedKeyEntry = true;
             toggleKeyButton.style.display = "none";
             if (hint instanceof HTMLElement) {
-              hint.textContent = "Enter the replacement API key. Leaving this blank will keep the existing one.";
+              hint.textContent = "Enter the replacement API key. Leaving this blank will keep the existing one. Keys entered in the UI are securely stored in your OS keychain.";
             }
           });
         }
@@ -1565,7 +1666,12 @@ function renderStatus(status?: string, error?: string): string {
 }
 
 function isModelProvider(value: string): value is ModelProvider {
-  return value === "openai" || value === "gemini" || value === "anthropic" || value === "grok";
+  return (
+    value === "openai" ||
+    value === "gemini" ||
+    value === "anthropic" ||
+    value === "grok"
+  );
 }
 
 export function renderHistory(history: AdminHistoryItem[]): string {
@@ -1585,39 +1691,81 @@ export function renderHistory(history: AdminHistoryItem[]): string {
       }
 
       const metaRows = [
-        `<div class="history-meta-row"><span>Query</span><strong>${escapeHtml(item.querySummary)}</strong></div>`,
-        `<div class="history-meta-row"><span>Body</span><strong>${escapeHtml(item.bodySummary)}</strong></div>`,
+        `<div class="history-meta-row"><span>Query</span><strong>${escapeHtml(
+          item.querySummary
+        )}</strong></div>`,
+        `<div class="history-meta-row"><span>Body</span><strong>${escapeHtml(
+          item.bodySummary
+        )}</strong></div>`,
       ];
       if (item.usageSummary) {
-        metaRows.push(`<div class="history-meta-row"><span>Usage</span><strong>${escapeHtml(item.usageSummary)}</strong></div>`);
+        metaRows.push(
+          `<div class="history-meta-row"><span>Usage</span><strong>${escapeHtml(
+            item.usageSummary
+          )}</strong></div>`
+        );
       }
 
       const blockKey = (suffix: string) => `${item.id}:${suffix}`;
-      const blocks: string[] = [`<div class="history-meta">${metaRows.join("\n")}</div>`];
+      const blocks: string[] = [
+        `<div class="history-meta">${metaRows.join("\n")}</div>`,
+      ];
 
       if (item.instructions) {
-        blocks.push(renderExpandable("Instructions", `<pre>${escapeHtml(item.instructions)}</pre>`, blockKey("instructions")));
+        blocks.push(
+          renderExpandable(
+            "Instructions",
+            `<pre>${escapeHtml(item.instructions)}</pre>`,
+            blockKey("instructions")
+          )
+        );
       }
       if (item.reasoningSummaries?.length) {
         const content = item.reasoningSummaries
           .map((value) => `<p>${escapeHtml(value)}</p>`)
           .join("\n");
-        blocks.push(renderExpandable("Reasoning summary", content, blockKey("reasoning-summary")));
+        blocks.push(
+          renderExpandable(
+            "Reasoning summary",
+            content,
+            blockKey("reasoning-summary")
+          )
+        );
       }
       if (item.reasoningDetails?.length) {
         const content = item.reasoningDetails
           .map((value) => `<p>${escapeHtml(value)}</p>`)
           .join("\n");
-        blocks.push(renderExpandable("Reasoning detail", content, blockKey("reasoning-detail")));
+        blocks.push(
+          renderExpandable(
+            "Reasoning detail",
+            content,
+            blockKey("reasoning-detail")
+          )
+        );
       }
-      blocks.push(renderExpandable("Rendered HTML", `<pre>${escapeHtml(item.html)}</pre>`, blockKey("rendered-html")));
       blocks.push(
-        `<div class="actions"><a class="action-button" href="${escapeHtml(item.viewUrl)}" target="_blank" rel="noopener">View HTML</a><a class="action-button" href="${escapeHtml(item.downloadUrl)}" download>Download HTML</a></div>`,
+        renderExpandable(
+          "Rendered HTML",
+          `<pre>${escapeHtml(item.html)}</pre>`,
+          blockKey("rendered-html")
+        )
+      );
+      blocks.push(
+        `<div class="actions"><a class="action-button" href="${escapeHtml(
+          item.viewUrl
+        )}" target="_blank" rel="noopener">View HTML</a><a class="action-button" href="${escapeHtml(
+          item.downloadUrl
+        )}" download>Download HTML</a></div>`
       );
 
-      return `<details class="history-item" data-history-id="${escapeHtml(item.id)}">
+      return `<details class="history-item" data-history-id="${escapeHtml(
+        item.id
+      )}">
   <summary class="history-title">
-    <span>#${idx.toString().padStart(2, "0")} · ${escapeHtml(item.method)} ${escapeHtml(item.path)}</span>
+    <span>#${idx.toString().padStart(2, "0")} · ${escapeHtml(
+        item.method
+      )} ${escapeHtml(item.path)}</span>
     <span class="chip-set">${chips.join("\n")}</span>
   </summary>
   <div class="history-content">
@@ -1630,7 +1778,13 @@ export function renderHistory(history: AdminHistoryItem[]): string {
   return `<div class="history-list">${items}</div>`;
 }
 
-function renderExpandable(title: string, innerHtml: string, blockId?: string): string {
+function renderExpandable(
+  title: string,
+  innerHtml: string,
+  blockId?: string
+): string {
   const idAttr = blockId ? ` data-block-id="${escapeHtml(blockId)}"` : "";
-  return `<details class="reason-block"${idAttr}><summary>${escapeHtml(title)}</summary>${innerHtml}</details>`;
+  return `<details class="reason-block"${idAttr}><summary>${escapeHtml(
+    title
+  )}</summary>${innerHtml}</details>`;
 }

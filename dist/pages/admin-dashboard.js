@@ -4,33 +4,46 @@ import { PROVIDER_CHOICES, PROVIDER_LABELS, PROVIDER_PLACEHOLDERS, DEFAULT_MODEL
 export function renderAdminDashboard(props) {
     const { brief, provider, runtime, history, totalHistoryCount, sessionCount, statusMessage, errorMessage, exportJsonUrl, exportMarkdownUrl, historyEndpoint, } = props;
     const briefText = brief && brief.trim().length > 0 ? brief : "(brief not set yet)";
-    const providerKey = isModelProvider(provider.provider) ? provider.provider : "openai";
+    const providerKey = isModelProvider(provider.provider)
+        ? provider.provider
+        : "openai";
     const providerLabel = PROVIDER_LABELS[providerKey] ?? provider.provider;
     const providerPlaceholder = PROVIDER_PLACEHOLDERS[providerKey] ?? "sk-...";
     const defaultModel = DEFAULT_MODEL_BY_PROVIDER[providerKey] ?? provider.model;
     const defaultMaxTokens = DEFAULT_MAX_TOKENS_BY_PROVIDER[providerKey] ?? provider.maxOutputTokens;
     const hasStoredKey = provider.apiKeyMask !== "not set";
-    const reasoningCapability = PROVIDER_REASONING_CAPABILITIES[providerKey] ?? { mode: false, tokens: false };
+    const reasoningCapability = PROVIDER_REASONING_CAPABILITIES[providerKey] ?? {
+        mode: false,
+        tokens: false,
+    };
     const defaultReasoningTokens = getDefaultReasoningTokens(providerKey);
-    const baselineReasoningTokens = typeof defaultReasoningTokens === "number" ? defaultReasoningTokens : undefined;
+    const baselineReasoningTokens = typeof defaultReasoningTokens === "number"
+        ? defaultReasoningTokens
+        : undefined;
     const currentReasoningTokens = provider.reasoningTokens ?? null;
-    const maxTokensValue = provider.maxOutputTokens !== defaultMaxTokens ? String(provider.maxOutputTokens) : "";
+    const maxTokensValue = provider.maxOutputTokens !== defaultMaxTokens
+        ? String(provider.maxOutputTokens)
+        : "";
     const reasoningTokenInputValue = (() => {
-        if (currentReasoningTokens === null || currentReasoningTokens === undefined) {
+        if (currentReasoningTokens === null ||
+            currentReasoningTokens === undefined) {
             return "";
         }
-        if (baselineReasoningTokens !== undefined && currentReasoningTokens === baselineReasoningTokens) {
+        if (baselineReasoningTokens !== undefined &&
+            currentReasoningTokens === baselineReasoningTokens) {
             return "";
         }
         return String(currentReasoningTokens);
     })();
-    const reasoningTokensDisabled = !reasoningCapability.tokens || (reasoningCapability.mode && provider.reasoningMode === "none");
+    const reasoningTokensDisabled = !reasoningCapability.tokens ||
+        (reasoningCapability.mode && provider.reasoningMode === "none");
     const reasoningTokenMin = REASONING_TOKEN_MIN_BY_PROVIDER[providerKey] ?? 0;
     const reasoningTokensChanged = (() => {
         if (!reasoningCapability.tokens) {
             return false;
         }
-        if (currentReasoningTokens === null || currentReasoningTokens === undefined) {
+        if (currentReasoningTokens === null ||
+            currentReasoningTokens === undefined) {
             return false;
         }
         if (baselineReasoningTokens === undefined) {
@@ -39,9 +52,9 @@ export function renderAdminDashboard(props) {
         }
         return currentReasoningTokens !== baselineReasoningTokens;
     })();
-    const advancedOpen = provider.maxOutputTokens !== defaultMaxTokens
-        || (reasoningCapability.mode && provider.reasoningMode !== "none")
-        || reasoningTokensChanged;
+    const advancedOpen = provider.maxOutputTokens !== defaultMaxTokens ||
+        (reasoningCapability.mode && provider.reasoningMode !== "none") ||
+        reasoningTokensChanged;
     const reasoningHelperText = REASONING_MODE_CHOICES.find((choice) => choice.value === provider.reasoningMode)?.description ?? "";
     const modelInputId = "admin-model";
     const apiInputId = "admin-api-key";
@@ -53,8 +66,7 @@ export function renderAdminDashboard(props) {
     const modelDefaultsPayload = JSON.stringify(DEFAULT_MODEL_BY_PROVIDER).replace(/</g, "\\u003C");
     const maxTokenDefaultsPayload = JSON.stringify(DEFAULT_MAX_TOKENS_BY_PROVIDER).replace(/</g, "\\u003C");
     const keyStatusPayload = JSON.stringify(props.providerKeyStatuses).replace(/</g, "\\u003C");
-    const reasoningDefaultsPayload = JSON.stringify(Object.fromEntries(Object.entries(DEFAULT_REASONING_TOKENS)
-        .map(([key, value]) => [key, value ?? null]))).replace(/</g, "\\u003C");
+    const reasoningDefaultsPayload = JSON.stringify(Object.fromEntries(Object.entries(DEFAULT_REASONING_TOKENS).map(([key, value]) => [key, value ?? null]))).replace(/</g, "\\u003C");
     const reasoningCapabilitiesPayload = JSON.stringify(PROVIDER_REASONING_CAPABILITIES).replace(/</g, "\\u003C");
     const reasoningMinsPayload = JSON.stringify(REASONING_TOKEN_MIN_BY_PROVIDER).replace(/</g, "\\u003C");
     const reasoningDescriptionsPayload = JSON.stringify(Object.fromEntries(REASONING_MODE_CHOICES.map((choice) => [choice.value, choice.description]))).replace(/</g, "\\u003C");
@@ -748,7 +760,9 @@ export function renderAdminDashboard(props) {
           action="${escapeHtml(`/serve-llm/update-provider`)}"
           data-provider-form
           data-initial-provider="${escapeHtml(providerKey)}"
-          data-initial-has-key="${props.providerKeyStatuses[providerKey]?.hasKey ? "true" : "false"}"
+          data-initial-has-key="${props.providerKeyStatuses[providerKey]?.hasKey
+        ? "true"
+        : "false"}"
         >
           <div class="provider-status">
             <span class="pill pill-muted" data-provider-active>Active · ${escapeHtml(providerLabel)}</span>
@@ -821,7 +835,9 @@ export function renderAdminDashboard(props) {
                   </label>
                   <select id="${reasoningModeId}" name="reasoningMode" data-reasoning-mode>
                     ${REASONING_MODE_CHOICES.map((choice) => {
-        const selectedAttr = choice.value === provider.reasoningMode ? " selected" : "";
+        const selectedAttr = choice.value === provider.reasoningMode
+            ? " selected"
+            : "";
         return `<option value="${escapeHtml(choice.value)}"${selectedAttr}>${escapeHtml(choice.label)}</option>`;
     }).join("\n")}
                   </select>
@@ -868,8 +884,9 @@ export function renderAdminDashboard(props) {
             <p class="api-key-hint">
               Stored value: <strong>${escapeHtml(provider.apiKeyMask)}</strong>.
               ${hasStoredKey
-        ? "Choose “Replace key” to provide a new secret. Leaving the field blank keeps the current key (including values sourced from environment variables)."
-        : "Provide the API key for this provider. Values from environment variables will appear here on restart."}
+        ? 'Choose "Replace key" to provide a new secret. Leaving the field blank keeps the current key (including values sourced from environment variables).'
+        : "Provide the API key for this provider. Values from environment variables will appear here on restart."}<br><br>
+              <strong>Secure Storage:</strong> API keys entered in the UI are stored securely in your OS keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service). Keys supplied via environment variables or CLI options are never stored—they remain in memory only for the current session.
             </p>
           </label>
           <button type="submit" class="action-button">Apply provider settings</button>
@@ -1123,9 +1140,10 @@ export function renderAdminDashboard(props) {
               toggleKeyButton.style.display = shouldLock ? "" : "none";
             }
             if (hint instanceof HTMLElement) {
-              hint.textContent = shouldLock
-                ? "Choose “Replace key” to provide a new secret. Leaving the field blank keeps the current key (including values sourced from environment variables)."
-                : "Enter the " + label + " API key. Leave blank to rely on environment configuration.";
+              const lockMessage = 'Choose "Replace key" to provide a new secret. Leaving the field blank keeps the current key (including values sourced from environment variables).';
+              const unlockMessage = "Enter the " + label + " API key. Leave blank to rely on environment configuration.";
+              const storageNote = " API keys entered in the UI are stored securely in your OS keychain. Keys from environment variables or CLI options are never stored.";
+              hint.textContent = shouldLock ? lockMessage + " " + storageNote : unlockMessage + " " + storageNote;
             }
           }
           if (maxTokensInput instanceof HTMLInputElement) {
@@ -1234,7 +1252,7 @@ export function renderAdminDashboard(props) {
             forcedKeyEntry = true;
             toggleKeyButton.style.display = "none";
             if (hint instanceof HTMLElement) {
-              hint.textContent = "Enter the replacement API key. Leaving this blank will keep the existing one.";
+              hint.textContent = "Enter the replacement API key. Leaving this blank will keep the existing one. Keys entered in the UI are securely stored in your OS keychain.";
             }
           });
         }
@@ -1481,7 +1499,10 @@ function renderStatus(status, error) {
     return "";
 }
 function isModelProvider(value) {
-    return value === "openai" || value === "gemini" || value === "anthropic" || value === "grok";
+    return (value === "openai" ||
+        value === "gemini" ||
+        value === "anthropic" ||
+        value === "grok");
 }
 export function renderHistory(history) {
     if (history.length === 0) {
@@ -1505,7 +1526,9 @@ export function renderHistory(history) {
             metaRows.push(`<div class="history-meta-row"><span>Usage</span><strong>${escapeHtml(item.usageSummary)}</strong></div>`);
         }
         const blockKey = (suffix) => `${item.id}:${suffix}`;
-        const blocks = [`<div class="history-meta">${metaRows.join("\n")}</div>`];
+        const blocks = [
+            `<div class="history-meta">${metaRows.join("\n")}</div>`,
+        ];
         if (item.instructions) {
             blocks.push(renderExpandable("Instructions", `<pre>${escapeHtml(item.instructions)}</pre>`, blockKey("instructions")));
         }

@@ -1,5 +1,8 @@
 import { escapeHtml } from "../utils/html.js";
-import { DEFAULT_REASONING_TOKENS, DEFAULT_MAX_OUTPUT_TOKENS } from "../constants.js";
+import {
+  DEFAULT_REASONING_TOKENS,
+  DEFAULT_MAX_OUTPUT_TOKENS,
+} from "../constants.js";
 import type { ModelProvider, ReasoningMode } from "../types.js";
 import {
   PROVIDER_CHOICES,
@@ -14,7 +17,10 @@ import {
 
 type ProviderKeyStatus = { hasKey: boolean; verified: boolean };
 
-const PROVIDER_MODEL_CHOICES: Record<ModelProvider, Array<{ value: string; label: string }>> = {
+const PROVIDER_MODEL_CHOICES: Record<
+  ModelProvider,
+  Array<{ value: string; label: string }>
+> = {
   openai: [
     { value: DEFAULT_MODEL_BY_PROVIDER.openai, label: "GPT-5 (default)" },
     { value: "gpt-5-2025-08-07", label: "GPT-5 · 2025-08-07" },
@@ -23,7 +29,10 @@ const PROVIDER_MODEL_CHOICES: Record<ModelProvider, Array<{ value: string; label
     { value: "gpt-5-nano", label: "GPT-5 Nano" },
     { value: "gpt-5-nano-2025-08-07", label: "GPT-5 Nano · 2025-08-07" },
     { value: "gpt-4.5-preview", label: "GPT-4.5 Preview" },
-    { value: "gpt-4.5-preview-2025-02-27", label: "GPT-4.5 Preview · 2025-02-27" },
+    {
+      value: "gpt-4.5-preview-2025-02-27",
+      label: "GPT-4.5 Preview · 2025-02-27",
+    },
     { value: "gpt-4o", label: "GPT-4o" },
     { value: "chatgpt-4o-latest", label: "ChatGPT-4o Latest" },
     { value: "gpt-4o-mini", label: "GPT-4o Mini" },
@@ -47,13 +56,19 @@ const PROVIDER_MODEL_CHOICES: Record<ModelProvider, Array<{ value: string; label
     { value: "o4-mini", label: "o4 Mini" },
   ],
   gemini: [
-    { value: DEFAULT_MODEL_BY_PROVIDER.gemini, label: "Gemini 2.5 Flash (default)" },
+    {
+      value: DEFAULT_MODEL_BY_PROVIDER.gemini,
+      label: "Gemini 2.5 Flash (default)",
+    },
     { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
     { value: "gemini-2.0-pro-exp", label: "Gemini 2.0 Pro" },
     { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
   ],
   anthropic: [
-    { value: DEFAULT_MODEL_BY_PROVIDER.anthropic, label: "Claude 4.5 Sonnet (default)" },
+    {
+      value: DEFAULT_MODEL_BY_PROVIDER.anthropic,
+      label: "Claude 4.5 Sonnet (default)",
+    },
     { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
     { value: "claude-3-7-sonnet-latest", label: "Claude 3.7 Sonnet" },
     { value: "claude-opus-4-1-20250805", label: "Claude Opus 4.1" },
@@ -62,7 +77,10 @@ const PROVIDER_MODEL_CHOICES: Record<ModelProvider, Array<{ value: string; label
     { value: "claude-3-haiku-20240307", label: "Claude 3 Haiku" },
   ],
   grok: [
-    { value: DEFAULT_MODEL_BY_PROVIDER.grok, label: "Grok 4 Fast Reasoning (default)" },
+    {
+      value: DEFAULT_MODEL_BY_PROVIDER.grok,
+      label: "Grok 4 Fast Reasoning (default)",
+    },
     { value: "grok-4-fast-non-reasoning", label: "Grok 4 Fast Non-Reasoning" },
     { value: "grok-4-0709", label: "Grok 4 0709" },
     { value: "grok-3", label: "Grok 3" },
@@ -118,29 +136,32 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
     briefValue,
   } = options;
 
-  const heading = step === "provider" ? "Welcome to serve-llm" : "Shape the experience";
-  const description = step === "provider"
-    ? "Serve-llm hosts a living web canvas that your chosen model reimagines on every request—pick a provider and supply a secure API key to begin."
-    : "Offer a crisp brief so the model understands the product it is bringing to life.";
+  const heading =
+    step === "provider" ? "Welcome to serve-llm" : "Shape the experience";
+  const description =
+    step === "provider"
+      ? "Serve-llm hosts a living web canvas that your chosen model reimagines on every request—pick a provider and supply a secure API key to begin."
+      : "Offer a crisp brief so the model understands the product it is bringing to life.";
   const stepIndicator = step === "provider" ? "Step 1 of 2" : "Step 2 of 2";
 
   const banner = buildBanner(statusMessage, errorMessage);
-  const body = step === "provider"
-    ? renderProviderStep({
-      providerLabel,
-      providerName,
-      verifyAction,
-      providerReady,
-      canSelectProvider,
-      selectedProvider,
-      selectedModel,
-      providerSelectionRequired,
-      providerKeyStatuses,
-      maxOutputTokens,
-      reasoningMode,
-      reasoningTokens,
-    })
-    : renderBriefStep({ briefAction, setupPath, adminPath, briefValue });
+  const body =
+    step === "provider"
+      ? renderProviderStep({
+          providerLabel,
+          providerName,
+          verifyAction,
+          providerReady,
+          canSelectProvider,
+          selectedProvider,
+          selectedModel,
+          providerSelectionRequired,
+          providerKeyStatuses,
+          maxOutputTokens,
+          reasoningMode,
+          reasoningTokens,
+        })
+      : renderBriefStep({ briefAction, setupPath, adminPath, briefValue });
   const script = renderProviderScript(
     canSelectProvider,
     selectedProvider,
@@ -148,7 +169,7 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
     reasoningMode,
     reasoningTokens,
     maxOutputTokens,
-    providerKeyStatuses,
+    providerKeyStatuses
   );
 
   return `<!DOCTYPE html>
@@ -523,10 +544,14 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
 
 function buildBanner(statusMessage?: string, errorMessage?: string): string {
   if (errorMessage) {
-    return `<div role="alert" class="banner error">${escapeHtml(errorMessage)}</div>`;
+    return `<div role="alert" class="banner error">${escapeHtml(
+      errorMessage
+    )}</div>`;
   }
   if (statusMessage) {
-    return `<div role="status" class="banner status">${escapeHtml(statusMessage)}</div>`;
+    return `<div role="status" class="banner status">${escapeHtml(
+      statusMessage
+    )}</div>`;
   }
   return "";
 }
@@ -561,44 +586,68 @@ function renderProviderStep(options: ProviderStepOptions): string {
     reasoningMode,
     reasoningTokens,
   } = options;
-  const capabilities = PROVIDER_REASONING_CAPABILITIES[selectedProvider] ?? { mode: false, tokens: false };
+  const capabilities = PROVIDER_REASONING_CAPABILITIES[selectedProvider] ?? {
+    mode: false,
+    tokens: false,
+  };
   const providerSupportsReasoningMode = capabilities.mode;
   const providerSupportsReasoningTokens = capabilities.tokens;
   const defaultReasoningTokens = DEFAULT_REASONING_TOKENS[selectedProvider];
-  const defaultMaxTokens = DEFAULT_MAX_TOKENS_BY_PROVIDER[selectedProvider] ?? DEFAULT_MAX_OUTPUT_TOKENS;
+  const defaultMaxTokens =
+    DEFAULT_MAX_TOKENS_BY_PROVIDER[selectedProvider] ??
+    DEFAULT_MAX_OUTPUT_TOKENS;
   const effectiveReasoningTokens = reasoningTokens ?? defaultReasoningTokens;
-  const reasoningTokenValue = effectiveReasoningTokens !== undefined && effectiveReasoningTokens !== null
-    ? String(effectiveReasoningTokens)
-    : "";
-  const maxTokensValue = maxOutputTokens !== defaultMaxTokens ? String(maxOutputTokens) : "";
-  const advancedOpen = (providerSupportsReasoningMode && reasoningMode !== "none")
-    || (providerSupportsReasoningTokens && reasoningTokens !== undefined && reasoningTokens !== defaultReasoningTokens)
-    || maxOutputTokens !== defaultMaxTokens;
-  const reasoningTokensDisabled = !providerSupportsReasoningTokens
-    || (providerSupportsReasoningMode && reasoningMode === "none");
-  const reasoningInputMin = String(REASONING_TOKEN_MIN_BY_PROVIDER[selectedProvider] ?? 0);
-  const selectedStatus = providerKeyStatuses[selectedProvider] ?? { hasKey: false, verified: false };
+  const reasoningTokenValue =
+    effectiveReasoningTokens !== undefined && effectiveReasoningTokens !== null
+      ? String(effectiveReasoningTokens)
+      : "";
+  const maxTokensValue =
+    maxOutputTokens !== defaultMaxTokens ? String(maxOutputTokens) : "";
+  const advancedOpen =
+    (providerSupportsReasoningMode && reasoningMode !== "none") ||
+    (providerSupportsReasoningTokens &&
+      reasoningTokens !== undefined &&
+      reasoningTokens !== defaultReasoningTokens) ||
+    maxOutputTokens !== defaultMaxTokens;
+  const reasoningTokensDisabled =
+    !providerSupportsReasoningTokens ||
+    (providerSupportsReasoningMode && reasoningMode === "none");
+  const reasoningInputMin = String(
+    REASONING_TOKEN_MIN_BY_PROVIDER[selectedProvider] ?? 0
+  );
+  const selectedStatus = providerKeyStatuses[selectedProvider] ?? {
+    hasKey: false,
+    verified: false,
+  };
   const keyOnFile = Boolean(selectedStatus.hasKey);
   const keyVerified = Boolean(selectedStatus.verified);
   const copyText = keyVerified
     ? `Pick your creative partner. We already have a verified ${providerLabel} key on file—leave the field blank to keep it, or paste a new one to replace it.`
     : keyOnFile
-      ? `Pick your creative partner. We detected a ${providerLabel} key from your environment—continue to verify it or paste a different key.`
-      : `Pick your creative partner and hand us a fresh API key—we will secure it locally and wire ${providerName} into the experience.`;
+    ? `Pick your creative partner. We detected a ${providerLabel} key from your environment—continue to verify it or paste a different key.`
+    : `Pick your creative partner and hand us a fresh API key—we will secure it in your OS keychain and wire ${providerName} into the experience.`;
   const keyStatusMessage = keyVerified
-    ? `${providerLabel} key verified on this machine. Leave the field blank to keep using it, or paste a replacement.`
+    ? `${providerLabel} key verified and stored in your OS keychain. Leave the field blank to keep using it, or paste a replacement.`
     : keyOnFile
-      ? `${providerLabel} key detected from environment variables. Continue to verify it or paste a different key here.`
-      : "Paste your API key. We verify it instantly and keep it in-memory only for this session.";
-  const keyStatusVariant = keyVerified ? "verified" : keyOnFile ? "detected" : "missing";
+    ? `${providerLabel} key detected from environment variables (not stored). Continue to verify it or paste a different key to store in your OS keychain.`
+    : "Paste your API key. Keys entered here are securely stored in your OS keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service). Keys from environment variables or CLI options are never stored.";
+  const keyStatusVariant = keyVerified
+    ? "verified"
+    : keyOnFile
+    ? "detected"
+    : "missing";
   const apiInputRequired = !keyOnFile;
   const statusPill = keyVerified
-    ? `<span class="pill" aria-live="polite">Key verified · ${escapeHtml(providerLabel)}</span>`
+    ? `<span class="pill" aria-live="polite">Key verified · ${escapeHtml(
+        providerLabel
+      )}</span>`
     : keyOnFile
-      ? `<span class="pill" aria-live="polite">Key detected · ${escapeHtml(providerLabel)}</span>`
-      : canSelectProvider
-        ? `<span class="pill">Choose your model partner</span>`
-        : `<span class="pill">${escapeHtml(providerLabel)} required</span>`;
+    ? `<span class="pill" aria-live="polite">Key detected · ${escapeHtml(
+        providerLabel
+      )}</span>`
+    : canSelectProvider
+    ? `<span class="pill">Choose your model partner</span>`
+    : `<span class="pill">${escapeHtml(providerLabel)} required</span>`;
 
   const providerSelection = canSelectProvider
     ? `<div class="provider-grid" role="radiogroup" aria-label="Model provider" data-provider-options>
@@ -606,7 +655,13 @@ function renderProviderStep(options: ProviderStepOptions): string {
           const active = choice.value === selectedProvider;
           const inputId = `provider-${choice.value}`;
           return `<label class="provider-option" data-active="${active}" for="${inputId}">
-              <input id="${inputId}" type="radio" name="provider" value="${escapeHtml(choice.value)}" ${active ? "checked" : ""} ${index === 0 ? "required" : ""} data-placeholder="${escapeHtml(choice.placeholder)}" data-provider-label="${escapeHtml(choice.title)}" />
+              <input id="${inputId}" type="radio" name="provider" value="${escapeHtml(
+            choice.value
+          )}" ${active ? "checked" : ""} ${
+            index === 0 ? "required" : ""
+          } data-placeholder="${escapeHtml(
+            choice.placeholder
+          )}" data-provider-label="${escapeHtml(choice.title)}" />
               <div class="provider-meta">
                 <strong>${escapeHtml(choice.title)}</strong>
                 <span>${escapeHtml(choice.subtitle)}</span>
@@ -615,12 +670,19 @@ function renderProviderStep(options: ProviderStepOptions): string {
             </label>`;
         }).join("\n")}
       </div>`
-    : `<p class="provider-fixed">Provider locked to ${escapeHtml(providerName)} via CLI/env flags.</p>
-      <input type="hidden" name="provider" value="${escapeHtml(selectedProvider)}" />`;
+    : `<p class="provider-fixed">Provider locked to ${escapeHtml(
+        providerName
+      )} via CLI/env flags.</p>
+      <input type="hidden" name="provider" value="${escapeHtml(
+        selectedProvider
+      )}" />`;
 
   const apiPlaceholder = PROVIDER_PLACEHOLDERS[selectedProvider] ?? "sk-...";
   const defaultModel = DEFAULT_MODEL_BY_PROVIDER[selectedProvider] ?? "";
-  let initialModel = selectedModel && selectedModel.trim().length > 0 ? selectedModel.trim() : "";
+  let initialModel =
+    selectedModel && selectedModel.trim().length > 0
+      ? selectedModel.trim()
+      : "";
   if (!initialModel) {
     initialModel = defaultModel;
   }
@@ -630,26 +692,40 @@ function renderProviderStep(options: ProviderStepOptions): string {
   const selectValue = includesInitial ? initialModel : "__custom";
   const customValue = includesInitial ? "" : initialModel;
   const modelOptionsId = "model-options";
-  const modelOptions = suggestions.map((option) => {
-    const selectedAttr = option.value === selectValue ? " selected" : "";
-    return `<option value="${escapeHtml(option.value)}"${selectedAttr}>${escapeHtml(option.label)}</option>`;
-  }).join("\n");
+  const modelOptions = suggestions
+    .map((option) => {
+      const selectedAttr = option.value === selectValue ? " selected" : "";
+      return `<option value="${escapeHtml(
+        option.value
+      )}"${selectedAttr}>${escapeHtml(option.label)}</option>`;
+    })
+    .join("\n");
 
   return `<section class="card">
     <div>${statusPill}</div>
     <p data-provider-copy>${escapeHtml(copyText)}</p>
-    <form method="post" action="${escapeHtml(verifyAction)}" autocomplete="off" data-key-state="${escapeHtml(keyStatusVariant)}" data-selection-required="${providerSelectionRequired ? "true" : "false"}">
+    <form method="post" action="${escapeHtml(
+      verifyAction
+    )}" autocomplete="off" data-key-state="${escapeHtml(
+    keyStatusVariant
+  )}" data-selection-required="${providerSelectionRequired ? "true" : "false"}">
       ${providerSelection}
-      <input type="hidden" name="model" value="${escapeHtml(initialModel)}" data-model-value />
+      <input type="hidden" name="model" value="${escapeHtml(
+        initialModel
+      )}" data-model-value />
       <label for="${modelOptionsId}">
         <span data-model-label>Model · ${escapeHtml(providerLabel)}</span>
       </label>
       <select id="${modelOptionsId}" data-model-select>
         ${modelOptions}
-        <option value="__custom" ${selectValue === "__custom" ? "selected" : ""}>Custom…</option>
+        <option value="__custom" ${
+          selectValue === "__custom" ? "selected" : ""
+        }>Custom…</option>
       </select>
       <p class="model-note">These options are curated defaults. Choose “Custom…” to supply an exact identifier.</p>
-      <div class="model-custom" data-model-custom ${selectValue === "__custom" ? "" : "hidden"}>
+      <div class="model-custom" data-model-custom ${
+        selectValue === "__custom" ? "" : "hidden"
+      }>
         <label for="model-custom-input"><span>Custom model identifier</span></label>
         <input
           id="model-custom-input"
@@ -664,7 +740,9 @@ function renderProviderStep(options: ProviderStepOptions): string {
         <p class="model-hint">Need a specific tier or preview build? Paste the full model identifier here.</p>
       </div>
       <label for="apiKey">
-        <span data-provider-label-text>${escapeHtml(providerLabel)} API key</span>
+        <span data-provider-label-text>${escapeHtml(
+          providerLabel
+        )} API key</span>
       </label>
       <input
         id="apiKey"
@@ -678,7 +756,9 @@ function renderProviderStep(options: ProviderStepOptions): string {
         ${apiInputRequired ? "required" : ""}
         data-key-input
       />
-      <p class="key-status" data-key-status data-key-variant="${escapeHtml(keyStatusVariant)}">${escapeHtml(keyStatusMessage)}</p>
+      <p class="key-status" data-key-status data-key-variant="${escapeHtml(
+        keyStatusVariant
+      )}">${escapeHtml(keyStatusMessage)}</p>
       <details class="advanced" data-advanced ${advancedOpen ? "open" : ""}>
         <summary>
           <span>Advanced controls</span>
@@ -703,21 +783,30 @@ function renderProviderStep(options: ProviderStepOptions): string {
               />
               <p class="field-helper">Cap each response size. Leave blank to stick with the provider default.</p>
             </div>
-            <div class="field-group" data-reasoning-mode-wrapper ${providerSupportsReasoningMode ? "" : "hidden"}>
+            <div class="field-group" data-reasoning-mode-wrapper ${
+              providerSupportsReasoningMode ? "" : "hidden"
+            }>
               <label for="reasoningMode">
                 <span>Reasoning mode</span>
               </label>
               <select id="reasoningMode" name="reasoningMode" data-reasoning-mode>
                 ${REASONING_MODE_CHOICES.map((choice) => {
-                  const selectedAttr = choice.value === reasoningMode ? " selected" : "";
-                  return `<option value="${escapeHtml(choice.value)}"${selectedAttr}>${escapeHtml(choice.label)}</option>`;
+                  const selectedAttr =
+                    choice.value === reasoningMode ? " selected" : "";
+                  return `<option value="${escapeHtml(
+                    choice.value
+                  )}"${selectedAttr}>${escapeHtml(choice.label)}</option>`;
                 }).join("\n")}
               </select>
               <p class="field-helper" data-reasoning-helper>${escapeHtml(
-                REASONING_MODE_CHOICES.find((choice) => choice.value === reasoningMode)?.description ?? "",
+                REASONING_MODE_CHOICES.find(
+                  (choice) => choice.value === reasoningMode
+                )?.description ?? ""
               )}</p>
             </div>
-            <div class="field-group" data-reasoning-tokens-wrapper ${providerSupportsReasoningTokens ? "" : "hidden"} ${reasoningTokensDisabled ? 'data-disabled="true"' : ""}>
+            <div class="field-group" data-reasoning-tokens-wrapper ${
+              providerSupportsReasoningTokens ? "" : "hidden"
+            } ${reasoningTokensDisabled ? 'data-disabled="true"' : ""}>
               <label for="reasoningTokens">
                 <span>Reasoning max tokens</span>
               </label>
@@ -751,7 +840,10 @@ interface BriefStepOptions {
   briefValue?: string;
 }
 
-function getModelSuggestions(provider: ModelProvider, selectedModel: string): Array<{ value: string; label: string }> {
+function getModelSuggestions(
+  provider: ModelProvider,
+  selectedModel: string
+): Array<{ value: string; label: string }> {
   const base = [...(PROVIDER_MODEL_CHOICES[provider] ?? [])];
   const trimmed = selectedModel.trim();
   if (trimmed.length > 0 && !base.some((option) => option.value === trimmed)) {
@@ -770,14 +862,20 @@ function renderBriefStep(options: BriefStepOptions): string {
       <label for="brief">
         <span>What are we building?</span>
       </label>
-      <textarea id="brief" name="brief" placeholder="Example: You are a ritual planning companion. Focus on warm light, generous whitespace, and a sense of calm. Surfaces should feel curated and tactile." required>${escapeHtml(value)}</textarea>
+      <textarea id="brief" name="brief" placeholder="Example: You are a ritual planning companion. Focus on warm light, generous whitespace, and a sense of calm. Surfaces should feel curated and tactile." required>${escapeHtml(
+        value
+      )}</textarea>
       <div class="actions">
-        <a class="secondary-link" href="${escapeHtml(`${setupPath}?step=provider`)}" rel="nofollow">Back</a>
+        <a class="secondary-link" href="${escapeHtml(
+          `${setupPath}?step=provider`
+        )}" rel="nofollow">Back</a>
         <button type="submit" class="primary">Open the studio</button>
       </div>
     </form>
     <p>After launch the admin dashboard will let you adjust the brief, swap providers, and review every generated page.</p>
-    <p><a href="${escapeHtml(adminPath)}">Preview the admin tools</a> (opens once setup completes).</p>
+    <p><a href="${escapeHtml(
+      adminPath
+    )}">Preview the admin tools</a> (opens once setup completes).</p>
   </section>`;
 }
 
@@ -788,20 +886,48 @@ function renderProviderScript(
   reasoningMode: ReasoningMode,
   reasoningTokens: number | undefined,
   maxOutputTokens: number,
-  providerKeyStatuses: Record<ModelProvider, ProviderKeyStatus>,
+  providerKeyStatuses: Record<ModelProvider, ProviderKeyStatus>
 ): string {
-  const modelMapJson = JSON.stringify(PROVIDER_MODEL_CHOICES).replace(/</g, "\\u003c");
-  const defaultModelJson = JSON.stringify(DEFAULT_MODEL_BY_PROVIDER).replace(/</g, "\\u003c");
-  const providerLabelJson = JSON.stringify(PROVIDER_LABELS).replace(/</g, "\\u003c");
-  const placeholderJson = JSON.stringify(PROVIDER_PLACEHOLDERS).replace(/</g, "\\u003c");
-  const maxTokensJson = JSON.stringify(DEFAULT_MAX_TOKENS_BY_PROVIDER).replace(/</g, "\\u003c");
+  const modelMapJson = JSON.stringify(PROVIDER_MODEL_CHOICES).replace(
+    /</g,
+    "\\u003c"
+  );
+  const defaultModelJson = JSON.stringify(DEFAULT_MODEL_BY_PROVIDER).replace(
+    /</g,
+    "\\u003c"
+  );
+  const providerLabelJson = JSON.stringify(PROVIDER_LABELS).replace(
+    /</g,
+    "\\u003c"
+  );
+  const placeholderJson = JSON.stringify(PROVIDER_PLACEHOLDERS).replace(
+    /</g,
+    "\\u003c"
+  );
+  const maxTokensJson = JSON.stringify(DEFAULT_MAX_TOKENS_BY_PROVIDER).replace(
+    /</g,
+    "\\u003c"
+  );
   const reasoningDescriptionsJson = JSON.stringify(
-    Object.fromEntries(REASONING_MODE_CHOICES.map((choice) => [choice.value, choice.description] as const)),
+    Object.fromEntries(
+      REASONING_MODE_CHOICES.map(
+        (choice) => [choice.value, choice.description] as const
+      )
+    )
   ).replace(/</g, "\\u003c");
-  const reasoningCapabilitiesJson = JSON.stringify(PROVIDER_REASONING_CAPABILITIES).replace(/</g, "\\u003c");
-  const reasoningDefaultsJson = JSON.stringify(DEFAULT_REASONING_TOKENS).replace(/</g, "\\u003c");
-  const reasoningMinJson = JSON.stringify(REASONING_TOKEN_MIN_BY_PROVIDER).replace(/</g, "\\u003c");
-  const providerStatusJson = JSON.stringify(providerKeyStatuses).replace(/</g, "\\u003c");
+  const reasoningCapabilitiesJson = JSON.stringify(
+    PROVIDER_REASONING_CAPABILITIES
+  ).replace(/</g, "\\u003c");
+  const reasoningDefaultsJson = JSON.stringify(
+    DEFAULT_REASONING_TOKENS
+  ).replace(/</g, "\\u003c");
+  const reasoningMinJson = JSON.stringify(
+    REASONING_TOKEN_MIN_BY_PROVIDER
+  ).replace(/</g, "\\u003c");
+  const providerStatusJson = JSON.stringify(providerKeyStatuses).replace(
+    /</g,
+    "\\u003c"
+  );
   const initialProviderJson = JSON.stringify(selectedProvider);
   const initialModelJson = JSON.stringify(selectedModel);
   const initialReasoningModeJson = JSON.stringify(reasoningMode);
@@ -825,12 +951,12 @@ function renderProviderScript(
       const copyTemplates = {
         verified: "Pick your creative partner. We already have a verified {provider} key on file—leave the field blank to keep it, or paste a new one to replace it.",
         detected: "Pick your creative partner. We detected a {provider} key from your environment—continue to verify it or paste a different key.",
-        missing: "Pick your creative partner and hand us a fresh API key—we will secure it locally and wire {provider} into the experience."
+        missing: "Pick your creative partner and hand us a fresh API key—we will secure it in your OS keychain and wire {provider} into the experience."
       };
       const keyStatusTemplates = {
-        verified: "{provider} key verified on this machine. Leave the field blank to keep using it, or paste a replacement.",
-        detected: "{provider} key detected from environment variables. Continue to verify it or paste a different key here.",
-        missing: "Paste your API key. We verify it instantly and keep it in-memory only for this session."
+        verified: "{provider} key verified and stored in your OS keychain. Leave the field blank to keep using it, or paste a replacement.",
+        detected: "{provider} key detected from environment variables (not stored). Continue to verify it or paste a different key to store in your OS keychain.",
+        missing: "Paste your API key. Keys entered here are securely stored in your OS keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service). Keys from environment variables or CLI options are never stored."
       };
       let activeProvider = ${initialProviderJson} || 'openai';
       let currentModel = ${initialModelJson} || '';

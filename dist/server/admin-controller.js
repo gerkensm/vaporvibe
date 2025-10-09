@@ -2,20 +2,26 @@ import { ADMIN_ROUTE_PREFIX } from "../constants.js";
 import { createLlmClient } from "../llm/factory.js";
 import { readBody } from "../utils/body.js";
 import { maskSensitive } from "../utils/sensitive.js";
-import { createHistorySnapshot, createPromptMarkdown } from "../utils/history-export.js";
-import { renderAdminDashboard, renderHistory } from "../pages/admin-dashboard.js";
+import { createHistorySnapshot, createPromptMarkdown, } from "../utils/history-export.js";
+import { renderAdminDashboard, renderHistory, } from "../pages/admin-dashboard.js";
+import { getCredentialStore } from "../utils/credential-store.js";
 const JSON_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.json`;
 const MARKDOWN_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history/prompt.md`;
 export class AdminController {
     state;
     sessionStore;
-    providerKeyMemory;
+    credentialStore = getCredentialStore();
     constructor(options) {
         this.state = options.state;
         this.sessionStore = options.sessionStore;
-        this.providerKeyMemory = new Map();
-        if (this.state.provider.apiKey) {
-            this.providerKeyMemory.set(this.state.provider.provider, this.state.provider.apiKey);
+        // Initialize credential store with current key if it came from UI
+        if (this.state.provider.apiKey &&
+            !this.isKeyFromEnvironment(this.state.provider.provider)) {
+            this.credentialStore
+                .saveApiKey(this.state.provider.provider, this.state.provider.apiKey)
+                .catch(() => {
+                // Ignore errors - will use memory fallback
+            });
         }
     }
     async handle(context, _requestStart, reqLogger) {
@@ -65,7 +71,8 @@ export class AdminController {
     async renderDashboard(context, reqLogger) {
         const { res, url } = context;
         const sortedHistory = this.getSortedHistoryEntries();
-        const sessionCount = new Set(sortedHistory.map((entry) => entry.sessionId)).size;
+        const sessionCount = new Set(sortedHistory.map((entry) => entry.sessionId))
+            .size;
         const historyItems = sortedHistory.map((entry) => this.toAdminHistoryItem(entry));
         const providerInfo = {
             provider: this.state.provider.provider,
@@ -82,7 +89,7 @@ export class AdminController {
         };
         const statusMessage = url.searchParams.get("status") ?? undefined;
         const errorMessage = url.searchParams.get("error") ?? undefined;
-        const providerKeyStatuses = this.computeProviderKeyStatuses();
+        const providerKeyStatuses = await this.computeProviderKeyStatuses();
         const html = renderAdminDashboard({
             brief: this.state.brief,
             provider: providerInfo,
@@ -102,8 +109,13 @@ export class AdminController {
         res.end(html);
         reqLogger.debug({ historyCount: sortedHistory.length }, "Served admin dashboard");
     }
-    computeProviderKeyStatuses() {
-        const providers = ["openai", "gemini", "anthropic", "grok"];
+    async computeProviderKeyStatuses() {
+        const providers = [
+            "openai",
+            "gemini",
+            "anthropic",
+            "grok",
+        ];
         const result = {
             openai: { hasKey: false, verified: false },
             gemini: { hasKey: false, verified: false },
@@ -111,11 +123,18 @@ export class AdminController {
             grok: { hasKey: false, verified: false },
         };
         for (const p of providers) {
-            const remembered = this.providerKeyMemory.get(p);
+            const storedKey = await this.credentialStore.getApiKey(p);
             const envKey = lookupEnvApiKey(p);
-            const hasKey = Boolean((remembered && remembered.trim().length > 0) || (envKey && envKey.trim().length > 0));
-            const verified = p === this.state.provider.provider && Boolean(this.state.providerReady && this.state.provider.apiKey && this.state.provider.apiKey.trim().length > 0);
-            result[p] = { hasKey, verified };
+            const hasKey = Boolean((storedKey && storedKey.trim().length > 0) ||
+                (envKey && envKey.trim().length > 0));
+            const verified = p === this.state.provider.provider &&
+                Boolean(this.state.providerReady &&
+                    this.state.provider.apiKey &&
+                    this.state.provider.apiKey.trim().length > 0);
+            result[p] = {
+                hasKey,
+                verified,
+            };
         }
         return result;
     }
@@ -150,7 +169,10 @@ export class AdminController {
     }
     async handleHistoryResource(context, reqLogger) {
         const { res, url, path } = context;
-        const segments = path.slice(ADMIN_ROUTE_PREFIX.length).split("/").filter(Boolean);
+        const segments = path
+            .slice(ADMIN_ROUTE_PREFIX.length)
+            .split("/")
+            .filter(Boolean);
         if (segments.length < 2) {
             this.respondNotFound(res);
             return;
@@ -187,19 +209,28 @@ export class AdminController {
         const newApiKey = typeof data.apiKey === "string" ? data.apiKey.trim() : "";
         const previousProvider = this.state.provider.provider;
         let apiKeyCandidate = newApiKey;
+        let keySourceIsUI = Boolean(newApiKey); // Track if this key came from UI input
         if (!apiKeyCandidate) {
-            if (provider === previousProvider && typeof this.state.provider.apiKey === "string" && this.state.provider.apiKey.length > 0) {
+            // Try current key if same provider
+            if (provider === previousProvider &&
+                typeof this.state.provider.apiKey === "string" &&
+                this.state.provider.apiKey.length > 0) {
                 apiKeyCandidate = this.state.provider.apiKey;
+                keySourceIsUI = !this.isKeyFromEnvironment(provider);
             }
             else {
-                const remembered = this.providerKeyMemory.get(provider);
-                if (remembered && remembered.trim().length > 0) {
-                    apiKeyCandidate = remembered;
+                // Try stored credential (from previous UI input)
+                const storedKey = await this.credentialStore.getApiKey(provider);
+                if (storedKey && storedKey.trim().length > 0) {
+                    apiKeyCandidate = storedKey;
+                    keySourceIsUI = true;
                 }
                 else {
+                    // Fall back to environment variable
                     const envKey = lookupEnvApiKey(provider);
                     if (envKey) {
                         apiKeyCandidate = envKey;
+                        keySourceIsUI = false;
                     }
                 }
             }
@@ -221,8 +252,15 @@ export class AdminController {
             this.state.llmClient = newClient;
             this.state.provider = { ...updatedSettings };
             this.state.providerReady = true;
-            if (updatedSettings.apiKey && updatedSettings.apiKey.trim().length > 0) {
-                this.providerKeyMemory.set(updatedSettings.provider, updatedSettings.apiKey);
+            // Store UI-entered credentials securely (not env/CLI keys)
+            if (keySourceIsUI &&
+                updatedSettings.apiKey &&
+                updatedSettings.apiKey.trim().length > 0) {
+                await this.credentialStore
+                    .saveApiKey(updatedSettings.provider, updatedSettings.apiKey)
+                    .catch(() => {
+                    // Ignore storage errors - key still works in memory
+                });
             }
             this.applyProviderEnv(updatedSettings);
             reqLogger.info({ provider }, "Updated LLM provider settings via admin console");
@@ -241,7 +279,9 @@ export class AdminController {
         try {
             const historyLimit = parsePositiveInt(data.historyLimit, this.state.runtime.historyLimit);
             const historyMaxBytes = parsePositiveInt(data.historyMaxBytes, this.state.runtime.historyMaxBytes);
-            const instructionPanelValue = typeof data.instructionPanel === "string" ? data.instructionPanel.toLowerCase() : "";
+            const instructionPanelValue = typeof data.instructionPanel === "string"
+                ? data.instructionPanel.toLowerCase()
+                : "";
             const includeInstructionPanel = instructionPanelValue === "on" || instructionPanelValue === "true";
             this.state.runtime.historyLimit = historyLimit;
             this.state.runtime.historyMaxBytes = historyMaxBytes;
@@ -265,7 +305,9 @@ export class AdminController {
     async handleHistoryImport(context, reqLogger) {
         const { req, res } = context;
         const body = await readBody(req);
-        const raw = typeof body.data.historyJson === "string" ? body.data.historyJson.trim() : "";
+        const raw = typeof body.data.historyJson === "string"
+            ? body.data.historyJson.trim()
+            : "";
         if (!raw) {
             this.redirectWithMessage(res, "History import failed: no JSON provided", true);
             return;
@@ -289,14 +331,17 @@ export class AdminController {
             }
             if (parsed.runtime && typeof parsed.runtime === "object") {
                 const runtimeData = parsed.runtime;
-                if (typeof runtimeData.historyLimit === "number" && runtimeData.historyLimit > 0) {
+                if (typeof runtimeData.historyLimit === "number" &&
+                    runtimeData.historyLimit > 0) {
                     this.state.runtime.historyLimit = runtimeData.historyLimit;
                 }
-                if (typeof runtimeData.historyMaxBytes === "number" && runtimeData.historyMaxBytes > 0) {
+                if (typeof runtimeData.historyMaxBytes === "number" &&
+                    runtimeData.historyMaxBytes > 0) {
                     this.state.runtime.historyMaxBytes = runtimeData.historyMaxBytes;
                 }
                 if (typeof runtimeData.includeInstructionPanel === "boolean") {
-                    this.state.runtime.includeInstructionPanel = runtimeData.includeInstructionPanel;
+                    this.state.runtime.includeInstructionPanel =
+                        runtimeData.includeInstructionPanel;
                 }
             }
             if (parsed.llm && typeof parsed.llm === "object") {
@@ -307,13 +352,16 @@ export class AdminController {
                 if (summary.model && typeof summary.model === "string") {
                     this.state.provider.model = summary.model;
                 }
-                if (typeof summary.maxOutputTokens === "number" && summary.maxOutputTokens > 0) {
+                if (typeof summary.maxOutputTokens === "number" &&
+                    summary.maxOutputTokens > 0) {
                     this.state.provider.maxOutputTokens = summary.maxOutputTokens;
                 }
-                if (summary.reasoningMode && typeof summary.reasoningMode === "string") {
+                if (summary.reasoningMode &&
+                    typeof summary.reasoningMode === "string") {
                     this.state.provider.reasoningMode = sanitizeReasoningMode(summary.reasoningMode);
                 }
-                if (typeof summary.reasoningTokens === "number" && summary.reasoningTokens > 0) {
+                if (typeof summary.reasoningTokens === "number" &&
+                    summary.reasoningTokens > 0) {
                     this.state.provider.reasoningTokens = summary.reasoningTokens;
                 }
             }
@@ -393,12 +441,20 @@ export class AdminController {
             process.env.XAI_API_KEY = settings.apiKey;
         }
     }
+    isKeyFromEnvironment(provider) {
+        const envKey = lookupEnvApiKey(provider);
+        return Boolean(envKey && envKey.trim().length > 0);
+    }
     toAdminHistoryItem(entry) {
         const querySummary = summarizeRecord(entry.request.query);
         const bodySummary = summarizeRecord(entry.request.body);
         const usageSummary = summarizeUsage(entry);
-        const reasoningSummaries = entry.reasoning?.summaries ? [...entry.reasoning.summaries] : undefined;
-        const reasoningDetails = entry.reasoning?.details ? [...entry.reasoning.details] : undefined;
+        const reasoningSummaries = entry.reasoning?.summaries
+            ? [...entry.reasoning.summaries]
+            : undefined;
+        const reasoningDetails = entry.reasoning?.details
+            ? [...entry.reasoning.details]
+            : undefined;
         return {
             id: entry.id,
             createdAt: entry.createdAt,
@@ -477,15 +533,17 @@ function lookupEnvApiKey(provider) {
         return process.env.ANTHROPIC_API_KEY?.trim() || undefined;
     }
     if (provider === "grok") {
-        return process.env.XAI_API_KEY?.trim()
-            || process.env.GROK_API_KEY?.trim()
-            || undefined;
+        return (process.env.XAI_API_KEY?.trim() ||
+            process.env.GROK_API_KEY?.trim() ||
+            undefined);
     }
     return undefined;
 }
 function sanitizeProvider(value) {
     const normalized = value.toLowerCase();
-    if (normalized === "gemini" || normalized === "anthropic" || normalized === "openai") {
+    if (normalized === "gemini" ||
+        normalized === "anthropic" ||
+        normalized === "openai") {
         return normalized;
     }
     if (normalized === "grok" || normalized === "xai" || normalized === "x.ai") {
@@ -495,7 +553,9 @@ function sanitizeProvider(value) {
 }
 function sanitizeReasoningMode(value) {
     const normalized = value.toLowerCase();
-    if (normalized === "low" || normalized === "medium" || normalized === "high") {
+    if (normalized === "low" ||
+        normalized === "medium" ||
+        normalized === "high") {
         return normalized;
     }
     return "none";

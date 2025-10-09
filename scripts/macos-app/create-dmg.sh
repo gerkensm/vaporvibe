@@ -15,8 +15,10 @@ if [[ ! -d "${APP_BUNDLE}" ]]; then
   echo "App bundle ${APP_BUNDLE} not found. Run scripts/macos-app/build-app-bundle.sh first." >&2
   exit 1
 fi
-
 mkdir -p "${OUTPUT_ROOT}"
+
+# Clean up any existing DMG and staging directory
+rm -f "${DMG_PATH}"
 rm -rf "${STAGING_DIR}"
 mkdir -p "${STAGING_DIR}"
 
@@ -24,12 +26,13 @@ cp -R "${APP_BUNDLE}" "${STAGING_DIR}/Serve LLM.app"
 ln -s /Applications "${STAGING_DIR}/Applications"
 
 if command -v create-dmg >/dev/null 2>&1; then
-  create-dmg --overwrite --volname "${VOL_NAME}" --window-pos 200 120 --window-size 540 400 \
+  # Remove DMG again before create-dmg (it sometimes creates temp files)
+  rm -f "${DMG_PATH}"
+  create-dmg --volname "${VOL_NAME}" --window-pos 200 120 --window-size 540 400 \
     --icon "Serve LLM.app" 140 200 --icon "Applications" 400 200 \
     "${DMG_PATH}" "${STAGING_DIR}"
 else
   echo "→ create-dmg not found; using hdiutil fallback"
-  rm -f "${DMG_PATH}"
   hdiutil create -volname "${VOL_NAME}" -srcfolder "${STAGING_DIR}" -ov -format UDZO "${DMG_PATH}" >/dev/null
 fi
 

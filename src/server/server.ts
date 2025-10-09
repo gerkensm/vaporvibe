@@ -19,7 +19,13 @@ import {
   DEFAULT_REASONING_TOKENS,
   LLM_RESULT_ROUTE_PREFIX,
 } from "../constants.js";
-import type { HistoryEntry, RuntimeConfig, ProviderSettings, ReasoningMode, ModelProvider } from "../types.js";
+import type {
+  HistoryEntry,
+  RuntimeConfig,
+  ProviderSettings,
+  ReasoningMode,
+  ModelProvider,
+} from "../types.js";
 import type { LlmClient } from "../llm/client.js";
 import { buildMessages } from "../llm/messages.js";
 import { parseCookies } from "../utils/cookies.js";
@@ -27,12 +33,17 @@ import { readBody } from "../utils/body.js";
 import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
 import { SessionStore } from "./session-store.js";
 import { renderSetupWizardPage } from "../pages/setup-wizard.js";
-import { renderLoadingShell, renderResultHydrationScript, renderLoaderErrorScript } from "../pages/loading-shell.js";
+import {
+  renderLoadingShell,
+  renderResultHydrationScript,
+  renderLoaderErrorScript,
+} from "../pages/loading-shell.js";
 import { getNavigationInterceptorScript } from "../utils/navigation-interceptor.js";
 import { logger } from "../logger.js";
 import { AdminController } from "./admin-controller.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
 import { createLlmClient } from "../llm/factory.js";
+import { getCredentialStore } from "../utils/credential-store.js";
 
 type RequestLogger = Logger;
 
@@ -75,7 +86,15 @@ interface PendingHtmlEntry {
 const PENDING_HTML_TTL_MS = 3 * 60 * 1000;
 
 export function createServer(options: ServerOptions): http.Server {
-  const { runtime, provider, providerLocked, providerSelectionRequired, providersWithKeys, llmClient, sessionStore } = options;
+  const {
+    runtime,
+    provider,
+    providerLocked,
+    providerSelectionRequired,
+    providersWithKeys,
+    llmClient,
+    sessionStore,
+  } = options;
   const runtimeState: RuntimeConfig = { ...runtime };
   const providerState: ProviderSettings = { ...provider };
   const state: MutableServerState = {
@@ -83,13 +102,18 @@ export function createServer(options: ServerOptions): http.Server {
     runtime: runtimeState,
     provider: providerState,
     llmClient,
-    providerReady: Boolean(llmClient && providerState.apiKey && providerState.apiKey.trim().length > 0),
+    providerReady: Boolean(
+      llmClient &&
+        providerState.apiKey &&
+        providerState.apiKey.trim().length > 0
+    ),
     providerLocked,
     providerSelectionRequired,
     providersWithKeys: new Set(providersWithKeys),
-    verifiedProviders: providerState.apiKey && providerState.apiKey.trim().length > 0
-      ? { [providerState.provider]: Boolean(llmClient) }
-      : {},
+    verifiedProviders:
+      providerState.apiKey && providerState.apiKey.trim().length > 0
+        ? { [providerState.provider]: Boolean(llmClient) }
+        : {},
     pendingHtml: new Map(),
   };
   const adminController = new AdminController({
@@ -100,9 +124,14 @@ export function createServer(options: ServerOptions): http.Server {
   return http.createServer(async (req, res) => {
     const requestStart = Date.now();
     const context = buildContext(req, res);
-    const reqLogger = logger.child({ method: context.method, path: context.path });
+    const reqLogger = logger.child({
+      method: context.method,
+      path: context.path,
+    });
     reqLogger.info(
-      `Incoming request ${context.method} ${context.path} from ${req.socket.remoteAddress ?? "unknown"}`,
+      `Incoming request ${context.method} ${context.path} from ${
+        req.socket.remoteAddress ?? "unknown"
+      }`
     );
 
     if (shouldEarly404(context)) {
@@ -119,24 +148,47 @@ export function createServer(options: ServerOptions): http.Server {
         res.statusCode = 200;
         res.setHeader("Content-Type", "application/javascript; charset=utf-8");
         res.end(getNavigationInterceptorScript());
-        reqLogger.info(`Served interceptor client in ${Date.now() - requestStart} ms`);
+        reqLogger.info(
+          `Served interceptor client in ${Date.now() - requestStart} ms`
+        );
         return;
       }
       if (handlePendingHtmlRequest(context, state, reqLogger)) {
-        reqLogger.info(`Pending render delivered with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
+        reqLogger.info(
+          `Pending render delivered with status ${res.statusCode} in ${
+            Date.now() - requestStart
+          } ms`
+        );
         return;
       }
 
-      if (!state.providerReady || state.providerSelectionRequired || !state.brief || isSetupRequest(context.path)) {
+      if (
+        !state.providerReady ||
+        state.providerSelectionRequired ||
+        !state.brief ||
+        isSetupRequest(context.path)
+      ) {
         await handleSetupFlow(context, state, reqLogger);
-        reqLogger.info(`Setup flow completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
+        reqLogger.info(
+          `Setup flow completed with status ${res.statusCode} in ${
+            Date.now() - requestStart
+          } ms`
+        );
         return;
       }
 
       if (context.path.startsWith(ADMIN_ROUTE_PREFIX)) {
-        const handled = await adminController.handle(context, requestStart, reqLogger);
+        const handled = await adminController.handle(
+          context,
+          requestStart,
+          reqLogger
+        );
         if (handled) {
-          reqLogger.info(`Admin route completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
+          reqLogger.info(
+            `Admin route completed with status ${res.statusCode} in ${
+              Date.now() - requestStart
+            } ms`
+          );
           return;
         }
       }
@@ -146,22 +198,39 @@ export function createServer(options: ServerOptions): http.Server {
         state,
         sessionStore,
         reqLogger,
-        requestStart,
+        requestStart
       );
-      reqLogger.info(`Completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
+      reqLogger.info(
+        `Completed with status ${res.statusCode} in ${
+          Date.now() - requestStart
+        } ms`
+      );
     } catch (error) {
-      const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      const message =
+        error instanceof Error
+          ? `${error.name}: ${error.message}`
+          : String(error);
       reqLogger.error(`Request handling failed: ${message}`);
       res.statusCode = 500;
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.end(renderErrorPage(error));
-      reqLogger.warn(`Completed with error status ${res.statusCode} in ${Date.now() - requestStart} ms`);
+      reqLogger.warn(
+        `Completed with error status ${res.statusCode} in ${
+          Date.now() - requestStart
+        } ms`
+      );
     }
   });
 }
 
-function buildContext(req: IncomingMessage, res: ServerResponse): RequestContext {
-  const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+function buildContext(
+  req: IncomingMessage,
+  res: ServerResponse
+): RequestContext {
+  const url = new URL(
+    req.url ?? "/",
+    `http://${req.headers.host ?? "localhost"}`
+  );
   const method = (req.method ?? "GET").toUpperCase();
   return {
     req,
@@ -202,7 +271,7 @@ function isSetupRequest(path: string): boolean {
 async function handleSetupFlow(
   context: RequestContext,
   state: MutableServerState,
-  reqLogger: RequestLogger,
+  reqLogger: RequestLogger
 ): Promise<void> {
   const { method, path, req, res, url } = context;
   let providerLabel = getProviderLabel(state.provider.provider);
@@ -214,8 +283,10 @@ async function handleSetupFlow(
 
   if (method === "POST" && path === SETUP_VERIFY_ROUTE) {
     const body = await readBody(req);
-    const apiKeyInput = typeof body.data.apiKey === "string" ? body.data.apiKey.trim() : "";
-    let submittedModel = typeof body.data.model === "string" ? body.data.model.trim() : "";
+    const apiKeyInput =
+      typeof body.data.apiKey === "string" ? body.data.apiKey.trim() : "";
+    let submittedModel =
+      typeof body.data.model === "string" ? body.data.model.trim() : "";
     if (canSelectProvider) {
       const submittedProvider = parseProviderValue(body.data.provider);
       if (!submittedProvider) {
@@ -244,7 +315,7 @@ async function handleSetupFlow(
         return;
       }
       if (submittedProvider !== state.provider.provider) {
-        updateProviderSelection(state, submittedProvider, reqLogger);
+        await updateProviderSelection(state, submittedProvider, reqLogger);
         providerLabel = getProviderLabel(state.provider.provider);
         providerName = providerLabel;
         selectedProvider = state.provider.provider;
@@ -258,9 +329,15 @@ async function handleSetupFlow(
 
     let submittedMaxTokens: number;
     try {
-      submittedMaxTokens = parsePositiveInt(body.data.maxOutputTokens, state.provider.maxOutputTokens);
+      submittedMaxTokens = parsePositiveInt(
+        body.data.maxOutputTokens,
+        state.provider.maxOutputTokens
+      );
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Max output tokens must be a positive integer.";
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Max output tokens must be a positive integer.";
       const html = renderSetupWizardPage({
         step: "provider",
         providerLabel,
@@ -287,18 +364,29 @@ async function handleSetupFlow(
     }
 
     const supportsMode = providerSupportsReasoningMode(state.provider.provider);
-    const supportsTokens = providerSupportsReasoningTokens(state.provider.provider);
+    const supportsTokens = providerSupportsReasoningTokens(
+      state.provider.provider
+    );
 
     let submittedReasoningMode: ReasoningMode = supportsMode
-      ? sanitizeReasoningModeValue(body.data.reasoningMode, state.provider.reasoningMode ?? "none")
+      ? sanitizeReasoningModeValue(
+          body.data.reasoningMode,
+          state.provider.reasoningMode ?? "none"
+        )
       : "none";
 
     let submittedReasoningTokens: number | undefined;
     if (supportsTokens) {
       try {
-        submittedReasoningTokens = parseReasoningTokensInput(body.data.reasoningTokens, state.provider.provider);
+        submittedReasoningTokens = parseReasoningTokensInput(
+          body.data.reasoningTokens,
+          state.provider.provider
+        );
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Reasoning tokens must be valid for the selected provider.";
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Reasoning tokens must be valid for the selected provider.";
         const html = renderSetupWizardPage({
           step: "provider",
           providerLabel,
@@ -325,10 +413,15 @@ async function handleSetupFlow(
       }
     }
 
-    let adjustedReasoningTokens = supportsTokens ? submittedReasoningTokens : undefined;
+    let adjustedReasoningTokens = supportsTokens
+      ? submittedReasoningTokens
+      : undefined;
     if (state.provider.provider === "anthropic") {
       if (typeof adjustedReasoningTokens === "number") {
-        adjustedReasoningTokens = Math.min(adjustedReasoningTokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS);
+        adjustedReasoningTokens = Math.min(
+          adjustedReasoningTokens,
+          DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS
+        );
       } else {
         adjustedReasoningTokens = DEFAULT_REASONING_TOKENS.anthropic;
       }
@@ -339,11 +432,24 @@ async function handleSetupFlow(
     }
 
     state.provider.maxOutputTokens = submittedMaxTokens;
-   state.provider.reasoningMode = submittedReasoningMode;
-   state.provider.reasoningTokens = adjustedReasoningTokens;
-   state.provider.model = submittedModel;
+    state.provider.reasoningMode = submittedReasoningMode;
+    state.provider.reasoningTokens = adjustedReasoningTokens;
+    state.provider.model = submittedModel;
+
+    // Try to get stored credential if no input provided
     const existingKey = state.provider.apiKey?.trim() ?? "";
-    const finalApiKey = apiKeyInput || existingKey;
+    let finalApiKey = apiKeyInput || existingKey;
+    const isUIEntry = Boolean(apiKeyInput); // Track if this came from UI input
+
+    // If no key yet, try to load from secure storage
+    if (!finalApiKey) {
+      const stored = await getCredentialStore().getApiKey(
+        state.provider.provider
+      );
+      if (stored) {
+        finalApiKey = stored;
+      }
+    }
     if (!finalApiKey) {
       const html = renderSetupWizardPage({
         step: "provider",
@@ -362,7 +468,8 @@ async function handleSetupFlow(
         maxOutputTokens: state.provider.maxOutputTokens,
         reasoningMode: state.provider.reasoningMode ?? "none",
         reasoningTokens: getEffectiveReasoningTokens(state.provider),
-        errorMessage: "Add an API key or leave the field blank to reuse the stored key.",
+        errorMessage:
+          "Add an API key or leave the field blank to reuse the stored key.",
       });
       res.statusCode = 400;
       res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -370,15 +477,25 @@ async function handleSetupFlow(
       return;
     }
 
-    const reusingStoredKey = !apiKeyInput && state.providerReady && existingKey === finalApiKey;
+    const reusingStoredKey =
+      !apiKeyInput && state.providerReady && existingKey === finalApiKey;
     let verificationOk = false;
     let verificationMessage: string | undefined;
     if (reusingStoredKey) {
       verificationOk = true;
-      reqLogger.debug({ provider: state.provider.provider }, "Reusing previously verified API key");
+      reqLogger.debug(
+        { provider: state.provider.provider },
+        "Reusing previously verified API key"
+      );
     } else {
-      reqLogger.debug({ provider: state.provider.provider }, "Setup wizard verifying API key");
-      const verification = await verifyProviderApiKey(state.provider.provider, finalApiKey);
+      reqLogger.debug(
+        { provider: state.provider.provider },
+        "Setup wizard verifying API key"
+      );
+      const verification = await verifyProviderApiKey(
+        state.provider.provider,
+        finalApiKey
+      );
       verificationOk = verification.ok;
       verificationMessage = verification.message;
     }
@@ -387,24 +504,54 @@ async function handleSetupFlow(
       try {
         state.provider.apiKey = finalApiKey;
         applyProviderEnv(state.provider);
-        if (!state.llmClient || !reusingStoredKey || state.llmClient.settings.provider !== state.provider.provider) {
+
+        // Store UI-entered credentials securely (not env/CLI keys)
+        if (
+          isUIEntry &&
+          finalApiKey &&
+          !getEnvApiKeyForProvider(state.provider.provider)
+        ) {
+          await getCredentialStore()
+            .saveApiKey(state.provider.provider, finalApiKey)
+            .catch(() => {
+              // Ignore storage errors - key still works in memory
+            });
+        }
+
+        if (
+          !state.llmClient ||
+          !reusingStoredKey ||
+          state.llmClient.settings.provider !== state.provider.provider
+        ) {
           state.llmClient = createLlmClient(state.provider);
         }
         state.providerReady = true;
         state.providerSelectionRequired = false;
         state.providersWithKeys.add(state.provider.provider);
         state.verifiedProviders[state.provider.provider] = true;
-        reqLogger.info({ provider: state.provider.provider }, reusingStoredKey ? "Using stored API key" : "API key verified via setup wizard");
+        reqLogger.info(
+          { provider: state.provider.provider },
+          reusingStoredKey
+            ? "Using stored API key"
+            : "API key verified via setup wizard"
+        );
         res.statusCode = 303;
-        const statusMessage = reusingStoredKey ? "Provider selected" : "API key verified";
+        const statusMessage = reusingStoredKey
+          ? "Provider selected"
+          : "API key verified";
         const redirectTarget = state.brief
           ? `${ADMIN_ROUTE_PREFIX}?status=Setup%20complete`
-          : `${SETUP_ROUTE}?step=brief&status=${encodeURIComponent(statusMessage)}`;
+          : `${SETUP_ROUTE}?step=brief&status=${encodeURIComponent(
+              statusMessage
+            )}`;
         res.setHeader("Location", redirectTarget);
         res.end();
         return;
       } catch (error) {
-        reqLogger.error({ err: error }, "Failed to instantiate LLM client after verification");
+        reqLogger.error(
+          { err: error },
+          "Failed to instantiate LLM client after verification"
+        );
         state.providerReady = false;
         state.llmClient = null;
         state.verifiedProviders[state.provider.provider] = false;
@@ -437,7 +584,7 @@ async function handleSetupFlow(
 
     reqLogger.warn(
       { provider: state.provider.provider },
-      `API key verification failed: ${verificationMessage ?? "unknown error"}`,
+      `API key verification failed: ${verificationMessage ?? "unknown error"}`
     );
     state.providerReady = false;
     state.llmClient = null;
@@ -460,7 +607,9 @@ async function handleSetupFlow(
       maxOutputTokens: state.provider.maxOutputTokens,
       reasoningMode: state.provider.reasoningMode ?? "none",
       reasoningTokens: getEffectiveReasoningTokens(state.provider),
-      errorMessage: verificationMessage ?? "We could not verify that key. Please try again.",
+      errorMessage:
+        verificationMessage ??
+        "We could not verify that key. Please try again.",
     });
     res.statusCode = 400;
     res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -470,7 +619,8 @@ async function handleSetupFlow(
 
   if (method === "POST" && path === BRIEF_FORM_ROUTE) {
     const body = await readBody(req);
-    const briefValue = typeof body.data.brief === "string" ? body.data.brief.trim() : "";
+    const briefValue =
+      typeof body.data.brief === "string" ? body.data.brief.trim() : "";
     reqLogger.debug(formatJsonForLog(body.data, "Brief submission"));
     if (!state.providerReady || state.providerSelectionRequired) {
       res.statusCode = 303;
@@ -502,7 +652,10 @@ async function handleSetupFlow(
       res.statusCode = 400;
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.end(html);
-      reqLogger.warn({ status: res.statusCode }, "Rejected brief submission due to empty brief");
+      reqLogger.warn(
+        { status: res.statusCode },
+        "Rejected brief submission due to empty brief"
+      );
       return;
     }
     state.brief = briefValue;
@@ -605,7 +758,12 @@ async function handleSetupFlow(
     return;
   }
 
-  if (state.providerReady && !state.providerSelectionRequired && state.brief && path.startsWith(SETUP_ROUTE)) {
+  if (
+    state.providerReady &&
+    !state.providerSelectionRequired &&
+    state.brief &&
+    path.startsWith(SETUP_ROUTE)
+  ) {
     res.statusCode = 303;
     res.setHeader("Location", ADMIN_ROUTE_PREFIX);
     res.end();
@@ -622,7 +780,13 @@ async function handleSetupFlow(
     step = requestedStep === "provider" ? "provider" : "brief";
   }
 
-  if (state.providerReady && !state.providerSelectionRequired && state.brief && !requestedStep && path === SETUP_ROUTE) {
+  if (
+    state.providerReady &&
+    !state.providerSelectionRequired &&
+    state.brief &&
+    !requestedStep &&
+    path === SETUP_ROUTE
+  ) {
     res.statusCode = 303;
     res.setHeader("Location", ADMIN_ROUTE_PREFIX);
     res.end();
@@ -668,7 +832,7 @@ async function handleLlmRequest(
   state: MutableServerState,
   sessionStore: SessionStore,
   reqLogger: RequestLogger,
-  requestStart: number,
+  requestStart: number
 ): Promise<void> {
   const { req, res, url, method, path } = context;
   const llmClient = state.llmClient;
@@ -696,22 +860,34 @@ async function handleLlmRequest(
 
   const fullHistory = sessionStore.getHistory(sid);
   const historyLimit = Math.max(1, state.runtime.historyLimit);
-  const limitedHistory = historyLimit >= fullHistory.length ? fullHistory : fullHistory.slice(-historyLimit);
+  const limitedHistory =
+    historyLimit >= fullHistory.length
+      ? fullHistory
+      : fullHistory.slice(-historyLimit);
   const limitOmitted = fullHistory.length - limitedHistory.length;
-  const selection = selectHistoryForPrompt(limitedHistory, state.runtime.historyMaxBytes);
+  const selection = selectHistoryForPrompt(
+    limitedHistory,
+    state.runtime.historyMaxBytes
+  );
   const historyForPrompt = selection.entries;
   const byteOmitted = limitedHistory.length - historyForPrompt.length;
-  const prevHtml = historyForPrompt.at(-1)?.response.html ?? limitedHistory.at(-1)?.response.html ?? sessionStore.getPrevHtml(sid);
+  const prevHtml =
+    historyForPrompt.at(-1)?.response.html ??
+    limitedHistory.at(-1)?.response.html ??
+    sessionStore.getPrevHtml(sid);
 
-  reqLogger.debug({
-    historyTotal: fullHistory.length,
-    historyLimit,
-    historyIncluded: historyForPrompt.length,
-    historyBytesUsed: selection.bytes,
-    historyLimitOmitted: limitOmitted,
-    historyByteOmitted: byteOmitted,
-    historyMaxBytes: state.runtime.historyMaxBytes,
-  }, "History context prepared");
+  reqLogger.debug(
+    {
+      historyTotal: fullHistory.length,
+      historyLimit,
+      historyIncluded: historyForPrompt.length,
+      historyBytesUsed: selection.bytes,
+      historyLimitOmitted: limitOmitted,
+      historyByteOmitted: byteOmitted,
+      historyMaxBytes: state.runtime.historyMaxBytes,
+    },
+    "History context prepared"
+  );
 
   const messages = buildMessages({
     brief: state.brief ?? "",
@@ -737,7 +913,8 @@ async function handleLlmRequest(
   const isInterceptorHeader = Array.isArray(interceptorHeader)
     ? interceptorHeader.includes("interceptor")
     : interceptorHeader === "interceptor";
-  const isInterceptorQuery = url.searchParams.get("__serve-llm") === "interceptor";
+  const isInterceptorQuery =
+    url.searchParams.get("__serve-llm") === "interceptor";
   const isInterceptorRequest = isInterceptorHeader || isInterceptorQuery;
   const shouldStreamBody = method !== "HEAD" && !isInterceptorRequest;
   res.statusCode = 200;
@@ -745,11 +922,13 @@ async function handleLlmRequest(
   if (shouldStreamBody) {
     const providerLabel = getProviderLabel(llmClient.settings.provider);
     const loadingMessage = `Asking ${providerLabel} (${llmClient.settings.model}) to refresh this page.`;
-    res.write(renderLoadingShell({
-      message: loadingMessage,
-      originalPath,
-      resultRoutePrefix: LLM_RESULT_ROUTE_PREFIX,
-    }));
+    res.write(
+      renderLoadingShell({
+        message: loadingMessage,
+        originalPath,
+        resultRoutePrefix: LLM_RESULT_ROUTE_PREFIX,
+      })
+    );
     if (typeof res.flushHeaders === "function") {
       res.flushHeaders();
     }
@@ -758,13 +937,18 @@ async function handleLlmRequest(
   try {
     const result = await llmClient.generateHtml(messages);
     const durationMs = Date.now() - requestStart;
-    reqLogger.debug(`LLM response preview [${llmClient.settings.provider}]:\n${truncate(result.html, 500)}`);
+    reqLogger.debug(
+      `LLM response preview [${llmClient.settings.provider}]:\n${truncate(
+        result.html,
+        500
+      )}`
+    );
     const rawHtml = ensureHtmlDocument(result.html, { method, path });
 
     // Inject navigation interceptor script before </body> to enable smooth client-side navigation
     const safeHtml = rawHtml.replace(
       /(<\/body\s*>)/i,
-      `<script id="serve-llm-interceptor-script" src="/__serve-llm/interceptor.js"></script>$1`,
+      `<script id="serve-llm-interceptor-script" src="/__serve-llm/interceptor.js"></script>$1`
     );
 
     sessionStore.setPrevHtml(sid, safeHtml);
@@ -820,7 +1004,10 @@ async function handleLlmRequest(
     }
     res.end();
   } catch (error) {
-    const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    const message =
+      error instanceof Error
+        ? `${error.name}: ${error.message}`
+        : String(error);
     reqLogger.error(`LLM generation failed: ${message}`);
     if (isInterceptorRequest && !res.headersSent) {
       res.statusCode = 500;
@@ -829,7 +1016,11 @@ async function handleLlmRequest(
       return;
     }
     if (shouldStreamBody) {
-      res.write(renderLoaderErrorScript("The model response took too long or failed. Please retry in a moment."));
+      res.write(
+        renderLoaderErrorScript(
+          "The model response took too long or failed. Please retry in a moment."
+        )
+      );
     } else if (!res.headersSent) {
       res.statusCode = 500;
     }
@@ -838,7 +1029,10 @@ async function handleLlmRequest(
 }
 
 function renderErrorPage(error: unknown): string {
-  const message = error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ""}` : String(error);
+  const message =
+    error instanceof Error
+      ? `${error.name}: ${error.message}\n${error.stack ?? ""}`
+      : String(error);
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -865,14 +1059,18 @@ function renderErrorPage(error: unknown): string {
 </html>`;
 }
 
-function extractInstructions(body: Record<string, unknown>): string | undefined {
+function extractInstructions(
+  body: Record<string, unknown>
+): string | undefined {
   const value = body?.[INSTRUCTIONS_FIELD];
   if (typeof value === "string") {
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : undefined;
   }
   if (Array.isArray(value)) {
-    const first = value.find((item) => typeof item === "string" && item.trim().length > 0);
+    const first = value.find(
+      (item) => typeof item === "string" && item.trim().length > 0
+    );
     return typeof first === "string" ? first.trim() : undefined;
   }
   return undefined;
@@ -900,27 +1098,33 @@ function applyProviderEnv(settings: ProviderSettings): void {
 
 function getEnvApiKeyForProvider(provider: ModelProvider): string | undefined {
   if (provider === "openai") {
-    return process.env.OPENAI_API_KEY
-      || process.env.OPENAI_APIKEY
-      || process.env.OPENAI_KEY
-      || undefined;
+    return (
+      process.env.OPENAI_API_KEY ||
+      process.env.OPENAI_APIKEY ||
+      process.env.OPENAI_KEY ||
+      undefined
+    );
   }
   if (provider === "gemini") {
-    return process.env.GEMINI_API_KEY
-      || process.env.GEMINI_KEY
-      || process.env.GOOGLE_API_KEY
-      || process.env.GOOGLE_GENAI_KEY
-      || undefined;
+    return (
+      process.env.GEMINI_API_KEY ||
+      process.env.GEMINI_KEY ||
+      process.env.GOOGLE_API_KEY ||
+      process.env.GOOGLE_GENAI_KEY ||
+      undefined
+    );
   }
   if (provider === "grok") {
-    return process.env.XAI_API_KEY
-      || process.env.GROK_API_KEY
-      || process.env.XAI_KEY
-      || undefined;
+    return (
+      process.env.XAI_API_KEY ||
+      process.env.GROK_API_KEY ||
+      process.env.XAI_KEY ||
+      undefined
+    );
   }
-  return process.env.ANTHROPIC_API_KEY
-    || process.env.ANTHROPIC_KEY
-    || undefined;
+  return (
+    process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_KEY || undefined
+  );
 }
 
 function getProviderLabel(provider: ProviderSettings["provider"]): string {
@@ -936,36 +1140,55 @@ function getProviderLabel(provider: ProviderSettings["provider"]): string {
   return "Anthropic";
 }
 
-function providerSupportsReasoningMode(provider: ProviderSettings["provider"]): boolean {
+function providerSupportsReasoningMode(
+  provider: ProviderSettings["provider"]
+): boolean {
   return provider === "openai" || provider === "grok";
 }
 
-function providerSupportsReasoningTokens(provider: ProviderSettings["provider"]): boolean {
+function providerSupportsReasoningTokens(
+  provider: ProviderSettings["provider"]
+): boolean {
   return provider === "gemini" || provider === "anthropic";
 }
 
-function updateProviderSelection(state: MutableServerState, provider: ProviderSettings["provider"], reqLogger: RequestLogger): void {
+async function updateProviderSelection(
+  state: MutableServerState,
+  provider: ProviderSettings["provider"],
+  reqLogger: RequestLogger
+): Promise<void> {
   if (state.provider.provider === provider) {
     return;
   }
   const previous = state.provider.provider;
-  state.verifiedProviders[previous] = state.providerReady && Boolean(state.provider.apiKey?.trim());
+  state.verifiedProviders[previous] =
+    state.providerReady && Boolean(state.provider.apiKey?.trim());
   let reasoningMode: ReasoningMode = "none";
   let reasoningTokens: number | undefined;
 
   if (provider === "openai") {
-    reasoningMode = state.provider.provider === "openai"
-      ? state.provider.reasoningMode ?? "low"
-      : "low";
+    reasoningMode =
+      state.provider.provider === "openai"
+        ? state.provider.reasoningMode ?? "low"
+        : "low";
   } else if (provider === "anthropic") {
     reasoningMode = "none";
-    if (state.provider.provider === "anthropic" && typeof state.provider.reasoningTokens === "number") {
-      reasoningTokens = Math.min(state.provider.reasoningTokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS);
+    if (
+      state.provider.provider === "anthropic" &&
+      typeof state.provider.reasoningTokens === "number"
+    ) {
+      reasoningTokens = Math.min(
+        state.provider.reasoningTokens,
+        DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS
+      );
     } else {
       reasoningTokens = DEFAULT_REASONING_TOKENS.anthropic;
     }
   } else if (provider === "gemini") {
-    if (state.provider.provider === "gemini" && typeof state.provider.reasoningTokens === "number") {
+    if (
+      state.provider.provider === "gemini" &&
+      typeof state.provider.reasoningTokens === "number"
+    ) {
       reasoningTokens = state.provider.reasoningTokens;
     } else {
       reasoningTokens = DEFAULT_REASONING_TOKENS.gemini;
@@ -975,17 +1198,32 @@ function updateProviderSelection(state: MutableServerState, provider: ProviderSe
   }
 
   const envKey = getEnvApiKeyForProvider(provider)?.trim() ?? "";
-  const verified = Boolean(state.verifiedProviders[provider]) && envKey.length > 0;
+
+  // Try to get stored credential if no env key
+  let providerKey = envKey;
+  if (!providerKey) {
+    try {
+      const stored = await getCredentialStore().getApiKey(provider);
+      if (stored) {
+        providerKey = stored;
+      }
+    } catch {
+      // Ignore credential retrieval errors
+    }
+  }
+
+  const verified =
+    Boolean(state.verifiedProviders[provider]) && providerKey.length > 0;
 
   state.provider = {
     provider,
-    apiKey: envKey,
+    apiKey: providerKey,
     model: getDefaultModelForProvider(provider),
     maxOutputTokens: getDefaultMaxTokensForProvider(provider),
     reasoningMode,
     reasoningTokens,
   };
-  if (envKey) {
+  if (providerKey) {
     state.providersWithKeys.add(provider);
   } else {
     state.providersWithKeys.delete(provider);
@@ -994,10 +1232,15 @@ function updateProviderSelection(state: MutableServerState, provider: ProviderSe
   state.verifiedProviders[provider] = verified;
   state.providerSelectionRequired = true;
   state.llmClient = null;
-  reqLogger.info({ from: previous, to: provider }, "Wizard switched provider selection");
+  reqLogger.info(
+    { from: previous, to: provider },
+    "Wizard switched provider selection"
+  );
 }
 
-function getDefaultModelForProvider(provider: ProviderSettings["provider"]): string {
+function getDefaultModelForProvider(
+  provider: ProviderSettings["provider"]
+): string {
   if (provider === "openai") {
     return DEFAULT_OPENAI_MODEL;
   }
@@ -1010,14 +1253,18 @@ function getDefaultModelForProvider(provider: ProviderSettings["provider"]): str
   return DEFAULT_ANTHROPIC_MODEL;
 }
 
-function getDefaultMaxTokensForProvider(provider: ProviderSettings["provider"]): number {
+function getDefaultMaxTokensForProvider(
+  provider: ProviderSettings["provider"]
+): number {
   if (provider === "anthropic") {
     return DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS;
   }
   return DEFAULT_MAX_OUTPUT_TOKENS;
 }
 
-function getEffectiveReasoningTokens(provider: ProviderSettings): number | undefined {
+function getEffectiveReasoningTokens(
+  provider: ProviderSettings
+): number | undefined {
   const tokens = provider.reasoningTokens;
   if (typeof tokens === "number") {
     return tokens;
@@ -1025,25 +1272,38 @@ function getEffectiveReasoningTokens(provider: ProviderSettings): number | undef
   return DEFAULT_REASONING_TOKENS[provider.provider];
 }
 
-function buildProviderKeyStatuses(state: MutableServerState): Record<ModelProvider, { hasKey: boolean; verified: boolean }> {
+function buildProviderKeyStatuses(
+  state: MutableServerState
+): Record<ModelProvider, { hasKey: boolean; verified: boolean }> {
   const providers: ModelProvider[] = ["openai", "gemini", "anthropic", "grok"];
-  return providers.reduce<Record<ModelProvider, { hasKey: boolean; verified: boolean }>>((acc, provider) => {
-    const isCurrent = state.provider.provider === provider;
-    const hasKeyInState = isCurrent ? Boolean(state.provider.apiKey?.trim()) : state.providersWithKeys.has(provider);
-    const hasKey = hasKeyInState;
-    const verifiedFlag = Boolean(state.verifiedProviders[provider]);
-    const verified = hasKey && (isCurrent ? state.providerReady && verifiedFlag : verifiedFlag);
-    acc[provider] = { hasKey, verified };
-    return acc;
-  }, {
-    openai: { hasKey: false, verified: false },
-    gemini: { hasKey: false, verified: false },
-    anthropic: { hasKey: false, verified: false },
-    grok: { hasKey: false, verified: false },
-  });
+  return providers.reduce<
+    Record<ModelProvider, { hasKey: boolean; verified: boolean }>
+  >(
+    (acc, provider) => {
+      const isCurrent = state.provider.provider === provider;
+      const hasKeyInState = isCurrent
+        ? Boolean(state.provider.apiKey?.trim())
+        : state.providersWithKeys.has(provider);
+      const hasKey = hasKeyInState;
+      const verifiedFlag = Boolean(state.verifiedProviders[provider]);
+      const verified =
+        hasKey &&
+        (isCurrent ? state.providerReady && verifiedFlag : verifiedFlag);
+      acc[provider] = { hasKey, verified };
+      return acc;
+    },
+    {
+      openai: { hasKey: false, verified: false },
+      gemini: { hasKey: false, verified: false },
+      anthropic: { hasKey: false, verified: false },
+      grok: { hasKey: false, verified: false },
+    }
+  );
 }
 
-function parseProviderValue(value: unknown): ProviderSettings["provider"] | undefined {
+function parseProviderValue(
+  value: unknown
+): ProviderSettings["provider"] | undefined {
   if (!value || typeof value !== "string") {
     return undefined;
   }
@@ -1051,17 +1311,22 @@ function parseProviderValue(value: unknown): ProviderSettings["provider"] | unde
   if (normalized === "openai") return "openai";
   if (normalized === "gemini") return "gemini";
   if (normalized === "anthropic") return "anthropic";
-  if (normalized === "grok" || normalized === "xai" || normalized === "x.ai") return "grok";
+  if (normalized === "grok" || normalized === "xai" || normalized === "x.ai")
+    return "grok";
   return undefined;
 }
 
 function sanitizeReasoningModeValue(
   value: unknown,
-  fallback: ReasoningMode,
+  fallback: ReasoningMode
 ): ReasoningMode {
   if (typeof value === "string") {
     const normalized = value.trim().toLowerCase();
-    if (normalized === "low" || normalized === "medium" || normalized === "high") {
+    if (
+      normalized === "low" ||
+      normalized === "medium" ||
+      normalized === "high"
+    ) {
       return normalized;
     }
     if (normalized === "none") {
@@ -1088,12 +1353,17 @@ function parseOptionalPositiveInt(value: unknown): number | undefined {
   }
   const parsed = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(parsed) || parsed < 0) {
-    throw new Error(`Expected a non-negative integer, received: ${String(value)}`);
+    throw new Error(
+      `Expected a non-negative integer, received: ${String(value)}`
+    );
   }
   return Math.floor(parsed);
 }
 
-function parseReasoningTokensInput(value: unknown, provider: ProviderSettings["provider"]): number | undefined {
+function parseReasoningTokensInput(
+  value: unknown,
+  provider: ProviderSettings["provider"]
+): number | undefined {
   if (value === undefined || value === null || value === "") {
     return undefined;
   }
@@ -1104,7 +1374,9 @@ function parseReasoningTokensInput(value: unknown, provider: ProviderSettings["p
   const rounded = Math.floor(parsed);
   if (provider === "gemini") {
     if (rounded < -1) {
-      throw new Error("Reasoning tokens must be -1 (dynamic) or a non-negative integer.");
+      throw new Error(
+        "Reasoning tokens must be -1 (dynamic) or a non-negative integer."
+      );
     }
     return rounded;
   }
@@ -1121,7 +1393,9 @@ function truncate(value: string, maxLength: number): string {
   return `${value.slice(0, maxLength)}…`;
 }
 
-function formatMessagesForLog(messages: Array<{ role: string; content: string }>): string {
+function formatMessagesForLog(
+  messages: Array<{ role: string; content: string }>
+): string {
   return messages
     .map((message) => {
       const preview = truncate(message.content, 1_000);
@@ -1139,7 +1413,10 @@ function formatJsonForLog(payload: unknown, label?: string): string {
   }
 }
 
-function selectHistoryForPrompt(history: HistoryEntry[], maxBytes: number): { entries: HistoryEntry[]; bytes: number } {
+function selectHistoryForPrompt(
+  history: HistoryEntry[],
+  maxBytes: number
+): { entries: HistoryEntry[]; bytes: number } {
   if (history.length === 0) {
     return { entries: [], bytes: 0 };
   }
@@ -1188,7 +1465,7 @@ function estimateHistoryEntrySize(entry: HistoryEntry): number {
 function handlePendingHtmlRequest(
   context: RequestContext,
   state: MutableServerState,
-  reqLogger: RequestLogger,
+  reqLogger: RequestLogger
 ): boolean {
   const { path, method, res } = context;
   if (!path.startsWith(LLM_RESULT_ROUTE_PREFIX)) {

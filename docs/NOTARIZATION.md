@@ -90,10 +90,10 @@ export APPLE_KEYCHAIN_PROFILE="serve-llm-notary"
 
 ```bash
 # Step 1: Build and sign in one command
-npm run build:sea:notarize
+npm run build:sea:signed
 
 # Step 2: Submit for notarization
-npm run notarize:sea
+npm run build:sea:submit
 ```
 
 **Option 2: Separate Build and Signing**
@@ -103,8 +103,10 @@ npm run notarize:sea
 npm run build:sea
 
 # Step 2: Sign and notarize
-npm run notarize:sea
+npm run build:sea:submit
 ```
+
+````
 
 ### What Each Script Does
 
@@ -126,11 +128,11 @@ npm run notarize:sea
 
 ```bash
 # Run comprehensive verification
-npm run verify:notarization
+npm run build:sea:verify
 
 # Or test manually
 ./out/sea/serve-llm-macos "You are a helpful assistant"
-```
+````
 
 The verification script performs 5 checks:
 
@@ -213,7 +215,7 @@ Apple requires you to accept their developer agreements before notarizing:
 4. Click on **"Agreements, Tax, and Banking"** in the sidebar
 5. Review and accept any pending agreements
 6. Wait 5-10 minutes for the changes to propagate
-7. Try notarization again: `npm run notarize:sea`
+7. Try notarization again: `npm run build:sea:submit`
 
 **Note:** Even with an active Apple Developer Program membership, you must explicitly accept the latest agreements before notarization will work.
 
@@ -263,6 +265,85 @@ xcrun notarytool log <SUBMISSION_ID> --keychain-profile "serve-llm-notary"
 - Use keychain profiles instead of environment variables when possible
 - App-specific passwords can be revoked at https://appleid.apple.com
 - Developer ID certificates expire after 5 years
+
+## Native Modules and keytar
+
+### Background
+
+serve-llm uses [keytar](https://github.com/atom/node-keytar) for secure credential storage, which includes native `.node` bindings that need special handling during signing and notarization.
+
+### SEA (Single Executable) Builds
+
+The current SEA build process:
+
+1. **Bundles keytar's native bindings** in the blob via `node_modules/` traversal
+2. **Extracts them at runtime** to a temporary directory
+3. **Loads dynamically** - may fail if extraction or loading fails
+
+**Important entitlements needed:**
+
+- `com.apple.security.cs.disable-library-validation` - Allows loading extracted native modules
+- `com.apple.security.cs.allow-dyld-environment-variables` - Needed for Node.js runtime
+
+These are already configured in [`scripts/entitlements.plist`](../scripts/entitlements.plist).
+
+### App Bundle (.app) Builds
+
+For the macOS app bundle, native modules are handled differently:
+
+1. **Native bindings are extracted** during bundle creation
+2. **Each .node file is signed individually** before the app bundle signature
+3. **More reliable** than SEA extraction
+
+The signing script ([`scripts/macos-app/sign-app-bundle.sh`](../scripts/macos-app/sign-app-bundle.sh)) now includes:
+
+```bash
+# Sign any native modules (e.g., keytar .node files) if present
+find "$RESOURCES_DIR" -name "*.node" -type f -print0 | while IFS= read -r -d '' node_file; do
+  codesign --force --sign "$CERT_NAME" --options runtime --timestamp "$node_file"
+done
+```
+
+### Keychain Access Permissions
+
+For **Developer ID (non-sandboxed)** apps:
+
+- ✅ No special keychain entitlements needed
+- ✅ App can access user's keychains by default
+- ✅ Works with current entitlements configuration
+
+For **Mac App Store** apps (future consideration):
+
+- Would need sandboxing enabled
+- Would need explicit keychain-access-groups entitlement
+- Would need to specify app identifier prefix
+
+### Testing Native Module Loading
+
+After building and signing, verify keytar loads correctly:
+
+```bash
+# Build and sign
+npm run build:sea:signed
+
+# Test - should not show "Secure credential storage unavailable" warning
+./out/sea/serve-llm-macos "Test" --port 9999
+```
+
+If you see the warning, keytar failed to load. Check:
+
+1. Native bindings are in the SEA blob
+2. Extraction permissions are correct
+3. Signature is valid: `codesign -dv ./out/sea/serve-llm-macos`
+
+### Fallback Behavior
+
+If keytar fails to load (missing bindings, SEA extraction failure, etc.):
+
+- ⚠️ Warning logged: "Secure credential storage unavailable"
+- ✅ App continues to function normally
+- 💾 Credentials stored in memory only for the session
+- 🔄 Falls back to environment variables on restart
 
 ## References
 

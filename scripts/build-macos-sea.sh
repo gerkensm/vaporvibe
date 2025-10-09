@@ -4,6 +4,11 @@ set -euo pipefail
 
 if [[ "$(uname)" != "Darwin" ]]; then
   echo "Warning: this helper is tuned for macOS binaries (current: $(uname))." >&2
+# Note: keytar native bindings
+# - keytar's .node files are bundled in the SEA blob via node_modules traversal
+# - At runtime, they're extracted to a temp directory
+# - If extraction fails, the credential store falls back to memory-only storage
+# - For production macOS app bundles, native modules should be pre-extracted and signed
 fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

@@ -8,15 +8,16 @@ import { parseCookies } from "../utils/cookies.js";
 import { readBody } from "../utils/body.js";
 import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
 import { renderSetupWizardPage } from "../pages/setup-wizard.js";
-import { renderLoadingShell, renderResultHydrationScript, renderLoaderErrorScript } from "../pages/loading-shell.js";
+import { renderLoadingShell, renderResultHydrationScript, renderLoaderErrorScript, } from "../pages/loading-shell.js";
 import { getNavigationInterceptorScript } from "../utils/navigation-interceptor.js";
 import { logger } from "../logger.js";
 import { AdminController } from "./admin-controller.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
 import { createLlmClient } from "../llm/factory.js";
+import { getCredentialStore } from "../utils/credential-store.js";
 const PENDING_HTML_TTL_MS = 3 * 60 * 1000;
 export function createServer(options) {
-    const { runtime, provider, providerLocked, providerSelectionRequired, providersWithKeys, llmClient, sessionStore } = options;
+    const { runtime, provider, providerLocked, providerSelectionRequired, providersWithKeys, llmClient, sessionStore, } = options;
     const runtimeState = { ...runtime };
     const providerState = { ...provider };
     const state = {
@@ -24,7 +25,9 @@ export function createServer(options) {
         runtime: runtimeState,
         provider: providerState,
         llmClient,
-        providerReady: Boolean(llmClient && providerState.apiKey && providerState.apiKey.trim().length > 0),
+        providerReady: Boolean(llmClient &&
+            providerState.apiKey &&
+            providerState.apiKey.trim().length > 0),
         providerLocked,
         providerSelectionRequired,
         providersWithKeys: new Set(providersWithKeys),
@@ -40,7 +43,10 @@ export function createServer(options) {
     return http.createServer(async (req, res) => {
         const requestStart = Date.now();
         const context = buildContext(req, res);
-        const reqLogger = logger.child({ method: context.method, path: context.path });
+        const reqLogger = logger.child({
+            method: context.method,
+            path: context.path,
+        });
         reqLogger.info(`Incoming request ${context.method} ${context.path} from ${req.socket.remoteAddress ?? "unknown"}`);
         if (shouldEarly404(context)) {
             reqLogger.warn(`Auto-ignored path ${context.url.href}`);
@@ -62,7 +68,10 @@ export function createServer(options) {
                 reqLogger.info(`Pending render delivered with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
                 return;
             }
-            if (!state.providerReady || state.providerSelectionRequired || !state.brief || isSetupRequest(context.path)) {
+            if (!state.providerReady ||
+                state.providerSelectionRequired ||
+                !state.brief ||
+                isSetupRequest(context.path)) {
                 await handleSetupFlow(context, state, reqLogger);
                 reqLogger.info(`Setup flow completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
                 return;
@@ -78,7 +87,9 @@ export function createServer(options) {
             reqLogger.info(`Completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
         }
         catch (error) {
-            const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+            const message = error instanceof Error
+                ? `${error.name}: ${error.message}`
+                : String(error);
             reqLogger.error(`Request handling failed: ${message}`);
             res.statusCode = 500;
             res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -166,7 +177,7 @@ async function handleSetupFlow(context, state, reqLogger) {
                 return;
             }
             if (submittedProvider !== state.provider.provider) {
-                updateProviderSelection(state, submittedProvider, reqLogger);
+                await updateProviderSelection(state, submittedProvider, reqLogger);
                 providerLabel = getProviderLabel(state.provider.provider);
                 providerName = providerLabel;
                 selectedProvider = state.provider.provider;
@@ -183,7 +194,9 @@ async function handleSetupFlow(context, state, reqLogger) {
             submittedMaxTokens = parsePositiveInt(body.data.maxOutputTokens, state.provider.maxOutputTokens);
         }
         catch (error) {
-            const message = error instanceof Error ? error.message : "Max output tokens must be a positive integer.";
+            const message = error instanceof Error
+                ? error.message
+                : "Max output tokens must be a positive integer.";
             const html = renderSetupWizardPage({
                 step: "provider",
                 providerLabel,
@@ -219,7 +232,9 @@ async function handleSetupFlow(context, state, reqLogger) {
                 submittedReasoningTokens = parseReasoningTokensInput(body.data.reasoningTokens, state.provider.provider);
             }
             catch (error) {
-                const message = error instanceof Error ? error.message : "Reasoning tokens must be valid for the selected provider.";
+                const message = error instanceof Error
+                    ? error.message
+                    : "Reasoning tokens must be valid for the selected provider.";
                 const html = renderSetupWizardPage({
                     step: "provider",
                     providerLabel,
@@ -245,7 +260,9 @@ async function handleSetupFlow(context, state, reqLogger) {
                 return;
             }
         }
-        let adjustedReasoningTokens = supportsTokens ? submittedReasoningTokens : undefined;
+        let adjustedReasoningTokens = supportsTokens
+            ? submittedReasoningTokens
+            : undefined;
         if (state.provider.provider === "anthropic") {
             if (typeof adjustedReasoningTokens === "number") {
                 adjustedReasoningTokens = Math.min(adjustedReasoningTokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS);
@@ -263,8 +280,17 @@ async function handleSetupFlow(context, state, reqLogger) {
         state.provider.reasoningMode = submittedReasoningMode;
         state.provider.reasoningTokens = adjustedReasoningTokens;
         state.provider.model = submittedModel;
+        // Try to get stored credential if no input provided
         const existingKey = state.provider.apiKey?.trim() ?? "";
-        const finalApiKey = apiKeyInput || existingKey;
+        let finalApiKey = apiKeyInput || existingKey;
+        const isUIEntry = Boolean(apiKeyInput); // Track if this came from UI input
+        // If no key yet, try to load from secure storage
+        if (!finalApiKey) {
+            const stored = await getCredentialStore().getApiKey(state.provider.provider);
+            if (stored) {
+                finalApiKey = stored;
+            }
+        }
         if (!finalApiKey) {
             const html = renderSetupWizardPage({
                 step: "provider",
@@ -307,16 +333,32 @@ async function handleSetupFlow(context, state, reqLogger) {
             try {
                 state.provider.apiKey = finalApiKey;
                 applyProviderEnv(state.provider);
-                if (!state.llmClient || !reusingStoredKey || state.llmClient.settings.provider !== state.provider.provider) {
+                // Store UI-entered credentials securely (not env/CLI keys)
+                if (isUIEntry &&
+                    finalApiKey &&
+                    !getEnvApiKeyForProvider(state.provider.provider)) {
+                    await getCredentialStore()
+                        .saveApiKey(state.provider.provider, finalApiKey)
+                        .catch(() => {
+                        // Ignore storage errors - key still works in memory
+                    });
+                }
+                if (!state.llmClient ||
+                    !reusingStoredKey ||
+                    state.llmClient.settings.provider !== state.provider.provider) {
                     state.llmClient = createLlmClient(state.provider);
                 }
                 state.providerReady = true;
                 state.providerSelectionRequired = false;
                 state.providersWithKeys.add(state.provider.provider);
                 state.verifiedProviders[state.provider.provider] = true;
-                reqLogger.info({ provider: state.provider.provider }, reusingStoredKey ? "Using stored API key" : "API key verified via setup wizard");
+                reqLogger.info({ provider: state.provider.provider }, reusingStoredKey
+                    ? "Using stored API key"
+                    : "API key verified via setup wizard");
                 res.statusCode = 303;
-                const statusMessage = reusingStoredKey ? "Provider selected" : "API key verified";
+                const statusMessage = reusingStoredKey
+                    ? "Provider selected"
+                    : "API key verified";
                 const redirectTarget = state.brief
                     ? `${ADMIN_ROUTE_PREFIX}?status=Setup%20complete`
                     : `${SETUP_ROUTE}?step=brief&status=${encodeURIComponent(statusMessage)}`;
@@ -377,7 +419,8 @@ async function handleSetupFlow(context, state, reqLogger) {
             maxOutputTokens: state.provider.maxOutputTokens,
             reasoningMode: state.provider.reasoningMode ?? "none",
             reasoningTokens: getEffectiveReasoningTokens(state.provider),
-            errorMessage: verificationMessage ?? "We could not verify that key. Please try again.",
+            errorMessage: verificationMessage ??
+                "We could not verify that key. Please try again.",
         });
         res.statusCode = 400;
         res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -520,7 +563,10 @@ async function handleSetupFlow(context, state, reqLogger) {
         res.end(html);
         return;
     }
-    if (state.providerReady && !state.providerSelectionRequired && state.brief && path.startsWith(SETUP_ROUTE)) {
+    if (state.providerReady &&
+        !state.providerSelectionRequired &&
+        state.brief &&
+        path.startsWith(SETUP_ROUTE)) {
         res.statusCode = 303;
         res.setHeader("Location", ADMIN_ROUTE_PREFIX);
         res.end();
@@ -537,7 +583,11 @@ async function handleSetupFlow(context, state, reqLogger) {
     else {
         step = requestedStep === "provider" ? "provider" : "brief";
     }
-    if (state.providerReady && !state.providerSelectionRequired && state.brief && !requestedStep && path === SETUP_ROUTE) {
+    if (state.providerReady &&
+        !state.providerSelectionRequired &&
+        state.brief &&
+        !requestedStep &&
+        path === SETUP_ROUTE) {
         res.statusCode = 303;
         res.setHeader("Location", ADMIN_ROUTE_PREFIX);
         res.end();
@@ -598,12 +648,16 @@ async function handleLlmRequest(context, state, sessionStore, reqLogger, request
     }
     const fullHistory = sessionStore.getHistory(sid);
     const historyLimit = Math.max(1, state.runtime.historyLimit);
-    const limitedHistory = historyLimit >= fullHistory.length ? fullHistory : fullHistory.slice(-historyLimit);
+    const limitedHistory = historyLimit >= fullHistory.length
+        ? fullHistory
+        : fullHistory.slice(-historyLimit);
     const limitOmitted = fullHistory.length - limitedHistory.length;
     const selection = selectHistoryForPrompt(limitedHistory, state.runtime.historyMaxBytes);
     const historyForPrompt = selection.entries;
     const byteOmitted = limitedHistory.length - historyForPrompt.length;
-    const prevHtml = historyForPrompt.at(-1)?.response.html ?? limitedHistory.at(-1)?.response.html ?? sessionStore.getPrevHtml(sid);
+    const prevHtml = historyForPrompt.at(-1)?.response.html ??
+        limitedHistory.at(-1)?.response.html ??
+        sessionStore.getPrevHtml(sid);
     reqLogger.debug({
         historyTotal: fullHistory.length,
         historyLimit,
@@ -710,7 +764,9 @@ async function handleLlmRequest(context, state, sessionStore, reqLogger, request
         res.end();
     }
     catch (error) {
-        const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+        const message = error instanceof Error
+            ? `${error.name}: ${error.message}`
+            : String(error);
         reqLogger.error(`LLM generation failed: ${message}`);
         if (isInterceptorRequest && !res.headersSent) {
             res.statusCode = 500;
@@ -728,7 +784,9 @@ async function handleLlmRequest(context, state, sessionStore, reqLogger, request
     }
 }
 function renderErrorPage(error) {
-    const message = error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ""}` : String(error);
+    const message = error instanceof Error
+        ? `${error.name}: ${error.message}\n${error.stack ?? ""}`
+        : String(error);
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -787,27 +845,25 @@ function applyProviderEnv(settings) {
 }
 function getEnvApiKeyForProvider(provider) {
     if (provider === "openai") {
-        return process.env.OPENAI_API_KEY
-            || process.env.OPENAI_APIKEY
-            || process.env.OPENAI_KEY
-            || undefined;
+        return (process.env.OPENAI_API_KEY ||
+            process.env.OPENAI_APIKEY ||
+            process.env.OPENAI_KEY ||
+            undefined);
     }
     if (provider === "gemini") {
-        return process.env.GEMINI_API_KEY
-            || process.env.GEMINI_KEY
-            || process.env.GOOGLE_API_KEY
-            || process.env.GOOGLE_GENAI_KEY
-            || undefined;
+        return (process.env.GEMINI_API_KEY ||
+            process.env.GEMINI_KEY ||
+            process.env.GOOGLE_API_KEY ||
+            process.env.GOOGLE_GENAI_KEY ||
+            undefined);
     }
     if (provider === "grok") {
-        return process.env.XAI_API_KEY
-            || process.env.GROK_API_KEY
-            || process.env.XAI_KEY
-            || undefined;
+        return (process.env.XAI_API_KEY ||
+            process.env.GROK_API_KEY ||
+            process.env.XAI_KEY ||
+            undefined);
     }
-    return process.env.ANTHROPIC_API_KEY
-        || process.env.ANTHROPIC_KEY
-        || undefined;
+    return (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_KEY || undefined);
 }
 function getProviderLabel(provider) {
     if (provider === "openai") {
@@ -827,22 +883,25 @@ function providerSupportsReasoningMode(provider) {
 function providerSupportsReasoningTokens(provider) {
     return provider === "gemini" || provider === "anthropic";
 }
-function updateProviderSelection(state, provider, reqLogger) {
+async function updateProviderSelection(state, provider, reqLogger) {
     if (state.provider.provider === provider) {
         return;
     }
     const previous = state.provider.provider;
-    state.verifiedProviders[previous] = state.providerReady && Boolean(state.provider.apiKey?.trim());
+    state.verifiedProviders[previous] =
+        state.providerReady && Boolean(state.provider.apiKey?.trim());
     let reasoningMode = "none";
     let reasoningTokens;
     if (provider === "openai") {
-        reasoningMode = state.provider.provider === "openai"
-            ? state.provider.reasoningMode ?? "low"
-            : "low";
+        reasoningMode =
+            state.provider.provider === "openai"
+                ? state.provider.reasoningMode ?? "low"
+                : "low";
     }
     else if (provider === "anthropic") {
         reasoningMode = "none";
-        if (state.provider.provider === "anthropic" && typeof state.provider.reasoningTokens === "number") {
+        if (state.provider.provider === "anthropic" &&
+            typeof state.provider.reasoningTokens === "number") {
             reasoningTokens = Math.min(state.provider.reasoningTokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS);
         }
         else {
@@ -850,7 +909,8 @@ function updateProviderSelection(state, provider, reqLogger) {
         }
     }
     else if (provider === "gemini") {
-        if (state.provider.provider === "gemini" && typeof state.provider.reasoningTokens === "number") {
+        if (state.provider.provider === "gemini" &&
+            typeof state.provider.reasoningTokens === "number") {
             reasoningTokens = state.provider.reasoningTokens;
         }
         else {
@@ -861,16 +921,29 @@ function updateProviderSelection(state, provider, reqLogger) {
         reasoningMode = "none";
     }
     const envKey = getEnvApiKeyForProvider(provider)?.trim() ?? "";
-    const verified = Boolean(state.verifiedProviders[provider]) && envKey.length > 0;
+    // Try to get stored credential if no env key
+    let providerKey = envKey;
+    if (!providerKey) {
+        try {
+            const stored = await getCredentialStore().getApiKey(provider);
+            if (stored) {
+                providerKey = stored;
+            }
+        }
+        catch {
+            // Ignore credential retrieval errors
+        }
+    }
+    const verified = Boolean(state.verifiedProviders[provider]) && providerKey.length > 0;
     state.provider = {
         provider,
-        apiKey: envKey,
+        apiKey: providerKey,
         model: getDefaultModelForProvider(provider),
         maxOutputTokens: getDefaultMaxTokensForProvider(provider),
         reasoningMode,
         reasoningTokens,
     };
-    if (envKey) {
+    if (providerKey) {
         state.providersWithKeys.add(provider);
     }
     else {
@@ -911,10 +984,13 @@ function buildProviderKeyStatuses(state) {
     const providers = ["openai", "gemini", "anthropic", "grok"];
     return providers.reduce((acc, provider) => {
         const isCurrent = state.provider.provider === provider;
-        const hasKeyInState = isCurrent ? Boolean(state.provider.apiKey?.trim()) : state.providersWithKeys.has(provider);
+        const hasKeyInState = isCurrent
+            ? Boolean(state.provider.apiKey?.trim())
+            : state.providersWithKeys.has(provider);
         const hasKey = hasKeyInState;
         const verifiedFlag = Boolean(state.verifiedProviders[provider]);
-        const verified = hasKey && (isCurrent ? state.providerReady && verifiedFlag : verifiedFlag);
+        const verified = hasKey &&
+            (isCurrent ? state.providerReady && verifiedFlag : verifiedFlag);
         acc[provider] = { hasKey, verified };
         return acc;
     }, {
@@ -942,7 +1018,9 @@ function parseProviderValue(value) {
 function sanitizeReasoningModeValue(value, fallback) {
     if (typeof value === "string") {
         const normalized = value.trim().toLowerCase();
-        if (normalized === "low" || normalized === "medium" || normalized === "high") {
+        if (normalized === "low" ||
+            normalized === "medium" ||
+            normalized === "high") {
             return normalized;
         }
         if (normalized === "none") {

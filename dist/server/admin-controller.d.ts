@@ -8,7 +8,7 @@ interface AdminControllerOptions {
 export declare class AdminController {
     private readonly state;
     private readonly sessionStore;
-    private readonly providerKeyMemory;
+    private readonly credentialStore;
     constructor(options: AdminControllerOptions);
     handle(context: RequestContext, _requestStart: number, reqLogger: Logger): Promise<boolean>;
     private renderDashboard;
@@ -26,6 +26,7 @@ export declare class AdminController {
     private redirect;
     private respondNotFound;
     private applyProviderEnv;
+    private isKeyFromEnvironment;
     private toAdminHistoryItem;
 }
 export {};
