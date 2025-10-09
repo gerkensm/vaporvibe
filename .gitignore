@@ -21,3 +21,7 @@ pnpm-debug.log*
 .history/
 out
 out/*
+
+# Generated macOS packaging artifacts
+scripts/macos-app/icon-build/
+scripts/macos-app/ServeLLMIcon.icns
