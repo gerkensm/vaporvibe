@@ -252,14 +252,15 @@ export class AdminController {
             this.state.llmClient = newClient;
             this.state.provider = { ...updatedSettings };
             this.state.providerReady = true;
-            // Store UI-entered credentials securely (not env/CLI keys)
+            // Store UI-entered credentials securely (always save UI input, even if env vars exist)
             if (keySourceIsUI &&
                 updatedSettings.apiKey &&
                 updatedSettings.apiKey.trim().length > 0) {
+                reqLogger.debug({ provider: updatedSettings.provider }, "Saving UI-entered API key to credential store");
                 await this.credentialStore
                     .saveApiKey(updatedSettings.provider, updatedSettings.apiKey)
-                    .catch(() => {
-                    // Ignore storage errors - key still works in memory
+                    .catch((err) => {
+                    reqLogger.error({ err }, "Failed to save credential - will use memory storage");
                 });
             }
             this.applyProviderEnv(updatedSettings);

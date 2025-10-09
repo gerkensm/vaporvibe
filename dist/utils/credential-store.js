@@ -1,3 +1,4 @@
+import { logger } from "../logger.js";
 const SERVICE_NAME = "com.serve-llm.app";
 /**
  * Credential store that uses OS keychain when available (via keytar),
@@ -16,18 +17,21 @@ export class CredentialStore {
         if (this.keytarAvailable !== null) {
             return this.keytarAvailable;
         }
+        logger.debug("Attempting to load keytar native module for secure credential storage");
         try {
             // Try to load keytar - will fail if native bindings aren't available
             const keytarModule = await import("keytar");
             this.keytar = keytarModule.default ?? keytarModule;
             this.keytarAvailable = true;
+            logger.info("Keytar loaded successfully - OS keychain storage available for UI-entered credentials");
             return true;
         }
         catch (error) {
             // Native bindings not available (SEA without proper bundling, or missing libsecret on Linux)
             this.keytarAvailable = false;
-            console.warn("Secure credential storage unavailable (keytar not loaded). " +
-                "API keys entered in the UI will be stored in memory only for this session. " +
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            logger.warn({ err: error }, `Keytar failed to load (${errorMessage}) - falling back to memory-only credential storage`);
+            logger.warn("API keys entered in the UI will persist in memory only for this session. " +
                 "For persistent storage, ensure native dependencies are available.");
             return false;
         }
@@ -48,11 +52,15 @@ export class CredentialStore {
         if (await this.loadKeytar()) {
             try {
                 await this.keytar.setPassword(SERVICE_NAME, provider, apiKey);
+                logger.debug({ provider }, "Saved API key to OS keychain");
             }
             catch (error) {
-                console.error(`Failed to save ${provider} credential to keychain:`, error instanceof Error ? error.message : String(error));
+                logger.error({ err: error, provider }, "Failed to save credential to keychain - will use memory storage");
                 // Continue - still have memory cache
             }
+        }
+        else {
+            logger.debug({ provider }, "Stored API key in memory only (keytar unavailable)");
         }
     }
     /**
@@ -69,13 +77,15 @@ export class CredentialStore {
             try {
                 const stored = await this.keytar.getPassword(SERVICE_NAME, provider);
                 if (stored) {
+                    logger.debug({ provider }, "Retrieved API key from OS keychain");
                     // Update memory cache
                     this.memoryCache.set(provider, stored);
                     return stored;
                 }
+                logger.debug({ provider }, "No stored key found in OS keychain");
             }
             catch (error) {
-                console.error(`Failed to retrieve ${provider} credential from keychain:`, error instanceof Error ? error.message : String(error));
+                logger.error({ err: error, provider }, "Failed to retrieve credential from keychain");
             }
         }
         return null;
@@ -89,10 +99,14 @@ export class CredentialStore {
         // Try to remove from OS keychain
         if (await this.loadKeytar()) {
             try {
-                return await this.keytar.deletePassword(SERVICE_NAME, provider);
+                const deleted = await this.keytar.deletePassword(SERVICE_NAME, provider);
+                if (deleted) {
+                    logger.debug({ provider }, "Deleted API key from OS keychain");
+                }
+                return deleted;
             }
             catch (error) {
-                console.error(`Failed to delete ${provider} credential from keychain:`, error instanceof Error ? error.message : String(error));
+                logger.error({ err: error, provider }, "Failed to delete credential from keychain");
                 return false;
             }
         }

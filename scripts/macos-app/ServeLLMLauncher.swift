@@ -103,13 +103,8 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
 
     child = process
 
-    DispatchQueue.global(qos: .userInitiated).async {
-      if waitForServer(timeout: 20) {
-        DispatchQueue.main.async {
-          NSWorkspace.shared.open(serverURL)
-        }
-      }
-    }
+    // Note: Browser auto-launch is handled by the Node.js server itself (via the 'open' package)
+    // This ensures consistent behavior across CLI, SEA, and app bundle distributions
 
     NSApp.activate(ignoringOtherApps: true)
   }

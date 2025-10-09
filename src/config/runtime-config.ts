@@ -12,15 +12,29 @@ import {
   LOOPBACK_HOST,
   SETUP_ROUTE,
 } from "../constants.js";
-import type { AppConfig, ModelProvider, ProviderSettings, ReasoningMode, RuntimeConfig } from "../types.js";
+import type {
+  AppConfig,
+  ModelProvider,
+  ProviderSettings,
+  ReasoningMode,
+  RuntimeConfig,
+} from "../types.js";
 import type { CliOptions } from "../cli/args.js";
+import { getCredentialStore } from "../utils/credential-store.js";
 
 const SESSION_TTL_MS = 15 * 60 * 1000;
 const SESSION_CAP = 200;
 
-export async function resolveAppConfig(options: CliOptions, env: NodeJS.ProcessEnv): Promise<AppConfig> {
-  const providerResolution = determineProvider(options, env);
-  const providerSettings = resolveProviderSettings(providerResolution.provider, options, env);
+export async function resolveAppConfig(
+  options: CliOptions,
+  env: NodeJS.ProcessEnv
+): Promise<AppConfig> {
+  const providerResolution = await determineProvider(options, env);
+  const providerSettings = await resolveProviderSettings(
+    providerResolution.provider,
+    options,
+    env
+  );
   const runtime = resolveRuntime(options, env);
   runtime.brief = options.brief || env.BRIEF?.trim();
 
@@ -30,8 +44,11 @@ export async function resolveAppConfig(options: CliOptions, env: NodeJS.ProcessE
   }
 
   const providersWithKeys = providerResolution.providersWithKeys;
-  const providerSelectionRequired = !providerResolution.locked
-    && providersWithKeys.filter((value, index) => providersWithKeys.indexOf(value) === index).length > 1;
+  const providerSelectionRequired =
+    !providerResolution.locked &&
+    providersWithKeys.filter(
+      (value, index) => providersWithKeys.indexOf(value) === index
+    ).length > 1;
 
   return {
     provider: providerSettings,
@@ -43,13 +60,26 @@ export async function resolveAppConfig(options: CliOptions, env: NodeJS.ProcessE
   };
 }
 
-function resolveRuntime(options: CliOptions, env: NodeJS.ProcessEnv): RuntimeConfig {
+function resolveRuntime(
+  options: CliOptions,
+  env: NodeJS.ProcessEnv
+): RuntimeConfig {
   const port = options.port ?? parsePositiveInt(env.PORT) ?? DEFAULT_PORT;
   const host = options.host?.trim() || env.HOST?.trim() || LOOPBACK_HOST;
-  const maxOutputTokens = options.maxOutputTokens ?? parsePositiveInt(env.MAX_OUTPUT_TOKENS) ?? parsePositiveInt(env.MAX_TOKENS);
-  const instructionSetting = options.instructionPanel ?? env.INSTRUCTION_PANEL ?? env.INSTRUCTIONS_PANEL;
-  const historyLimit = options.historyLimit ?? parsePositiveInt(env.HISTORY_LIMIT) ?? DEFAULT_HISTORY_LIMIT;
-  const historyMaxBytes = options.historyMaxBytes ?? parsePositiveInt(env.HISTORY_MAX_BYTES) ?? DEFAULT_HISTORY_MAX_BYTES;
+  const maxOutputTokens =
+    options.maxOutputTokens ??
+    parsePositiveInt(env.MAX_OUTPUT_TOKENS) ??
+    parsePositiveInt(env.MAX_TOKENS);
+  const instructionSetting =
+    options.instructionPanel ?? env.INSTRUCTION_PANEL ?? env.INSTRUCTIONS_PANEL;
+  const historyLimit =
+    options.historyLimit ??
+    parsePositiveInt(env.HISTORY_LIMIT) ??
+    DEFAULT_HISTORY_LIMIT;
+  const historyMaxBytes =
+    options.historyMaxBytes ??
+    parsePositiveInt(env.HISTORY_MAX_BYTES) ??
+    DEFAULT_HISTORY_MAX_BYTES;
   const runtime: RuntimeConfig = {
     port,
     host,
@@ -68,15 +98,30 @@ function resolveRuntime(options: CliOptions, env: NodeJS.ProcessEnv): RuntimeCon
   return runtime;
 }
 
-function resolveProviderSettings(
+async function resolveProviderSettings(
   provider: ModelProvider,
   options: CliOptions,
-  env: NodeJS.ProcessEnv,
-): ProviderSettings {
+  env: NodeJS.ProcessEnv
+): Promise<ProviderSettings> {
   const modelFromCli = options.model?.trim();
-  const maxOverride = options.maxOutputTokens ?? parsePositiveInt(env.MAX_OUTPUT_TOKENS) ?? parsePositiveInt(env.MAX_TOKENS);
+  const maxOverride =
+    options.maxOutputTokens ??
+    parsePositiveInt(env.MAX_OUTPUT_TOKENS) ??
+    parsePositiveInt(env.MAX_TOKENS);
   const reasoning = resolveReasoningOptions(options, env);
-  const apiKey = (lookupEnvApiKey(provider, env) ?? "").trim();
+
+  // Check environment first, then credential store for UI-entered keys
+  let apiKey = lookupEnvApiKey(provider, env)?.trim() ?? "";
+  if (!apiKey) {
+    try {
+      const stored = await getCredentialStore().getApiKey(provider);
+      if (stored) {
+        apiKey = stored;
+      }
+    } catch {
+      // Ignore credential retrieval errors
+    }
+  }
 
   if (provider === "openai") {
     const model = modelFromCli || env.MODEL?.trim() || DEFAULT_OPENAI_MODEL;
@@ -93,7 +138,11 @@ function resolveProviderSettings(
   }
 
   if (provider === "gemini") {
-    const model = modelFromCli || env.GEMINI_MODEL?.trim() || env.MODEL?.trim() || DEFAULT_GEMINI_MODEL;
+    const model =
+      modelFromCli ||
+      env.GEMINI_MODEL?.trim() ||
+      env.MODEL?.trim() ||
+      DEFAULT_GEMINI_MODEL;
     const maxOutputTokens = maxOverride ?? DEFAULT_MAX_OUTPUT_TOKENS;
     let reasoningTokens: number | undefined;
     if (reasoning.tokensExplicit && typeof reasoning.tokens === "number") {
@@ -112,11 +161,12 @@ function resolveProviderSettings(
   }
 
   if (provider === "grok") {
-    const model = modelFromCli
-      || env.GROK_MODEL?.trim()
-      || env.XAI_MODEL?.trim()
-      || env.MODEL?.trim()
-      || DEFAULT_GROK_MODEL;
+    const model =
+      modelFromCli ||
+      env.GROK_MODEL?.trim() ||
+      env.XAI_MODEL?.trim() ||
+      env.MODEL?.trim() ||
+      DEFAULT_GROK_MODEL;
     const maxOutputTokens = maxOverride ?? DEFAULT_MAX_OUTPUT_TOKENS;
     const reasoningMode = reasoning.modeExplicit ? reasoning.mode : "low";
     return {
@@ -129,13 +179,19 @@ function resolveProviderSettings(
     };
   }
 
-  const model = modelFromCli || env.ANTHROPIC_MODEL?.trim() || env.MODEL?.trim() || DEFAULT_ANTHROPIC_MODEL;
-  const maxOutputTokens = typeof maxOverride === "number"
-    ? Math.min(maxOverride, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
-    : DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS;
-  let reasoningTokens = reasoning.tokensExplicit && typeof reasoning.tokens === "number"
-    ? Math.min(reasoning.tokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
-    : DEFAULT_REASONING_TOKENS.anthropic;
+  const model =
+    modelFromCli ||
+    env.ANTHROPIC_MODEL?.trim() ||
+    env.MODEL?.trim() ||
+    DEFAULT_ANTHROPIC_MODEL;
+  const maxOutputTokens =
+    typeof maxOverride === "number"
+      ? Math.min(maxOverride, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
+      : DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS;
+  let reasoningTokens =
+    reasoning.tokensExplicit && typeof reasoning.tokens === "number"
+      ? Math.min(reasoning.tokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
+      : DEFAULT_REASONING_TOKENS.anthropic;
   return {
     provider,
     apiKey,
@@ -146,24 +202,32 @@ function resolveProviderSettings(
   };
 }
 
-function determineProvider(
+async function determineProvider(
   options: CliOptions,
-  env: NodeJS.ProcessEnv,
-): { provider: ModelProvider; locked: boolean; providersWithKeys: ModelProvider[] } {
-  const explicit = parseProviderValue(options.provider)
-    || parseProviderValue(env.SERVE_LLM_PROVIDER)
-    || parseProviderValue(env.LLM_PROVIDER)
-    || parseProviderValue(env.PROVIDER);
+  env: NodeJS.ProcessEnv
+): Promise<{
+  provider: ModelProvider;
+  locked: boolean;
+  providersWithKeys: ModelProvider[];
+}> {
+  const explicit =
+    parseProviderValue(options.provider) ||
+    parseProviderValue(env.SERVE_LLM_PROVIDER) ||
+    parseProviderValue(env.LLM_PROVIDER) ||
+    parseProviderValue(env.PROVIDER);
 
   if (explicit) {
-    const detected = detectProvidersWithKeys(env);
+    const detected = await detectProvidersWithKeys(env);
     return { provider: explicit, locked: true, providersWithKeys: detected };
   }
 
-  const hasOpenAiKey = Boolean(getOpenAiKey(env));
-  const hasGeminiKey = Boolean(getGeminiKey(env));
-  const hasAnthropicKey = Boolean(getAnthropicKey(env));
-  const hasGrokKey = Boolean(getGrokKey(env));
+  const hasOpenAiKey =
+    Boolean(getOpenAiKey(env)) || (await hasStoredKey("openai"));
+  const hasGeminiKey =
+    Boolean(getGeminiKey(env)) || (await hasStoredKey("gemini"));
+  const hasAnthropicKey =
+    Boolean(getAnthropicKey(env)) || (await hasStoredKey("anthropic"));
+  const hasGrokKey = Boolean(getGrokKey(env)) || (await hasStoredKey("grok"));
   const providersWithKeys: ModelProvider[] = [];
   if (hasOpenAiKey) providersWithKeys.push("openai");
   if (hasGeminiKey) providersWithKeys.push("gemini");
@@ -200,13 +264,27 @@ function determineProvider(
   return { provider: "openai", locked: false, providersWithKeys };
 }
 
-function detectProvidersWithKeys(env: NodeJS.ProcessEnv): ModelProvider[] {
+async function detectProvidersWithKeys(
+  env: NodeJS.ProcessEnv
+): Promise<ModelProvider[]> {
   const detected: ModelProvider[] = [];
-  if (getOpenAiKey(env)) detected.push("openai");
-  if (getGeminiKey(env)) detected.push("gemini");
-  if (getAnthropicKey(env)) detected.push("anthropic");
-  if (getGrokKey(env)) detected.push("grok");
+  if (getOpenAiKey(env) || (await hasStoredKey("openai")))
+    detected.push("openai");
+  if (getGeminiKey(env) || (await hasStoredKey("gemini")))
+    detected.push("gemini");
+  if (getAnthropicKey(env) || (await hasStoredKey("anthropic")))
+    detected.push("anthropic");
+  if (getGrokKey(env) || (await hasStoredKey("grok"))) detected.push("grok");
   return detected;
+}
+
+async function hasStoredKey(provider: ModelProvider): Promise<boolean> {
+  try {
+    const key = await getCredentialStore().getApiKey(provider);
+    return Boolean(key && key.trim().length > 0);
+  } catch {
+    return false;
+  }
 }
 
 interface ResolvedReasoningOptions {
@@ -216,16 +294,24 @@ interface ResolvedReasoningOptions {
   tokensExplicit: boolean;
 }
 
-function resolveReasoningOptions(options: CliOptions, env: NodeJS.ProcessEnv): ResolvedReasoningOptions {
+function resolveReasoningOptions(
+  options: CliOptions,
+  env: NodeJS.ProcessEnv
+): ResolvedReasoningOptions {
   const rawMode = options.reasoningMode ?? env.REASONING_MODE;
   const modeExplicit = typeof rawMode === "string" && rawMode.trim() !== "";
   let mode = parseReasoningMode(modeExplicit ? rawMode : undefined);
 
   const rawTokens = options.reasoningTokens ?? env.REASONING_TOKENS;
-  const tokensExplicit = rawTokens !== undefined && !(typeof rawTokens === "string" && rawTokens.trim() === "");
+  const tokensExplicit =
+    rawTokens !== undefined &&
+    !(typeof rawTokens === "string" && rawTokens.trim() === "");
   let tokens: number | undefined;
   if (tokensExplicit) {
-    const parsed = typeof rawTokens === "number" ? rawTokens : Number.parseInt(String(rawTokens), 10);
+    const parsed =
+      typeof rawTokens === "number"
+        ? rawTokens
+        : Number.parseInt(String(rawTokens), 10);
     if (Number.isFinite(parsed) && (parsed === -1 || parsed >= 0)) {
       tokens = Math.floor(parsed);
     }
@@ -275,13 +361,19 @@ function parseInstructionPanelSetting(value: unknown): boolean {
     return Boolean(value);
   }
   const normalized = value.trim().toLowerCase();
-  if (["false", "0", "off", "disable", "disabled", "no", "none"].includes(normalized)) {
+  if (
+    ["false", "0", "off", "disable", "disabled", "no", "none"].includes(
+      normalized
+    )
+  ) {
     return false;
   }
   if (["true", "1", "on", "enable", "enabled", "yes"].includes(normalized)) {
     return true;
   }
-  console.warn(`Unknown instruction panel setting '${value}', defaulting to enabled.`);
+  console.warn(
+    `Unknown instruction panel setting '${value}', defaulting to enabled.`
+  );
   return true;
 }
 
@@ -293,7 +385,8 @@ function parseProviderValue(value: unknown): ModelProvider | undefined {
   if (normalized === "openai") return "openai";
   if (normalized === "gemini") return "gemini";
   if (normalized === "anthropic") return "anthropic";
-  if (normalized === "grok" || normalized === "xai" || normalized === "x.ai") return "grok";
+  if (normalized === "grok" || normalized === "xai" || normalized === "x.ai")
+    return "grok";
   return undefined;
 }
 
@@ -313,7 +406,13 @@ function getOpenAiKey(env: NodeJS.ProcessEnv): string | undefined {
 }
 
 function getGeminiKey(env: NodeJS.ProcessEnv): string | undefined {
-  return env.GEMINI_API_KEY || env.GEMINI_KEY || env.GOOGLE_API_KEY || env.GOOGLE_GENAI_KEY || undefined;
+  return (
+    env.GEMINI_API_KEY ||
+    env.GEMINI_KEY ||
+    env.GOOGLE_API_KEY ||
+    env.GOOGLE_GENAI_KEY ||
+    undefined
+  );
 }
 
 function getAnthropicKey(env: NodeJS.ProcessEnv): string | undefined {
@@ -324,7 +423,10 @@ function getGrokKey(env: NodeJS.ProcessEnv): string | undefined {
   return env.XAI_API_KEY || env.GROK_API_KEY || env.XAI_KEY || undefined;
 }
 
-function lookupEnvApiKey(provider: ModelProvider, env: NodeJS.ProcessEnv): string | undefined {
+function lookupEnvApiKey(
+  provider: ModelProvider,
+  env: NodeJS.ProcessEnv
+): string | undefined {
   if (provider === "openai") {
     return getOpenAiKey(env);
   }

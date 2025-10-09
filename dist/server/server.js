@@ -333,14 +333,14 @@ async function handleSetupFlow(context, state, reqLogger) {
             try {
                 state.provider.apiKey = finalApiKey;
                 applyProviderEnv(state.provider);
-                // Store UI-entered credentials securely (not env/CLI keys)
-                if (isUIEntry &&
-                    finalApiKey &&
-                    !getEnvApiKeyForProvider(state.provider.provider)) {
+                // Store UI-entered credentials securely
+                // Always save when user enters via UI, even if env vars exist (allows override)
+                if (isUIEntry && finalApiKey) {
+                    reqLogger.debug({ provider: state.provider.provider }, "Saving UI-entered API key to credential store");
                     await getCredentialStore()
                         .saveApiKey(state.provider.provider, finalApiKey)
-                        .catch(() => {
-                        // Ignore storage errors - key still works in memory
+                        .catch((err) => {
+                        reqLogger.error({ err }, "Failed to save credential - will use memory storage");
                     });
                 }
                 if (!state.llmClient ||
