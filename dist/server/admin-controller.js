@@ -205,7 +205,7 @@ export class AdminController {
             : this.state.provider.model;
         const maxOutputTokens = parsePositiveInt(data.maxOutputTokens, this.state.provider.maxOutputTokens);
         const reasoningMode = sanitizeReasoningMode(String(data.reasoningMode ?? this.state.provider.reasoningMode));
-        const reasoningTokens = parseOptionalPositiveInt(data.reasoningTokens, this.state.provider.reasoningTokens);
+        const reasoningTokens = parseReasoningTokensValue(data.reasoningTokens, provider, this.state.provider.reasoningTokens);
         const newApiKey = typeof data.apiKey === "string" ? data.apiKey.trim() : "";
         const previousProvider = this.state.provider.provider;
         let apiKeyCandidate = newApiKey;
@@ -513,15 +513,25 @@ function parsePositiveInt(value, fallback) {
     }
     return Math.floor(parsed);
 }
-function parseOptionalPositiveInt(value, fallback) {
+function parseReasoningTokensValue(value, provider, fallback) {
     if (value === undefined || value === null || value === "") {
         return fallback;
     }
     const parsed = Number(value);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-        throw new Error(`Expected a non-negative integer, received: ${String(value)}`);
+    if (!Number.isFinite(parsed)) {
+        throw new Error(`Expected a numeric value, received: ${String(value)}`);
     }
-    return Math.floor(parsed);
+    const rounded = Math.floor(parsed);
+    if (provider === "gemini") {
+        if (rounded < -1) {
+            throw new Error("Gemini reasoning tokens must be -1 (auto budget) or a non-negative integer.");
+        }
+        return rounded;
+    }
+    if (rounded < 0) {
+        throw new Error("Reasoning tokens must be zero or a positive integer for this provider.");
+    }
+    return rounded;
 }
 function lookupEnvApiKey(provider) {
     if (provider === "openai") {

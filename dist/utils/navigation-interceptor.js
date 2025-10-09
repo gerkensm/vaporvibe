@@ -213,8 +213,8 @@ export function getNavigationInterceptorScript() {
       return;
     }
 
-    var minChance = 1;
-    var maxChance = 1;
+    var minChance = 0.1;
+    var maxChance = 0.2;
     var threshold = minChance + Math.random() * (maxChance - minChance);
 
     if (Math.random() > threshold) {

@@ -310,8 +310,9 @@ export class AdminController {
     const reasoningMode = sanitizeReasoningMode(
       String(data.reasoningMode ?? this.state.provider.reasoningMode)
     );
-    const reasoningTokens = parseOptionalPositiveInt(
+    const reasoningTokens = parseReasoningTokensValue(
       data.reasoningTokens,
+      provider,
       this.state.provider.reasoningTokens
     );
     const newApiKey = typeof data.apiKey === "string" ? data.apiKey.trim() : "";
@@ -727,20 +728,37 @@ function parsePositiveInt(value: unknown, fallback: number): number {
   return Math.floor(parsed);
 }
 
-function parseOptionalPositiveInt(
+function parseReasoningTokensValue(
   value: unknown,
+  provider: ProviderSettings["provider"],
   fallback?: number
 ): number | undefined {
   if (value === undefined || value === null || value === "") {
     return fallback;
   }
+
   const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed < 0) {
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Expected a numeric value, received: ${String(value)}`);
+  }
+
+  const rounded = Math.floor(parsed);
+  if (provider === "gemini") {
+    if (rounded < -1) {
+      throw new Error(
+        "Gemini reasoning tokens must be -1 (auto budget) or a non-negative integer."
+      );
+    }
+    return rounded;
+  }
+
+  if (rounded < 0) {
     throw new Error(
-      `Expected a non-negative integer, received: ${String(value)}`
+      "Reasoning tokens must be zero or a positive integer for this provider."
     );
   }
-  return Math.floor(parsed);
+
+  return rounded;
 }
 
 function lookupEnvApiKey(
