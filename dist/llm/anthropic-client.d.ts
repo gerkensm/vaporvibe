@@ -11,5 +11,6 @@ export declare class AnthropicClient implements LlmClient {
     private combineContent;
     private collectThinking;
     private logAndCollectThinking;
+    private retryOnOverload;
 }
 export declare function verifyAnthropicApiKey(apiKey: string): Promise<VerificationResult>;

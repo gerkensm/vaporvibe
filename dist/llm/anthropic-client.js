@@ -35,7 +35,7 @@ export class AnthropicClient {
         if (betas) {
             createRequest.betas = betas;
         }
-        const response = await this.client.messages.create(createRequest);
+        const response = await this.retryOnOverload(() => this.client.messages.create(createRequest));
         const html = this.combineContent(response.content).trim();
         return { html, usage: extractUsage(response), raw: response };
     }
@@ -60,7 +60,7 @@ export class AnthropicClient {
         if (betas) {
             streamRequest.betas = betas;
         }
-        const stream = await this.client.messages.stream(streamRequest);
+        const stream = await this.retryOnOverload(async () => this.client.messages.stream(streamRequest));
         let accumulated = "";
         let streamedThinking = "";
         for await (const event of stream) {
@@ -138,6 +138,26 @@ export class AnthropicClient {
             logger.warn(`Failed to capture Anthropic thinking metadata: ${error.message}`);
         }
         return undefined;
+    }
+    async retryOnOverload(operation) {
+        const maxAttempts = 4;
+        const baseDelayMs = 50;
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+            try {
+                return await operation();
+            }
+            catch (error) {
+                if (!isAnthropicOverload(error) || attempt === maxAttempts - 1) {
+                    throw error;
+                }
+                const backoffMs = Math.min(baseDelayMs * (2 ** attempt), 400);
+                const jitterMs = Math.random() * 25;
+                const delayMs = Math.round(backoffMs + jitterMs);
+                logger.debug(`Retrying Anthropic request after overload (${attempt + 1}/${maxAttempts}) in ${delayMs}ms.`);
+                await wait(delayMs);
+            }
+        }
+        throw new Error("Anthropic overload retry loop exhausted unexpectedly.");
     }
 }
 export async function verifyAnthropicApiKey(apiKey) {
@@ -261,6 +281,26 @@ async function fetchWithTimeout(url, init) {
     finally {
         clearTimeout(timer);
     }
+}
+function isAnthropicOverload(error) {
+    const status = extractStatus(error);
+    if (status === 529) {
+        return true;
+    }
+    if (!error || typeof error !== "object") {
+        return false;
+    }
+    const anyError = error;
+    const type = typeof anyError.type === "string" ? anyError.type : undefined;
+    const nestedType = typeof anyError.error?.type === "string" ? anyError.error.type : undefined;
+    if (type === "overloaded_error" || nestedType === "overloaded_error") {
+        return true;
+    }
+    const message = extractAnthropicError(error);
+    return typeof message === "string" && message.toLowerCase().includes("overload");
+}
+async function wait(durationMs) {
+    await new Promise((resolve) => setTimeout(resolve, durationMs));
 }
 function extractAnthropicError(error) {
     if (!error || typeof error !== "object") {
