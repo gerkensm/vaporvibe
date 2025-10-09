@@ -612,9 +612,12 @@ function renderProviderStep(options: ProviderStepOptions): string {
   const reasoningTokensDisabled =
     !providerSupportsReasoningTokens ||
     (providerSupportsReasoningMode && reasoningMode === "none");
-  const reasoningInputMin = String(
-    REASONING_TOKEN_MIN_BY_PROVIDER[selectedProvider] ?? 0
-  );
+  const reasoningTokenMinValue =
+    REASONING_TOKEN_MIN_BY_PROVIDER[selectedProvider];
+  const reasoningInputMinAttr =
+    typeof reasoningTokenMinValue === "number" && reasoningTokenMinValue >= 0
+      ? `min="${escapeHtml(String(reasoningTokenMinValue))}"`
+      : "";
   const selectedStatus = providerKeyStatuses[selectedProvider] ?? {
     hasKey: false,
     verified: false,
@@ -814,7 +817,7 @@ function renderProviderStep(options: ProviderStepOptions): string {
         id="reasoningTokens"
         name="reasoningTokens"
         type="number"
-        min="${escapeHtml(reasoningInputMin)}"
+        ${reasoningInputMinAttr}
         step="1"
         inputmode="numeric"
         value="${escapeHtml(reasoningTokenValue)}"
@@ -1187,7 +1190,7 @@ function renderProviderScript(
         }
         if (reasoningTokensInput instanceof HTMLInputElement) {
           const minValue = reasoningMins[activeProvider];
-          if (typeof minValue === 'number') {
+          if (typeof minValue === 'number' && minValue >= 0) {
             reasoningTokensInput.min = String(minValue);
           } else {
             reasoningTokensInput.removeAttribute('min');

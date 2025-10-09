@@ -37,7 +37,10 @@ export function renderAdminDashboard(props) {
     })();
     const reasoningTokensDisabled = !reasoningCapability.tokens ||
         (reasoningCapability.mode && provider.reasoningMode === "none");
-    const reasoningTokenMin = REASONING_TOKEN_MIN_BY_PROVIDER[providerKey] ?? 0;
+    const reasoningTokenMinValue = REASONING_TOKEN_MIN_BY_PROVIDER[providerKey];
+    const reasoningInputMinAttr = typeof reasoningTokenMinValue === "number" && reasoningTokenMinValue >= 0
+        ? `min="${escapeHtml(String(reasoningTokenMinValue))}"`
+        : "";
     const reasoningTokensChanged = (() => {
         if (!reasoningCapability.tokens) {
             return false;
@@ -851,7 +854,7 @@ export function renderAdminDashboard(props) {
                     id="${reasoningTokensId}"
                     name="reasoningTokens"
                     type="number"
-                    min="${escapeHtml(String(reasoningTokenMin))}"
+                    ${reasoningInputMinAttr}
                     step="1"
                     inputmode="numeric"
                     value="${escapeHtml(reasoningTokenInputValue)}"
@@ -1173,7 +1176,7 @@ export function renderAdminDashboard(props) {
           }
           if (reasoningTokensInput instanceof HTMLInputElement) {
             const min = reasoningMins[provider];
-            if (typeof min === "number") {
+            if (typeof min === "number" && min >= 0) {
               reasoningTokensInput.min = String(min);
             } else {
               reasoningTokensInput.removeAttribute("min");
