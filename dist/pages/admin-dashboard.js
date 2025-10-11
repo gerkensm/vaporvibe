@@ -1,6 +1,7 @@
 import { escapeHtml } from "../utils/html.js";
 import { DEFAULT_REASONING_TOKENS } from "../constants.js";
 import { PROVIDER_CHOICES, PROVIDER_LABELS, PROVIDER_PLACEHOLDERS, DEFAULT_MODEL_BY_PROVIDER, DEFAULT_MAX_TOKENS_BY_PROVIDER, REASONING_MODE_CHOICES, PROVIDER_REASONING_CAPABILITIES, REASONING_TOKEN_MIN_BY_PROVIDER, getDefaultReasoningTokens, } from "../constants/providers.js";
+import { renderModelDetailPanel, renderModelLineup, getModelOptionList, serializeModelCatalogForClient, } from "./components/model-inspector.js";
 export function renderAdminDashboard(props) {
     const { brief, provider, runtime, history, totalHistoryCount, sessionCount, statusMessage, errorMessage, exportJsonUrl, exportMarkdownUrl, historyEndpoint, } = props;
     const briefText = brief && brief.trim().length > 0 ? brief : "(brief not set yet)";
@@ -60,11 +61,19 @@ export function renderAdminDashboard(props) {
         reasoningTokensChanged;
     const reasoningHelperText = REASONING_MODE_CHOICES.find((choice) => choice.value === provider.reasoningMode)?.description ?? "";
     const modelInputId = "admin-model";
+    const modelOptions = getModelOptionList(providerKey, provider.model || defaultModel);
+    const modelDatalistId = `${modelInputId}-options`;
+    const modelDatalist = `<datalist id="${escapeHtml(modelDatalistId)}">${modelOptions
+        .map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`)
+        .join("\n")}</datalist>`;
+    const modelDetailPanel = renderModelDetailPanel(providerKey, provider.model || defaultModel);
+    const modelLineup = renderModelLineup(providerKey, provider.model || defaultModel);
     const apiInputId = "admin-api-key";
     const maxTokensId = "admin-max-output";
     const reasoningModeId = "admin-reasoning-mode";
     const reasoningTokensId = "admin-reasoning-tokens";
     const providerLabelsPayload = JSON.stringify(PROVIDER_LABELS).replace(/</g, "\\u003C");
+    const modelCatalogJson = serializeModelCatalogForClient();
     const providerPlaceholdersPayload = JSON.stringify(PROVIDER_PLACEHOLDERS).replace(/</g, "\\u003C");
     const modelDefaultsPayload = JSON.stringify(DEFAULT_MODEL_BY_PROVIDER).replace(/</g, "\\u003C");
     const maxTokenDefaultsPayload = JSON.stringify(DEFAULT_MAX_TOKENS_BY_PROVIDER).replace(/</g, "\\u003C");
@@ -270,6 +279,132 @@ export function renderAdminDashboard(props) {
     .provider-grid {
       display: grid;
       gap: 12px;
+    }
+    .model-inspector {
+      display: grid;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .model-detail {
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 18px 20px;
+      box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+    }
+    .model-detail__header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      column-gap: 16px;
+      row-gap: 10px;
+    }
+    .model-detail__header > div:first-child {
+      flex: 1 1 260px;
+      min-width: 0;
+    }
+    .model-detail__header h3 {
+      margin: 0;
+      font-size: 1.05rem;
+      color: var(--text);
+    }
+    .model-detail__tagline {
+      margin: 4px 0 0;
+      font-size: 0.85rem;
+      color: var(--subtle);
+    }
+    .model-detail__cost {
+      font-weight: 600;
+      color: var(--accent);
+      font-size: 0.88rem;
+      margin-left: auto;
+      text-align: right;
+      line-height: 1.35;
+      white-space: normal;
+    }
+    .model-detail__description {
+      margin: 12px 0 14px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .model-detail__facts {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+    }
+    .model-detail__facts div {
+      display: grid;
+      gap: 4px;
+    }
+    .model-detail__facts dt {
+      margin: 0;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--subtle);
+    }
+    .model-detail__facts dd {
+      margin: 0;
+      font-weight: 500;
+      color: var(--text);
+    }
+    .model-highlight {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      background: rgba(29, 78, 216, 0.12);
+      color: var(--accent-dark);
+      font-size: 0.74rem;
+      font-weight: 600;
+    }
+    .model-lineup {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .model-lineup[hidden] {
+      display: none;
+    }
+    .model-lineup__title {
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--subtle);
+    }
+    .model-lineup__grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    .model-lineup__button {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.96);
+      text-align: left;
+      display: grid;
+      gap: 4px;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+    .model-lineup__button:hover {
+      border-color: var(--accent);
+      box-shadow: 0 14px 34px rgba(29, 78, 216, 0.16);
+      transform: translateY(-1px);
+    }
+    .model-lineup__button.is-active {
+      border-color: var(--accent);
+      background: rgba(29, 78, 216, 0.08);
+      box-shadow: 0 16px 38px rgba(29, 78, 216, 0.2);
+    }
+    .model-lineup__name {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .model-lineup__tag {
+      font-size: 0.82rem;
+      color: var(--muted);
     }
     .provider-option {
       display: grid;
@@ -708,6 +843,13 @@ export function renderAdminDashboard(props) {
       header { padding: 28px; }
       .tabbed-card { padding: 24px; }
       .tab-panel { padding: 24px; }
+      .model-lineup__grid { grid-template-columns: 1fr; }
+    }
+    @media (min-width: 1100px) {
+      .model-inspector {
+        grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.9fr);
+        align-items: start;
+      }
     }
   </style>
 </head>
@@ -804,9 +946,15 @@ export function renderAdminDashboard(props) {
               value="${escapeHtml(provider.model || defaultModel)}"
               autocomplete="off"
               spellcheck="false"
+              list="${escapeHtml(modelDatalistId)}"
               data-model-input
             />
+            ${modelDatalist}
             <p class="field-helper">Curated defaults are pre-filled. Override with an exact identifier to target preview builds.</p>
+            <div class="model-inspector" data-model-inspector>
+              <div class="model-inspector__detail" data-model-detail-container>${modelDetailPanel}</div>
+              <div class="model-inspector__lineup" data-model-lineup-container>${modelLineup}</div>
+            </div>
           </div>
           <details class="advanced" data-advanced ${advancedOpen ? "open" : ""}>
             <summary>
@@ -1043,29 +1191,32 @@ export function renderAdminDashboard(props) {
       const statusLimit = document.querySelector("[data-status='historyLimit']");
       const statusBytes = document.querySelector("[data-status='historyBytes']");
 
-      const providerForm = document.querySelector("[data-provider-form]");
-      if (providerForm instanceof HTMLFormElement) {
-        const apiInput = providerForm.querySelector("[data-api-key-input]");
-        const toggleKeyButton = providerForm.querySelector("[data-api-key-toggle]");
-        const hint = providerForm.querySelector(".api-key-hint");
-        const providerContainer = providerForm.querySelector("[data-provider-options]");
-        const providerRadios = providerContainer ? Array.from(providerContainer.querySelectorAll("input[name='provider']")) : [];
-        const providerCards = providerContainer ? Array.from(providerContainer.querySelectorAll(".provider-option")) : [];
-        const providerActivePill = providerForm.querySelector("[data-provider-active]");
-        const providerModelPill = providerForm.querySelector("[data-provider-model]");
-        const providerLabelTargets = Array.from(providerForm.querySelectorAll("[data-provider-label-text]"));
-        const modelLabelEl = providerForm.querySelector("[data-model-label]");
-        const modelInput = providerForm.querySelector("[data-model-input]");
-        const maxTokensInput = providerForm.querySelector("[data-max-tokens]");
-        const reasoningModeWrapper = providerForm.querySelector("[data-reasoning-mode-wrapper]");
-        const reasoningModeSelect = providerForm.querySelector("[data-reasoning-mode]");
-        const reasoningTokensWrapper = providerForm.querySelector("[data-reasoning-tokens-wrapper]");
-        const reasoningTokensInput = providerForm.querySelector("[data-reasoning-tokens]");
-        const reasoningHelper = providerForm.querySelector("[data-reasoning-helper]");
-        const advanced = providerForm.querySelector("[data-advanced]");
-        const providerLabels = ${providerLabelsPayload};
-        const placeholderMap = ${providerPlaceholdersPayload};
-        const modelDefaults = ${modelDefaultsPayload};
+        const providerForm = document.querySelector("[data-provider-form]");
+        if (providerForm instanceof HTMLFormElement) {
+          const apiInput = providerForm.querySelector("[data-api-key-input]");
+          const toggleKeyButton = providerForm.querySelector("[data-api-key-toggle]");
+          const hint = providerForm.querySelector(".api-key-hint");
+          const providerContainer = providerForm.querySelector("[data-provider-options]");
+          const providerRadios = providerContainer ? Array.from(providerContainer.querySelectorAll("input[name='provider']")) : [];
+          const providerCards = providerContainer ? Array.from(providerContainer.querySelectorAll(".provider-option")) : [];
+          const providerActivePill = providerForm.querySelector("[data-provider-active]");
+          const providerModelPill = providerForm.querySelector("[data-provider-model]");
+          const providerLabelTargets = Array.from(providerForm.querySelectorAll("[data-provider-label-text]"));
+          const modelLabelEl = providerForm.querySelector("[data-model-label]");
+          const modelInput = providerForm.querySelector("[data-model-input]");
+          const modelDetailContainer = providerForm.querySelector("[data-model-detail-container]");
+          const modelLineupContainer = providerForm.querySelector("[data-model-lineup-container]");
+          const maxTokensInput = providerForm.querySelector("[data-max-tokens]");
+          const reasoningModeWrapper = providerForm.querySelector("[data-reasoning-mode-wrapper]");
+          const reasoningModeSelect = providerForm.querySelector("[data-reasoning-mode]");
+          const reasoningTokensWrapper = providerForm.querySelector("[data-reasoning-tokens-wrapper]");
+          const reasoningTokensInput = providerForm.querySelector("[data-reasoning-tokens]");
+          const reasoningHelper = providerForm.querySelector("[data-reasoning-helper]");
+          const advanced = providerForm.querySelector("[data-advanced]");
+          const modelCatalog = ${modelCatalogJson};
+          const providerLabels = ${providerLabelsPayload};
+          const placeholderMap = ${providerPlaceholdersPayload};
+          const modelDefaults = ${modelDefaultsPayload};
         const maxTokenDefaults = ${maxTokenDefaultsPayload};
         const providerKeyStatus = ${keyStatusPayload};
         const reasoningDefaults = ${reasoningDefaultsPayload};
@@ -1099,6 +1250,190 @@ export function renderAdminDashboard(props) {
           if (reasoningHelper instanceof HTMLElement) {
             reasoningHelper.textContent = reasoningDescriptions[mode] || "";
           }
+        };
+
+        const getModelList = (provider) => {
+          const list = modelCatalog[provider];
+          return Array.isArray(list) ? [...list] : [];
+        };
+
+        const updateModelDetailPanel = (provider, value) => {
+          if (!(modelDetailContainer instanceof HTMLElement)) {
+            return;
+          }
+          const list = getModelList(provider);
+          const trimmed = typeof value === 'string' ? value.trim() : '';
+          const fallback = trimmed || modelDefaults[provider] || (list[0] ? list[0].value : '');
+          const metadata = list.find((model) => model.value === fallback);
+          modelDetailContainer.innerHTML = '';
+          const detail = document.createElement('div');
+          detail.className = 'model-detail';
+          if (metadata) {
+            detail.innerHTML = [
+              '<div class="model-detail__header">',
+              '  <div>',
+              '    <h3 data-model-name></h3>',
+              '    <p class="model-detail__tagline" data-model-tagline></p>',
+              '  </div>',
+              '  <div class="model-detail__cost" data-model-cost></div>',
+              '</div>',
+              '<p class="model-detail__description" data-model-description></p>',
+              '<dl class="model-detail__facts">',
+              '  <div><dt>Context window</dt><dd data-model-context></dd></div>',
+              '  <div><dt>Recommended for</dt><dd data-model-recommended></dd></div>',
+              '  <div><dt>Highlights</dt><dd data-model-highlights></dd></div>',
+              '  <div><dt>Release</dt><dd data-model-release></dd></div>',
+              '</dl>',
+            ].join('');
+            const name = detail.querySelector('[data-model-name]');
+            const tagline = detail.querySelector('[data-model-tagline]');
+            const description = detail.querySelector('[data-model-description]');
+            const context = detail.querySelector('[data-model-context]');
+            const recommended = detail.querySelector('[data-model-recommended]');
+            const highlights = detail.querySelector('[data-model-highlights]');
+            const release = detail.querySelector('[data-model-release]');
+            const costEl = detail.querySelector('[data-model-cost]');
+            if (name) name.textContent = metadata.label;
+            if (tagline) tagline.textContent = metadata.tagline || '';
+            if (description) description.textContent = metadata.description || '';
+            if (context) {
+              if (typeof metadata.contextWindow === 'number') {
+                const unit = metadata.contextWindowUnit || 'tokens';
+                context.textContent = metadata.contextWindow.toLocaleString() + ' ' + unit;
+              } else {
+                context.textContent = '—';
+              }
+            }
+            if (recommended) {
+              recommended.textContent = metadata.recommendedFor || 'Versatile creative work';
+            }
+            if (highlights) {
+              highlights.innerHTML = '';
+              if (Array.isArray(metadata.highlights) && metadata.highlights.length) {
+                metadata.highlights.forEach((item) => {
+                  const badge = document.createElement('span');
+                  badge.className = 'model-highlight';
+                  badge.textContent = item;
+                  highlights.appendChild(badge);
+                  highlights.appendChild(document.createTextNode(' '));
+                });
+              } else {
+                highlights.textContent = '—';
+              }
+            }
+            if (release) {
+              release.textContent = metadata.release || '—';
+            }
+          if (costEl) {
+            const cost = metadata.cost;
+            const parts = [];
+            if (cost && typeof cost.input === 'number') {
+              parts.push('$' + cost.input.toFixed(cost.input >= 1 ? 2 : 3) + ' in');
+            }
+            if (cost && typeof cost.output === 'number') {
+              parts.push('$' + cost.output.toFixed(cost.output >= 1 ? 2 : 3) + ' out');
+            }
+            if (cost && typeof cost.reasoning === 'number') {
+              parts.push('$' + cost.reasoning.toFixed(cost.reasoning >= 1 ? 2 : 3) + ' reasoning');
+            }
+            costEl.textContent = parts.length
+              ? parts.join(' · ') + ' · ' + cost.currency + '/' + cost.unit
+              : 'Cost info coming soon';
+          }
+        } else {
+          detail.innerHTML = [
+            '<div class="model-detail__header">',
+            '  <div>',
+            '    <h3 data-model-name></h3>',
+            '    <p class="model-detail__tagline">Custom model</p>',
+            '  </div>',
+            '</div>',
+            '<p class="model-detail__description"></p>',
+            '<dl class="model-detail__facts">',
+            '  <div><dt>Context window</dt><dd>—</dd></div>',
+            '  <div><dt>Recommended for</dt><dd>Define your own sweet spot.</dd></div>',
+            '  <div><dt>Highlights</dt><dd>—</dd></div>',
+            '  <div><dt>Cost</dt><dd>Cost info coming soon</dd></div>',
+            '</dl>',
+          ].join('');
+          const name = detail.querySelector('[data-model-name]');
+          const desc = detail.querySelector('[data-model-description]');
+          if (name) name.textContent = trimmed || value || 'Custom model';
+          if (desc) {
+            desc.textContent =
+                'Provide a custom model identifier supported by the provider. Tune token budgets below to match the tier.';
+            }
+          }
+          modelDetailContainer.appendChild(detail);
+        };
+
+        const updateModelLineup = (provider, value) => {
+          if (!(modelLineupContainer instanceof HTMLElement)) {
+            return;
+          }
+          modelLineupContainer.innerHTML = '';
+          const list = getModelList(provider);
+          let featured = list.filter((model) => model && model.featured);
+          if (featured.length === 0) {
+            featured = list.slice(0, 4);
+          }
+          if (featured.length === 0) {
+            modelLineupContainer.hidden = true;
+            return;
+          }
+          modelLineupContainer.hidden = false;
+          const trimmed = typeof value === 'string' ? value.trim() : '';
+          const activeValue = trimmed || modelDefaults[provider] || (featured[0] ? featured[0].value : '');
+          const title = document.createElement('span');
+          title.className = 'model-lineup__title';
+          title.textContent = 'Quick swap';
+          const grid = document.createElement('div');
+          grid.className = 'model-lineup__grid';
+          featured.forEach((model) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'model-lineup__button';
+            if (model.value === activeValue) {
+              button.classList.add('is-active');
+            }
+            const name = document.createElement('span');
+            name.className = 'model-lineup__name';
+            name.textContent = model.label;
+            const tag = document.createElement('span');
+            tag.className = 'model-lineup__tag';
+            tag.textContent = model.tagline || '';
+            button.appendChild(name);
+            button.appendChild(tag);
+            button.addEventListener('click', () => {
+              applyModelValue(model.value, { focusInput: true });
+            });
+            grid.appendChild(button);
+          });
+          modelLineupContainer.appendChild(title);
+          modelLineupContainer.appendChild(grid);
+        };
+
+        const applyModelValue = (rawValue, options = {}) => {
+          const actual = typeof rawValue === 'string' ? rawValue : '';
+          const trimmed = actual.trim();
+          if (modelInput instanceof HTMLInputElement) {
+            if (modelInput.value !== actual) {
+              modelInput.value = actual;
+            }
+            if (options.focusInput) {
+              modelInput.focus();
+              const end = modelInput.value.length;
+              try {
+                modelInput.setSelectionRange(end, end);
+              } catch (error) {
+                // ignore selection errors in unsupported browsers
+              }
+            }
+          }
+          cachedModelByProvider[currentProvider] = actual;
+          updateModelPill();
+          updateModelDetailPanel(currentProvider, trimmed || actual);
+          updateModelLineup(currentProvider, trimmed || actual);
         };
 
         const setActiveCard = (activeProvider) => {
@@ -1221,16 +1556,11 @@ export function renderAdminDashboard(props) {
           }
           currentProvider = nextProvider;
           const label = providerLabels[nextProvider] || nextProvider;
-          if (modelInput instanceof HTMLInputElement) {
-            const cachedModel = cachedModelByProvider[nextProvider];
-            if (typeof cachedModel === "string") {
-              modelInput.value = cachedModel;
-            } else {
-              const fallbackModel = modelDefaults[nextProvider];
-              modelInput.value = typeof fallbackModel === "string" ? fallbackModel : "";
-            }
-            updateModelPill();
-          }
+          const cachedModel = cachedModelByProvider[nextProvider];
+          const fallbackModel = typeof cachedModel === "string" && cachedModel.trim().length > 0
+            ? cachedModel
+            : modelDefaults[nextProvider] || "";
+          applyModelValue(fallbackModel, { focusInput: false });
           syncApiInput(nextProvider);
           configureReasoning(nextProvider);
           setActiveCard(nextProvider);
@@ -1239,9 +1569,6 @@ export function renderAdminDashboard(props) {
             if (capability.mode || capability.tokens) {
               advanced.open = true;
             }
-          }
-          if (modelInput instanceof HTMLInputElement) {
-            cachedModelByProvider[nextProvider] = modelInput.value;
           }
         };
 
@@ -1274,8 +1601,7 @@ export function renderAdminDashboard(props) {
 
         if (modelInput instanceof HTMLInputElement) {
           modelInput.addEventListener("input", () => {
-            cachedModelByProvider[currentProvider] = modelInput.value;
-            updateModelPill();
+            applyModelValue(modelInput.value, { focusInput: false });
           });
         }
 
@@ -1295,6 +1621,9 @@ export function renderAdminDashboard(props) {
         setActiveCard(currentProvider);
         syncApiInput(currentProvider);
         configureReasoning(currentProvider);
+        if (modelInput instanceof HTMLInputElement) {
+          applyModelValue(modelInput.value, { focusInput: false });
+        }
         updateModelPill();
       }
 

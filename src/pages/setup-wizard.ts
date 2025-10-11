@@ -14,81 +14,14 @@ import {
   PROVIDER_REASONING_CAPABILITIES,
   REASONING_TOKEN_MIN_BY_PROVIDER,
 } from "../constants/providers.js";
+import {
+  renderModelDetailPanel,
+  renderModelLineup,
+  getModelOptionList,
+  serializeModelCatalogForClient,
+} from "./components/model-inspector.js";
 
 type ProviderKeyStatus = { hasKey: boolean; verified: boolean };
-
-const PROVIDER_MODEL_CHOICES: Record<
-  ModelProvider,
-  Array<{ value: string; label: string }>
-> = {
-  openai: [
-    { value: DEFAULT_MODEL_BY_PROVIDER.openai, label: "GPT-5 (default)" },
-    { value: "gpt-5-2025-08-07", label: "GPT-5 · 2025-08-07" },
-    { value: "gpt-5-mini", label: "GPT-5 Mini" },
-    { value: "gpt-5-mini-2025-08-07", label: "GPT-5 Mini · 2025-08-07" },
-    { value: "gpt-5-nano", label: "GPT-5 Nano" },
-    { value: "gpt-5-nano-2025-08-07", label: "GPT-5 Nano · 2025-08-07" },
-    { value: "gpt-4.5-preview", label: "GPT-4.5 Preview" },
-    {
-      value: "gpt-4.5-preview-2025-02-27",
-      label: "GPT-4.5 Preview · 2025-02-27",
-    },
-    { value: "gpt-4o", label: "GPT-4o" },
-    { value: "chatgpt-4o-latest", label: "ChatGPT-4o Latest" },
-    { value: "gpt-4o-mini", label: "GPT-4o Mini" },
-    { value: "gpt-4.1", label: "GPT-4.1" },
-    { value: "gpt-4.1-mini", label: "GPT-4.1 Mini" },
-    { value: "gpt-4.1-nano", label: "GPT-4.1 Nano" },
-    { value: "gpt-4", label: "GPT-4" },
-    { value: "gpt-4-32k", label: "GPT-4 32K" },
-    { value: "gpt-4-1106-preview", label: "GPT-4 1106 Preview" },
-    { value: "gpt-4-0125-preview", label: "GPT-4 0125 Preview" },
-    { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
-    { value: "gpt-4-turbo-2024-04-09", label: "GPT-4 Turbo · 2024-04-09" },
-    { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
-    { value: "gpt-3.5-turbo-16k", label: "GPT-3.5 Turbo 16K" },
-    { value: "o1", label: "o1" },
-    { value: "o1-2024-12-17", label: "o1 · 2024-12-17" },
-    { value: "o1-preview", label: "o1 Preview" },
-    { value: "o1-mini", label: "o1 Mini" },
-    { value: "o3", label: "o3" },
-    { value: "o3-mini", label: "o3 Mini" },
-    { value: "o4-mini", label: "o4 Mini" },
-  ],
-  gemini: [
-    {
-      value: DEFAULT_MODEL_BY_PROVIDER.gemini,
-      label: "Gemini 2.5 Flash (default)",
-    },
-    { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
-    { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-    { value: "gemini-2.0-pro-exp", label: "Gemini 2.0 Pro" },
-    { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
-  ],
-  anthropic: [
-    {
-      value: DEFAULT_MODEL_BY_PROVIDER.anthropic,
-      label: "Claude 4.5 Sonnet (default)",
-    },
-    { value: "claude-sonnet-4-20250514", label: "Claude Sonnet 4" },
-    { value: "claude-3-7-sonnet-latest", label: "Claude 3.7 Sonnet" },
-    { value: "claude-opus-4-1-20250805", label: "Claude Opus 4.1" },
-    { value: "claude-opus-4-20250514", label: "Claude Opus 4" },
-    { value: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku" },
-    { value: "claude-3-haiku-20240307", label: "Claude 3 Haiku" },
-  ],
-  grok: [
-    {
-      value: DEFAULT_MODEL_BY_PROVIDER.grok,
-      label: "Grok 4 Fast Reasoning (default)",
-    },
-    { value: "grok-4-fast-non-reasoning", label: "Grok 4 Fast Non-Reasoning" },
-    { value: "grok-4-0709", label: "Grok 4 0709" },
-    { value: "grok-3", label: "Grok 3" },
-    { value: "grok-3-mini", label: "Grok 3 Mini" },
-    { value: "grok-code-fast-1", label: "Grok Code Fast 1" },
-  ],
-};
 
 export type SetupWizardStep = "provider" | "brief";
 
@@ -394,6 +327,133 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
     font-size: 0.85rem;
     color: var(--subtle);
   }
+  .model-inspector {
+    display: grid;
+    gap: 16px;
+    margin: 4px 0 12px;
+  }
+  .model-detail {
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: var(--surface-glass);
+    padding: 18px 20px;
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+  }
+  .model-detail__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    column-gap: 16px;
+    row-gap: 10px;
+  }
+  .model-detail__header > div:first-child {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+  .model-detail__header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text);
+  }
+  .model-detail__tagline {
+    margin: 4px 0 0;
+    font-size: 0.88rem;
+    color: var(--subtle);
+  }
+  .model-detail__cost {
+    font-weight: 600;
+    color: var(--accent);
+    font-size: 0.9rem;
+    margin-left: auto;
+    text-align: right;
+    line-height: 1.35;
+    white-space: normal;
+  }
+  .model-detail__description {
+    margin: 12px 0 14px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .model-detail__facts {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+  }
+  .model-detail__facts div {
+    display: grid;
+    gap: 4px;
+  }
+  .model-detail__facts dt {
+    margin: 0;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--subtle);
+  }
+  .model-detail__facts dd {
+    margin: 0;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .model-highlight {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .model-lineup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .model-lineup[hidden] {
+    display: none;
+  }
+  .model-lineup__title {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--subtle);
+  }
+  .model-lineup__grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+  .model-lineup__button {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 16px;
+    background: var(--surface);
+    text-align: left;
+    display: grid;
+    gap: 4px;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+  .model-lineup__button:hover {
+    border-color: var(--accent);
+    box-shadow: 0 14px 36px rgba(29, 78, 216, 0.14);
+    transform: translateY(-1px);
+  }
+  .model-lineup__button.is-active {
+    border-color: var(--accent);
+    box-shadow: 0 16px 36px rgba(29, 78, 216, 0.18);
+    background: rgba(29, 78, 216, 0.08);
+  }
+  .model-lineup__name {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.95rem;
+  }
+  .model-lineup__tag {
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
   .key-status {
     margin: 8px 0 0;
     font-size: 0.9rem;
@@ -524,6 +584,15 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
     .secondary-link {
       width: 100%;
       justify-content: center;
+    }
+    .model-lineup__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (min-width: 880px) {
+    .model-inspector {
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+      align-items: start;
     }
   }
 </style>
@@ -690,13 +759,13 @@ function renderProviderStep(options: ProviderStepOptions): string {
   if (!initialModel) {
     initialModel = defaultModel;
   }
-  const suggestions = getModelSuggestions(selectedProvider, initialModel);
-  const suggestionValues = suggestions.map((option) => option.value);
+  const suggestionOptions = getModelOptionList(selectedProvider, initialModel);
+  const suggestionValues = suggestionOptions.map((option) => option.value);
   const includesInitial = suggestionValues.includes(initialModel);
   const selectValue = includesInitial ? initialModel : "__custom";
   const customValue = includesInitial ? "" : initialModel;
   const modelOptionsId = "model-options";
-  const modelOptions = suggestions
+  const modelOptions = suggestionOptions
     .map((option) => {
       const selectedAttr = option.value === selectValue ? " selected" : "";
       return `<option value="${escapeHtml(
@@ -704,6 +773,8 @@ function renderProviderStep(options: ProviderStepOptions): string {
       )}"${selectedAttr}>${escapeHtml(option.label)}</option>`;
     })
     .join("\n");
+  const detailPanel = renderModelDetailPanel(selectedProvider, initialModel);
+  const lineupMarkup = renderModelLineup(selectedProvider, initialModel);
 
   return `<section class="card">
     <div>${statusPill}</div>
@@ -742,6 +813,10 @@ function renderProviderStep(options: ProviderStepOptions): string {
           placeholder="Enter the exact model ID"
         />
         <p class="model-hint">Need a specific tier or preview build? Paste the full model identifier here.</p>
+      </div>
+      <div class="model-inspector" data-model-inspector>
+        <div class="model-inspector__detail" data-model-detail-container>${detailPanel}</div>
+        <div class="model-inspector__lineup" data-model-lineup-container>${lineupMarkup}</div>
       </div>
       <label for="apiKey">
         <span data-provider-label-text>${escapeHtml(
@@ -844,18 +919,6 @@ interface BriefStepOptions {
   briefValue?: string;
 }
 
-function getModelSuggestions(
-  provider: ModelProvider,
-  selectedModel: string
-): Array<{ value: string; label: string }> {
-  const base = [...(PROVIDER_MODEL_CHOICES[provider] ?? [])];
-  const trimmed = selectedModel.trim();
-  if (trimmed.length > 0 && !base.some((option) => option.value === trimmed)) {
-    base.push({ value: trimmed, label: `${trimmed} (current)` });
-  }
-  return base;
-}
-
 function renderBriefStep(options: BriefStepOptions): string {
   const { briefAction, setupPath, adminPath, briefValue } = options;
   const value = briefValue ?? "";
@@ -892,10 +955,7 @@ function renderProviderScript(
   maxOutputTokens: number,
   providerKeyStatuses: Record<ModelProvider, ProviderKeyStatus>
 ): string {
-  const modelMapJson = JSON.stringify(PROVIDER_MODEL_CHOICES).replace(
-    /</g,
-    "\\u003c"
-  );
+  const modelCatalogJson = serializeModelCatalogForClient();
   const defaultModelJson = JSON.stringify(DEFAULT_MODEL_BY_PROVIDER).replace(
     /</g,
     "\\u003c"
@@ -939,7 +999,7 @@ function renderProviderScript(
   const script = `
   <script>
     (() => {
-      const modelMap = ${modelMapJson};
+      const modelCatalog = ${modelCatalogJson};
       const defaultModels = ${defaultModelJson};
       const providerLabels = ${providerLabelJson};
       const placeholderMap = ${placeholderJson};
@@ -952,6 +1012,7 @@ function renderProviderScript(
       const providerKeyStatus = ${providerStatusJson};
       const initialProviderKeyStatus = JSON.parse(JSON.stringify(providerKeyStatus));
       const cachedApiInputs = {};
+      const cachedModelByProvider = Object.create(null);
       const copyTemplates = {
         verified: "Pick your creative partner. We already have a verified {provider} key on file—leave the field blank to keep it, or paste a new one to replace it.",
         detected: "Pick your creative partner. We detected a {provider} key from your environment—continue to verify it or paste a different key.",
@@ -980,6 +1041,8 @@ function renderProviderScript(
       const modelSelect = document.querySelector('[data-model-select]');
       const customWrapper = document.querySelector('[data-model-custom]');
       const customInput = document.querySelector('[data-model-custom-input]');
+      const detailContainer = document.querySelector('[data-model-detail-container]');
+      const lineupContainer = document.querySelector('[data-model-lineup-container]');
       const maxTokensInput = document.querySelector('[data-max-tokens]');
       const reasoningModeWrapper = document.querySelector('[data-reasoning-mode-wrapper]');
       const reasoningModeSelect = document.querySelector('[data-reasoning-mode]');
@@ -1049,11 +1112,179 @@ function renderProviderScript(
         applyKeyVariant(provider, providerLabel, overrideVariant);
       };
 
+      const getModelList = (provider) => {
+        const list = modelCatalog[provider];
+        return Array.isArray(list) ? [...list] : [];
+      };
+
+      const updateModelDetail = (provider, value) => {
+        if (!(detailContainer instanceof HTMLElement)) {
+          return;
+        }
+        const trimmed = value && typeof value === 'string' ? value.trim() : '';
+        const list = getModelList(provider);
+        const fallback = trimmed || defaultModels[provider] || (list[0] ? list[0].value : '');
+        const metadata = list.find((model) => model.value === fallback);
+        detailContainer.innerHTML = '';
+        const detail = document.createElement('div');
+        detail.className = 'model-detail';
+        if (metadata) {
+          detail.innerHTML = [
+            '<div class="model-detail__header">',
+            '  <div>',
+            '    <h3 data-model-name></h3>',
+            '    <p class="model-detail__tagline" data-model-tagline></p>',
+            '  </div>',
+            '  <div class="model-detail__cost" data-model-cost></div>',
+            '</div>',
+            '<p class="model-detail__description" data-model-description></p>',
+            '<dl class="model-detail__facts">',
+            '  <div><dt>Context window</dt><dd data-model-context></dd></div>',
+            '  <div><dt>Recommended for</dt><dd data-model-recommended></dd></div>',
+            '  <div><dt>Highlights</dt><dd data-model-highlights></dd></div>',
+            '  <div><dt>Release</dt><dd data-model-release></dd></div>',
+            '</dl>',
+          ].join('');
+          const name = detail.querySelector('[data-model-name]');
+          const tagline = detail.querySelector('[data-model-tagline]');
+          const description = detail.querySelector('[data-model-description]');
+          const context = detail.querySelector('[data-model-context]');
+          const recommended = detail.querySelector('[data-model-recommended]');
+          const highlights = detail.querySelector('[data-model-highlights]');
+          const release = detail.querySelector('[data-model-release]');
+          const costEl = detail.querySelector('[data-model-cost]');
+          if (name) name.textContent = metadata.label;
+          if (tagline) tagline.textContent = metadata.tagline || '';
+          if (description) description.textContent = metadata.description || '';
+          if (context) {
+            if (typeof metadata.contextWindow === 'number') {
+              const unit = metadata.contextWindowUnit || 'tokens';
+              context.textContent = metadata.contextWindow.toLocaleString() + ' ' + unit;
+            } else {
+              context.textContent = '—';
+            }
+          }
+          if (recommended) {
+            recommended.textContent = metadata.recommendedFor || 'Versatile creative work';
+          }
+          if (highlights) {
+            highlights.innerHTML = '';
+            if (Array.isArray(metadata.highlights) && metadata.highlights.length) {
+              metadata.highlights.forEach((item) => {
+                const badge = document.createElement('span');
+                badge.className = 'model-highlight';
+                badge.textContent = item;
+                highlights.appendChild(badge);
+                highlights.appendChild(document.createTextNode(' '));
+              });
+            } else {
+              highlights.textContent = '—';
+            }
+          }
+          if (release) {
+            release.textContent = metadata.release || '—';
+          }
+          if (costEl) {
+            const cost = metadata.cost;
+            const parts = [];
+            if (cost && typeof cost.input === 'number') {
+              parts.push('$' + cost.input.toFixed(cost.input >= 1 ? 2 : 3) + ' in');
+            }
+            if (cost && typeof cost.output === 'number') {
+              parts.push('$' + cost.output.toFixed(cost.output >= 1 ? 2 : 3) + ' out');
+            }
+            if (cost && typeof cost.reasoning === 'number') {
+              parts.push('$' + cost.reasoning.toFixed(cost.reasoning >= 1 ? 2 : 3) + ' reasoning');
+            }
+            costEl.textContent = parts.length
+              ? parts.join(' · ') + ' · ' + cost.currency + '/' + cost.unit
+              : 'Cost info coming soon';
+          }
+        } else {
+          detail.innerHTML = [
+            '<div class="model-detail__header">',
+            '  <div>',
+            '    <h3 data-model-name></h3>',
+            '    <p class="model-detail__tagline">Custom model</p>',
+            '  </div>',
+            '</div>',
+            '<p class="model-detail__description"></p>',
+            '<dl class="model-detail__facts">',
+            '  <div><dt>Context window</dt><dd>—</dd></div>',
+            '  <div><dt>Recommended for</dt><dd>Define your own sweet spot.</dd></div>',
+            '  <div><dt>Highlights</dt><dd>—</dd></div>',
+            '  <div><dt>Cost</dt><dd>Cost info coming soon</dd></div>',
+            '</dl>',
+          ].join('');
+          const name = detail.querySelector('[data-model-name]');
+          if (name) name.textContent = trimmed || 'Custom model';
+          const desc = detail.querySelector('[data-model-description]');
+          if (desc) {
+            desc.textContent =
+              'Provide a custom model identifier supported by the provider. You can adjust token budgets below.';
+          }
+        }
+        detailContainer.appendChild(detail);
+      };
+
+      const updateModelLineup = (provider, value) => {
+        if (!(lineupContainer instanceof HTMLElement)) {
+          return;
+        }
+        lineupContainer.innerHTML = '';
+        const list = getModelList(provider);
+        let featured = list.filter((model) => model && model.featured);
+        if (featured.length === 0) {
+          featured = list.slice(0, 4);
+        }
+        if (featured.length === 0) {
+          lineupContainer.hidden = true;
+          return;
+        }
+        lineupContainer.hidden = false;
+        const trimmed = typeof value === 'string' ? value.trim() : '';
+        const activeValue = trimmed || defaultModels[provider] || (featured[0] ? featured[0].value : '');
+        const title = document.createElement('span');
+        title.className = 'model-lineup__title';
+        title.textContent = 'Quick swap';
+        const grid = document.createElement('div');
+        grid.className = 'model-lineup__grid';
+        featured.forEach((model) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'model-lineup__button';
+          if (model.value === activeValue) {
+            button.classList.add('is-active');
+          }
+          const name = document.createElement('span');
+          name.className = 'model-lineup__name';
+          name.textContent = model.label;
+          const tag = document.createElement('span');
+          tag.className = 'model-lineup__tag';
+          tag.textContent = model.tagline || '';
+          button.appendChild(name);
+          button.appendChild(tag);
+          button.addEventListener('click', () => {
+            selectModel(model.value, { focus: false });
+          });
+          grid.appendChild(button);
+        });
+        lineupContainer.appendChild(title);
+        lineupContainer.appendChild(grid);
+      };
+
+      const updateModelPanels = (provider, value) => {
+        updateModelDetail(provider, value);
+        updateModelLineup(provider, value);
+      };
+
       const ensureModelValue = (value) => {
         currentModel = value;
         if (modelValueInput) {
           modelValueInput.value = value;
         }
+        cachedModelByProvider[activeProvider] = value;
+        updateModelPanels(activeProvider, value);
       };
 
       const showCustom = (value, shouldFocus) => {
@@ -1234,7 +1465,7 @@ function renderProviderScript(
         if (!(modelSelect instanceof HTMLSelectElement)) {
           return;
         }
-        const base = modelMap[provider] ? [...modelMap[provider]] : [];
+        const base = getModelList(provider);
         const trimmedCurrent = (preserveSelection ? currentModel : '').trim();
         if (trimmedCurrent.length > 0 && !base.some((option) => option.value === trimmedCurrent)) {
           base.push({ value: trimmedCurrent, label: trimmedCurrent + ' (current)' });
@@ -1273,6 +1504,45 @@ function renderProviderScript(
         }
       };
 
+      function selectModel(value, options = {}) {
+        const trimmed = typeof value === 'string' ? value.trim() : '';
+        const list = getModelList(activeProvider);
+        const hasSuggestion = trimmed && list.some((model) => model.value === trimmed);
+        if (modelSelect instanceof HTMLSelectElement) {
+          if (hasSuggestion) {
+            const exists = Array.from(modelSelect.options).some((opt) => opt.value === trimmed);
+            if (!exists) {
+              rebuildModelOptions(activeProvider, false);
+            }
+            modelSelect.value = trimmed;
+          } else if (trimmed) {
+            modelSelect.value = '__custom';
+          }
+        }
+        if (hasSuggestion) {
+          hideCustom();
+          ensureModelValue(trimmed);
+        } else if (trimmed) {
+          showCustom(trimmed, options.focus !== false);
+        } else {
+          const fallback = defaultModels[activeProvider] || '';
+          if (fallback) {
+            if (modelSelect instanceof HTMLSelectElement) {
+              const exists = Array.from(modelSelect.options).some((opt) => opt.value === fallback);
+              if (!exists) {
+                rebuildModelOptions(activeProvider, false);
+              }
+              modelSelect.value = fallback;
+            }
+            hideCustom();
+            ensureModelValue(fallback);
+          } else {
+            hideCustom();
+            ensureModelValue('');
+          }
+        }
+      }
+
       const applyProvider = (radio, preserveModel) => {
         if (!(radio instanceof HTMLInputElement)) return;
         const previousProvider = activeProvider;
@@ -1283,13 +1553,20 @@ function renderProviderScript(
         if (apiInput instanceof HTMLInputElement) {
           cachedApiInputs[previousProvider] = apiInput.value;
         }
+        cachedModelByProvider[previousProvider] = currentModel;
         activeProvider = radio.value;
         cachedReasoningTokens = cachedReasoningTokensByProvider[activeProvider] || '';
         setActiveOption(radio);
-        if (!preserveModel) {
-          ensureModelValue('');
+        let nextModel = preserveModel ? currentModel : '';
+        const cachedModel = cachedModelByProvider[activeProvider];
+        if (typeof cachedModel === 'string' && cachedModel.trim().length > 0) {
+          nextModel = cachedModel;
+        } else if (!preserveModel) {
+          nextModel = defaultModels[activeProvider] || '';
         }
-        rebuildModelOptions(activeProvider, preserveModel);
+        currentModel = nextModel || '';
+        rebuildModelOptions(activeProvider, true);
+        selectModel(currentModel, { focus: false });
         let overrideVariant;
         const providerLabel = radio.dataset.providerLabel || providerLabels[activeProvider] || activeProvider;
         if (apiInput instanceof HTMLInputElement) {
@@ -1335,9 +1612,7 @@ function renderProviderScript(
           if (value === '__custom') {
             showCustom(currentModel, true);
           } else {
-            hideCustom();
-            ensureModelValue(value);
-            currentModel = value;
+            selectModel(value, { focus: false });
           }
         });
       }

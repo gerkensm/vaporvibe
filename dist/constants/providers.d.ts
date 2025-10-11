@@ -1,4 +1,5 @@
 import type { ModelProvider, ReasoningMode } from "../types.js";
+import { type ModelMetadata, getModelOptions, getModelMetadata, getFeaturedModels } from "../llm/model-catalog.js";
 export interface ProviderChoice {
     value: ModelProvider;
     title: string;
@@ -22,3 +23,5 @@ export declare const PROVIDER_REASONING_CAPABILITIES: Record<ModelProvider, {
 }>;
 export declare const REASONING_TOKEN_MIN_BY_PROVIDER: Record<ModelProvider, number>;
 export declare function getDefaultReasoningTokens(provider: ModelProvider): number | undefined;
+export declare const PROVIDER_MODEL_METADATA: Record<ModelProvider, ModelMetadata[]>;
+export { getModelOptions, getModelMetadata, getFeaturedModels };

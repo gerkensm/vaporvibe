@@ -1,3 +1,4 @@
+import { PROVIDER_METADATA } from "./llm/model-catalog.js";
 export const INSTRUCTIONS_FIELD = "LLM_WEB_SERVER_INSTRUCTIONS";
 export const AUTO_IGNORED_PATHS = new Set([
     "/favicon.ico",
@@ -15,20 +16,24 @@ export const AUTO_IGNORED_PATHS = new Set([
     "/sw.js",
 ]);
 export const DEFAULT_PORT = 3000;
-export const DEFAULT_MAX_OUTPUT_TOKENS = 128_000;
-export const DEFAULT_OPENAI_MODEL = "gpt-5";
-export const DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-5-20250929";
-export const DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS = 64_000;
-export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
-export const DEFAULT_GROK_MODEL = "grok-4-fast-reasoning";
+const OPENAI_METADATA = PROVIDER_METADATA.openai;
+const GEMINI_METADATA = PROVIDER_METADATA.gemini;
+const ANTHROPIC_METADATA = PROVIDER_METADATA.anthropic;
+const GROK_METADATA = PROVIDER_METADATA.grok;
+export const DEFAULT_MAX_OUTPUT_TOKENS = OPENAI_METADATA.maxOutputTokens.default;
+export const DEFAULT_OPENAI_MODEL = OPENAI_METADATA.defaultModel;
+export const DEFAULT_ANTHROPIC_MODEL = ANTHROPIC_METADATA.defaultModel;
+export const DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS = ANTHROPIC_METADATA.maxOutputTokens.default;
+export const DEFAULT_GEMINI_MODEL = GEMINI_METADATA.defaultModel;
+export const DEFAULT_GROK_MODEL = GROK_METADATA.defaultModel;
 export const DEFAULT_HISTORY_LIMIT = 30;
 export const DEFAULT_HISTORY_MAX_BYTES = 200_000;
 export const LOOPBACK_HOST = "127.0.0.1";
 export const DEFAULT_REASONING_TOKENS = {
-    openai: undefined,
-    gemini: -1,
-    anthropic: DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS,
-    grok: undefined,
+    openai: OPENAI_METADATA.reasoningTokens?.default,
+    gemini: GEMINI_METADATA.reasoningTokens?.default,
+    anthropic: ANTHROPIC_METADATA.reasoningTokens?.default,
+    grok: GROK_METADATA.reasoningTokens?.default,
 };
 export const BRIEF_FORM_ROUTE = "/__set-brief";
 export const SETUP_VERIFY_ROUTE = "/__setup/verify-key";
