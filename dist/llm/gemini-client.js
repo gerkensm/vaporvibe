@@ -27,10 +27,11 @@ export class GeminiClient {
                 parts: [{ text: systemMessages.map((message) => message.content).join("\n\n") }],
             };
         }
-        if (this.settings.reasoningMode && this.settings.reasoningMode !== "none") {
+        const includeThoughts = shouldEnableGeminiThoughts(this.settings.reasoningMode, this.settings.reasoningTokens);
+        if (includeThoughts) {
             config.thinkingConfig = {
                 includeThoughts: true,
-                thinkingBudget: clampGeminiBudget(this.settings.reasoningTokens ?? -1, this.settings.maxOutputTokens),
+                thinkingBudget: clampGeminiBudget(this.settings.reasoningTokens ?? -1, this.settings.maxOutputTokens, this.settings.model),
             };
         }
         const response = await this.client.models.generateContent({
@@ -69,15 +70,39 @@ export async function verifyGeminiApiKey(apiKey) {
         return { ok: false, message: `Unable to reach Gemini: ${message}` };
     }
 }
-function clampGeminiBudget(requested, maxOutputTokens) {
+function clampGeminiBudget(requested, maxOutputTokens, model) {
+    const limits = getGeminiThinkingLimits(model);
+    if (Number.isNaN(requested)) {
+        return limits.allowDynamic ? -1 : limits.minPositive ?? 0;
+    }
+    if (requested < 0) {
+        return limits.allowDynamic ? -1 : limits.minPositive ?? 0;
+    }
     if (requested === 0) {
-        return 0;
+        return limits.allowZero ? 0 : limits.minPositive ?? 0;
     }
-    if (requested < 0 || Number.isNaN(requested)) {
-        return -1;
+    const boundedByMaxTokens = Number.isFinite(maxOutputTokens) && maxOutputTokens > 0
+        ? Math.min(requested, maxOutputTokens)
+        : requested;
+    const boundedByModel = limits.max
+        ? Math.min(boundedByMaxTokens, limits.max)
+        : boundedByMaxTokens;
+    let finalBudget = Math.floor(Math.max(0, boundedByModel));
+    if (finalBudget === 0 && !limits.allowZero) {
+        finalBudget = limits.minPositive ?? 1;
     }
-    const upperBound = Number.isFinite(maxOutputTokens) && maxOutputTokens > 0 ? maxOutputTokens : requested;
-    return Math.max(0, Math.min(requested, upperBound));
+    if (finalBudget > 0 && limits.minPositive && finalBudget < limits.minPositive) {
+        finalBudget = limits.minPositive;
+    }
+    if (finalBudget !== requested) {
+        logger.debug({
+            requested,
+            finalBudget,
+            model,
+            maxOutputTokens,
+        }, "Adjusted Gemini thinking budget to comply with model limits");
+    }
+    return finalBudget;
 }
 function extractUsage(response) {
     const usage = response?.usageMetadata ?? response?.usage_metadata;
@@ -111,7 +136,7 @@ function extractUsage(response) {
     return metrics;
 }
 function extractGeminiThinking(response, mode, requestedTokens) {
-    if (!mode || mode === "none") {
+    if (!shouldEnableGeminiThoughts(mode, requestedTokens)) {
         return undefined;
     }
     try {
@@ -138,6 +163,53 @@ function extractGeminiThinking(response, mode, requestedTokens) {
         logger.warn(`Failed to capture Gemini thinking metadata: ${error.message}`);
         return undefined;
     }
+}
+function shouldEnableGeminiThoughts(mode, requestedTokens) {
+    if (mode && mode !== "none") {
+        return true;
+    }
+    if (typeof requestedTokens === "number") {
+        return requestedTokens !== 0;
+    }
+    return false;
+}
+function getGeminiThinkingLimits(model) {
+    const normalized = model.trim().toLowerCase();
+    if (normalized.includes("2.5-pro")) {
+        return {
+            allowDynamic: true,
+            allowZero: false,
+            minPositive: 128,
+            max: 32_768,
+        };
+    }
+    if (normalized.includes("2.5-flash-lite")) {
+        return {
+            allowDynamic: true,
+            allowZero: true,
+            minPositive: 512,
+            max: 24_576,
+        };
+    }
+    if (normalized.includes("2.5-flash")) {
+        return {
+            allowDynamic: true,
+            allowZero: true,
+            minPositive: 0,
+            max: 24_576,
+        };
+    }
+    if (normalized.includes("2.0")) {
+        return {
+            allowDynamic: true,
+            allowZero: true,
+            max: 16_384,
+        };
+    }
+    return {
+        allowDynamic: true,
+        allowZero: true,
+    };
 }
 function extractStatus(error) {
     if (!error || typeof error !== "object") {
