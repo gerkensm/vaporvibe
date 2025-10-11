@@ -48,7 +48,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     "",
     "MANDATORY RULES:",
     "1) NO SPA ROUTING. Each server round-trip takes ~1-2 minutes, so render only the current view for THIS request. Inline JS may power in-view micro-interactions on already-present data, but do NOT include routers, background fetches, or page containers for future states.",
-    "2) SELF-CONTAINED: All CSS/JS inline via <style> and <script>. No external links, fonts, CDNs, fetch/AJAX, iframes, popups, or target=\"_blank\" links. Avoid pixel images entirely (even via data URLs); use inline SVG or CSS for visuals.",
+    '2) SELF-CONTAINED: All CSS/JS inline via <style> and <script>. No external links, fonts, CDNs, fetch/AJAX, iframes, popups, or target="_blank" links. Avoid pixel images entirely (even via data URLs); use inline SVG or CSS for visuals.',
     "3) INTERACTIONS: Any user action that changes the view—including clicking a link to another page—must submit via GET or POST to the server (full page reload). Every navigation inherits the ~1-2 minute server round-trip latency, so reserve it for changes that truly need the server. No AJAX, WebSockets, or background requests.",
     "3a) LOCAL INTERACTIONS: When the user is just exploring or rearranging data already delivered in THIS HTML (e.g., opening a note from the current list, switching tabs, toggling filters), handle it with inline JS and DOM updates without sending another request. Only hit the server when new authoritative data is required or you must persist changes.",
     "4) CONTEXT: You ONLY know the 'App Brief', the PREVIOUS HTML (server-provided), the request METHOD, PATH, QUERY, and BODY. You must not depend on any hidden server state.",
@@ -75,19 +75,16 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     line.startsWith("11) REALISTIC CONTENT")
   );
   const insertIndex =
-    realisticContentIndex === -1 ? systemLines.length : realisticContentIndex + 1;
+    realisticContentIndex === -1
+      ? systemLines.length
+      : realisticContentIndex + 1;
   const iterationLines = [
     "12) INSTRUCTION LOOP: When a request includes the field LLM_WEB_SERVER_INSTRUCTIONS, treat it as an iteration cue for THIS view. Re-render the same page with the requested adjustments applied, persist any required state, and avoid swapping to standalone success/confirmation screens.",
   ];
 
   if (includeInstructionPanel) {
     iterationLines.push(
-      "13) RUNTIME PANEL: The server injects the floating instructions widget—do not render your own version or duplicate its controls.",
-      `14) ADMIN ACCESS: If it aids orientation, mention that configuration and history live at "${adminPath}".`
-    );
-  } else {
-    iterationLines.push(
-      `13) ADMIN ACCESS: Mention that configuration and history are available at "${adminPath}" when it helps the user.`
+      "13) RUNTIME PANEL: The server injects the floating instructions widget—do not render your own version or duplicate its controls."
     );
   }
 
@@ -105,7 +102,8 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     historyByteOmitted,
   });
 
-  const prevHtmlSnippet = historyMaxBytes > 0 ? prevHtml.slice(0, historyMaxBytes) : prevHtml;
+  const prevHtmlSnippet =
+    historyMaxBytes > 0 ? prevHtml.slice(0, historyMaxBytes) : prevHtml;
 
   const user = [
     `App Brief:\n${brief}`,
@@ -164,7 +162,8 @@ function buildHistorySection(options: HistorySectionOptions): string {
     return "History: No previous pages for this session yet.";
   }
 
-  const budgetLabel = historyMaxBytes > 0 ? `${historyMaxBytes} bytes` : "unbounded";
+  const budgetLabel =
+    historyMaxBytes > 0 ? `${historyMaxBytes} bytes` : "unbounded";
   const omittedTotal = historyLimitOmitted + historyByteOmitted;
 
   const introParts = [
@@ -186,19 +185,26 @@ function buildHistorySection(options: HistorySectionOptions): string {
     introParts.push(`omitted ${omissionDetails.join(", ")}`);
   }
 
-  const intro = [
-    `${introParts.join(" / ")}:`,
-    LINE_DIVIDER,
-  ];
+  const intro = [`${introParts.join(" / ")}:`, LINE_DIVIDER];
 
   const entries = history.map((entry, index) => {
-    const indexLabel = `Entry ${index + 1} — ${entry.request.method} ${entry.request.path}`;
+    const indexLabel = `Entry ${index + 1} — ${entry.request.method} ${
+      entry.request.path
+    }`;
     const requestLines = [
       `Timestamp: ${entry.createdAt}`,
       `Session: ${entry.sessionId}`,
       `Duration: ${entry.durationMs} ms`,
-      `Query Params (JSON): ${JSON.stringify(entry.request.query ?? {}, null, 2)}`,
-      `Body Params (JSON): ${JSON.stringify(entry.request.body ?? {}, null, 2)}`,
+      `Query Params (JSON): ${JSON.stringify(
+        entry.request.query ?? {},
+        null,
+        2
+      )}`,
+      `Body Params (JSON): ${JSON.stringify(
+        entry.request.body ?? {},
+        null,
+        2
+      )}`,
     ];
     if (entry.request.instructions) {
       requestLines.push(`Instructions: ${entry.request.instructions}`);
@@ -207,20 +213,26 @@ function buildHistorySection(options: HistorySectionOptions): string {
       `Provider: ${entry.llm.provider} (${entry.llm.model})`,
       `Max Output Tokens: ${entry.llm.maxOutputTokens}`,
       `Reasoning Mode: ${entry.llm.reasoningMode}`,
-      `Reasoning Tokens: ${entry.llm.reasoningTokens ?? "n/a"}`,
+      `Reasoning Tokens: ${entry.llm.reasoningTokens ?? "n/a"}`
     );
 
     if (entry.usage) {
-      requestLines.push(`Usage Metrics: ${JSON.stringify(entry.usage, null, 2)}`);
+      requestLines.push(
+        `Usage Metrics: ${JSON.stringify(entry.usage, null, 2)}`
+      );
     }
 
     if (entry.reasoning?.summaries || entry.reasoning?.details) {
       const reasoningLines: string[] = [];
       if (entry.reasoning.summaries?.length) {
-        reasoningLines.push(`Reasoning Summaries:\n${entry.reasoning.summaries.join("\n\n")}`);
+        reasoningLines.push(
+          `Reasoning Summaries:\n${entry.reasoning.summaries.join("\n\n")}`
+        );
       }
       if (entry.reasoning.details?.length) {
-        reasoningLines.push(`Reasoning Details:\n${entry.reasoning.details.join("\n\n")}`);
+        reasoningLines.push(
+          `Reasoning Details:\n${entry.reasoning.details.join("\n\n")}`
+        );
       }
       if (reasoningLines.length > 0) {
         requestLines.push(reasoningLines.join("\n"));
