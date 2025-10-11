@@ -2,7 +2,7 @@ import http from "node:http";
 import { Buffer } from "node:buffer";
 import { URL } from "node:url";
 import { randomUUID } from "node:crypto";
-import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD, SETUP_ROUTE, SETUP_VERIFY_ROUTE, DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, LLM_RESULT_ROUTE_PREFIX, } from "../constants.js";
+import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD, INSTRUCTIONS_PANEL_ROUTE, SETUP_ROUTE, SETUP_VERIFY_ROUTE, DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, LLM_RESULT_ROUTE_PREFIX, } from "../constants.js";
 import { buildMessages } from "../llm/messages.js";
 import { parseCookies } from "../utils/cookies.js";
 import { readBody } from "../utils/body.js";
@@ -10,6 +10,7 @@ import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
 import { renderSetupWizardPage } from "../pages/setup-wizard.js";
 import { renderLoadingShell, renderResultHydrationScript, renderLoaderErrorScript, } from "../pages/loading-shell.js";
 import { getNavigationInterceptorScript } from "../utils/navigation-interceptor.js";
+import { getInstructionsPanelScript } from "../utils/instructions-panel.js";
 import { logger } from "../logger.js";
 import { AdminController } from "./admin-controller.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
@@ -62,6 +63,13 @@ export function createServer(options) {
                 res.setHeader("Content-Type", "application/javascript; charset=utf-8");
                 res.end(getNavigationInterceptorScript());
                 reqLogger.info(`Served interceptor client in ${Date.now() - requestStart} ms`);
+                return;
+            }
+            if (context.path === INSTRUCTIONS_PANEL_ROUTE) {
+                res.statusCode = 200;
+                res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+                res.end(getInstructionsPanelScript());
+                reqLogger.info(`Served instructions panel client in ${Date.now() - requestStart} ms`);
                 return;
             }
             if (handlePendingHtmlRequest(context, state, reqLogger)) {
@@ -723,7 +731,16 @@ async function handleLlmRequest(context, state, sessionStore, reqLogger, request
         reqLogger.debug(`LLM response preview [${llmClient.settings.provider}]:\n${truncate(result.html, 500)}`);
         const rawHtml = ensureHtmlDocument(result.html, { method, path });
         // Inject navigation interceptor script before </body> to enable smooth client-side navigation
-        const safeHtml = rawHtml.replace(/(<\/body\s*>)/i, `<script id="serve-llm-interceptor-script" src="/__serve-llm/interceptor.js"></script>$1`);
+        let safeHtml = rawHtml.replace(/(<\/body\s*>)/i, `<script id="serve-llm-interceptor-script" src="/__serve-llm/interceptor.js"></script>$1`);
+        if (state.runtime.includeInstructionPanel) {
+            const instructionsScriptTag = `<script id="serve-llm-instructions-panel-script" src="${INSTRUCTIONS_PANEL_ROUTE}"></script>`;
+            if (/<\/body\s*>/i.test(safeHtml)) {
+                safeHtml = safeHtml.replace(/(<\/body\s*>)/i, `${instructionsScriptTag}$1`);
+            }
+            else {
+                safeHtml = `${safeHtml}${instructionsScriptTag}`;
+            }
+        }
         sessionStore.setPrevHtml(sid, safeHtml);
         const instructions = extractInstructions(bodyData);
         const historyEntry = {

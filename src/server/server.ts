@@ -8,6 +8,7 @@ import {
   AUTO_IGNORED_PATHS,
   BRIEF_FORM_ROUTE,
   INSTRUCTIONS_FIELD,
+  INSTRUCTIONS_PANEL_ROUTE,
   SETUP_ROUTE,
   SETUP_VERIFY_ROUTE,
   DEFAULT_OPENAI_MODEL,
@@ -39,6 +40,7 @@ import {
   renderLoaderErrorScript,
 } from "../pages/loading-shell.js";
 import { getNavigationInterceptorScript } from "../utils/navigation-interceptor.js";
+import { getInstructionsPanelScript } from "../utils/instructions-panel.js";
 import { logger } from "../logger.js";
 import { AdminController } from "./admin-controller.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
@@ -150,6 +152,15 @@ export function createServer(options: ServerOptions): http.Server {
         res.end(getNavigationInterceptorScript());
         reqLogger.info(
           `Served interceptor client in ${Date.now() - requestStart} ms`
+        );
+        return;
+      }
+      if (context.path === INSTRUCTIONS_PANEL_ROUTE) {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+        res.end(getInstructionsPanelScript());
+        reqLogger.info(
+          `Served instructions panel client in ${Date.now() - requestStart} ms`
         );
         return;
       }
@@ -965,10 +976,22 @@ async function handleLlmRequest(
     const rawHtml = ensureHtmlDocument(result.html, { method, path });
 
     // Inject navigation interceptor script before </body> to enable smooth client-side navigation
-    const safeHtml = rawHtml.replace(
+    let safeHtml = rawHtml.replace(
       /(<\/body\s*>)/i,
       `<script id="serve-llm-interceptor-script" src="/__serve-llm/interceptor.js"></script>$1`
     );
+
+    if (state.runtime.includeInstructionPanel) {
+      const instructionsScriptTag = `<script id="serve-llm-instructions-panel-script" src="${INSTRUCTIONS_PANEL_ROUTE}"></script>`;
+      if (/<\/body\s*>/i.test(safeHtml)) {
+        safeHtml = safeHtml.replace(
+          /(<\/body\s*>)/i,
+          `${instructionsScriptTag}$1`
+        );
+      } else {
+        safeHtml = `${safeHtml}${instructionsScriptTag}`;
+      }
+    }
 
     sessionStore.setPrevHtml(sid, safeHtml);
 

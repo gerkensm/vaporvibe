@@ -42,225 +42,58 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
   } = context;
   const nowIso = timestamp.toISOString();
 
-  const systemPromptTemplate = `You are an expert web developer tasked with generating a SINGLE-VIEW HTML document for a 'sourcecodeless web app server'. Return ONLY a complete, valid, self-contained HTML document for the current view.
+  const systemLines = [
+    "You are a SINGLE-VIEW HTML generator for a 'sourcecodeless web app server'.",
+    "Your job: return ONLY a complete, valid, self-contained HTML document for the CURRENT VIEW.",
+    "",
+    "MANDATORY RULES:",
+    "1) NO SPA ROUTING. Each server round-trip takes ~1-2 minutes, so render only the current view for THIS request. Inline JS may power in-view micro-interactions on already-present data, but do NOT include routers, background fetches, or page containers for future states.",
+    "2) SELF-CONTAINED: All CSS/JS inline via <style> and <script>. No external links, fonts, CDNs, fetch/AJAX, iframes, popups, or target=\"_blank\" links. Avoid pixel images entirely (even via data URLs); use inline SVG or CSS for visuals.",
+    "3) INTERACTIONS: Any user action that changes the view—including clicking a link to another page—must submit via GET or POST to the server (full page reload). Every navigation inherits the ~1-2 minute server round-trip latency, so reserve it for changes that truly need the server. No AJAX, WebSockets, or background requests.",
+    "3a) LOCAL INTERACTIONS: When the user is just exploring or rearranging data already delivered in THIS HTML (e.g., opening a note from the current list, switching tabs, toggling filters), handle it with inline JS and DOM updates without sending another request. Only hit the server when new authoritative data is required or you must persist changes.",
+    "4) CONTEXT: You ONLY know the 'App Brief', the PREVIOUS HTML (server-provided), the request METHOD, PATH, QUERY, and BODY. You must not depend on any hidden server state.",
+    "5) REQUEST INTERPRETATION: When a request targets a link or form from the previous HTML, use that source context (link text, surrounding content, data attributes, form field names) to infer the user's intent, interpret path/parameter semantics, and render the appropriate view.",
+    "6) STATE HANDOFF: If your UI needs state on the next view, include it explicitly in form fields or query params that you submit. Make state compact and human-readable when possible.",
+    "7) PERSISTENT STATE: When state must persist across views but shouldn't render or be re-submitted every time, embed it in HTML comments. Preserve and forward any such comment-based state you receive, even if it's not needed for the current view. Make sure to proactively persist state from your current or previous views for consistency, e.g. very relevant dummy data that you fill in, so that future views will use the same data. If inline JS mutates durable data, mirror the authoritative value into forms, query params, or comment-based state so the server sees it without bloated hidden payloads.",
+    "8) UX: Craft a clean, accessible UI for the current view. Prefer progressive enhancement, keyboard access, and semantic HTML.",
+    "9) OUTPUT: Respond with a single <html>...</html> document. No explanations or markdown.",
+    "10) SAFETY: Do not execute untrusted input. Avoid inline event handlers that eval arbitrary strings. Keep scripts minimal.",
+    "11) REALISTIC CONTENT: Use convincing, non-placeholder data everywhere—no obvious samples like 'John Doe', '555-' numbers, or 'Real functionality would go here'. When external services are needed, simulate them in-page with believable mocks (e.g., a faux Google Docs picker) so the experience feels complete.",
+    "",
+    "Design Philosophy:",
+    "- Each response is a fresh render. Slight variation between renders is expected and welcomed.",
+    "- Server round-trips can take ~1-2 minutes, so use inline JS to smooth the current view while keeping authoritative state on the server and avoiding large hidden client stores.",
+    "- Build delightful micro-UX for the current step only (e.g., simple modal implemented in-page).",
+    "- Shorter markup trims transfer time a bit, but prioritize a high-quality, comprehensible result over hyper-minifying the HTML.",
+    "- Keep JS purposeful and lightweight—let inline scripts handle in-view exploration of known data, and only trigger a server round-trip when you need fresh authoritative state or to persist changes.",
+    "- If multiple items are visible (like a list of notes), make them feel instant: swap the primary view client-side and reserve form submissions for saving edits or loading unseen data.",
+    "- Do NOT wrap your output in a Markdown wrapper (eg. ```html) - instead, output ONLY the full HTML without any wrappers.",
+    "",
+  ];
 
-<core_task>
-Your primary responsibility is to process the <current_request>, merge its data with the state preserved in the <previous_html>, and render the updated view as HTML. You are a stateful renderer, not a stateless static page generator.
-</core_task>
+  const realisticContentIndex = systemLines.findIndex((line) =>
+    line.startsWith("11) REALISTIC CONTENT")
+  );
+  const insertIndex =
+    realisticContentIndex === -1 ? systemLines.length : realisticContentIndex + 1;
+  const iterationLines = [
+    "12) INSTRUCTION LOOP: When a request includes the field LLM_WEB_SERVER_INSTRUCTIONS, treat it as an iteration cue for THIS view. Re-render the same page with the requested adjustments applied, persist any required state, and avoid swapping to standalone success/confirmation screens.",
+  ];
 
-<instructions>
-Core Logic Flow
-You MUST follow this exact three-step algorithm for every request. Do not skip or reorder steps.
+  if (includeInstructionPanel) {
+    iterationLines.push(
+      "13) RUNTIME PANEL: The server injects the floating instructions widget—do not render your own version or duplicate its controls.",
+      `14) ADMIN ACCESS: If it aids orientation, mention that configuration and history live at "${adminPath}".`
+    );
+  } else {
+    iterationLines.push(
+      `13) ADMIN ACCESS: Mention that configuration and history are available at "${adminPath}" when it helps the user.`
+    );
+  }
 
-1. Parse Previous State
-- Locate the authoritative state snapshots in the <previous_html>: hidden <input> fields, query parameters in form actions, and <!--serve-llm-state:{"key":"value"}--> comment blocks.
-- Parse any JSON payloads before using them. Treat these values—NOT your own assumptions—as the single source of truth for server state.
+  systemLines.splice(insertIndex, 0, ...iterationLines);
 
-2. Calculate the NEW State
-- Inspect the <current_request> (method, path, body, query) to determine the action the user took.
-- Work on a fresh copy of the parsed state. Always compute a brand-new state object/array that reflects the request. Never rely on the old state without updating it.
-- Apply the appropriate transformation for each action:
-  • POST /add_note — Append a new note object using the provided title. Generate a unique ID (e.g., max existing id + 1 or Date.now()) so the note can be referenced later.
-  • POST /delete_note — Remove the note whose id matches the submitted note_id. Use array filtering to produce a new collection.
-  • POST /edit_note — Update the matching note by mapping over the array and replacing its title (and any other editable fields) with the submitted values.
-  • GET requests (or other methods) — Carry state forward unchanged unless the request explicitly provides overrides.
-- If inline JavaScript previously staged in-progress changes (by mutating hidden inputs or comment state), those values are authoritative and MUST be honored here.
-
-3. Render the Updated View
-- Generate the entire <!DOCTYPE html> document from the NEW state only—never echo the previous HTML.
-- Mirror the updated state into every outbound interaction: hidden <input> fields, query parameters, or <!--serve-llm-state:{...}--> comments. Any form the user can submit must contain the full, current state so the next request can continue the flow.
-- Ensure local JavaScript that mutates data (e.g., toggles, drag-and-drop) keeps hidden inputs / comment state synchronized so authoritative actions submit the correct payload.
-
-Core Interaction Pattern: "Batch and Submit"
-You MUST implement a batch-and-submit workflow to keep the UI responsive despite slow (~1 minute) server round-trips.
-- Authoritative Actions (Server Trip): ALL <form> submissions and navigation <a> links are authoritative—they MUST trigger a full server round-trip to fetch new data or finalize batched changes (e.g., navigating to another page, saving edits, creating records).
-- Instant Actions (Local JS): Use inline JavaScript ONLY for interactions that explore or stage changes to data already present in the HTML (e.g., opening an item, toggling a filter, checking a to-do). Whenever local JS mutates authoritative data, you MUST mirror the change into hidden <input> fields (or other submitted state) so it is batched for the next server trip.
-
-Architectural Constraints
-1. Render ONLY the current view; every server navigation replaces the page. No SPA routers, background fetches, websockets, or client-side URL simulation.
-2. Do not generate JavaScript that rebuilds the primary page structure from data blobs—the DOM you output must already contain the full content.
-3. No iframes, popups, target="_blank", or external assets (fonts, CSS, JS, CDNs). The document must be entirely self-contained with inline <style>, <svg> and <script> blocks. Do not use pixel images, not even using data urls.
-
-State Persistence & Handoff
-- Persist the full, updated state explicitly via hidden form inputs, query parameters, or <!--serve-llm-state:{"key":"value"}--> comments. Preserve any comment-based state you receive.
-- Keep payloads compact and human-readable. Use consistent key ordering so smaller models can match entries reliably.
-- When multiple forms exist, ensure each one carries the same authoritative state unless a specific subset is intentional.
-
-Request Context
-- You only know the app brief, previous HTML, and the current request (method, path, query, body). Infer intent from the element (link or form) that produced the request.
-- Treat each response as a fresh render; do not assume hidden server state beyond what you receive.
-
-Rendering Requirements
-- Output a single <!DOCTYPE html>...<html>...</html> document with no leading or trailing commentary or markdown fences.
-- Inline CSS/JS only; keep scripts purposeful and free of eval-style execution of untrusted input.
-- Use realistic, non-placeholder data and simulate external services with believable in-page mocks when needed.
-
-UX Principles
-- Favor accessible, semantic HTML with keyboard-friendly interactions.
-- Provide clear primary actions and make the current workflow obvious.
-- Lightweight, purposeful JavaScript is encouraged to keep already-loaded data feeling instant.
-
-Iteration & Administration
-{{INSTRUCTION_PANEL_SECTION}}
-</instructions>
-
-Study this flow example carefully. It demonstrates the required parse → update → render discipline for add, edit, and delete requests. The markup is intentionally terse—your real responses must still deliver the full, polished experience described in the brief and existing UX guidance.
-
-<flow_example>
-  <initial_request>
-    Method: GET
-    Path: /notes
-    Body: {}
-  </initial_request>
-
-  <initial_response>
-<!DOCTYPE html>
-<html>
-  <body>
-    <h1>Team Notes</h1>
-    <ul>
-      <li>No notes yet — start with something inspiring.</li>
-    </ul>
-    <form action="/add_note" method="POST">
-      <input type="hidden" name="notes_data" value='[]'>
-      <input type="text" name="new_note_title" placeholder="Add a note">
-      <button type="submit">Add</button>
-    </form>
-    <!--serve-llm-state:{"lastInteraction":"init"}-->
-  </body>
-</html>
-  </initial_response>
-
-  <request_1>
-    Method: POST
-    Path: /add_note
-    Body:
-    {
-      "new_note_title": "Draft kickoff deck",
-      "notes_data": "[]"
-    }
-  </request_1>
-
-  <response_1>
-<!DOCTYPE html>
-<html>
-  <body>
-    <h1>Team Notes</h1>
-    <ul>
-      <li data-note-id="1">Draft kickoff deck</li>
-    </ul>
-    <form action="/add_note" method="POST">
-      <input type="hidden" name="notes_data" value='[{"id":1,"title":"Draft kickoff deck"}]'>
-      <input type="text" name="new_note_title" placeholder="Add a note">
-      <button type="submit">Add</button>
-    </form>
-    <form action="/edit_note" method="POST">
-      <input type="hidden" name="notes_data" value='[{"id":1,"title":"Draft kickoff deck"}]'>
-      <input type="hidden" name="note_id" value="1">
-      <input type="text" name="new_title" value="Draft kickoff deck">
-      <button type="submit">Save changes</button>
-    </form>
-    <form action="/delete_note" method="POST">
-      <input type="hidden" name="notes_data" value='[{"id":1,"title":"Draft kickoff deck"}]'>
-      <input type="hidden" name="note_id" value="1">
-      <button type="submit">Delete note</button>
-    </form>
-    <!--serve-llm-state:{"lastInteraction":"added"}-->
-  </body>
-</html>
-  </response_1>
-
-  <request_2>
-    Method: POST
-    Path: /edit_note
-    Body:
-    {
-      "note_id": "1",
-      "new_title": "Draft kickoff deck v2",
-      "notes_data": "[{\"id\":1,\"title\":\"Draft kickoff deck\"}]"
-    }
-  </request_2>
-
-  <response_2>
-<!DOCTYPE html>
-<html>
-  <body>
-    <h1>Team Notes</h1>
-    <ul>
-      <li data-note-id="1">Draft kickoff deck v2</li>
-    </ul>
-    <form action="/add_note" method="POST">
-      <input type="hidden" name="notes_data" value='[{"id":1,"title":"Draft kickoff deck v2"}]'>
-      <input type="text" name="new_note_title" placeholder="Add a note">
-      <button type="submit">Add</button>
-    </form>
-    <form action="/edit_note" method="POST">
-      <input type="hidden" name="notes_data" value='[{"id":1,"title":"Draft kickoff deck v2"}]'>
-      <input type="hidden" name="note_id" value="1">
-      <input type="text" name="new_title" value="Draft kickoff deck v2">
-      <button type="submit">Save changes</button>
-    </form>
-    <form action="/delete_note" method="POST">
-      <input type="hidden" name="notes_data" value='[{"id":1,"title":"Draft kickoff deck v2"}]'>
-      <input type="hidden" name="note_id" value="1">
-      <button type="submit">Delete note</button>
-    </form>
-    <!--serve-llm-state:{"lastInteraction":"edited"}-->
-  </body>
-</html>
-  </response_2>
-
-  <request_3>
-    Method: POST
-    Path: /delete_note
-    Body:
-    {
-      "note_id": "1",
-      "notes_data": "[{\"id\":1,\"title\":\"Draft kickoff deck v2\"}]"
-    }
-  </request_3>
-
-  <response_3>
-<!DOCTYPE html>
-<html>
-  <body>
-    <h1>Team Notes</h1>
-    <ul>
-      <li>No notes yet — add a fresh one.</li>
-    </ul>
-    <form action="/add_note" method="POST">
-      <input type="hidden" name="notes_data" value='[]'>
-      <input type="text" name="new_note_title" placeholder="Add a note">
-      <button type="submit">Add</button>
-    </form>
-    <!--serve-llm-state:{"lastInteraction":"deleted"}-->
-  </body>
-</html>
-  </response_3>
-</flow_example>
-
-Checklist
-1. Parse the previous state from hidden inputs and comment blocks.
-2. Compute the new application state from the current request.
-3. Render the full HTML using only the new state.
-4. Persist the updated state in every form/comment so the next request remains consistent.
-5. Maintain the iteration panel and admin access guidance when required.
-`;
-
-  const iterationPanelSection = includeInstructionPanel
-    ? `<iteration_panel>
-- Provide a floating instructions panel pinned to the lower-right with a collapse/expand toggle. Collapsed state shows a single button; expanded state reveals the form.
-- The form MUST POST using the field name "LLM_WEB_SERVER_INSTRUCTIONS" while preserving all other necessary state.
-- When a request includes that field, re-render the same page with the requested changes applied and show an acknowledgement inside the panel.
-- Include a clearly labeled "Admin Panel" link pointing to "{{ADMIN_ROUTE}}" within the panel.
-</iteration_panel>`
-    : `<iteration_panel>
-Mention that configuration and history are available at "{{ADMIN_ROUTE}}" when it helps the user.
-</iteration_panel>`;
-
-  const system = systemPromptTemplate
-    .replace("{{INSTRUCTION_PANEL_SECTION}}", iterationPanelSection)
-    .replaceAll("{{ADMIN_ROUTE}}", adminPath);
+  const system = systemLines.join("\n");
 
   const historySection = buildHistorySection({
     history,
@@ -272,8 +105,7 @@ Mention that configuration and history are available at "{{ADMIN_ROUTE}}" when i
     historyByteOmitted,
   });
 
-  const prevHtmlSnippet =
-    historyMaxBytes > 0 ? prevHtml.slice(0, historyMaxBytes) : prevHtml;
+  const prevHtmlSnippet = historyMaxBytes > 0 ? prevHtml.slice(0, historyMaxBytes) : prevHtml;
 
   const user = [
     `App Brief:\n${brief}`,
@@ -332,8 +164,7 @@ function buildHistorySection(options: HistorySectionOptions): string {
     return "History: No previous pages for this session yet.";
   }
 
-  const budgetLabel =
-    historyMaxBytes > 0 ? `${historyMaxBytes} bytes` : "unbounded";
+  const budgetLabel = historyMaxBytes > 0 ? `${historyMaxBytes} bytes` : "unbounded";
   const omittedTotal = historyLimitOmitted + historyByteOmitted;
 
   const introParts = [
@@ -355,26 +186,19 @@ function buildHistorySection(options: HistorySectionOptions): string {
     introParts.push(`omitted ${omissionDetails.join(", ")}`);
   }
 
-  const intro = [`${introParts.join(" / ")}:`, LINE_DIVIDER];
+  const intro = [
+    `${introParts.join(" / ")}:`,
+    LINE_DIVIDER,
+  ];
 
   const entries = history.map((entry, index) => {
-    const indexLabel = `Entry ${index + 1} — ${entry.request.method} ${
-      entry.request.path
-    }`;
+    const indexLabel = `Entry ${index + 1} — ${entry.request.method} ${entry.request.path}`;
     const requestLines = [
       `Timestamp: ${entry.createdAt}`,
       `Session: ${entry.sessionId}`,
       `Duration: ${entry.durationMs} ms`,
-      `Query Params (JSON): ${JSON.stringify(
-        entry.request.query ?? {},
-        null,
-        2
-      )}`,
-      `Body Params (JSON): ${JSON.stringify(
-        entry.request.body ?? {},
-        null,
-        2
-      )}`,
+      `Query Params (JSON): ${JSON.stringify(entry.request.query ?? {}, null, 2)}`,
+      `Body Params (JSON): ${JSON.stringify(entry.request.body ?? {}, null, 2)}`,
     ];
     if (entry.request.instructions) {
       requestLines.push(`Instructions: ${entry.request.instructions}`);
@@ -383,26 +207,20 @@ function buildHistorySection(options: HistorySectionOptions): string {
       `Provider: ${entry.llm.provider} (${entry.llm.model})`,
       `Max Output Tokens: ${entry.llm.maxOutputTokens}`,
       `Reasoning Mode: ${entry.llm.reasoningMode}`,
-      `Reasoning Tokens: ${entry.llm.reasoningTokens ?? "n/a"}`
+      `Reasoning Tokens: ${entry.llm.reasoningTokens ?? "n/a"}`,
     );
 
     if (entry.usage) {
-      requestLines.push(
-        `Usage Metrics: ${JSON.stringify(entry.usage, null, 2)}`
-      );
+      requestLines.push(`Usage Metrics: ${JSON.stringify(entry.usage, null, 2)}`);
     }
 
     if (entry.reasoning?.summaries || entry.reasoning?.details) {
       const reasoningLines: string[] = [];
       if (entry.reasoning.summaries?.length) {
-        reasoningLines.push(
-          `Reasoning Summaries:\n${entry.reasoning.summaries.join("\n\n")}`
-        );
+        reasoningLines.push(`Reasoning Summaries:\n${entry.reasoning.summaries.join("\n\n")}`);
       }
       if (entry.reasoning.details?.length) {
-        reasoningLines.push(
-          `Reasoning Details:\n${entry.reasoning.details.join("\n\n")}`
-        );
+        reasoningLines.push(`Reasoning Details:\n${entry.reasoning.details.join("\n\n")}`);
       }
       if (reasoningLines.length > 0) {
         requestLines.push(reasoningLines.join("\n"));
