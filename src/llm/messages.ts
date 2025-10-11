@@ -79,7 +79,7 @@ You MUST implement a batch-and-submit workflow to keep the UI responsive despite
 Architectural Constraints
 1. Render ONLY the current view; every server navigation replaces the page. No SPA routers, background fetches, websockets, or client-side URL simulation.
 2. Do not generate JavaScript that rebuilds the primary page structure from data blobs—the DOM you output must already contain the full content.
-3. No iframes, popups, target="_blank", or external assets (fonts, CSS, JS, CDNs). The document must be entirely self-contained with inline <style> and <script> blocks, and images must use data URLs.
+3. No iframes, popups, target="_blank", or external assets (fonts, CSS, JS, CDNs). The document must be entirely self-contained with inline <style>, <svg> and <script> blocks. Do not use pixel images, not even using data urls.
 
 State Persistence & Handoff
 - Persist the full, updated state explicitly via hidden form inputs, query parameters, or <!--serve-llm-state:{"key":"value"}--> comments. Preserve any comment-based state you receive.
@@ -272,7 +272,8 @@ Mention that configuration and history are available at "{{ADMIN_ROUTE}}" when i
     historyByteOmitted,
   });
 
-  const prevHtmlSnippet = historyMaxBytes > 0 ? prevHtml.slice(0, historyMaxBytes) : prevHtml;
+  const prevHtmlSnippet =
+    historyMaxBytes > 0 ? prevHtml.slice(0, historyMaxBytes) : prevHtml;
 
   const user = [
     `App Brief:\n${brief}`,
@@ -331,7 +332,8 @@ function buildHistorySection(options: HistorySectionOptions): string {
     return "History: No previous pages for this session yet.";
   }
 
-  const budgetLabel = historyMaxBytes > 0 ? `${historyMaxBytes} bytes` : "unbounded";
+  const budgetLabel =
+    historyMaxBytes > 0 ? `${historyMaxBytes} bytes` : "unbounded";
   const omittedTotal = historyLimitOmitted + historyByteOmitted;
 
   const introParts = [
@@ -353,19 +355,26 @@ function buildHistorySection(options: HistorySectionOptions): string {
     introParts.push(`omitted ${omissionDetails.join(", ")}`);
   }
 
-  const intro = [
-    `${introParts.join(" / ")}:`,
-    LINE_DIVIDER,
-  ];
+  const intro = [`${introParts.join(" / ")}:`, LINE_DIVIDER];
 
   const entries = history.map((entry, index) => {
-    const indexLabel = `Entry ${index + 1} — ${entry.request.method} ${entry.request.path}`;
+    const indexLabel = `Entry ${index + 1} — ${entry.request.method} ${
+      entry.request.path
+    }`;
     const requestLines = [
       `Timestamp: ${entry.createdAt}`,
       `Session: ${entry.sessionId}`,
       `Duration: ${entry.durationMs} ms`,
-      `Query Params (JSON): ${JSON.stringify(entry.request.query ?? {}, null, 2)}`,
-      `Body Params (JSON): ${JSON.stringify(entry.request.body ?? {}, null, 2)}`,
+      `Query Params (JSON): ${JSON.stringify(
+        entry.request.query ?? {},
+        null,
+        2
+      )}`,
+      `Body Params (JSON): ${JSON.stringify(
+        entry.request.body ?? {},
+        null,
+        2
+      )}`,
     ];
     if (entry.request.instructions) {
       requestLines.push(`Instructions: ${entry.request.instructions}`);
@@ -374,20 +383,26 @@ function buildHistorySection(options: HistorySectionOptions): string {
       `Provider: ${entry.llm.provider} (${entry.llm.model})`,
       `Max Output Tokens: ${entry.llm.maxOutputTokens}`,
       `Reasoning Mode: ${entry.llm.reasoningMode}`,
-      `Reasoning Tokens: ${entry.llm.reasoningTokens ?? "n/a"}`,
+      `Reasoning Tokens: ${entry.llm.reasoningTokens ?? "n/a"}`
     );
 
     if (entry.usage) {
-      requestLines.push(`Usage Metrics: ${JSON.stringify(entry.usage, null, 2)}`);
+      requestLines.push(
+        `Usage Metrics: ${JSON.stringify(entry.usage, null, 2)}`
+      );
     }
 
     if (entry.reasoning?.summaries || entry.reasoning?.details) {
       const reasoningLines: string[] = [];
       if (entry.reasoning.summaries?.length) {
-        reasoningLines.push(`Reasoning Summaries:\n${entry.reasoning.summaries.join("\n\n")}`);
+        reasoningLines.push(
+          `Reasoning Summaries:\n${entry.reasoning.summaries.join("\n\n")}`
+        );
       }
       if (entry.reasoning.details?.length) {
-        reasoningLines.push(`Reasoning Details:\n${entry.reasoning.details.join("\n\n")}`);
+        reasoningLines.push(
+          `Reasoning Details:\n${entry.reasoning.details.join("\n\n")}`
+        );
       }
       if (reasoningLines.length > 0) {
         requestLines.push(reasoningLines.join("\n"));

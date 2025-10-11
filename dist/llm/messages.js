@@ -39,7 +39,7 @@ You MUST implement a batch-and-submit workflow to keep the UI responsive despite
 Architectural Constraints
 1. Render ONLY the current view; every server navigation replaces the page. No SPA routers, background fetches, websockets, or client-side URL simulation.
 2. Do not generate JavaScript that rebuilds the primary page structure from data blobs—the DOM you output must already contain the full content.
-3. No iframes, popups, target="_blank", or external assets (fonts, CSS, JS, CDNs). The document must be entirely self-contained with inline <style> and <script> blocks, and images must use data URLs.
+3. No iframes, popups, target="_blank", or external assets (fonts, CSS, JS, CDNs). The document must be entirely self-contained with inline <style>, <svg> and <script> blocks. Do not use pixel images, not even using data urls.
 
 State Persistence & Handoff
 - Persist the full, updated state explicitly via hidden form inputs, query parameters, or <!--serve-llm-state:{"key":"value"}--> comments. Preserve any comment-based state you receive.
@@ -283,10 +283,7 @@ function buildHistorySection(options) {
         }
         introParts.push(`omitted ${omissionDetails.join(", ")}`);
     }
-    const intro = [
-        `${introParts.join(" / ")}:`,
-        LINE_DIVIDER,
-    ];
+    const intro = [`${introParts.join(" / ")}:`, LINE_DIVIDER];
     const entries = history.map((entry, index) => {
         const indexLabel = `Entry ${index + 1} — ${entry.request.method} ${entry.request.path}`;
         const requestLines = [
