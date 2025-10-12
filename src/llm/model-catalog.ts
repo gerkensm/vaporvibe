@@ -17,6 +17,45 @@ export interface ModelCostInfo {
   readonly notes?: string;
 }
 
+export interface BenchmarkThroughput {
+  readonly medianTokensPerSecond?: number;
+  readonly p5TokensPerSecond?: number;
+  readonly p25TokensPerSecond?: number;
+  readonly p75TokensPerSecond?: number;
+  readonly p95TokensPerSecond?: number;
+}
+
+export interface BenchmarkLatency {
+  readonly firstAnswerChunkSeconds?: number;
+  readonly firstAnswerTokenSeconds?: number;
+  readonly p5FirstChunkSeconds?: number;
+  readonly p25FirstChunkSeconds?: number;
+  readonly p75FirstChunkSeconds?: number;
+  readonly p95FirstChunkSeconds?: number;
+  readonly totalResponseSeconds?: number;
+  readonly reasoningTimeSeconds?: number;
+}
+
+export interface ModelBenchmarks {
+  readonly artificialAnalysisIntelligenceIndex?: number;
+  readonly terminalBenchHard?: number;
+  readonly telecomBench?: number;
+  readonly aaLcr?: number;
+  readonly humanitysLastExam?: number;
+  readonly mmluPro?: number;
+  readonly gpqaDiamond?: number;
+  readonly liveCodeBench?: number;
+  readonly sciCode?: number;
+  readonly ifBench?: number;
+  readonly aime2025?: number;
+  readonly aime2024?: number;
+  readonly math500?: number;
+  readonly humanEval?: number;
+  readonly blendedCostUsdPer1MTokens?: number;
+  readonly throughput?: BenchmarkThroughput;
+  readonly latency?: BenchmarkLatency;
+}
+
 export interface ModelMetadata {
   readonly value: string;
   readonly label: string;
@@ -33,6 +72,7 @@ export interface ModelMetadata {
   readonly reasoningModeNotes?: string;
   readonly documentationUrl?: string;
   readonly cost?: ModelCostInfo;
+  readonly benchmarks?: ModelBenchmarks;
 }
 
 export interface ProviderMetadata {
@@ -78,6 +118,394 @@ function usdCost({
   };
 }
 
+const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
+  "openai:gpt-5": {
+    artificialAnalysisIntelligenceIndex: 68,
+    terminalBenchHard: 0.31,
+    telecomBench: 0.85,
+    aaLcr: 0.76,
+    humanitysLastExam: 0.27,
+    mmluPro: 0.87,
+    gpqaDiamond: 0.85,
+    liveCodeBench: 0.85,
+    sciCode: 0.43,
+    ifBench: 0.73,
+    aime2025: 0.94,
+    aime2024: 0.96,
+    math500: 0.99,
+    humanEval: 0.99,
+    blendedCostUsdPer1MTokens: 3.44,
+    throughput: {
+      medianTokensPerSecond: 150,
+      p5TokensPerSecond: 41,
+      p25TokensPerSecond: 95,
+      p75TokensPerSecond: 209,
+      p95TokensPerSecond: 233,
+    },
+    latency: {
+      firstAnswerChunkSeconds: 56.99,
+      firstAnswerTokenSeconds: 56.99,
+      p5FirstChunkSeconds: 39.75,
+      p25FirstChunkSeconds: 46.18,
+      p75FirstChunkSeconds: 84.2,
+      p95FirstChunkSeconds: 121.54,
+      totalResponseSeconds: 60.32,
+      reasoningTimeSeconds: 0,
+    },
+  },
+  "openai:gpt-5-mini": {
+    artificialAnalysisIntelligenceIndex: 64,
+    terminalBenchHard: 0.31,
+    telecomBench: 0.68,
+    aaLcr: 0.68,
+    humanitysLastExam: 0.2,
+    mmluPro: 0.84,
+    gpqaDiamond: 0.83,
+    liveCodeBench: 0.84,
+    sciCode: 0.39,
+    ifBench: 0.75,
+    aime2025: 0.91,
+    blendedCostUsdPer1MTokens: 0.69,
+    throughput: {
+      medianTokensPerSecond: 67,
+      p5TokensPerSecond: 50,
+      p25TokensPerSecond: 58,
+      p75TokensPerSecond: 82,
+      p95TokensPerSecond: 99,
+    },
+    latency: {
+      firstAnswerChunkSeconds: 89.28,
+      firstAnswerTokenSeconds: 89.28,
+      p5FirstChunkSeconds: 58.5,
+      p25FirstChunkSeconds: 73.67,
+      p75FirstChunkSeconds: 103.44,
+      p95FirstChunkSeconds: 145,
+      totalResponseSeconds: 96.74,
+      reasoningTimeSeconds: 0,
+    },
+  },
+  "openai:gpt-5-nano": {
+    artificialAnalysisIntelligenceIndex: 51,
+    terminalBenchHard: 0.11,
+    telecomBench: 0.36,
+    aaLcr: 0.42,
+    humanitysLastExam: 0.08,
+    mmluPro: 0.78,
+    gpqaDiamond: 0.68,
+    liveCodeBench: 0.79,
+    sciCode: 0.37,
+    ifBench: 0.68,
+    aime2025: 0.84,
+    blendedCostUsdPer1MTokens: 0.14,
+    throughput: {
+      medianTokensPerSecond: 106,
+      p5TokensPerSecond: 70,
+      p25TokensPerSecond: 86,
+      p75TokensPerSecond: 156,
+      p95TokensPerSecond: 179,
+    },
+    latency: {
+      firstAnswerChunkSeconds: 94.06,
+      firstAnswerTokenSeconds: 94.06,
+      p5FirstChunkSeconds: 64.45,
+      p25FirstChunkSeconds: 68.04,
+      p75FirstChunkSeconds: 118.13,
+      p95FirstChunkSeconds: 138.09,
+      totalResponseSeconds: 98.77,
+      reasoningTimeSeconds: 0,
+    },
+  },
+  "openai:o3": {
+    artificialAnalysisIntelligenceIndex: 65,
+    terminalBenchHard: 0.35,
+    telecomBench: 0.81,
+    aaLcr: 0.69,
+    humanitysLastExam: 0.2,
+    mmluPro: 0.85,
+    gpqaDiamond: 0.83,
+    liveCodeBench: 0.81,
+    sciCode: 0.41,
+    ifBench: 0.71,
+    aime2025: 0.88,
+    aime2024: 0.9,
+    math500: 0.99,
+    humanEval: 0.99,
+    blendedCostUsdPer1MTokens: 3.5,
+    throughput: {
+      medianTokensPerSecond: 210,
+      p5TokensPerSecond: 106,
+      p25TokensPerSecond: 165,
+      p75TokensPerSecond: 257,
+      p95TokensPerSecond: 297,
+    },
+    latency: {
+      firstAnswerChunkSeconds: 10.15,
+      firstAnswerTokenSeconds: 10.15,
+      p5FirstChunkSeconds: 8.5,
+      p25FirstChunkSeconds: 9.42,
+      p75FirstChunkSeconds: 12.24,
+      p95FirstChunkSeconds: 14.2,
+      totalResponseSeconds: 12.54,
+      reasoningTimeSeconds: 0,
+    },
+  },
+  "gemini:gemini-2.5-pro": {
+    artificialAnalysisIntelligenceIndex: 60,
+    terminalBenchHard: 0.25,
+    telecomBench: 0.54,
+    aaLcr: 0.66,
+    humanitysLastExam: 0.21,
+    mmluPro: 0.86,
+    gpqaDiamond: 0.84,
+    liveCodeBench: 0.8,
+    sciCode: 0.43,
+    ifBench: 0.49,
+    aime2025: 0.88,
+    aime2024: 0.89,
+    math500: 0.97,
+    blendedCostUsdPer1MTokens: 3.44,
+    throughput: {
+      medianTokensPerSecond: 156,
+      p5TokensPerSecond: 142,
+      p25TokensPerSecond: 152,
+      p75TokensPerSecond: 161,
+      p95TokensPerSecond: 167,
+    },
+    latency: {
+      firstAnswerChunkSeconds: 30.75,
+      firstAnswerTokenSeconds: 30.75,
+      p5FirstChunkSeconds: 22.16,
+      p25FirstChunkSeconds: 27.67,
+      p75FirstChunkSeconds: 31.71,
+      p95FirstChunkSeconds: 34.06,
+      totalResponseSeconds: 33.96,
+      reasoningTimeSeconds: 0,
+    },
+  },
+  "gemini:gemini-2.5-flash": {
+    artificialAnalysisIntelligenceIndex: 54,
+    terminalBenchHard: 0.16,
+    telecomBench: 0.46,
+    aaLcr: 0.64,
+    humanitysLastExam: 0.13,
+    mmluPro: 0.84,
+    gpqaDiamond: 0.79,
+    liveCodeBench: 0.71,
+    sciCode: 0.41,
+    ifBench: 0.52,
+    aime2025: 0.78,
+    blendedCostUsdPer1MTokens: 0.85,
+    throughput: {
+      medianTokensPerSecond: 269,
+      p5TokensPerSecond: 235,
+      p25TokensPerSecond: 252,
+      p75TokensPerSecond: 275,
+      p95TokensPerSecond: 289,
+    },
+    latency: {
+      firstAnswerChunkSeconds: 9.01,
+      firstAnswerTokenSeconds: 9.01,
+      p5FirstChunkSeconds: 7.67,
+      p25FirstChunkSeconds: 8.52,
+      p75FirstChunkSeconds: 11.68,
+      p95FirstChunkSeconds: 13.02,
+      totalResponseSeconds: 10.87,
+      reasoningTimeSeconds: 0,
+    },
+  },
+  "gemini:gemini-2.5-flash-lite": {
+    artificialAnalysisIntelligenceIndex: 48,
+    terminalBenchHard: 0.12,
+    telecomBench: 0.31,
+    aaLcr: 0.59,
+    humanitysLastExam: 0.07,
+    mmluPro: 0.81,
+    gpqaDiamond: 0.71,
+    liveCodeBench: 0.69,
+    sciCode: 0.29,
+    ifBench: 0.53,
+    aime2025: 0.69,
+    blendedCostUsdPer1MTokens: 0.17,
+    throughput: {
+      medianTokensPerSecond: 720,
+      p5TokensPerSecond: 632,
+      p25TokensPerSecond: 698,
+      p75TokensPerSecond: 781,
+      p95TokensPerSecond: 846,
+    },
+    latency: {
+      firstAnswerChunkSeconds: 4.81,
+      firstAnswerTokenSeconds: 4.81,
+      p5FirstChunkSeconds: 3.19,
+      p25FirstChunkSeconds: 3.63,
+      p75FirstChunkSeconds: 5.56,
+      p95FirstChunkSeconds: 5.98,
+      totalResponseSeconds: 5.51,
+      reasoningTimeSeconds: 0,
+    },
+  },
+  "anthropic:claude-sonnet-4-5-20250929": {
+    artificialAnalysisIntelligenceIndex: 63,
+    terminalBenchHard: 0.33,
+    telecomBench: 0.78,
+    aaLcr: 0.66,
+    humanitysLastExam: 0.17,
+    mmluPro: 0.88,
+    gpqaDiamond: 0.83,
+    liveCodeBench: 0.71,
+    sciCode: 0.45,
+    ifBench: 0.57,
+    aime2025: 0.88,
+    blendedCostUsdPer1MTokens: 6,
+    throughput: {
+      medianTokensPerSecond: 66,
+      p5TokensPerSecond: 54,
+      p25TokensPerSecond: 65,
+      p75TokensPerSecond: 69,
+      p95TokensPerSecond: 73,
+    },
+    latency: {
+      firstAnswerChunkSeconds: 2,
+      firstAnswerTokenSeconds: 32.32,
+      p5FirstChunkSeconds: 1.65,
+      p25FirstChunkSeconds: 1.89,
+      p75FirstChunkSeconds: 2.15,
+      p95FirstChunkSeconds: 2.8,
+      totalResponseSeconds: 39.9,
+      reasoningTimeSeconds: 30.32,
+    },
+  },
+  "anthropic:claude-sonnet-4-20250514": {
+    artificialAnalysisIntelligenceIndex: 57,
+    terminalBenchHard: 0.3,
+    telecomBench: 0.65,
+    aaLcr: 0.65,
+    humanitysLastExam: 0.1,
+    mmluPro: 0.84,
+    gpqaDiamond: 0.78,
+    liveCodeBench: 0.66,
+    sciCode: 0.4,
+    ifBench: 0.55,
+    aime2025: 0.74,
+    aime2024: 0.77,
+    blendedCostUsdPer1MTokens: 6,
+    throughput: {
+      medianTokensPerSecond: 58,
+      p5TokensPerSecond: 45,
+      p25TokensPerSecond: 53,
+      p75TokensPerSecond: 62,
+      p95TokensPerSecond: 71,
+    },
+    latency: {
+      firstAnswerChunkSeconds: 1.72,
+      firstAnswerTokenSeconds: 36.13,
+      p5FirstChunkSeconds: 1.49,
+      p25FirstChunkSeconds: 1.63,
+      p75FirstChunkSeconds: 1.81,
+      p95FirstChunkSeconds: 2.07,
+      totalResponseSeconds: 44.73,
+      reasoningTimeSeconds: 34.41,
+    },
+  },
+  "anthropic:claude-opus-4-1-20250805": {
+    artificialAnalysisIntelligenceIndex: 59,
+    terminalBenchHard: 0.32,
+    telecomBench: 0.71,
+    aaLcr: 0.66,
+    humanitysLastExam: 0.12,
+    mmluPro: 0.88,
+    gpqaDiamond: 0.81,
+    liveCodeBench: 0.65,
+    sciCode: 0.41,
+    ifBench: 0.55,
+    aime2025: 0.8,
+    blendedCostUsdPer1MTokens: 30,
+    throughput: {
+      medianTokensPerSecond: 45,
+      p5TokensPerSecond: 37,
+      p25TokensPerSecond: 41,
+      p75TokensPerSecond: 49,
+      p95TokensPerSecond: 52,
+    },
+    latency: {
+      firstAnswerChunkSeconds: 2.67,
+      firstAnswerTokenSeconds: 47.11,
+      p5FirstChunkSeconds: 2.06,
+      p25FirstChunkSeconds: 2.54,
+      p75FirstChunkSeconds: 2.95,
+      p95FirstChunkSeconds: 3.17,
+      totalResponseSeconds: 58.22,
+      reasoningTimeSeconds: 44.44,
+    },
+  },
+  "grok:grok-4-fast-reasoning": {
+    artificialAnalysisIntelligenceIndex: 60,
+    terminalBenchHard: 0.18,
+    telecomBench: 0.66,
+    aaLcr: 0.65,
+    humanitysLastExam: 0.17,
+    mmluPro: 0.85,
+    gpqaDiamond: 0.85,
+    liveCodeBench: 0.83,
+    sciCode: 0.44,
+    ifBench: 0.51,
+    aime2025: 0.9,
+    blendedCostUsdPer1MTokens: 0.28,
+    throughput: {
+      medianTokensPerSecond: 100,
+      p5TokensPerSecond: 71,
+      p25TokensPerSecond: 79,
+      p75TokensPerSecond: 122,
+      p95TokensPerSecond: 157,
+    },
+    latency: {
+      firstAnswerChunkSeconds: 8.64,
+      firstAnswerTokenSeconds: 8.64,
+      p5FirstChunkSeconds: 3.6,
+      p25FirstChunkSeconds: 5.17,
+      p75FirstChunkSeconds: 13.59,
+      p95FirstChunkSeconds: 30.71,
+      totalResponseSeconds: 13.64,
+      reasoningTimeSeconds: 0,
+    },
+  },
+  "grok:grok-code-fast-1": {
+    artificialAnalysisIntelligenceIndex: 49,
+    terminalBenchHard: 0.16,
+    telecomBench: 0.76,
+    aaLcr: 0.48,
+    humanitysLastExam: 0.08,
+    mmluPro: 0.79,
+    gpqaDiamond: 0.73,
+    liveCodeBench: 0.66,
+    sciCode: 0.36,
+    ifBench: 0.41,
+    aime2025: 0.43,
+    blendedCostUsdPer1MTokens: 0.53,
+    throughput: {
+      medianTokensPerSecond: 270,
+      p5TokensPerSecond: 179,
+      p25TokensPerSecond: 239,
+      p75TokensPerSecond: 339,
+      p95TokensPerSecond: 393,
+    },
+    latency: {
+      firstAnswerChunkSeconds: 7.34,
+      firstAnswerTokenSeconds: 7.34,
+      p5FirstChunkSeconds: 3.08,
+      p25FirstChunkSeconds: 5.85,
+      p75FirstChunkSeconds: 8.2,
+      p95FirstChunkSeconds: 12.53,
+      totalResponseSeconds: 9.19,
+      reasoningTimeSeconds: 0,
+    },
+  },
+};
+
+function benchmarkFor(key: string): ModelBenchmarks | undefined {
+  return MODEL_BENCHMARKS[key];
+}
+
 export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
   openai: {
     provider: "openai",
@@ -111,7 +539,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           "Great at synthesizing research into tone"
         ],
         release: "2025",
-        contextWindow: 272_000,
+        contextWindow: 400_000,
         contextWindowUnit: "tokens",
         featured: true,
         maxOutputTokens: {
@@ -120,6 +548,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description: "OpenAI advertises up to 128K output tokens on GPT-5.",
         },
         cost: usdCost({ input: 1.25, output: 10 }),
+        benchmarks: benchmarkFor("openai:gpt-5"),
       },
       {
         value: "gpt-5-2025-08-07",
@@ -134,7 +563,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           "Balances ambition with reliability"
         ],
         release: "Aug 2025",
-        contextWindow: 272_000,
+        contextWindow: 400_000,
         contextWindowUnit: "tokens",
         maxOutputTokens: {
           default: 128_000,
@@ -152,7 +581,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         recommendedFor: "Teams iterating quickly on flows and copy without burning through budgets.",
         highlights: ["Fast iteration", "Balanced creativity", "Budget-conscious"],
         release: "2025",
-        contextWindow: 272_000,
+        contextWindow: 400_000,
         contextWindowUnit: "tokens",
         featured: true,
         maxOutputTokens: {
@@ -161,6 +590,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description: "Matches GPT-5’s 128K output ceiling in a smaller footprint.",
         },
         cost: usdCost({ input: 0.25, output: 2 }),
+        benchmarks: benchmarkFor("openai:gpt-5-mini"),
       },
       {
         value: "gpt-5-mini-2025-08-07",
@@ -171,7 +601,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         recommendedFor: "Marketing and product teams who love GPT-5 Mini but want the latest tone tweaks.",
         highlights: ["Snappy microcopy", "Improved summarization", "Smoother transitions"],
         release: "Aug 2025",
-        contextWindow: 272_000,
+        contextWindow: 400_000,
         contextWindowUnit: "tokens",
         maxOutputTokens: {
           default: 128_000,
@@ -189,7 +619,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         recommendedFor: "Internal stakeholders who need a feel for the experience without the full price tag.",
         highlights: ["Instant responses", "Small budget footprint", "Keeps the GPT-5 vibe"],
         release: "2025",
-        contextWindow: 272_000,
+        contextWindow: 400_000,
         contextWindowUnit: "tokens",
         maxOutputTokens: {
           default: 128_000,
@@ -197,6 +627,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description: "Shares GPT-5’s 128K output token limit in a nano-sized package.",
         },
         cost: usdCost({ input: 0.05, output: 0.4 }),
+        benchmarks: benchmarkFor("openai:gpt-5-nano"),
       },
       {
         value: "gpt-5-nano-2025-08-07",
@@ -207,7 +638,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         recommendedFor: "Tiny experiments and fast-turn prototypes where tone still matters.",
         highlights: ["More expressive than older nanos", "Great for copy drafts", "Friendly on cost"],
         release: "Aug 2025",
-        contextWindow: 272_000,
+        contextWindow: 400_000,
         contextWindowUnit: "tokens",
         maxOutputTokens: {
           default: 128_000,
@@ -595,6 +1026,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description: "o3 shares the 100K output ceiling with o1.",
         },
         cost: usdCost({ input: 2, output: 8 }),
+        benchmarks: benchmarkFor("openai:o3"),
       },
       {
         value: "o3-mini",
@@ -680,6 +1112,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         cost: usdCost({ input: 0.3, output: 2.5, reasoning: 2.5 }),
         reasoningModeNotes:
           "Output pricing already includes deliberate “thinking” tokens. Audio inputs are billed at $1.00 per 1M tokens.",
+        benchmarks: benchmarkFor("gemini:gemini-2.5-flash"),
       },
       {
         value: "gemini-2.5-flash-lite",
@@ -701,6 +1134,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         cost: usdCost({ input: 0.1, output: 0.4, reasoning: 0.4 }),
         reasoningModeNotes:
           "Output pricing includes thinking tokens. Audio inputs are billed at $0.30 per 1M tokens.",
+        benchmarks: benchmarkFor("gemini:gemini-2.5-flash-lite"),
       },
       {
         value: "gemini-2.5-pro",
@@ -722,6 +1156,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         cost: usdCost({ input: 1.25, output: 10 }),
         reasoningModeNotes:
           "Pricing shown is for prompts up to 200K tokens; requests above that tier increase to $2.50 input / $15 output per 1M tokens.",
+        benchmarks: benchmarkFor("gemini:gemini-2.5-pro"),
       },
       {
         value: "gemini-2.0-pro-exp",
@@ -797,7 +1232,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         recommendedFor: "Story-driven flows, research synthesis, and collaborative planning.",
         highlights: ["Empathetic tone", "Great reasoning", "Reliable formatting"],
         release: "Sep 2025",
-        contextWindow: 128_000,
+        contextWindow: 200_000, // 1M token context available with the 'context-1m-2025-08-07' beta header
         contextWindowUnit: "tokens",
         featured: true,
         maxOutputTokens: {
@@ -806,6 +1241,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description: "The latest Sonnet tier can emit up to roughly 128K tokens when needed.",
         },
         cost: usdCost({ input: 3, output: 15 }),
+        benchmarks: benchmarkFor("anthropic:claude-sonnet-4-5-20250929"),
       },
       {
         value: "claude-sonnet-4-20250514",
@@ -816,9 +1252,10 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         recommendedFor: "Workshops, customer journey design, and content strategy.",
         highlights: ["Conversational", "Structured", "Team player"],
         release: "May 2025",
-        contextWindow: 200_000,
+        contextWindow: 200_000, // 1M token context available with the 'context-1m-2025-08-07' beta header
         contextWindowUnit: "tokens",
         cost: usdCost({ input: 3, output: 15 }),
+        benchmarks: benchmarkFor("anthropic:claude-sonnet-4-20250514"),
       },
       {
         value: "claude-3-7-sonnet-latest",
@@ -847,6 +1284,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         contextWindowUnit: "tokens",
         featured: true,
         cost: usdCost({ input: 15, output: 75 }),
+        benchmarks: benchmarkFor("anthropic:claude-opus-4-1-20250805"),
       },
       {
         value: "claude-opus-4-20250514",
@@ -938,6 +1376,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description: "Fast reasoning runs can stretch toward two million output tokens.",
         },
         cost: usdCost({ input: 0.2, output: 0.5 }),
+        benchmarks: benchmarkFor("grok:grok-4-fast-reasoning"),
       },
       {
         value: "grok-4-fast-non-reasoning",
@@ -1030,6 +1469,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description: "Code Fast mirrors the 256K output limit of other Grok code tiers.",
         },
         reasoningModeNotes: "Pricing for the code-tuned tier varies; check the latest xAI announcements.",
+        benchmarks: benchmarkFor("grok:grok-code-fast-1"),
       },
     ],
   },
