@@ -109,7 +109,10 @@ private final class LogWindowController: NSWindowController {
     textView.isVerticallyResizable = true
     textView.isHorizontallyResizable = false
     textView.textContainerInset = NSSize(width: 12, height: 12)
-    textView.textContainer?.containerSize = NSSize(width: .greatestFiniteMagnitude, height: .greatestFiniteMagnitude)
+    textView.textContainer?.containerSize = NSSize(
+      width: CGFloat.greatestFiniteMagnitude,
+      height: CGFloat.greatestFiniteMagnitude
+    )
     textView.textContainer?.widthTracksTextView = true
     textView.usesAdaptiveColorMappingForDarkAppearance = true
     textView.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
