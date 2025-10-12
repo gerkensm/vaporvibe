@@ -3,10 +3,14 @@ import type { ChatMessage, LlmReasoningTrace, LlmUsageMetrics, ProviderSettings,
 import type { LlmClient, LlmResult } from "./client.js";
 import { logger } from "../logger.js";
 
+type InputContentPart =
+  | { type: "input_text"; text: string }
+  | { type: "input_image"; image_base64: string; mime_type?: string };
+
 type InputMessage = {
   type: "message";
   role: "system" | "user";
-  content: Array<{ type: "input_text"; text: string }>;
+  content: InputContentPart[];
 };
 
 export class OpenAiClient implements LlmClient {
@@ -24,11 +28,28 @@ export class OpenAiClient implements LlmClient {
   }
 
   async generateHtml(messages: ChatMessage[]): Promise<LlmResult> {
-    const input: InputMessage[] = messages.map((message) => ({
-      type: "message",
-      role: message.role,
-      content: [{ type: "input_text", text: message.content }],
-    }));
+    const input: InputMessage[] = messages.map((message) => {
+      const content: InputContentPart[] = [
+        { type: "input_text", text: message.content },
+      ];
+      if (message.attachments?.length) {
+        for (const attachment of message.attachments) {
+          if (attachment.mimeType.startsWith("image/")) {
+            content.push({
+              type: "input_image",
+              image_base64: attachment.base64,
+              mime_type: attachment.mimeType,
+            });
+          } else {
+            const descriptor =
+              `Attachment ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes) encoded in Base64:`;
+            content.push({ type: "input_text", text: descriptor });
+            content.push({ type: "input_text", text: attachment.base64 });
+          }
+        }
+      }
+      return { type: "message", role: message.role, content };
+    });
 
     const request: Record<string, unknown> = {
       model: this.settings.model,

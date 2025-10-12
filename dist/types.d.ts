@@ -1,8 +1,16 @@
 export type ModelProvider = "openai" | "gemini" | "anthropic" | "grok";
 export type ReasoningMode = "none" | "low" | "medium" | "high";
+export interface BriefAttachment {
+    id: string;
+    name: string;
+    mimeType: string;
+    size: number;
+    base64: string;
+}
 export interface ChatMessage {
     role: "system" | "user";
     content: string;
+    attachments?: BriefAttachment[];
 }
 export interface ProviderSettings {
     provider: ModelProvider;
@@ -34,6 +42,7 @@ export interface HistoryEntry {
     createdAt: string;
     durationMs: number;
     brief: string;
+    briefAttachments?: BriefAttachment[];
     request: {
         method: string;
         path: string;
@@ -66,6 +75,7 @@ export interface HistorySnapshot {
     version: 1;
     exportedAt: string;
     brief: string | null;
+    briefAttachments: BriefAttachment[];
     history: HistoryEntry[];
     runtime: Pick<RuntimeConfig, "historyLimit" | "historyMaxBytes" | "includeInstructionPanel">;
     llm: ProviderSettingsSummary;

@@ -35,6 +35,15 @@ export interface AdminRuntimeInfo {
   includeInstructionPanel: boolean;
 }
 
+export interface AdminBriefAttachment {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  dataUrl: string;
+  isImage: boolean;
+}
+
 export interface AdminHistoryItem {
   id: string;
   createdAt: string;
@@ -48,12 +57,14 @@ export interface AdminHistoryItem {
   reasoningSummaries?: string[];
   reasoningDetails?: string[];
   html: string;
+  attachments?: AdminBriefAttachment[];
   viewUrl: string;
   downloadUrl: string;
 }
 
 export interface AdminPageProps {
   brief: string | null;
+  attachments: AdminBriefAttachment[];
   provider: AdminProviderInfo;
   runtime: AdminRuntimeInfo;
   history: AdminHistoryItem[];
@@ -73,6 +84,7 @@ export interface AdminPageProps {
 export function renderAdminDashboard(props: AdminPageProps): string {
   const {
     brief,
+    attachments,
     provider,
     runtime,
     history,
@@ -464,6 +476,111 @@ export function renderAdminDashboard(props: AdminPageProps): string {
       margin: 0;
       font-size: 0.78rem;
       color: var(--subtle);
+    }
+    .attachment-section {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .attachment-gallery {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+    .attachment-gallery--history {
+      margin-top: 8px;
+    }
+    .attachment-card {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--surface-muted);
+      box-shadow: var(--shadow-subtle);
+    }
+    .attachment-thumb {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border-radius: 14px;
+      background: rgba(148, 163, 184, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .attachment-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .attachment-file-icon {
+      font-size: 2.5rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .attachment-meta {
+      display: grid;
+      gap: 4px;
+    }
+    .attachment-meta strong {
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+    .attachment-meta span {
+      font-size: 0.8rem;
+      color: var(--subtle);
+    }
+    .attachment-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .attachment-remove {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .attachment-remove input {
+      accent-color: var(--accent);
+    }
+    .attachment-download {
+      font-size: 0.82rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .attachment-download:hover {
+      text-decoration: underline;
+    }
+    .attachment-empty {
+      margin: 4px 0 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .upload-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      border: 1px dashed var(--border);
+      color: var(--accent);
+      font-size: 0.86rem;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease;
+      width: fit-content;
+    }
+    .upload-control:hover {
+      background: rgba(99, 102, 241, 0.08);
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+    .upload-control input {
+      display: none;
     }
     .advanced {
       border: 1px solid var(--border);
@@ -894,9 +1011,11 @@ export function renderAdminDashboard(props: AdminPageProps): string {
           <div class="panel-body brief-panel">
             <div class="pill">Craft the brief</div>
             <p class="panel-note">Describe the product vision just like you did in setup—tone, audience, signature moments. Updates land instantly for the next render.</p>
-            <form method="post" action="${escapeHtml(
-              `/serve-llm/update-brief`
-            )}">
+            <form
+              method="post"
+              action="${escapeHtml(`/serve-llm/update-brief`)}"
+              enctype="multipart/form-data"
+            >
               <label class="field-group">
                 <span class="field-label">What are we building?</span>
                 <textarea
@@ -906,6 +1025,20 @@ export function renderAdminDashboard(props: AdminPageProps): string {
                 >${escapeHtml(briefText)}</textarea>
               </label>
               <p class="field-helper">We’ll keep a live snapshot of this brief on every request so you can iterate mid-session.</p>
+              <div class="attachment-section">
+                <span class="field-label">Brief attachments</span>
+                <p class="field-helper">Drop in reference images or PDFs to ground the model. We’ll inline them for models that accept image inputs and preserve them in history exports.</p>
+                ${renderBriefAttachmentManager(attachments)}
+                <label class="upload-control">
+                  <input
+                    type="file"
+                    name="briefAttachments"
+                    accept="image/*,application/pdf"
+                    multiple
+                  />
+                  <span>Upload files</span>
+                </label>
+              </div>
               <button type="submit" class="action-button">Save brief</button>
             </form>
           </div>
@@ -1809,6 +1942,11 @@ export function renderHistory(history: AdminHistoryItem[]): string {
         `<span class="chip">${escapeHtml(item.createdAt)}</span>`,
         `<span class="chip">${item.durationMs} ms</span>`,
       ];
+      if (item.attachments?.length) {
+        chips.push(
+          `<span class="chip">Attachments · ${item.attachments.length}</span>`
+        );
+      }
       if (item.instructions) {
         chips.push(`<span class="chip">Instructions</span>`);
       }
@@ -1834,6 +1972,15 @@ export function renderHistory(history: AdminHistoryItem[]): string {
         `<div class="history-meta">${metaRows.join("\n")}</div>`,
       ];
 
+      if (item.attachments?.length) {
+        blocks.push(
+          renderExpandable(
+            "Brief attachments",
+            renderHistoryAttachments(item.attachments),
+            blockKey("brief-attachments")
+          )
+        );
+      }
       if (item.instructions) {
         blocks.push(
           renderExpandable(
@@ -1899,6 +2046,98 @@ export function renderHistory(history: AdminHistoryItem[]): string {
     .join("\n");
 
   return `<div class="history-list">${items}</div>`;
+}
+
+function renderBriefAttachmentManager(
+  attachments: AdminBriefAttachment[]
+): string {
+  if (!attachments || attachments.length === 0) {
+    return `<p class="attachment-empty">No attachments yet.</p>`;
+  }
+  const cards = attachments
+    .map((attachment) => renderFormAttachmentCard(attachment))
+    .join("\n");
+  return `<div class="attachment-gallery">${cards}</div>`;
+}
+
+function renderFormAttachmentCard(attachment: AdminBriefAttachment): string {
+  const preview = attachment.isImage
+    ? `<img src="${escapeHtml(attachment.dataUrl)}" alt="${escapeHtml(
+        `${attachment.name} preview`
+      )}" loading="lazy" />`
+    : `<div class="attachment-file-icon" aria-hidden="true">${
+        attachment.mimeType === "application/pdf" ? "PDF" : "FILE"
+      }</div>`;
+  return `<div class="attachment-card">
+    <div class="attachment-thumb">${preview}</div>
+    <div class="attachment-meta">
+      <strong>${escapeHtml(attachment.name)}</strong>
+      <span>${escapeHtml(attachment.mimeType)} · ${escapeHtml(
+        formatBytes(attachment.size)
+      )}</span>
+    </div>
+    <div class="attachment-actions">
+      <label class="attachment-remove">
+        <input type="checkbox" name="removeAttachment" value="${escapeHtml(
+          attachment.id
+        )}" />
+        <span>Remove</span>
+      </label>
+      <a class="attachment-download" href="${escapeHtml(
+        attachment.dataUrl
+      )}" download="${escapeHtml(attachment.name)}">Download</a>
+    </div>
+  </div>`;
+}
+
+function renderHistoryAttachments(
+  attachments: AdminBriefAttachment[]
+): string {
+  const cards = attachments
+    .map((attachment) => renderHistoryAttachmentCard(attachment))
+    .join("\n");
+  return `<div class="attachment-gallery attachment-gallery--history">${cards}</div>`;
+}
+
+function renderHistoryAttachmentCard(
+  attachment: AdminBriefAttachment
+): string {
+  const preview = attachment.isImage
+    ? `<img src="${escapeHtml(attachment.dataUrl)}" alt="${escapeHtml(
+        `${attachment.name} preview`
+      )}" loading="lazy" />`
+    : `<div class="attachment-file-icon" aria-hidden="true">${
+        attachment.mimeType === "application/pdf" ? "PDF" : "FILE"
+      }</div>`;
+  return `<div class="attachment-card">
+    <div class="attachment-thumb">${preview}</div>
+    <div class="attachment-meta">
+      <strong>${escapeHtml(attachment.name)}</strong>
+      <span>${escapeHtml(attachment.mimeType)} · ${escapeHtml(
+        formatBytes(attachment.size)
+      )}</span>
+    </div>
+    <div class="attachment-actions">
+      <a class="attachment-download" href="${escapeHtml(
+        attachment.dataUrl
+      )}" download="${escapeHtml(attachment.name)}">Download</a>
+    </div>
+  </div>`;
+}
+
+function formatBytes(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) {
+    return "0 B";
+  }
+  const units = ["B", "KB", "MB", "GB"];
+  let size = value;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  const precision = size < 10 && unitIndex > 0 ? 1 : 0;
+  return `${size.toFixed(precision)} ${units[unitIndex]}`;
 }
 
 function renderExpandable(

@@ -1,7 +1,8 @@
-import type { HistoryEntry, HistorySnapshot, ProviderSettings, RuntimeConfig } from "../types.js";
+import type { BriefAttachment, HistoryEntry, HistorySnapshot, ProviderSettings, RuntimeConfig } from "../types.js";
 export interface HistoryExportContext {
     history: HistoryEntry[];
     brief: string | null;
+    briefAttachments: BriefAttachment[];
     runtime: RuntimeConfig;
     provider: ProviderSettings;
 }

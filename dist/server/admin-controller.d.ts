@@ -25,6 +25,7 @@ export declare class AdminController {
     private redirectWithMessage;
     private redirect;
     private respondNotFound;
+    private toAdminBriefAttachment;
     private applyProviderEnv;
     private isKeyFromEnvironment;
     private toAdminHistoryItem;

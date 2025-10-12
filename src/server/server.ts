@@ -21,6 +21,8 @@ import {
   LLM_RESULT_ROUTE_PREFIX,
 } from "../constants.js";
 import type {
+  BriefAttachment,
+  ChatMessage,
   HistoryEntry,
   RuntimeConfig,
   ProviderSettings,
@@ -29,6 +31,7 @@ import type {
 } from "../types.js";
 import type { LlmClient } from "../llm/client.js";
 import { buildMessages } from "../llm/messages.js";
+import { supportsImageInput } from "../llm/capabilities.js";
 import { parseCookies } from "../utils/cookies.js";
 import { readBody } from "../utils/body.js";
 import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
@@ -69,6 +72,7 @@ export interface RequestContext {
 
 export interface MutableServerState {
   brief: string | null;
+  briefAttachments: BriefAttachment[];
   runtime: RuntimeConfig;
   provider: ProviderSettings;
   llmClient: LlmClient | null;
@@ -101,6 +105,7 @@ export function createServer(options: ServerOptions): http.Server {
   const providerState: ProviderSettings = { ...provider };
   const state: MutableServerState = {
     brief: runtimeState.brief?.trim() || null,
+    briefAttachments: [],
     runtime: runtimeState,
     provider: providerState,
     llmClient,
@@ -920,8 +925,22 @@ async function handleLlmRequest(
     "History context prepared"
   );
 
+  const totalBriefAttachments = state.briefAttachments ?? [];
+  const includeAttachments = supportsImageInput(
+    llmClient.settings.provider,
+    llmClient.settings.model,
+  );
+  const promptAttachments = includeAttachments
+    ? totalBriefAttachments.map((attachment) => ({ ...attachment }))
+    : [];
+  const omittedAttachmentCount = includeAttachments
+    ? 0
+    : totalBriefAttachments.length;
+
   const messages = buildMessages({
     brief: state.brief ?? "",
+    briefAttachments: promptAttachments,
+    omittedAttachmentCount,
     method,
     path,
     query,
@@ -1002,6 +1021,9 @@ async function handleLlmRequest(
       createdAt: new Date().toISOString(),
       durationMs,
       brief: state.brief ?? "",
+      briefAttachments: totalBriefAttachments.map((attachment) => ({
+        ...attachment,
+      })),
       request: {
         method,
         path,
@@ -1435,13 +1457,18 @@ function truncate(value: string, maxLength: number): string {
   return `${value.slice(0, maxLength)}…`;
 }
 
-function formatMessagesForLog(
-  messages: Array<{ role: string; content: string }>
-): string {
+function formatMessagesForLog(messages: ChatMessage[]): string {
   return messages
     .map((message) => {
       const preview = truncate(message.content, 1_000);
-      return `[${message.role.toUpperCase()}]\n${preview}`;
+      let attachmentNote = "";
+      if (message.attachments?.length) {
+        const names = message.attachments
+          .map((attachment) => `${attachment.name} (${attachment.mimeType})`)
+          .join(", ");
+        attachmentNote = `\n[ATTACHMENTS: ${names}]`;
+      }
+      return `[${message.role.toUpperCase()}]\n${preview}${attachmentNote}`;
     })
     .join("\n\n");
 }
@@ -1490,6 +1517,13 @@ function estimateHistoryEntrySize(entry: HistoryEntry): number {
   ];
   if (entry.usage) {
     fragments.push(JSON.stringify(entry.usage, null, 2));
+  }
+  if (entry.briefAttachments?.length) {
+    for (const attachment of entry.briefAttachments) {
+      fragments.push(attachment.base64);
+      fragments.push(attachment.name);
+      fragments.push(attachment.mimeType);
+    }
   }
   if (entry.reasoning?.summaries?.length) {
     fragments.push(entry.reasoning.summaries.join("\n"));

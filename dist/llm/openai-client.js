@@ -11,11 +11,28 @@ export class OpenAiClient {
         }
     }
     async generateHtml(messages) {
-        const input = messages.map((message) => ({
-            type: "message",
-            role: message.role,
-            content: [{ type: "input_text", text: message.content }],
-        }));
+        const input = messages.map((message) => {
+            const content = [
+                { type: "input_text", text: message.content },
+            ];
+            if (message.attachments?.length) {
+                for (const attachment of message.attachments) {
+                    if (attachment.mimeType.startsWith("image/")) {
+                        content.push({
+                            type: "input_image",
+                            image_base64: attachment.base64,
+                            mime_type: attachment.mimeType,
+                        });
+                    }
+                    else {
+                        const descriptor = `Attachment ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes) encoded in Base64:`;
+                        content.push({ type: "input_text", text: descriptor });
+                        content.push({ type: "input_text", text: attachment.base64 });
+                    }
+                }
+            }
+            return { type: "message", role: message.role, content };
+        });
         const request = {
             model: this.settings.model,
             input,
