@@ -1,4 +1,5 @@
 import type { ModelProvider } from "../../types.js";
+export declare const CUSTOM_MODEL_DESCRIPTION = "Provide a custom model identifier supported by the provider. You can adjust token budgets below.";
 export declare function renderModelDetailPanel(provider: ModelProvider, modelValue: string): string;
 export declare function renderModelLineup(provider: ModelProvider, activeModel: string): string;
 export declare function getModelOptionList(provider: ModelProvider, selectedModel: string): Array<{

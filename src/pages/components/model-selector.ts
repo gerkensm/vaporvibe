@@ -5,6 +5,7 @@ import {
   PROVIDER_LABELS,
 } from "../../constants/providers.js";
 import {
+  CUSTOM_MODEL_DESCRIPTION,
   getModelOptionList,
   renderModelDetailPanel,
   renderModelLineup,
@@ -126,6 +127,7 @@ export const MODEL_SELECTOR_STYLES = `
 export const MODEL_SELECTOR_RUNTIME = `(() => {
   const globalDataKey = "__SERVE_LLM_MODEL_SELECTOR_DATA";
   const controllers = new WeakMap();
+  const customModelDescription = ${JSON.stringify(CUSTOM_MODEL_DESCRIPTION)};
 
   const getArray = (value) => (Array.isArray(value) ? value : []);
 
@@ -237,8 +239,7 @@ export const MODEL_SELECTOR_RUNTIME = `(() => {
       const description = detail.querySelector('[data-model-description]');
       if (name) name.textContent = rawValue || value || "Custom model";
       if (description) {
-        description.textContent =
-          "Provide a custom model identifier supported by the provider. Tune token budgets below to match the tier.";
+        description.textContent = customModelDescription;
       }
     }
     container.appendChild(detail);

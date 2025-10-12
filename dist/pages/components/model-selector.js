@@ -1,6 +1,6 @@
 import { escapeHtml } from "../../utils/html.js";
 import { DEFAULT_MODEL_BY_PROVIDER, PROVIDER_LABELS, } from "../../constants/providers.js";
-import { getModelOptionList, renderModelDetailPanel, renderModelLineup, serializeModelCatalogForClient, MODEL_INSPECTOR_STYLES, } from "./model-inspector.js";
+import { CUSTOM_MODEL_DESCRIPTION, getModelOptionList, renderModelDetailPanel, renderModelLineup, serializeModelCatalogForClient, MODEL_INSPECTOR_STYLES, } from "./model-inspector.js";
 export function renderModelSelector(options) {
     const { provider, providerLabel, selectedModel, selectId, customInputId, inputName, note = "These options are curated defaults. Choose “Custom…” to supply an exact identifier.", hint = "Need a specific tier or preview build? Paste the full model identifier here.", } = options;
     const defaultModel = DEFAULT_MODEL_BY_PROVIDER[provider] ?? "";
@@ -83,6 +83,7 @@ export const MODEL_SELECTOR_STYLES = `
 export const MODEL_SELECTOR_RUNTIME = `(() => {
   const globalDataKey = "__SERVE_LLM_MODEL_SELECTOR_DATA";
   const controllers = new WeakMap();
+  const customModelDescription = ${JSON.stringify(CUSTOM_MODEL_DESCRIPTION)};
 
   const getArray = (value) => (Array.isArray(value) ? value : []);
 
@@ -194,8 +195,7 @@ export const MODEL_SELECTOR_RUNTIME = `(() => {
       const description = detail.querySelector('[data-model-description]');
       if (name) name.textContent = rawValue || value || "Custom model";
       if (description) {
-        description.textContent =
-          "Provide a custom model identifier supported by the provider. Tune token budgets below to match the tier.";
+        description.textContent = customModelDescription;
       }
     }
     container.appendChild(detail);

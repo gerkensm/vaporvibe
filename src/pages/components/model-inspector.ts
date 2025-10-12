@@ -8,6 +8,9 @@ import {
 } from "../../constants/providers.js";
 import type { ModelMetadata } from "../../llm/model-catalog.js";
 
+export const CUSTOM_MODEL_DESCRIPTION =
+  "Provide a custom model identifier supported by the provider. You can adjust token budgets below.";
+
 function formatCost(cost?: ModelMetadata["cost"]): string {
   if (!cost) {
     return "Cost info coming soon";
@@ -51,7 +54,7 @@ export function renderModelDetailPanel(
         </div>
       </div>
       <p class="model-detail__description" data-model-description>
-        Provide a custom model identifier supported by the provider. You can adjust token budgets below.
+        ${escapeHtml(CUSTOM_MODEL_DESCRIPTION)}
       </p>
       <dl class="model-detail__facts">
         <div><dt>Context window</dt><dd data-model-context>—</dd></div>
