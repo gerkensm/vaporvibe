@@ -1,4 +1,5 @@
 import type {
+  BriefAttachment,
   HistoryEntry,
   HistorySnapshot,
   ProviderSettings,
@@ -12,12 +13,13 @@ const NEWLINE = "\n";
 export interface HistoryExportContext {
   history: HistoryEntry[];
   brief: string | null;
+  briefAttachments: BriefAttachment[];
   runtime: RuntimeConfig;
   provider: ProviderSettings;
 }
 
 export function createHistorySnapshot(context: HistoryExportContext): HistorySnapshot {
-  const { history, brief, runtime, provider } = context;
+  const { history, brief, briefAttachments, runtime, provider } = context;
   const providerSummary: ProviderSettingsSummary = {
     provider: provider.provider,
     model: provider.model,
@@ -31,6 +33,7 @@ export function createHistorySnapshot(context: HistoryExportContext): HistorySna
     version: 1,
     exportedAt: new Date().toISOString(),
     brief,
+    briefAttachments: briefAttachments.map((attachment) => ({ ...attachment })),
     history,
     runtime: {
       historyLimit: runtime.historyLimit,
@@ -42,7 +45,7 @@ export function createHistorySnapshot(context: HistoryExportContext): HistorySna
 }
 
 export function createPromptMarkdown(context: HistoryExportContext): string {
-  const { history, brief, runtime, provider } = context;
+  const { history, brief, briefAttachments, runtime, provider } = context;
   const lines: string[] = [];
 
   lines.push("# serve-llm Session Export");
@@ -57,6 +60,19 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
   lines.push(brief ?? "(brief not set yet)");
   lines.push("```");
   lines.push("");
+
+  if (briefAttachments.length > 0) {
+    lines.push("## Brief Attachments");
+    briefAttachments.forEach((attachment, index) => {
+      lines.push(`### Attachment ${index + 1}: ${attachment.name}`);
+      lines.push(`- MIME Type: ${attachment.mimeType}`);
+      lines.push(`- Size: ${attachment.size} bytes`);
+      lines.push("```base64");
+      lines.push(attachment.base64);
+      lines.push("```");
+      lines.push("");
+    });
+  }
 
   lines.push("## Runtime Configuration");
   lines.push(`- Provider: ${provider.provider} (${provider.model})`);
@@ -86,6 +102,16 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
     lines.push("```json");
     lines.push(JSON.stringify(entry.request.body ?? {}, null, 2));
     lines.push("```");
+    if (entry.briefAttachments?.length) {
+      entry.briefAttachments.forEach((attachment, attachmentIndex) => {
+        lines.push(
+          `- Brief Attachment ${attachmentIndex + 1}: ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes)`
+        );
+        lines.push("```base64");
+        lines.push(attachment.base64);
+        lines.push("```");
+      });
+    }
     lines.push("- Generated HTML:");
     lines.push("```html");
     lines.push(entry.response.html);

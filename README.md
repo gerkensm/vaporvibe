@@ -98,6 +98,7 @@ graph TD
 
 - **Truly No-Code:** No frontend framework, no backend logic. The LLM improvises the entire interactive experience on every click.
 - **Multi-Provider Playground:** Swap between OpenAI, Google Gemini, Anthropic, and xAI Grok on the fly. See how different models interpret the same brief.
+- **Brief Attachments:** Ground the vibe with reference images or PDFs. Upload them in the admin console, and multimodal models ingest the inline assets while everyone else gets a Base64 summary—everything is preserved in history and exports for easy hand-off.
 - **Effortless Setup:** Forget config files. A slick browser-based wizard gets your API key and initial brief configured in moments.
 - **AI-Powered Hot-Fixes:** Use the floating AI Assist panel to give the model live feedback. "Make the buttons rounder" or "Fix this layout bug"—and watch it regenerate the page.
 - **Model "Thinking" Traces:** Enable reasoning mode to see the model's chain-of-thought, giving you a peek into how it decided to render the page.

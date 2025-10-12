@@ -2,8 +2,9 @@ import { escapeHtml } from "../utils/html.js";
 import { DEFAULT_REASONING_TOKENS } from "../constants.js";
 import { PROVIDER_CHOICES, PROVIDER_LABELS, PROVIDER_PLACEHOLDERS, DEFAULT_MODEL_BY_PROVIDER, DEFAULT_MAX_TOKENS_BY_PROVIDER, REASONING_MODE_CHOICES, PROVIDER_REASONING_CAPABILITIES, REASONING_TOKEN_MIN_BY_PROVIDER, getDefaultReasoningTokens, } from "../constants/providers.js";
 import { renderModelSelector, MODEL_SELECTOR_STYLES, MODEL_SELECTOR_RUNTIME, renderModelSelectorDataScript, MODEL_INSPECTOR_STYLES, } from "./components/model-selector.js";
+import { ATTACHMENT_UPLOADER_STYLES, ATTACHMENT_UPLOADER_RUNTIME, renderAttachmentUploader, } from "./components/attachment-uploader.js";
 export function renderAdminDashboard(props) {
-    const { brief, provider, runtime, history, totalHistoryCount, sessionCount, statusMessage, errorMessage, exportJsonUrl, exportMarkdownUrl, historyEndpoint, } = props;
+    const { brief, attachments, provider, runtime, history, totalHistoryCount, sessionCount, statusMessage, errorMessage, exportJsonUrl, exportMarkdownUrl, historyEndpoint, } = props;
     const briefText = brief && brief.trim().length > 0 ? brief : "(brief not set yet)";
     const providerKey = isModelProvider(provider.provider)
         ? provider.provider
@@ -87,6 +88,7 @@ export function renderAdminDashboard(props) {
         : "null";
     const modelSelectorDataScript = renderModelSelectorDataScript();
     const modelSelectorRuntimeScript = `<script>${MODEL_SELECTOR_RUNTIME}</script>`;
+    const attachmentRuntimeScript = `<script>${ATTACHMENT_UPLOADER_RUNTIME}</script>`;
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -284,6 +286,7 @@ export function renderAdminDashboard(props) {
     }
     ${MODEL_SELECTOR_STYLES}
     ${MODEL_INSPECTOR_STYLES}
+    ${ATTACHMENT_UPLOADER_STYLES}
     .provider-option {
       display: grid;
       grid-template-columns: auto 1fr;
@@ -337,6 +340,91 @@ export function renderAdminDashboard(props) {
       margin: 0;
       font-size: 0.78rem;
       color: var(--subtle);
+    }
+    .attachment-section {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .attachment-gallery {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+    .attachment-gallery--history {
+      margin-top: 8px;
+    }
+    .attachment-card {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--surface-muted);
+      box-shadow: var(--shadow-subtle);
+    }
+    .attachment-thumb {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border-radius: 14px;
+      background: rgba(148, 163, 184, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .attachment-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .attachment-file-icon {
+      font-size: 2.5rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .attachment-meta {
+      display: grid;
+      gap: 4px;
+    }
+    .attachment-meta strong {
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+    .attachment-meta span {
+      font-size: 0.8rem;
+      color: var(--subtle);
+    }
+    .attachment-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .attachment-remove {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .attachment-remove input {
+      accent-color: var(--accent);
+    }
+    .attachment-download {
+      font-size: 0.82rem;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .attachment-download:hover {
+      text-decoration: underline;
+    }
+    .attachment-empty {
+      margin: 4px 0 0;
+      font-size: 0.82rem;
+      color: var(--muted);
     }
     .advanced {
       border: 1px solid var(--border);
@@ -732,6 +820,7 @@ export function renderAdminDashboard(props) {
   </style>
   ${modelSelectorDataScript}
   ${modelSelectorRuntimeScript}
+  ${attachmentRuntimeScript}
 </head>
 <body>
   <main>
@@ -761,7 +850,11 @@ export function renderAdminDashboard(props) {
           <div class="panel-body brief-panel">
             <div class="pill">Craft the brief</div>
             <p class="panel-note">Describe the product vision just like you did in setup—tone, audience, signature moments. Updates land instantly for the next render.</p>
-            <form method="post" action="${escapeHtml(`/serve-llm/update-brief`)}">
+            <form
+              method="post"
+              action="${escapeHtml(`/serve-llm/update-brief`)}"
+              enctype="multipart/form-data"
+            >
               <label class="field-group">
                 <span class="field-label">What are we building?</span>
                 <textarea
@@ -771,6 +864,18 @@ export function renderAdminDashboard(props) {
                 >${escapeHtml(briefText)}</textarea>
               </label>
               <p class="field-helper">We’ll keep a live snapshot of this brief on every request so you can iterate mid-session.</p>
+              <div class="attachment-section">
+                <span class="field-label">Brief attachments</span>
+                <p class="field-helper">Drop in reference images or PDFs to ground the model. We’ll inline them for models that accept image inputs and preserve them in history exports.</p>
+                ${renderBriefAttachmentManager(attachments)}
+                ${renderAttachmentUploader({
+        inputName: "briefAttachments",
+        label: "Add brief attachments",
+        hint: "Drop files, paste with Ctrl+V, or click browse to upload images and PDFs.",
+        browseLabel: "Browse files",
+        emptyStatus: "No new files selected yet.",
+    })}
+              </div>
               <button type="submit" class="action-button">Save brief</button>
             </form>
           </div>
@@ -984,6 +1089,8 @@ export function renderAdminDashboard(props) {
     (() => {
       const tabButtons = Array.from(document.querySelectorAll(".tab-button"));
       const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
+      let currentTabId = "tab-brief";
+      let onTabChange = (_isHistory) => {};
 
       const activateTab = (id) => {
         tabButtons.forEach((button) => {
@@ -997,6 +1104,8 @@ export function renderAdminDashboard(props) {
           panel.hidden = !isActive;
           panel.setAttribute("aria-hidden", isActive ? "false" : "true");
         });
+        currentTabId = id;
+        onTabChange(id === "tab-history");
       };
 
       tabButtons.forEach((button, index) => {
@@ -1497,32 +1606,85 @@ export function renderAdminDashboard(props) {
       }
 
       const endpoint = ${JSON.stringify(historyEndpoint)};
+      let historyTabActive = currentTabId === "tab-history";
+      let autoEnabled = true;
       const intervalMs = 8000;
-      let auto = true;
       let timer = window.setInterval(tick, intervalMs);
       let refreshing = false;
 
+      const updateToggleUi = () => {
+        toggleButton.dataset.enabled = String(autoEnabled);
+        toggleButton.textContent = autoEnabled
+          ? "Auto-refresh: on"
+          : "Auto-refresh: off";
+      };
+
+      const updateStatus = (message) => {
+        if (!(statusEl instanceof HTMLElement)) {
+          return;
+        }
+        if (message) {
+          statusEl.textContent = message;
+          return;
+        }
+        if (autoEnabled && historyTabActive) {
+          statusEl.textContent = "Auto-refresh running";
+        } else if (historyTabActive) {
+          statusEl.textContent = "Auto-refresh paused";
+        } else {
+          statusEl.textContent = "Auto-refresh paused while viewing other tabs";
+        }
+      };
+
+      const restartTimer = () => {
+        window.clearInterval(timer);
+        timer = window.setInterval(tick, intervalMs);
+      };
+
+      onTabChange = (isHistory) => {
+        historyTabActive = isHistory;
+        if (historyTabActive) {
+          if (autoEnabled) {
+            updateStatus("Auto-refresh resumed");
+            refresh();
+            restartTimer();
+          } else {
+            updateStatus("Auto-refresh paused");
+          }
+        } else {
+          updateStatus("Auto-refresh paused while viewing other tabs");
+        }
+      };
+
+      updateToggleUi();
+      updateStatus();
+
       refreshButton.addEventListener("click", () => {
+        updateStatus("Refreshing…");
         refresh();
       });
 
       toggleButton.addEventListener("click", () => {
-        auto = !auto;
-        toggleButton.dataset.enabled = String(auto);
-        toggleButton.textContent = auto ? "Auto-refresh: on" : "Auto-refresh: off";
-        if (auto) {
-          statusEl.textContent = "Auto-refresh resumed";
-          refresh();
-          window.clearInterval(timer);
-          timer = window.setInterval(tick, intervalMs);
+        autoEnabled = !autoEnabled;
+        updateToggleUi();
+        if (autoEnabled) {
+          restartTimer();
+          if (historyTabActive) {
+            updateStatus("Auto-refresh resumed");
+            refresh();
+          } else {
+            updateStatus("Auto-refresh will resume on the History tab");
+          }
         } else {
-          statusEl.textContent = "Auto-refresh paused";
+          updateStatus("Auto-refresh paused");
           window.clearInterval(timer);
         }
       });
 
       async function tick() {
-        if (!auto) return;
+        if (!autoEnabled || !historyTabActive) {
+          return;
+        }
         await refresh();
       }
 
@@ -1532,7 +1694,7 @@ export function renderAdminDashboard(props) {
         }
         refreshing = true;
         try {
-          statusEl.textContent = "Refreshing…";
+          updateStatus("Refreshing…");
           const response = await fetch(endpoint + '?t=' + Date.now(), {
             headers: { Accept: "application/json" },
             cache: "no-store",
@@ -1586,18 +1748,22 @@ export function renderAdminDashboard(props) {
           if (statusBytes && payload.runtime && typeof payload.runtime.historyMaxBytes === "number") {
             statusBytes.textContent = "Byte budget: " + payload.runtime.historyMaxBytes;
           }
-          statusEl.textContent = 'Last updated ' + new Date().toLocaleTimeString();
+          updateStatus('Last updated ' + new Date().toLocaleTimeString());
         } catch (error) {
           console.error("Failed to refresh history", error);
-          statusEl.textContent = "Refresh failed — will retry";
+          updateStatus("Refresh failed — will retry");
         } finally {
           refreshing = false;
         }
       }
 
-      refresh().catch((error) => {
-        console.error("Failed to bootstrap history", error);
-      });
+      if (historyTabActive && autoEnabled) {
+        refresh().catch((error) => {
+          console.error("Failed to bootstrap history", error);
+        });
+      }
+
+      updateStatus();
 
       window.addEventListener("beforeunload", () => {
         window.clearInterval(timer);
@@ -1633,6 +1799,9 @@ export function renderHistory(history) {
             `<span class="chip">${escapeHtml(item.createdAt)}</span>`,
             `<span class="chip">${item.durationMs} ms</span>`,
         ];
+        if (item.attachments?.length) {
+            chips.push(`<span class="chip">Attachments · ${item.attachments.length}</span>`);
+        }
         if (item.instructions) {
             chips.push(`<span class="chip">Instructions</span>`);
         }
@@ -1647,6 +1816,9 @@ export function renderHistory(history) {
         const blocks = [
             `<div class="history-meta">${metaRows.join("\n")}</div>`,
         ];
+        if (item.attachments?.length) {
+            blocks.push(renderExpandable("Brief attachments", renderHistoryAttachments(item.attachments), blockKey("brief-attachments")));
+        }
         if (item.instructions) {
             blocks.push(renderExpandable("Instructions", `<pre>${escapeHtml(item.instructions)}</pre>`, blockKey("instructions")));
         }
@@ -1676,6 +1848,69 @@ export function renderHistory(history) {
     })
         .join("\n");
     return `<div class="history-list">${items}</div>`;
+}
+function renderBriefAttachmentManager(attachments) {
+    if (!attachments || attachments.length === 0) {
+        return `<p class="attachment-empty">No attachments yet.</p>`;
+    }
+    const cards = attachments
+        .map((attachment) => renderFormAttachmentCard(attachment))
+        .join("\n");
+    return `<div class="attachment-gallery">${cards}</div>`;
+}
+function renderFormAttachmentCard(attachment) {
+    const preview = attachment.isImage
+        ? `<img src="${escapeHtml(attachment.dataUrl)}" alt="${escapeHtml(`${attachment.name} preview`)}" loading="lazy" />`
+        : `<div class="attachment-file-icon" aria-hidden="true">${attachment.mimeType === "application/pdf" ? "PDF" : "FILE"}</div>`;
+    return `<div class="attachment-card">
+    <div class="attachment-thumb">${preview}</div>
+    <div class="attachment-meta">
+      <strong>${escapeHtml(attachment.name)}</strong>
+      <span>${escapeHtml(attachment.mimeType)} · ${escapeHtml(formatBytes(attachment.size))}</span>
+    </div>
+    <div class="attachment-actions">
+      <label class="attachment-remove">
+        <input type="checkbox" name="removeAttachment" value="${escapeHtml(attachment.id)}" />
+        <span>Remove</span>
+      </label>
+      <a class="attachment-download" href="${escapeHtml(attachment.dataUrl)}" download="${escapeHtml(attachment.name)}">Download</a>
+    </div>
+  </div>`;
+}
+function renderHistoryAttachments(attachments) {
+    const cards = attachments
+        .map((attachment) => renderHistoryAttachmentCard(attachment))
+        .join("\n");
+    return `<div class="attachment-gallery attachment-gallery--history">${cards}</div>`;
+}
+function renderHistoryAttachmentCard(attachment) {
+    const preview = attachment.isImage
+        ? `<img src="${escapeHtml(attachment.dataUrl)}" alt="${escapeHtml(`${attachment.name} preview`)}" loading="lazy" />`
+        : `<div class="attachment-file-icon" aria-hidden="true">${attachment.mimeType === "application/pdf" ? "PDF" : "FILE"}</div>`;
+    return `<div class="attachment-card">
+    <div class="attachment-thumb">${preview}</div>
+    <div class="attachment-meta">
+      <strong>${escapeHtml(attachment.name)}</strong>
+      <span>${escapeHtml(attachment.mimeType)} · ${escapeHtml(formatBytes(attachment.size))}</span>
+    </div>
+    <div class="attachment-actions">
+      <a class="attachment-download" href="${escapeHtml(attachment.dataUrl)}" download="${escapeHtml(attachment.name)}">Download</a>
+    </div>
+  </div>`;
+}
+function formatBytes(value) {
+    if (!Number.isFinite(value) || value <= 0) {
+        return "0 B";
+    }
+    const units = ["B", "KB", "MB", "GB"];
+    let size = value;
+    let unitIndex = 0;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex += 1;
+    }
+    const precision = size < 10 && unitIndex > 0 ? 1 : 0;
+    return `${size.toFixed(precision)} ${units[unitIndex]}`;
 }
 function renderExpandable(title, innerHtml, blockId) {
     const idAttr = blockId ? ` data-block-id="${escapeHtml(blockId)}"` : "";

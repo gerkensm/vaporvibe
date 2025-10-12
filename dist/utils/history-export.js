@@ -1,7 +1,7 @@
 import { maskSensitive } from "./sensitive.js";
 const NEWLINE = "\n";
 export function createHistorySnapshot(context) {
-    const { history, brief, runtime, provider } = context;
+    const { history, brief, briefAttachments, runtime, provider } = context;
     const providerSummary = {
         provider: provider.provider,
         model: provider.model,
@@ -14,6 +14,7 @@ export function createHistorySnapshot(context) {
         version: 1,
         exportedAt: new Date().toISOString(),
         brief,
+        briefAttachments: briefAttachments.map((attachment) => ({ ...attachment })),
         history,
         runtime: {
             historyLimit: runtime.historyLimit,
@@ -24,7 +25,7 @@ export function createHistorySnapshot(context) {
     };
 }
 export function createPromptMarkdown(context) {
-    const { history, brief, runtime, provider } = context;
+    const { history, brief, briefAttachments, runtime, provider } = context;
     const lines = [];
     lines.push("# serve-llm Session Export");
     lines.push("");
@@ -37,6 +38,18 @@ export function createPromptMarkdown(context) {
     lines.push(brief ?? "(brief not set yet)");
     lines.push("```");
     lines.push("");
+    if (briefAttachments.length > 0) {
+        lines.push("## Brief Attachments");
+        briefAttachments.forEach((attachment, index) => {
+            lines.push(`### Attachment ${index + 1}: ${attachment.name}`);
+            lines.push(`- MIME Type: ${attachment.mimeType}`);
+            lines.push(`- Size: ${attachment.size} bytes`);
+            lines.push("```base64");
+            lines.push(attachment.base64);
+            lines.push("```");
+            lines.push("");
+        });
+    }
     lines.push("## Runtime Configuration");
     lines.push(`- Provider: ${provider.provider} (${provider.model})`);
     lines.push(`- Max Output Tokens: ${provider.maxOutputTokens}`);
@@ -64,6 +77,14 @@ export function createPromptMarkdown(context) {
         lines.push("```json");
         lines.push(JSON.stringify(entry.request.body ?? {}, null, 2));
         lines.push("```");
+        if (entry.briefAttachments?.length) {
+            entry.briefAttachments.forEach((attachment, attachmentIndex) => {
+                lines.push(`- Brief Attachment ${attachmentIndex + 1}: ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes)`);
+                lines.push("```base64");
+                lines.push(attachment.base64);
+                lines.push("```");
+            });
+        }
         lines.push("- Generated HTML:");
         lines.push("```html");
         lines.push(entry.response.html);

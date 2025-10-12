@@ -1,6 +1,6 @@
 const LINE_DIVIDER = "----------------------------------------";
 export function buildMessages(context) {
-    const { brief, method, path, query, body, prevHtml, timestamp, includeInstructionPanel, history, historyTotal, historyLimit, historyMaxBytes, historyBytesUsed, historyLimitOmitted, historyByteOmitted, adminPath, } = context;
+    const { brief, briefAttachments, omittedAttachmentCount, method, path, query, body, prevHtml, timestamp, includeInstructionPanel, history, historyTotal, historyLimit, historyMaxBytes, historyBytesUsed, historyLimitOmitted, historyByteOmitted, adminPath, } = context;
     const nowIso = timestamp.toISOString();
     const systemLines = [
         "You are a SINGLE-VIEW HTML generator for a 'sourcecodeless web app server'.",
@@ -52,34 +52,34 @@ export function buildMessages(context) {
         historyByteOmitted,
     });
     const prevHtmlSnippet = historyMaxBytes > 0 ? prevHtml.slice(0, historyMaxBytes) : prevHtml;
-    const user = [
-        `App Brief:\n${brief}`,
-        "",
-        "Current Request:",
-        `- Timestamp: ${nowIso}`,
-        `- Method: ${method}`,
-        `- Path: ${path}`,
-        `- Query Params (URL-decoded JSON): ${JSON.stringify(query, null, 2)}`,
-        `- Body Params (URL-decoded JSON): ${JSON.stringify(body, null, 2)}`,
-        "",
-        "Previous HTML (for context; may be empty if first view):",
-        "-----BEGIN PREVIOUS HTML-----",
-        prevHtmlSnippet,
-        "-----END PREVIOUS HTML-----",
-        "",
-        historySection,
-        "",
-        "Remember:",
-        "- Render ONLY the current view as a full document.",
-        "- Include inline CSS/JS. No external dependencies.",
-        "- Align the response with the requested path AND parameters by inferring which link or form was activated in the previous HTML and how its fields map to the submitted values.",
-        "- If you need to carry state forward, include it in forms or query strings you output NOW. This includes historical state that's been forwarded to you and needs to be retained.",
-        "- For complex state that should persist invisibly, store it in HTML comments and preserve any comment-based state from the previous HTML, even if you don't need it for the current view.",
-        "- Provide clear primary actions (CTAs) and show the user what to do next.",
-    ].join("\n");
+    const attachmentSummaryLines = [];
+    if (briefAttachments.length > 0) {
+        briefAttachments.forEach((attachment, index) => {
+            attachmentSummaryLines.push(`- [${index + 1}] ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes) — delivered inline`);
+        });
+    }
+    if (omittedAttachmentCount > 0) {
+        const noun = omittedAttachmentCount === 1 ? "attachment" : "attachments";
+        attachmentSummaryLines.push(`- ${omittedAttachmentCount} additional ${noun} are linked to the brief but this model does not accept them.`);
+    }
+    const attachmentSummary = attachmentSummaryLines.length > 0
+        ? ["Brief Attachments:", ...attachmentSummaryLines].join("\n")
+        : undefined;
+    const userSections = [`App Brief:\n${brief}`];
+    if (attachmentSummary) {
+        userSections.push("", attachmentSummary);
+    }
+    userSections.push("", "Current Request:", `- Timestamp: ${nowIso}`, `- Method: ${method}`, `- Path: ${path}`, `- Query Params (URL-decoded JSON): ${JSON.stringify(query, null, 2)}`, `- Body Params (URL-decoded JSON): ${JSON.stringify(body, null, 2)}`, "", "Previous HTML (for context; may be empty if first view):", "-----BEGIN PREVIOUS HTML-----", prevHtmlSnippet, "-----END PREVIOUS HTML-----", "", historySection, "", "Remember:", "- Render ONLY the current view as a full document.", "- Include inline CSS/JS. No external dependencies.", "- Align the response with the requested path AND parameters by inferring which link or form was activated in the previous HTML and how its fields map to the submitted values.", "- If you need to carry state forward, include it in forms or query strings you output NOW. This includes historical state that's been forwarded to you and needs to be retained.", "- For complex state that should persist invisibly, store it in HTML comments and preserve any comment-based state from the previous HTML, even if you don't need it for the current view.", "- Provide clear primary actions (CTAs) and show the user what to do next.");
+    const user = userSections.join("\n");
+    const userMessage = { role: "user", content: user };
+    if (briefAttachments.length > 0) {
+        userMessage.attachments = briefAttachments.map((attachment) => ({
+            ...attachment,
+        }));
+    }
     return [
         { role: "system", content: system },
-        { role: "user", content: user },
+        userMessage,
     ];
 }
 function buildHistorySection(options) {

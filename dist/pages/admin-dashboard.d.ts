@@ -12,6 +12,14 @@ export interface AdminRuntimeInfo {
     historyMaxBytes: number;
     includeInstructionPanel: boolean;
 }
+export interface AdminBriefAttachment {
+    id: string;
+    name: string;
+    mimeType: string;
+    size: number;
+    dataUrl: string;
+    isImage: boolean;
+}
 export interface AdminHistoryItem {
     id: string;
     createdAt: string;
@@ -25,11 +33,13 @@ export interface AdminHistoryItem {
     reasoningSummaries?: string[];
     reasoningDetails?: string[];
     html: string;
+    attachments?: AdminBriefAttachment[];
     viewUrl: string;
     downloadUrl: string;
 }
 export interface AdminPageProps {
     brief: string | null;
+    attachments: AdminBriefAttachment[];
     provider: AdminProviderInfo;
     runtime: AdminRuntimeInfo;
     history: AdminHistoryItem[];

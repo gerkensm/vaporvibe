@@ -10,10 +10,26 @@ export class GeminiClient {
     async generateHtml(messages) {
         const systemMessages = messages.filter((message) => message.role === "system");
         const userMessages = messages.filter((message) => message.role === "user");
-        const contents = userMessages.map((message) => ({
-            role: "user",
-            parts: [{ text: message.content }],
-        }));
+        const contents = userMessages.map((message) => {
+            const parts = [{ text: message.content }];
+            if (message.attachments?.length) {
+                for (const attachment of message.attachments) {
+                    if (attachment.mimeType.startsWith("image/") || attachment.mimeType === "application/pdf") {
+                        parts.push({
+                            inlineData: {
+                                data: attachment.base64,
+                                mimeType: attachment.mimeType,
+                            },
+                        });
+                    }
+                    else {
+                        const descriptor = `Attachment ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes) encoded in Base64:\n${attachment.base64}`;
+                        parts.push({ text: descriptor });
+                    }
+                }
+            }
+            return { role: "user", parts };
+        });
         if (contents.length === 0) {
             contents.push({ role: "user", parts: [{ text: "" }] });
         }

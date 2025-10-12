@@ -4,6 +4,7 @@ import { URL } from "node:url";
 import { randomUUID } from "node:crypto";
 import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD, INSTRUCTIONS_PANEL_ROUTE, SETUP_ROUTE, SETUP_VERIFY_ROUTE, DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, LLM_RESULT_ROUTE_PREFIX, } from "../constants.js";
 import { buildMessages } from "../llm/messages.js";
+import { supportsImageInput } from "../llm/capabilities.js";
 import { parseCookies } from "../utils/cookies.js";
 import { readBody } from "../utils/body.js";
 import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
@@ -16,6 +17,7 @@ import { AdminController } from "./admin-controller.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
 import { createLlmClient } from "../llm/factory.js";
 import { getCredentialStore } from "../utils/credential-store.js";
+import { processBriefAttachmentFiles } from "./brief-attachments.js";
 const PENDING_HTML_TTL_MS = 3 * 60 * 1000;
 export function createServer(options) {
     const { runtime, provider, providerLocked, providerSelectionRequired, providersWithKeys, llmClient, sessionStore, } = options;
@@ -23,6 +25,7 @@ export function createServer(options) {
     const providerState = { ...provider };
     const state = {
         brief: runtimeState.brief?.trim() || null,
+        briefAttachments: [],
         runtime: runtimeState,
         provider: providerState,
         llmClient,
@@ -474,7 +477,25 @@ async function handleSetupFlow(context, state, reqLogger) {
         }
         state.brief = briefValue;
         state.runtime.brief = briefValue;
-        reqLogger.info("Stored new application brief from prompt page");
+        const fileInputs = (body.files ?? []).filter((file) => file.fieldName === "briefAttachments" &&
+            typeof file.filename === "string" &&
+            file.filename.trim().length > 0 &&
+            file.size > 0);
+        const processed = processBriefAttachmentFiles(fileInputs);
+        for (const rejected of processed.rejected) {
+            reqLogger.warn({ file: rejected.filename, mimeType: rejected.mimeType }, "Rejected unsupported brief attachment during setup");
+        }
+        if (processed.accepted.length > 0) {
+            state.briefAttachments = [
+                ...(state.briefAttachments ?? []),
+                ...processed.accepted,
+            ];
+        }
+        reqLogger.info({
+            hasBrief: Boolean(state.brief),
+            attachments: state.briefAttachments.length,
+            addedAttachments: processed.accepted.length,
+        }, "Stored new application brief from prompt page");
         const adminUrl = escapeHtml(ADMIN_ROUTE_PREFIX);
         const appUrl = escapeHtml("/");
         const html = `<!DOCTYPE html>
@@ -686,8 +707,18 @@ async function handleLlmRequest(context, state, sessionStore, reqLogger, request
         historyByteOmitted: byteOmitted,
         historyMaxBytes: state.runtime.historyMaxBytes,
     }, "History context prepared");
+    const totalBriefAttachments = state.briefAttachments ?? [];
+    const includeAttachments = supportsImageInput(llmClient.settings.provider, llmClient.settings.model);
+    const promptAttachments = includeAttachments
+        ? totalBriefAttachments.map((attachment) => ({ ...attachment }))
+        : [];
+    const omittedAttachmentCount = includeAttachments
+        ? 0
+        : totalBriefAttachments.length;
     const messages = buildMessages({
         brief: state.brief ?? "",
+        briefAttachments: promptAttachments,
+        omittedAttachmentCount,
         method,
         path,
         query,
@@ -749,6 +780,9 @@ async function handleLlmRequest(context, state, sessionStore, reqLogger, request
             createdAt: new Date().toISOString(),
             durationMs,
             brief: state.brief ?? "",
+            briefAttachments: totalBriefAttachments.map((attachment) => ({
+                ...attachment,
+            })),
             request: {
                 method,
                 path,
@@ -1106,7 +1140,14 @@ function formatMessagesForLog(messages) {
     return messages
         .map((message) => {
         const preview = truncate(message.content, 1_000);
-        return `[${message.role.toUpperCase()}]\n${preview}`;
+        let attachmentNote = "";
+        if (message.attachments?.length) {
+            const names = message.attachments
+                .map((attachment) => `${attachment.name} (${attachment.mimeType})`)
+                .join(", ");
+            attachmentNote = `\n[ATTACHMENTS: ${names}]`;
+        }
+        return `[${message.role.toUpperCase()}]\n${preview}${attachmentNote}`;
     })
         .join("\n\n");
 }
@@ -1150,6 +1191,13 @@ function estimateHistoryEntrySize(entry) {
     ];
     if (entry.usage) {
         fragments.push(JSON.stringify(entry.usage, null, 2));
+    }
+    if (entry.briefAttachments?.length) {
+        for (const attachment of entry.briefAttachments) {
+            fragments.push(attachment.base64);
+            fragments.push(attachment.name);
+            fragments.push(attachment.mimeType);
+        }
     }
     if (entry.reasoning?.summaries?.length) {
         fragments.push(entry.reasoning.summaries.join("\n"));

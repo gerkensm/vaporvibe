@@ -20,6 +20,11 @@ import {
   renderModelSelectorDataScript,
   MODEL_INSPECTOR_STYLES,
 } from "./components/model-selector.js";
+import {
+  ATTACHMENT_UPLOADER_STYLES,
+  ATTACHMENT_UPLOADER_RUNTIME,
+  renderAttachmentUploader,
+} from "./components/attachment-uploader.js";
 
 type ProviderKeyStatus = { hasKey: boolean; verified: boolean };
 
@@ -105,6 +110,7 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
     maxOutputTokens,
     providerKeyStatuses
   );
+  const attachmentRuntimeScript = `<script>${ATTACHMENT_UPLOADER_RUNTIME}</script>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -310,8 +316,24 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
     flex-wrap: wrap;
     gap: 12px;
   }
+  .attachment-section {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .attachment-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+  }
+  .attachment-helper {
+    margin: 0;
+    color: var(--subtle);
+    font-size: 0.85rem;
+  }
   ${MODEL_SELECTOR_STYLES}
   ${MODEL_INSPECTOR_STYLES}
+  ${ATTACHMENT_UPLOADER_STYLES}
   .key-status {
     margin: 8px 0 0;
     font-size: 0.9rem;
@@ -454,6 +476,7 @@ export function renderSetupWizardPage(options: SetupWizardPageOptions): string {
     }
   }
 </style>
+  ${attachmentRuntimeScript}
 </head>
 <body>
   <main>
@@ -736,13 +759,24 @@ function renderBriefStep(options: BriefStepOptions): string {
   return `<section class="card">
     <div class="pill">Craft the brief</div>
     <p>Describe the product vision in plain language—tone, audience, signature moments. We will use it as the north star for every render.</p>
-    <form method="post" action="${escapeHtml(briefAction)}">
+    <form method="post" action="${escapeHtml(briefAction)}" enctype="multipart/form-data">
       <label for="brief">
         <span>What are we building?</span>
       </label>
       <textarea id="brief" name="brief" placeholder="Example: You are a ritual planning companion. Focus on warm light, generous whitespace, and a sense of calm. Surfaces should feel curated and tactile." required>${escapeHtml(
         value
       )}</textarea>
+      <div class="attachment-section">
+        <span class="attachment-label">Reference attachments</span>
+        <p class="attachment-helper">Drop inspirational images or PDFs so the first render starts grounded in your vision.</p>
+        ${renderAttachmentUploader({
+          inputName: "briefAttachments",
+          label: "Add reference files",
+          hint: "Drop files, paste with Ctrl+V, or click browse to upload images and PDFs.",
+          browseLabel: "Browse files",
+          emptyStatus: "No files selected yet.",
+        })}
+      </div>
       <div class="actions">
         <a class="secondary-link" href="${escapeHtml(
           `${setupPath}?step=provider`
