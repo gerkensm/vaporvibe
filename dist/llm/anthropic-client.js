@@ -3,6 +3,19 @@ import { logger } from "../logger.js";
 const ANTHROPIC_MODELS_URL = "https://api.anthropic.com/v1/models";
 const ANTHROPIC_VERSION = "2023-06-01";
 const VERIFY_TIMEOUT_MS = 10_000;
+function createAnthropicImageContent(attachment) {
+    const mediaType = attachment.mimeType?.toLowerCase().startsWith("image/")
+        ? attachment.mimeType
+        : "image/png";
+    return {
+        type: "image",
+        source: {
+            type: "base64",
+            media_type: mediaType,
+            data: attachment.base64,
+        },
+    };
+}
 export class AnthropicClient {
     settings;
     client;
@@ -13,10 +26,27 @@ export class AnthropicClient {
     async generateHtml(messages) {
         const systemMessages = messages.filter((message) => message.role === "system").map((message) => message.content);
         const userMessages = messages.filter((message) => message.role === "user");
-        const requestMessages = userMessages.map((message) => ({
-            role: "user",
-            content: [{ type: "text", text: message.content }],
-        }));
+        const requestMessages = userMessages.map((message) => {
+            const content = [
+                { type: "text", text: message.content },
+            ];
+            if (message.attachments?.length) {
+                for (const attachment of message.attachments) {
+                    if (attachment.mimeType.startsWith("image/")) {
+                        content.push(createAnthropicImageContent(attachment));
+                    }
+                    else {
+                        const descriptor = `Attachment ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes) encoded in Base64:`;
+                        content.push({ type: "text", text: descriptor });
+                        content.push({ type: "text", text: attachment.base64 });
+                    }
+                }
+            }
+            return {
+                role: "user",
+                content,
+            };
+        });
         if (requestMessages.length === 0) {
             requestMessages.push({ role: "user", content: [{ type: "text", text: "" }] });
         }

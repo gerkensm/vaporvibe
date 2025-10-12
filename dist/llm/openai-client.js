@@ -18,11 +18,20 @@ export class OpenAiClient {
             if (message.attachments?.length) {
                 for (const attachment of message.attachments) {
                     if (attachment.mimeType.startsWith("image/")) {
-                        content.push({
+                        const imageContent = {
                             type: "input_image",
-                            image_base64: attachment.base64,
-                            mime_type: attachment.mimeType,
-                        });
+                            image: {
+                                data: attachment.base64,
+                            },
+                        };
+                        const descriptor = resolveImageDescriptor(attachment.mimeType);
+                        if (descriptor.format) {
+                            imageContent.image.format = descriptor.format;
+                        }
+                        if (descriptor.mimeType) {
+                            imageContent.image.mime_type = descriptor.mimeType;
+                        }
+                        content.push(imageContent);
                     }
                     else {
                         const descriptor = `Attachment ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes) encoded in Base64:`;
@@ -54,6 +63,18 @@ export class OpenAiClient {
             raw: response,
         };
     }
+}
+function resolveImageDescriptor(mimeType) {
+    const normalized = (mimeType || "").toLowerCase();
+    if (!normalized.startsWith("image/")) {
+        return { mimeType };
+    }
+    const [, rawSubtype] = normalized.split("/");
+    const subtype = rawSubtype?.split(";")[0]?.trim();
+    if (subtype && /^[a-z0-9.+-]+$/.test(subtype)) {
+        return { format: subtype, mimeType };
+    }
+    return { mimeType };
 }
 export async function verifyOpenAiApiKey(apiKey) {
     const trimmed = apiKey.trim();

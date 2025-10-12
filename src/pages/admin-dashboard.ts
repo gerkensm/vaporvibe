@@ -19,6 +19,11 @@ import {
   renderModelSelectorDataScript,
   MODEL_INSPECTOR_STYLES,
 } from "./components/model-selector.js";
+import {
+  ATTACHMENT_UPLOADER_STYLES,
+  ATTACHMENT_UPLOADER_RUNTIME,
+  renderAttachmentUploader,
+} from "./components/attachment-uploader.js";
 
 export interface AdminProviderInfo {
   provider: string;
@@ -225,6 +230,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
       : "null";
   const modelSelectorDataScript = renderModelSelectorDataScript();
   const modelSelectorRuntimeScript = `<script>${MODEL_SELECTOR_RUNTIME}</script>`;
+  const attachmentRuntimeScript = `<script>${ATTACHMENT_UPLOADER_RUNTIME}</script>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -423,6 +429,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
     }
     ${MODEL_SELECTOR_STYLES}
     ${MODEL_INSPECTOR_STYLES}
+    ${ATTACHMENT_UPLOADER_STYLES}
     .provider-option {
       display: grid;
       grid-template-columns: auto 1fr;
@@ -561,26 +568,6 @@ export function renderAdminDashboard(props: AdminPageProps): string {
       margin: 4px 0 0;
       font-size: 0.82rem;
       color: var(--muted);
-    }
-    .upload-control {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 18px;
-      border-radius: 999px;
-      border: 1px dashed var(--border);
-      color: var(--accent);
-      font-size: 0.86rem;
-      cursor: pointer;
-      transition: background 0.2s ease, border-color 0.2s ease;
-      width: fit-content;
-    }
-    .upload-control:hover {
-      background: rgba(99, 102, 241, 0.08);
-      border-color: rgba(99, 102, 241, 0.4);
-    }
-    .upload-control input {
-      display: none;
     }
     .advanced {
       border: 1px solid var(--border);
@@ -976,6 +963,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
   </style>
   ${modelSelectorDataScript}
   ${modelSelectorRuntimeScript}
+  ${attachmentRuntimeScript}
 </head>
 <body>
   <main>
@@ -1029,15 +1017,14 @@ export function renderAdminDashboard(props: AdminPageProps): string {
                 <span class="field-label">Brief attachments</span>
                 <p class="field-helper">Drop in reference images or PDFs to ground the model. We’ll inline them for models that accept image inputs and preserve them in history exports.</p>
                 ${renderBriefAttachmentManager(attachments)}
-                <label class="upload-control">
-                  <input
-                    type="file"
-                    name="briefAttachments"
-                    accept="image/*,application/pdf"
-                    multiple
-                  />
-                  <span>Upload files</span>
-                </label>
+                ${renderAttachmentUploader({
+                  inputName: "briefAttachments",
+                  label: "Add brief attachments",
+                  hint:
+                    "Drop files, paste with Ctrl+V, or click browse to upload images and PDFs.",
+                  browseLabel: "Browse files",
+                  emptyStatus: "No new files selected yet.",
+                })}
               </div>
               <button type="submit" class="action-button">Save brief</button>
             </form>
@@ -1287,6 +1274,8 @@ export function renderAdminDashboard(props: AdminPageProps): string {
     (() => {
       const tabButtons = Array.from(document.querySelectorAll(".tab-button"));
       const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
+      let currentTabId = "tab-brief";
+      let onTabChange = (_isHistory: boolean) => {};
 
       const activateTab = (id) => {
         tabButtons.forEach((button) => {
@@ -1300,6 +1289,8 @@ export function renderAdminDashboard(props: AdminPageProps): string {
           panel.hidden = !isActive;
           panel.setAttribute("aria-hidden", isActive ? "false" : "true");
         });
+        currentTabId = id;
+        onTabChange(id === "tab-history");
       };
 
       tabButtons.forEach((button, index) => {
@@ -1800,32 +1791,85 @@ export function renderAdminDashboard(props: AdminPageProps): string {
       }
 
       const endpoint = ${JSON.stringify(historyEndpoint)};
+      let historyTabActive = currentTabId === "tab-history";
+      let autoEnabled = true;
       const intervalMs = 8000;
-      let auto = true;
       let timer = window.setInterval(tick, intervalMs);
       let refreshing = false;
 
+      const updateToggleUi = () => {
+        toggleButton.dataset.enabled = String(autoEnabled);
+        toggleButton.textContent = autoEnabled
+          ? "Auto-refresh: on"
+          : "Auto-refresh: off";
+      };
+
+      const updateStatus = (message?: string) => {
+        if (!(statusEl instanceof HTMLElement)) {
+          return;
+        }
+        if (message) {
+          statusEl.textContent = message;
+          return;
+        }
+        if (autoEnabled && historyTabActive) {
+          statusEl.textContent = "Auto-refresh running";
+        } else if (historyTabActive) {
+          statusEl.textContent = "Auto-refresh paused";
+        } else {
+          statusEl.textContent = "Auto-refresh paused while viewing other tabs";
+        }
+      };
+
+      const restartTimer = () => {
+        window.clearInterval(timer);
+        timer = window.setInterval(tick, intervalMs);
+      };
+
+      onTabChange = (isHistory) => {
+        historyTabActive = isHistory;
+        if (historyTabActive) {
+          if (autoEnabled) {
+            updateStatus("Auto-refresh resumed");
+            refresh();
+            restartTimer();
+          } else {
+            updateStatus("Auto-refresh paused");
+          }
+        } else {
+          updateStatus("Auto-refresh paused while viewing other tabs");
+        }
+      };
+
+      updateToggleUi();
+      updateStatus();
+
       refreshButton.addEventListener("click", () => {
+        updateStatus("Refreshing…");
         refresh();
       });
 
       toggleButton.addEventListener("click", () => {
-        auto = !auto;
-        toggleButton.dataset.enabled = String(auto);
-        toggleButton.textContent = auto ? "Auto-refresh: on" : "Auto-refresh: off";
-        if (auto) {
-          statusEl.textContent = "Auto-refresh resumed";
-          refresh();
-          window.clearInterval(timer);
-          timer = window.setInterval(tick, intervalMs);
+        autoEnabled = !autoEnabled;
+        updateToggleUi();
+        if (autoEnabled) {
+          restartTimer();
+          if (historyTabActive) {
+            updateStatus("Auto-refresh resumed");
+            refresh();
+          } else {
+            updateStatus("Auto-refresh will resume on the History tab");
+          }
         } else {
-          statusEl.textContent = "Auto-refresh paused";
+          updateStatus("Auto-refresh paused");
           window.clearInterval(timer);
         }
       });
 
       async function tick() {
-        if (!auto) return;
+        if (!autoEnabled || !historyTabActive) {
+          return;
+        }
         await refresh();
       }
 
@@ -1835,7 +1879,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
         }
         refreshing = true;
         try {
-          statusEl.textContent = "Refreshing…";
+          updateStatus("Refreshing…");
           const response = await fetch(endpoint + '?t=' + Date.now(), {
             headers: { Accept: "application/json" },
             cache: "no-store",
@@ -1889,18 +1933,22 @@ export function renderAdminDashboard(props: AdminPageProps): string {
           if (statusBytes && payload.runtime && typeof payload.runtime.historyMaxBytes === "number") {
             statusBytes.textContent = "Byte budget: " + payload.runtime.historyMaxBytes;
           }
-          statusEl.textContent = 'Last updated ' + new Date().toLocaleTimeString();
+          updateStatus('Last updated ' + new Date().toLocaleTimeString());
         } catch (error) {
           console.error("Failed to refresh history", error);
-          statusEl.textContent = "Refresh failed — will retry";
+          updateStatus("Refresh failed — will retry");
         } finally {
           refreshing = false;
         }
       }
 
-      refresh().catch((error) => {
-        console.error("Failed to bootstrap history", error);
-      });
+      if (historyTabActive && autoEnabled) {
+        refresh().catch((error) => {
+          console.error("Failed to bootstrap history", error);
+        });
+      }
+
+      updateStatus();
 
       window.addEventListener("beforeunload", () => {
         window.clearInterval(timer);

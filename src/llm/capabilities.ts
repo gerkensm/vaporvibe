@@ -7,6 +7,14 @@ const OPENAI_IMAGE_MODEL_PATTERNS: RegExp[] = [
   /omni/i,
 ];
 
+const ANTHROPIC_IMAGE_MODEL_PATTERNS: RegExp[] = [
+  /^claude-3/i,
+  /^claude-3\.5/i,
+  /opus/i,
+  /sonnet/i,
+  /haiku/i,
+];
+
 export function supportsImageInput(
   provider: ModelProvider,
   model: string,
@@ -23,6 +31,10 @@ export function supportsImageInput(
       );
     case "gemini":
       return true;
+    case "anthropic":
+      return ANTHROPIC_IMAGE_MODEL_PATTERNS.some((pattern) =>
+        pattern.test(normalizedModel)
+      );
     default:
       return false;
   }

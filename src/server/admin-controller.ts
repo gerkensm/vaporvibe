@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import type { ServerResponse } from "node:http";
 import type { Logger } from "pino";
 import { ADMIN_ROUTE_PREFIX } from "../constants.js";
@@ -28,6 +27,7 @@ import type {
 import type { MutableServerState, RequestContext } from "./server.js";
 import { SessionStore } from "./session-store.js";
 import { getCredentialStore } from "../utils/credential-store.js";
+import { processBriefAttachmentFiles } from "./brief-attachments.js";
 
 const JSON_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.json`;
 const MARKDOWN_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history/prompt.md`;
@@ -479,32 +479,21 @@ export class AdminController {
         file.size > 0
     );
 
-    const newAttachments: BriefAttachment[] = [];
-    for (const file of fileInputs) {
-      const mimeType = (file.mimeType || "application/octet-stream").toLowerCase();
-      if (!isSupportedBriefAttachmentMime(mimeType)) {
-        reqLogger.warn(
-          { file: file.filename, mimeType },
-          "Rejected unsupported brief attachment"
-        );
-        continue;
-      }
-      newAttachments.push({
-        id: randomUUID(),
-        name: file.filename,
-        mimeType,
-        size: file.size,
-        base64: file.data.toString("base64"),
-      });
+    const processed = processBriefAttachmentFiles(fileInputs);
+    for (const rejected of processed.rejected) {
+      reqLogger.warn(
+        { file: rejected.filename, mimeType: rejected.mimeType },
+        "Rejected unsupported brief attachment",
+      );
     }
 
-    if (newAttachments.length > 0) {
-      currentAttachments = [...currentAttachments, ...newAttachments];
+    if (processed.accepted.length > 0) {
+      currentAttachments = [...currentAttachments, ...processed.accepted];
     }
 
     this.state.briefAttachments = currentAttachments;
 
-    const addedCount = newAttachments.length;
+    const addedCount = processed.accepted.length;
     reqLogger.info(
       {
         hasBrief: Boolean(this.state.brief),
@@ -830,16 +819,6 @@ function normalizeStringArray(value: unknown): string[] {
     return trimmed.length > 0 ? [trimmed] : [];
   }
   return [];
-}
-
-function isSupportedBriefAttachmentMime(mimeType: string): boolean {
-  if (!mimeType) {
-    return false;
-  }
-  if (mimeType.startsWith("image/")) {
-    return true;
-  }
-  return mimeType === "application/pdf";
 }
 
 function cloneAttachments(

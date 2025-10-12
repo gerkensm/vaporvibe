@@ -17,6 +17,7 @@ import { AdminController } from "./admin-controller.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
 import { createLlmClient } from "../llm/factory.js";
 import { getCredentialStore } from "../utils/credential-store.js";
+import { processBriefAttachmentFiles } from "./brief-attachments.js";
 const PENDING_HTML_TTL_MS = 3 * 60 * 1000;
 export function createServer(options) {
     const { runtime, provider, providerLocked, providerSelectionRequired, providersWithKeys, llmClient, sessionStore, } = options;
@@ -476,7 +477,25 @@ async function handleSetupFlow(context, state, reqLogger) {
         }
         state.brief = briefValue;
         state.runtime.brief = briefValue;
-        reqLogger.info("Stored new application brief from prompt page");
+        const fileInputs = (body.files ?? []).filter((file) => file.fieldName === "briefAttachments" &&
+            typeof file.filename === "string" &&
+            file.filename.trim().length > 0 &&
+            file.size > 0);
+        const processed = processBriefAttachmentFiles(fileInputs);
+        for (const rejected of processed.rejected) {
+            reqLogger.warn({ file: rejected.filename, mimeType: rejected.mimeType }, "Rejected unsupported brief attachment during setup");
+        }
+        if (processed.accepted.length > 0) {
+            state.briefAttachments = [
+                ...(state.briefAttachments ?? []),
+                ...processed.accepted,
+            ];
+        }
+        reqLogger.info({
+            hasBrief: Boolean(state.brief),
+            attachments: state.briefAttachments.length,
+            addedAttachments: processed.accepted.length,
+        }, "Stored new application brief from prompt page");
         const adminUrl = escapeHtml(ADMIN_ROUTE_PREFIX);
         const appUrl = escapeHtml("/");
         const html = `<!DOCTYPE html>

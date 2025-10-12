@@ -2,6 +2,7 @@ import { escapeHtml } from "../utils/html.js";
 import { DEFAULT_REASONING_TOKENS, DEFAULT_MAX_OUTPUT_TOKENS, } from "../constants.js";
 import { PROVIDER_CHOICES, PROVIDER_LABELS, PROVIDER_PLACEHOLDERS, DEFAULT_MAX_TOKENS_BY_PROVIDER, REASONING_MODE_CHOICES, PROVIDER_REASONING_CAPABILITIES, REASONING_TOKEN_MIN_BY_PROVIDER, } from "../constants/providers.js";
 import { renderModelSelector, MODEL_SELECTOR_STYLES, MODEL_SELECTOR_RUNTIME, renderModelSelectorDataScript, MODEL_INSPECTOR_STYLES, } from "./components/model-selector.js";
+import { ATTACHMENT_UPLOADER_STYLES, ATTACHMENT_UPLOADER_RUNTIME, renderAttachmentUploader, } from "./components/attachment-uploader.js";
 export function renderSetupWizardPage(options) {
     const { step, providerLabel, providerName, verifyAction, briefAction, setupPath, adminPath, providerReady, canSelectProvider, selectedProvider, selectedModel, providerSelectionRequired, providerKeyStatuses, maxOutputTokens, reasoningMode, reasoningTokens, statusMessage, errorMessage, briefValue, } = options;
     const heading = step === "provider" ? "Welcome to serve-llm" : "Shape the experience";
@@ -27,6 +28,7 @@ export function renderSetupWizardPage(options) {
         })
         : renderBriefStep({ briefAction, setupPath, adminPath, briefValue });
     const script = renderProviderScript(canSelectProvider, selectedProvider, selectedModel, reasoningMode, reasoningTokens, maxOutputTokens, providerKeyStatuses);
+    const attachmentRuntimeScript = `<script>${ATTACHMENT_UPLOADER_RUNTIME}</script>`;
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -231,8 +233,24 @@ export function renderSetupWizardPage(options) {
     flex-wrap: wrap;
     gap: 12px;
   }
+  .attachment-section {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .attachment-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+  }
+  .attachment-helper {
+    margin: 0;
+    color: var(--subtle);
+    font-size: 0.85rem;
+  }
   ${MODEL_SELECTOR_STYLES}
   ${MODEL_INSPECTOR_STYLES}
+  ${ATTACHMENT_UPLOADER_STYLES}
   .key-status {
     margin: 8px 0 0;
     font-size: 0.9rem;
@@ -375,6 +393,7 @@ export function renderSetupWizardPage(options) {
     }
   }
 </style>
+  ${attachmentRuntimeScript}
 </head>
 <body>
   <main>
@@ -577,6 +596,17 @@ function renderBriefStep(options) {
         <span>What are we building?</span>
       </label>
       <textarea id="brief" name="brief" placeholder="Example: You are a ritual planning companion. Focus on warm light, generous whitespace, and a sense of calm. Surfaces should feel curated and tactile." required>${escapeHtml(value)}</textarea>
+      <div class="attachment-section">
+        <span class="attachment-label">Reference attachments</span>
+        <p class="attachment-helper">Drop inspirational images or PDFs so the first render starts grounded in your vision.</p>
+        ${renderAttachmentUploader({
+        inputName: "briefAttachments",
+        label: "Add reference files",
+        hint: "Drop files, paste with Ctrl+V, or click browse to upload images and PDFs.",
+        browseLabel: "Browse files",
+        emptyStatus: "No files selected yet.",
+    })}
+      </div>
       <div class="actions">
         <a class="secondary-link" href="${escapeHtml(`${setupPath}?step=provider`)}" rel="nofollow">Back</a>
         <button type="submit" class="primary">Open the studio</button>
