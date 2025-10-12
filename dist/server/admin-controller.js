@@ -5,6 +5,7 @@ import { maskSensitive } from "../utils/sensitive.js";
 import { createHistorySnapshot, createPromptMarkdown, } from "../utils/history-export.js";
 import { renderAdminDashboard, renderHistory, } from "../pages/admin-dashboard.js";
 import { getCredentialStore } from "../utils/credential-store.js";
+import { processBriefAttachmentFiles } from "./brief-attachments.js";
 const JSON_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.json`;
 const MARKDOWN_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history/prompt.md`;
 export class AdminController {
@@ -74,6 +75,7 @@ export class AdminController {
         const sessionCount = new Set(sortedHistory.map((entry) => entry.sessionId))
             .size;
         const historyItems = sortedHistory.map((entry) => this.toAdminHistoryItem(entry));
+        const briefAttachments = this.state.briefAttachments.map((attachment) => this.toAdminBriefAttachment(attachment));
         const providerInfo = {
             provider: this.state.provider.provider,
             model: this.state.provider.model,
@@ -92,6 +94,7 @@ export class AdminController {
         const providerKeyStatuses = await this.computeProviderKeyStatuses();
         const html = renderAdminDashboard({
             brief: this.state.brief,
+            attachments: briefAttachments,
             provider: providerInfo,
             runtime: runtimeInfo,
             history: historyItems,
@@ -144,6 +147,7 @@ export class AdminController {
         const snapshot = createHistorySnapshot({
             history,
             brief: this.state.brief,
+            briefAttachments: cloneAttachments(this.state.briefAttachments),
             runtime: this.state.runtime,
             provider: this.state.provider,
         });
@@ -159,6 +163,7 @@ export class AdminController {
         const markdown = createPromptMarkdown({
             history,
             brief: this.state.brief,
+            briefAttachments: cloneAttachments(this.state.briefAttachments),
             runtime: this.state.runtime,
             provider: this.state.provider,
         });
@@ -298,10 +303,48 @@ export class AdminController {
     async handleBriefUpdate(context, reqLogger) {
         const { req, res } = context;
         const body = await readBody(req);
-        const rawBrief = typeof body.data.brief === "string" ? body.data.brief.trim() : "";
+        const data = body.data ?? {};
+        const rawBrief = typeof data.brief === "string" ? data.brief.trim() : "";
         this.state.brief = rawBrief.length > 0 ? rawBrief : null;
-        reqLogger.info({ hasBrief: Boolean(this.state.brief) }, "Updated brief via admin console");
-        this.redirectWithMessage(res, this.state.brief ? "Brief updated" : "Brief cleared", false);
+        this.state.runtime.brief = this.state.brief ?? undefined;
+        const removalValues = normalizeStringArray(data.removeAttachment);
+        let currentAttachments = this.state.briefAttachments ?? [];
+        let removedCount = 0;
+        if (removalValues.length > 0 && currentAttachments.length > 0) {
+            const removalSet = new Set(removalValues);
+            const filtered = currentAttachments.filter((attachment) => !removalSet.has(attachment.id));
+            removedCount = currentAttachments.length - filtered.length;
+            currentAttachments = filtered;
+        }
+        const fileInputs = (body.files ?? []).filter((file) => file.fieldName === "briefAttachments" &&
+            typeof file.filename === "string" &&
+            file.filename.trim().length > 0 &&
+            file.size > 0);
+        const processed = processBriefAttachmentFiles(fileInputs);
+        for (const rejected of processed.rejected) {
+            reqLogger.warn({ file: rejected.filename, mimeType: rejected.mimeType }, "Rejected unsupported brief attachment");
+        }
+        if (processed.accepted.length > 0) {
+            currentAttachments = [...currentAttachments, ...processed.accepted];
+        }
+        this.state.briefAttachments = currentAttachments;
+        const addedCount = processed.accepted.length;
+        reqLogger.info({
+            hasBrief: Boolean(this.state.brief),
+            attachments: this.state.briefAttachments.length,
+            addedAttachments: addedCount,
+            removedAttachments: removedCount,
+        }, "Updated brief via admin console");
+        const statusParts = [];
+        statusParts.push(this.state.brief ? "Brief updated" : "Brief cleared");
+        if (addedCount > 0) {
+            statusParts.push(`Added ${addedCount} attachment${addedCount === 1 ? "" : "s"}`);
+        }
+        if (removedCount > 0) {
+            statusParts.push(`Removed ${removedCount} attachment${removedCount === 1 ? "" : "s"}`);
+        }
+        const statusMessage = statusParts.join(" · ");
+        this.redirectWithMessage(res, statusMessage, false);
     }
     async handleHistoryImport(context, reqLogger) {
         const { req, res } = context;
@@ -325,10 +368,18 @@ export class AdminController {
                 ...entry,
                 createdAt: entry.createdAt,
                 response: entry.response,
+                briefAttachments: cloneAttachments(entry.briefAttachments),
             }));
             this.sessionStore.replaceHistory(historyEntries);
             if (typeof parsed.brief === "string") {
                 this.state.brief = parsed.brief.trim() || null;
+            }
+            if (Array.isArray(parsed.briefAttachments)) {
+                this.state.briefAttachments = cloneAttachments(parsed.briefAttachments);
+            }
+            else {
+                const latestAttachments = historyEntries.at(-1)?.briefAttachments;
+                this.state.briefAttachments = cloneAttachments(latestAttachments);
             }
             if (parsed.runtime && typeof parsed.runtime === "object") {
                 const runtimeData = parsed.runtime;
@@ -428,6 +479,17 @@ export class AdminController {
         res.setHeader("Content-Type", "text/plain; charset=utf-8");
         res.end("Not Found");
     }
+    toAdminBriefAttachment(attachment) {
+        const dataUrl = `data:${attachment.mimeType};base64,${attachment.base64}`;
+        return {
+            id: attachment.id,
+            name: attachment.name,
+            mimeType: attachment.mimeType,
+            size: attachment.size,
+            dataUrl,
+            isImage: attachment.mimeType.startsWith("image/"),
+        };
+    }
     applyProviderEnv(settings) {
         if (settings.provider === "openai") {
             process.env.OPENAI_API_KEY = settings.apiKey;
@@ -456,6 +518,9 @@ export class AdminController {
         const reasoningDetails = entry.reasoning?.details
             ? [...entry.reasoning.details]
             : undefined;
+        const attachments = entry.briefAttachments?.length
+            ? entry.briefAttachments.map((attachment) => this.toAdminBriefAttachment(attachment))
+            : undefined;
         return {
             id: entry.id,
             createdAt: entry.createdAt,
@@ -469,6 +534,7 @@ export class AdminController {
             reasoningSummaries,
             reasoningDetails,
             html: entry.response.html,
+            attachments,
             viewUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(entry.id)}/view`,
             downloadUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(entry.id)}/download`,
         };
@@ -502,6 +568,24 @@ function summarizeUsage(entry) {
     if (parts.length === 0)
         return undefined;
     return parts.join(" · ");
+}
+function normalizeStringArray(value) {
+    if (Array.isArray(value)) {
+        return value
+            .map((item) => (typeof item === "string" ? item.trim() : ""))
+            .filter((item) => item.length > 0);
+    }
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        return trimmed.length > 0 ? [trimmed] : [];
+    }
+    return [];
+}
+function cloneAttachments(attachments) {
+    if (!attachments || attachments.length === 0) {
+        return [];
+    }
+    return attachments.map((attachment) => ({ ...attachment }));
 }
 function parsePositiveInt(value, fallback) {
     if (typeof value === "string" && value.trim() === "") {

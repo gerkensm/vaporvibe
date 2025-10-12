@@ -1,9 +1,15 @@
-import type { ChatMessage, HistoryEntry } from "../types.js";
+import type {
+  BriefAttachment,
+  ChatMessage,
+  HistoryEntry,
+} from "../types.js";
 
 const LINE_DIVIDER = "----------------------------------------";
 
 export interface MessageContext {
   brief: string;
+  briefAttachments: BriefAttachment[];
+  omittedAttachmentCount: number;
   method: string;
   path: string;
   query: Record<string, unknown>;
@@ -24,6 +30,8 @@ export interface MessageContext {
 export function buildMessages(context: MessageContext): ChatMessage[] {
   const {
     brief,
+    briefAttachments,
+    omittedAttachmentCount,
     method,
     path,
     query,
@@ -105,8 +113,32 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
   const prevHtmlSnippet =
     historyMaxBytes > 0 ? prevHtml.slice(0, historyMaxBytes) : prevHtml;
 
-  const user = [
-    `App Brief:\n${brief}`,
+  const attachmentSummaryLines: string[] = [];
+  if (briefAttachments.length > 0) {
+    briefAttachments.forEach((attachment, index) => {
+      attachmentSummaryLines.push(
+        `- [${index + 1}] ${attachment.name} (${attachment.mimeType}, ${
+          attachment.size
+        } bytes) — delivered inline`
+      );
+    });
+  }
+  if (omittedAttachmentCount > 0) {
+    const noun = omittedAttachmentCount === 1 ? "attachment" : "attachments";
+    attachmentSummaryLines.push(
+      `- ${omittedAttachmentCount} additional ${noun} are linked to the brief but this model does not accept them.`
+    );
+  }
+  const attachmentSummary =
+    attachmentSummaryLines.length > 0
+      ? ["Brief Attachments:", ...attachmentSummaryLines].join("\n")
+      : undefined;
+
+  const userSections: string[] = [`App Brief:\n${brief}`];
+  if (attachmentSummary) {
+    userSections.push("", attachmentSummary);
+  }
+  userSections.push(
     "",
     "Current Request:",
     `- Timestamp: ${nowIso}`,
@@ -129,11 +161,20 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     "- If you need to carry state forward, include it in forms or query strings you output NOW. This includes historical state that's been forwarded to you and needs to be retained.",
     "- For complex state that should persist invisibly, store it in HTML comments and preserve any comment-based state from the previous HTML, even if you don't need it for the current view.",
     "- Provide clear primary actions (CTAs) and show the user what to do next.",
-  ].join("\n");
+  );
+
+  const user = userSections.join("\n");
+
+  const userMessage: ChatMessage = { role: "user", content: user };
+  if (briefAttachments.length > 0) {
+    userMessage.attachments = briefAttachments.map((attachment) => ({
+      ...attachment,
+    }));
+  }
 
   return [
     { role: "system", content: system },
-    { role: "user", content: user },
+    userMessage,
   ];
 }
 

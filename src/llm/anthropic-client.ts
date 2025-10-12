@@ -1,5 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { ChatMessage, LlmReasoningTrace, LlmUsageMetrics, ProviderSettings, VerificationResult } from "../types.js";
+import type {
+  BriefAttachment,
+  ChatMessage,
+  LlmReasoningTrace,
+  LlmUsageMetrics,
+  ProviderSettings,
+  VerificationResult,
+} from "../types.js";
 import type { LlmClient, LlmResult } from "./client.js";
 import { logger } from "../logger.js";
 
@@ -7,9 +14,16 @@ const ANTHROPIC_MODELS_URL = "https://api.anthropic.com/v1/models";
 const ANTHROPIC_VERSION = "2023-06-01";
 const VERIFY_TIMEOUT_MS = 10_000;
 
+type AnthropicRequestContent =
+  | { type: "text"; text: string }
+  | {
+      type: "image";
+      source: { type: "base64"; media_type: string; data: string };
+    };
+
 type AnthropicMessage = {
   role: "user" | "assistant";
-  content: Array<{ type: "text"; text: string }>;
+  content: AnthropicRequestContent[];
 };
 
 type AnthropicContentBlock = {
@@ -29,6 +43,22 @@ type AnthropicStream = AsyncIterable<AnthropicStreamEvent> & {
   close?(): Promise<void>;
 };
 
+function createAnthropicImageContent(
+  attachment: BriefAttachment,
+): AnthropicRequestContent {
+  const mediaType = attachment.mimeType?.toLowerCase().startsWith("image/")
+    ? attachment.mimeType
+    : "image/png";
+  return {
+    type: "image",
+    source: {
+      type: "base64",
+      media_type: mediaType,
+      data: attachment.base64,
+    },
+  };
+}
+
 export class AnthropicClient implements LlmClient {
   readonly settings: ProviderSettings;
   private readonly client: Anthropic;
@@ -42,10 +72,27 @@ export class AnthropicClient implements LlmClient {
     const systemMessages = messages.filter((message) => message.role === "system").map((message) => message.content);
     const userMessages = messages.filter((message) => message.role === "user");
 
-    const requestMessages: AnthropicMessage[] = userMessages.map((message) => ({
-      role: "user",
-      content: [{ type: "text", text: message.content }],
-    }));
+    const requestMessages: AnthropicMessage[] = userMessages.map((message) => {
+      const content: AnthropicRequestContent[] = [
+        { type: "text", text: message.content },
+      ];
+      if (message.attachments?.length) {
+        for (const attachment of message.attachments) {
+          if (attachment.mimeType.startsWith("image/")) {
+            content.push(createAnthropicImageContent(attachment));
+          } else {
+            const descriptor =
+              `Attachment ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes) encoded in Base64:`;
+            content.push({ type: "text", text: descriptor });
+            content.push({ type: "text", text: attachment.base64 });
+          }
+        }
+      }
+      return {
+        role: "user",
+        content,
+      };
+    });
 
     if (requestMessages.length === 0) {
       requestMessages.push({ role: "user", content: [{ type: "text", text: "" }] });
