@@ -1,5 +1,19 @@
 import type { ModelProvider, ReasoningMode } from "../types.js";
 import { type ModelMetadata, getModelOptions, getModelMetadata, getFeaturedModels } from "../llm/model-catalog.js";
+export interface NumericRangeSummary {
+    min?: number;
+    max?: number;
+    default?: number;
+    description?: string;
+}
+export interface ReasoningRangeSummary extends NumericRangeSummary {
+    supported: boolean;
+    helper?: string;
+}
+export interface ProviderTokenGuidance {
+    maxOutputTokens: NumericRangeSummary;
+    reasoningTokens?: ReasoningRangeSummary;
+}
 export interface ProviderChoice {
     value: ModelProvider;
     title: string;
@@ -21,6 +35,7 @@ export declare const PROVIDER_REASONING_CAPABILITIES: Record<ModelProvider, {
     mode: boolean;
     tokens: boolean;
 }>;
+export declare const PROVIDER_TOKEN_GUIDANCE: Record<ModelProvider, ProviderTokenGuidance>;
 export declare const REASONING_TOKEN_MIN_BY_PROVIDER: Record<ModelProvider, number>;
 export declare function getDefaultReasoningTokens(provider: ModelProvider): number | undefined;
 export declare const PROVIDER_MODEL_METADATA: Record<ModelProvider, ModelMetadata[]>;

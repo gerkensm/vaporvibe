@@ -36,6 +36,31 @@ export const PROVIDER_REASONING_CAPABILITIES = Object.fromEntries(Object.keys(PR
     const supportsTokens = metadata.reasoningTokens?.supported ?? false;
     return [provider, { mode: supportsModes, tokens: supportsTokens }];
 }));
+export const PROVIDER_TOKEN_GUIDANCE = Object.fromEntries(Object.keys(PROVIDER_METADATA).map((provider) => {
+    const metadata = PROVIDER_METADATA[provider];
+    const reasoning = metadata.reasoningTokens;
+    return [
+        provider,
+        {
+            maxOutputTokens: {
+                min: metadata.maxOutputTokens.min,
+                max: metadata.maxOutputTokens.max,
+                default: metadata.maxOutputTokens.default,
+                description: metadata.maxOutputTokens.description,
+            },
+            reasoningTokens: reasoning
+                ? {
+                    supported: Boolean(reasoning.supported),
+                    min: reasoning.min,
+                    max: reasoning.max,
+                    default: reasoning.default,
+                    description: reasoning.description,
+                    helper: reasoning.helper,
+                }
+                : undefined,
+        },
+    ];
+}));
 export const REASONING_TOKEN_MIN_BY_PROVIDER = Object.fromEntries(Object.keys(PROVIDER_METADATA).map((provider) => {
     const metadata = PROVIDER_METADATA[provider];
     const min = metadata.reasoningTokens?.min;
