@@ -105,204 +105,216 @@ export const ATTACHMENT_UPLOADER_STYLES = `
 `;
 
 export const ATTACHMENT_UPLOADER_RUNTIME = `(() => {
-  const uploaders = Array.from(
-    document.querySelectorAll('[data-attachment-root]'),
-  );
+  const initialize = () => {
+    const uploaders = Array.from(
+      document.querySelectorAll('[data-attachment-root]'),
+    );
 
-  if (!uploaders.length) {
-    return;
-  }
-
-  const toTokens = (accept) => {
-    if (!accept) return [];
-    return accept
-      .split(',')
-      .map((token) => token.trim().toLowerCase())
-      .filter((token) => token.length > 0);
-  };
-
-  const formatBytes = (value) => {
-    if (!Number.isFinite(value) || value <= 0) return '0 B';
-    const units = ['B', 'KB', 'MB', 'GB'];
-    let size = value;
-    let unit = 0;
-    while (size >= 1024 && unit < units.length - 1) {
-      size /= 1024;
-      unit += 1;
-    }
-    const precision = size < 10 && unit > 0 ? 1 : 0;
-    return size.toFixed(precision) + ' ' + units[unit];
-  };
-
-  const acceptsFile = (file, tokens) => {
-    if (!tokens.length) return true;
-    const type = (file.type || '').toLowerCase();
-    const name = (file.name || '').toLowerCase();
-    return tokens.some((token) => {
-      if (!token) return false;
-      if (token === '*') return true;
-      if (token.startsWith('.')) {
-        return name.endsWith(token);
-      }
-      if (token.endsWith('/*')) {
-        const prefix = token.slice(0, -1);
-        return type.startsWith(prefix);
-      }
-      return type === token;
-    });
-  };
-
-  uploaders.forEach((root) => {
-    if (!(root instanceof HTMLElement)) return;
-    const input = root.querySelector('[data-attachment-input]');
-    const dropzone = root.querySelector('[data-attachment-dropzone]');
-    const browseButton = root.querySelector('[data-attachment-browse]');
-    const statusEl = root.querySelector('[data-attachment-status]');
-    const clearButton = root.querySelector('[data-attachment-clear]');
-    const emptyText = root.getAttribute('data-attachment-empty') || 'No files selected yet.';
-    const acceptTokens = toTokens(root.getAttribute('data-attachment-accept') || (input && input.getAttribute('accept')) || '');
-
-    if (!(input instanceof HTMLInputElement)) {
+    if (!uploaders.length) {
       return;
     }
 
-    const setStatus = (message, tone = 'idle') => {
-      if (!(statusEl instanceof HTMLElement)) {
-        return;
-      }
-      statusEl.textContent = message;
-      statusEl.setAttribute('data-tone', tone);
+    const toTokens = (accept) => {
+      if (!accept) return [];
+      return accept
+        .split(',')
+        .map((token) => token.trim().toLowerCase())
+        .filter((token) => token.length > 0);
     };
 
-    const syncFromInput = () => {
+    const formatBytes = (value) => {
+      if (!Number.isFinite(value) || value <= 0) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      let size = value;
+      let unit = 0;
+      while (size >= 1024 && unit < units.length - 1) {
+        size /= 1024;
+        unit += 1;
+      }
+      const precision = size < 10 && unit > 0 ? 1 : 0;
+      return size.toFixed(precision) + ' ' + units[unit];
+    };
+
+    const acceptsFile = (file, tokens) => {
+      if (!tokens.length) return true;
+      const type = (file.type || '').toLowerCase();
+      const name = (file.name || '').toLowerCase();
+      return tokens.some((token) => {
+        if (!token) return false;
+        if (token === '*') return true;
+        if (token.startsWith('.')) {
+          return name.endsWith(token);
+        }
+        if (token.endsWith('/*')) {
+          const prefix = token.slice(0, -1);
+          return type.startsWith(prefix);
+        }
+        return type === token;
+      });
+    };
+
+    uploaders.forEach((root) => {
+      if (!(root instanceof HTMLElement)) return;
+      if (root.getAttribute('data-attachment-initialized') === 'true') {
+        return;
+      }
+      root.setAttribute('data-attachment-initialized', 'true');
+      const input = root.querySelector('[data-attachment-input]');
+      const dropzone = root.querySelector('[data-attachment-dropzone]');
+      const browseButton = root.querySelector('[data-attachment-browse]');
+      const statusEl = root.querySelector('[data-attachment-status]');
+      const clearButton = root.querySelector('[data-attachment-clear]');
+      const emptyText = root.getAttribute('data-attachment-empty') || 'No files selected yet.';
+      const acceptTokens = toTokens(root.getAttribute('data-attachment-accept') || (input && input.getAttribute('accept')) || '');
+
       if (!(input instanceof HTMLInputElement)) {
         return;
       }
-      const files = input.files ? Array.from(input.files) : [];
-      if (files.length === 0) {
-        setStatus(emptyText, 'idle');
-        if (clearButton instanceof HTMLButtonElement) {
-          clearButton.hidden = true;
-        }
-        return;
-      }
-      const summary = files
-        .map((file) => file.name + ' (' + formatBytes(file.size) + ')')
-        .join(', ');
-      setStatus('Queued: ' + summary, 'ready');
-      if (clearButton instanceof HTMLButtonElement) {
-        clearButton.hidden = false;
-      }
-    };
 
-    const addFiles = (fileList) => {
-      const files = Array.from(fileList || []);
-      if (!files.length) {
-        return;
-      }
-      const accepted = files.filter((file) => acceptsFile(file, acceptTokens));
-      if (!accepted.length) {
-        root.setAttribute('data-attachment-error', 'true');
-        setStatus('Those files are not supported. Use images or PDFs.', 'error');
-        window.setTimeout(() => {
-          root.removeAttribute('data-attachment-error');
+      const setStatus = (message, tone = 'idle') => {
+        if (!(statusEl instanceof HTMLElement)) {
+          return;
+        }
+        statusEl.textContent = message;
+        statusEl.setAttribute('data-tone', tone);
+      };
+
+      const syncFromInput = () => {
+        if (!(input instanceof HTMLInputElement)) {
+          return;
+        }
+        const files = input.files ? Array.from(input.files) : [];
+        if (files.length === 0) {
           setStatus(emptyText, 'idle');
-        }, 3000);
-        return;
-      }
-      let transfer;
-      try {
-        transfer = new DataTransfer();
-      } catch (error) {
-        console.warn('DataTransfer not supported', error);
-        return;
-      }
-      if (input.multiple && input.files?.length) {
-        Array.from(input.files).forEach((existing) => {
+          if (clearButton instanceof HTMLButtonElement) {
+            clearButton.hidden = true;
+          }
+          return;
+        }
+        const summary = files
+          .map((file) => file.name + ' (' + formatBytes(file.size) + ')')
+          .join(', ');
+        setStatus('Queued: ' + summary, 'ready');
+        if (clearButton instanceof HTMLButtonElement) {
+          clearButton.hidden = false;
+        }
+      };
+
+      const addFiles = (fileList) => {
+        const files = Array.from(fileList || []);
+        if (!files.length) {
+          return;
+        }
+        const accepted = files.filter((file) => acceptsFile(file, acceptTokens));
+        if (!accepted.length) {
+          root.setAttribute('data-attachment-error', 'true');
+          setStatus('Those files are not supported. Use images or PDFs.', 'error');
+          window.setTimeout(() => {
+            root.removeAttribute('data-attachment-error');
+            setStatus(emptyText, 'idle');
+          }, 3000);
+          return;
+        }
+        let transfer;
+        try {
+          transfer = new DataTransfer();
+        } catch (error) {
+          console.warn('DataTransfer not supported', error);
+          return;
+        }
+        if (input.multiple && input.files?.length) {
+          Array.from(input.files).forEach((existing) => {
+            try {
+              transfer.items.add(existing);
+            } catch (error) {
+              console.warn('Failed to retain existing file', error);
+            }
+          });
+        }
+        accepted.forEach((file) => {
           try {
-            transfer.items.add(existing);
+            transfer.items.add(file);
           } catch (error) {
-            console.warn('Failed to retain existing file', error);
+            console.warn('Failed to queue file', error);
+          }
+        });
+        input.files = transfer.files;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        syncFromInput();
+      };
+
+      if (browseButton instanceof HTMLButtonElement) {
+        browseButton.addEventListener('click', (event) => {
+          event.preventDefault();
+          input.click();
+        });
+      }
+
+      if (dropzone instanceof HTMLElement) {
+        const activate = () => root.setAttribute('data-attachment-active', 'true');
+        const deactivate = () => root.removeAttribute('data-attachment-active');
+        dropzone.addEventListener('dragover', (event) => {
+          event.preventDefault();
+          activate();
+        });
+        dropzone.addEventListener('dragleave', deactivate);
+        dropzone.addEventListener('dragend', deactivate);
+        dropzone.addEventListener('drop', (event) => {
+          event.preventDefault();
+          deactivate();
+          if (event.dataTransfer?.files?.length) {
+            addFiles(event.dataTransfer.files);
+          }
+        });
+        dropzone.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            input.click();
           }
         });
       }
-      accepted.forEach((file) => {
-        try {
-          transfer.items.add(file);
-        } catch (error) {
-          console.warn('Failed to queue file', error);
+
+      root.addEventListener('paste', (event) => {
+        if (!event || typeof event !== 'object') {
+          return;
         }
-      });
-      input.files = transfer.files;
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-      syncFromInput();
-    };
-
-    if (browseButton instanceof HTMLButtonElement) {
-      browseButton.addEventListener('click', (event) => {
-        event.preventDefault();
-        input.click();
-      });
-    }
-
-    if (dropzone instanceof HTMLElement) {
-      const activate = () => root.setAttribute('data-attachment-active', 'true');
-      const deactivate = () => root.removeAttribute('data-attachment-active');
-      dropzone.addEventListener('dragover', (event) => {
-        event.preventDefault();
-        activate();
-      });
-      dropzone.addEventListener('dragleave', deactivate);
-      dropzone.addEventListener('dragend', deactivate);
-      dropzone.addEventListener('drop', (event) => {
-        event.preventDefault();
-        deactivate();
-        if (event.dataTransfer?.files?.length) {
-          addFiles(event.dataTransfer.files);
+        const clipboard = event.clipboardData;
+        if (!clipboard || !clipboard.files || clipboard.files.length === 0) {
+          return;
         }
-      });
-      dropzone.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          input.click();
+        const target = event.target;
+        if (
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          (target && target.getAttribute && target.getAttribute('contenteditable') === 'true')
+        ) {
+          return;
         }
-      });
-    }
-
-    root.addEventListener('paste', (event) => {
-      if (!event || typeof event !== 'object') {
-        return;
-      }
-      const clipboard = event.clipboardData;
-      if (!clipboard || !clipboard.files || clipboard.files.length === 0) {
-        return;
-      }
-      const target = event.target;
-      if (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        (target && target.getAttribute && target.getAttribute('contenteditable') === 'true')
-      ) {
-        return;
-      }
-      event.preventDefault();
-      addFiles(clipboard.files);
-    });
-
-    input.addEventListener('change', () => {
-      syncFromInput();
-    });
-
-    if (clearButton instanceof HTMLButtonElement) {
-      clearButton.addEventListener('click', (event) => {
         event.preventDefault();
-        input.value = '';
+        addFiles(clipboard.files);
+      });
+
+      input.addEventListener('change', () => {
         syncFromInput();
       });
-    }
 
-    syncFromInput();
-  });
+      if (clearButton instanceof HTMLButtonElement) {
+        clearButton.addEventListener('click', (event) => {
+          event.preventDefault();
+          input.value = '';
+          syncFromInput();
+        });
+      }
+
+      syncFromInput();
+    });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize, { once: true });
+  } else {
+    initialize();
+  }
 })();`;
 
 interface AttachmentUploaderOptions {
