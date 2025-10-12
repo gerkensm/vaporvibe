@@ -1090,7 +1090,7 @@ export function renderAdminDashboard(props) {
       const tabButtons = Array.from(document.querySelectorAll(".tab-button"));
       const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
       let currentTabId = "tab-brief";
-      let onTabChange = (_isHistory: boolean) => {};
+      let onTabChange = (_isHistory) => {};
 
       const activateTab = (id) => {
         tabButtons.forEach((button) => {
