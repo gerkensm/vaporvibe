@@ -1,6 +1,7 @@
-import type { ChatMessage, HistoryEntry } from "../types.js";
+import type { BriefAttachment, ChatMessage, HistoryEntry } from "../types.js";
 export interface MessageContext {
     brief: string;
+    briefAttachments: BriefAttachment[];
     method: string;
     path: string;
     query: Record<string, unknown>;
@@ -16,5 +17,6 @@ export interface MessageContext {
     historyLimitOmitted: number;
     historyByteOmitted: number;
     adminPath: string;
+    attachmentsEnabled: boolean;
 }
 export declare function buildMessages(context: MessageContext): ChatMessage[];

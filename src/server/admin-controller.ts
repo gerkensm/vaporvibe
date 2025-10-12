@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import type { ServerResponse } from "node:http";
 import type { Logger } from "pino";
 import { ADMIN_ROUTE_PREFIX } from "../constants.js";
 import type {
+  BriefAttachment,
   HistoryEntry,
   ProviderSettings,
   ReasoningMode,
@@ -25,6 +27,13 @@ import type {
 import type { MutableServerState, RequestContext } from "./server.js";
 import { SessionStore } from "./session-store.js";
 import { getCredentialStore } from "../utils/credential-store.js";
+import { cloneAttachments } from "../utils/attachments.js";
+import { supportsImageInputs } from "../llm/capabilities.js";
+
+const MAX_BRIEF_ATTACHMENTS = 6;
+const MAX_BRIEF_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const ATTACHMENT_BASE64 = /^[A-Za-z0-9+/=]+$/;
+const ATTACHMENT_MIME = /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/i;
 
 const JSON_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.json`;
 const MARKDOWN_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history/prompt.md`;
@@ -148,8 +157,15 @@ export class AdminController {
     const errorMessage = url.searchParams.get("error") ?? undefined;
 
     const providerKeyStatuses = await this.computeProviderKeyStatuses();
+    const attachmentsEnabled = supportsImageInputs(
+      this.state.provider.provider,
+      this.state.provider.model
+    );
+
     const html = renderAdminDashboard({
       brief: this.state.brief,
+      briefAttachments: cloneAttachments(this.state.briefAttachments),
+      attachmentsEnabled,
       provider: providerInfo,
       runtime: runtimeInfo,
       history: historyItems,
@@ -223,6 +239,7 @@ export class AdminController {
     const snapshot = createHistorySnapshot({
       history,
       brief: this.state.brief,
+      briefAttachments: this.state.briefAttachments,
       runtime: this.state.runtime,
       provider: this.state.provider,
     });
@@ -239,6 +256,7 @@ export class AdminController {
     const markdown = createPromptMarkdown({
       history,
       brief: this.state.brief,
+      briefAttachments: this.state.briefAttachments,
       runtime: this.state.runtime,
       provider: this.state.provider,
     });
@@ -446,16 +464,38 @@ export class AdminController {
     const body = await readBody(req);
     const rawBrief =
       typeof body.data.brief === "string" ? body.data.brief.trim() : "";
+    let attachments: BriefAttachment[] = [];
+    try {
+      attachments = normalizeBriefAttachments(body.data.briefAttachments);
+    } catch (error) {
+      reqLogger.warn(
+        { err: error },
+        "Failed to parse brief attachments"
+      );
+      this.redirectWithMessage(
+        res,
+        `Brief update failed: ${(error as Error).message}`,
+        true
+      );
+      return;
+    }
+
     this.state.brief = rawBrief.length > 0 ? rawBrief : null;
+    this.state.briefAttachments = attachments;
+
+    const attachmentCount = attachments.length;
+    const messageParts = [
+      this.state.brief ? "Brief updated" : "Brief cleared",
+      attachmentCount === 0
+        ? "Attachments cleared"
+        : `${attachmentCount} attachment${attachmentCount === 1 ? "" : "s"} saved`,
+    ];
+
     reqLogger.info(
-      { hasBrief: Boolean(this.state.brief) },
+      { hasBrief: Boolean(this.state.brief), attachmentCount },
       "Updated brief via admin console"
     );
-    this.redirectWithMessage(
-      res,
-      this.state.brief ? "Brief updated" : "Brief cleared",
-      false
-    );
+    this.redirectWithMessage(res, messageParts.join(" · "), false);
   }
 
   private async handleHistoryImport(
@@ -493,6 +533,11 @@ export class AdminController {
         })
       );
       this.sessionStore.replaceHistory(historyEntries);
+
+      const importedAttachments = normalizeBriefAttachments(
+        (parsed as { briefAttachments?: unknown }).briefAttachments ?? []
+      );
+      this.state.briefAttachments = importedAttachments;
 
       if (typeof parsed.brief === "string") {
         this.state.brief = parsed.brief.trim() || null;
@@ -584,6 +629,7 @@ export class AdminController {
     const payload = {
       historyHtml: renderHistory(historyItems),
       brief: this.state.brief ?? "",
+      briefAttachments: cloneAttachments(this.state.briefAttachments),
       totalHistoryCount: entries.length,
       sessionCount,
       provider: {
@@ -665,6 +711,9 @@ export class AdminController {
     const reasoningDetails = entry.reasoning?.details
       ? [...entry.reasoning.details]
       : undefined;
+    const attachments = entry.attachments
+      ? cloneAttachments(entry.attachments)
+      : undefined;
 
     return {
       id: entry.id,
@@ -685,6 +734,7 @@ export class AdminController {
       downloadUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(
         entry.id
       )}/download`,
+      attachments,
     };
   }
 }
@@ -759,6 +809,115 @@ function parseReasoningTokensValue(
   }
 
   return rounded;
+}
+
+function normalizeBriefAttachments(input: unknown): BriefAttachment[] {
+  if (input === undefined || input === null || input === "") {
+    return [];
+  }
+
+  let payload: unknown;
+  if (typeof input === "string") {
+    const trimmed = input.trim();
+    if (!trimmed) {
+      return [];
+    }
+    try {
+      payload = JSON.parse(trimmed);
+    } catch (error) {
+      throw new Error("Attachments payload must be valid JSON.");
+    }
+  } else {
+    payload = input;
+  }
+
+  if (!Array.isArray(payload)) {
+    throw new Error("Attachments payload must be an array of files.");
+  }
+
+  if (payload.length > MAX_BRIEF_ATTACHMENTS) {
+    throw new Error(
+      `Limit ${MAX_BRIEF_ATTACHMENTS} attachments per brief.`
+    );
+  }
+
+  return payload.map((raw, index) => sanitizeAttachment(raw, index));
+}
+
+function sanitizeAttachment(value: unknown, index: number): BriefAttachment {
+  if (!value || typeof value !== "object") {
+    throw new Error(`Attachment ${index + 1} is invalid.`);
+  }
+
+  const candidate = value as Partial<BriefAttachment>;
+  const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
+  if (!name) {
+    throw new Error(`Attachment ${index + 1} is missing a name.`);
+  }
+
+  const mimeType =
+    typeof candidate.mimeType === "string"
+      ? candidate.mimeType.trim()
+      : "";
+  if (!mimeType || !ATTACHMENT_MIME.test(mimeType)) {
+    throw new Error(
+      `Attachment ${index + 1} has an unsupported MIME type.`
+    );
+  }
+  if (
+    !mimeType.toLowerCase().startsWith("image/") &&
+    mimeType.toLowerCase() !== "application/pdf"
+  ) {
+    throw new Error(
+      `Attachment ${index + 1} must be an image or PDF file.`
+    );
+  }
+
+  const rawSize =
+    typeof candidate.size === "number"
+      ? candidate.size
+      : Number.parseInt(String(candidate.size ?? ""), 10);
+  if (!Number.isFinite(rawSize) || rawSize < 0) {
+    throw new Error(`Attachment ${index + 1} has an invalid size.`);
+  }
+  const decodedSize = (() => {
+    try {
+      return Buffer.from(candidate.data ?? "", "base64").length;
+    } catch {
+      return Number.NaN;
+    }
+  })();
+
+  if (!Number.isFinite(decodedSize) || decodedSize === 0) {
+    throw new Error(`Attachment ${index + 1} data could not be decoded.`);
+  }
+
+  const boundedSize = Math.max(0, Math.floor(decodedSize));
+  if (boundedSize > MAX_BRIEF_ATTACHMENT_BYTES) {
+    throw new Error(
+      `Attachment ${index + 1} exceeds the ${Math.floor(
+        MAX_BRIEF_ATTACHMENT_BYTES / (1024 * 1024)
+      )} MB limit.`
+    );
+  }
+
+  const data = typeof candidate.data === "string" ? candidate.data.trim() : "";
+  if (!data || !ATTACHMENT_BASE64.test(data)) {
+    throw new Error(`Attachment ${index + 1} data is not valid base64.`);
+  }
+
+  const id =
+    typeof candidate.id === "string" && candidate.id.trim().length > 0
+      ? candidate.id
+      : randomUUID();
+
+  return {
+    id,
+    name,
+    mimeType,
+    size: boundedSize,
+    data,
+  };
 }
 
 function lookupEnvApiKey(

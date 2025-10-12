@@ -1,6 +1,6 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import { URL } from "node:url";
-import type { RuntimeConfig, ProviderSettings, ModelProvider } from "../types.js";
+import type { BriefAttachment, RuntimeConfig, ProviderSettings, ModelProvider } from "../types.js";
 import type { LlmClient } from "../llm/client.js";
 import { SessionStore } from "./session-store.js";
 export interface ServerOptions {
@@ -21,6 +21,7 @@ export interface RequestContext {
 }
 export interface MutableServerState {
     brief: string | null;
+    briefAttachments: BriefAttachment[];
     runtime: RuntimeConfig;
     provider: ProviderSettings;
     llmClient: LlmClient | null;

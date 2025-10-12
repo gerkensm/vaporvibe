@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { ADMIN_ROUTE_PREFIX } from "../constants.js";
 import { createLlmClient } from "../llm/factory.js";
 import { readBody } from "../utils/body.js";
@@ -5,6 +6,12 @@ import { maskSensitive } from "../utils/sensitive.js";
 import { createHistorySnapshot, createPromptMarkdown, } from "../utils/history-export.js";
 import { renderAdminDashboard, renderHistory, } from "../pages/admin-dashboard.js";
 import { getCredentialStore } from "../utils/credential-store.js";
+import { cloneAttachments } from "../utils/attachments.js";
+import { supportsImageInputs } from "../llm/capabilities.js";
+const MAX_BRIEF_ATTACHMENTS = 6;
+const MAX_BRIEF_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const ATTACHMENT_BASE64 = /^[A-Za-z0-9+/=]+$/;
+const ATTACHMENT_MIME = /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/i;
 const JSON_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.json`;
 const MARKDOWN_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history/prompt.md`;
 export class AdminController {
@@ -90,8 +97,11 @@ export class AdminController {
         const statusMessage = url.searchParams.get("status") ?? undefined;
         const errorMessage = url.searchParams.get("error") ?? undefined;
         const providerKeyStatuses = await this.computeProviderKeyStatuses();
+        const attachmentsEnabled = supportsImageInputs(this.state.provider.provider, this.state.provider.model);
         const html = renderAdminDashboard({
             brief: this.state.brief,
+            briefAttachments: cloneAttachments(this.state.briefAttachments),
+            attachmentsEnabled,
             provider: providerInfo,
             runtime: runtimeInfo,
             history: historyItems,
@@ -144,6 +154,7 @@ export class AdminController {
         const snapshot = createHistorySnapshot({
             history,
             brief: this.state.brief,
+            briefAttachments: this.state.briefAttachments,
             runtime: this.state.runtime,
             provider: this.state.provider,
         });
@@ -159,6 +170,7 @@ export class AdminController {
         const markdown = createPromptMarkdown({
             history,
             brief: this.state.brief,
+            briefAttachments: this.state.briefAttachments,
             runtime: this.state.runtime,
             provider: this.state.provider,
         });
@@ -299,9 +311,26 @@ export class AdminController {
         const { req, res } = context;
         const body = await readBody(req);
         const rawBrief = typeof body.data.brief === "string" ? body.data.brief.trim() : "";
+        let attachments = [];
+        try {
+            attachments = normalizeBriefAttachments(body.data.briefAttachments);
+        }
+        catch (error) {
+            reqLogger.warn({ err: error }, "Failed to parse brief attachments");
+            this.redirectWithMessage(res, `Brief update failed: ${error.message}`, true);
+            return;
+        }
         this.state.brief = rawBrief.length > 0 ? rawBrief : null;
-        reqLogger.info({ hasBrief: Boolean(this.state.brief) }, "Updated brief via admin console");
-        this.redirectWithMessage(res, this.state.brief ? "Brief updated" : "Brief cleared", false);
+        this.state.briefAttachments = attachments;
+        const attachmentCount = attachments.length;
+        const messageParts = [
+            this.state.brief ? "Brief updated" : "Brief cleared",
+            attachmentCount === 0
+                ? "Attachments cleared"
+                : `${attachmentCount} attachment${attachmentCount === 1 ? "" : "s"} saved`,
+        ];
+        reqLogger.info({ hasBrief: Boolean(this.state.brief), attachmentCount }, "Updated brief via admin console");
+        this.redirectWithMessage(res, messageParts.join(" · "), false);
     }
     async handleHistoryImport(context, reqLogger) {
         const { req, res } = context;
@@ -327,6 +356,8 @@ export class AdminController {
                 response: entry.response,
             }));
             this.sessionStore.replaceHistory(historyEntries);
+            const importedAttachments = normalizeBriefAttachments(parsed.briefAttachments ?? []);
+            this.state.briefAttachments = importedAttachments;
             if (typeof parsed.brief === "string") {
                 this.state.brief = parsed.brief.trim() || null;
             }
@@ -389,6 +420,7 @@ export class AdminController {
         const payload = {
             historyHtml: renderHistory(historyItems),
             brief: this.state.brief ?? "",
+            briefAttachments: cloneAttachments(this.state.briefAttachments),
             totalHistoryCount: entries.length,
             sessionCount,
             provider: {
@@ -456,6 +488,9 @@ export class AdminController {
         const reasoningDetails = entry.reasoning?.details
             ? [...entry.reasoning.details]
             : undefined;
+        const attachments = entry.attachments
+            ? cloneAttachments(entry.attachments)
+            : undefined;
         return {
             id: entry.id,
             createdAt: entry.createdAt,
@@ -471,6 +506,7 @@ export class AdminController {
             html: entry.response.html,
             viewUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(entry.id)}/view`,
             downloadUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(entry.id)}/download`,
+            attachments,
         };
     }
 }
@@ -532,6 +568,89 @@ function parseReasoningTokensValue(value, provider, fallback) {
         throw new Error("Reasoning tokens must be zero or a positive integer for this provider.");
     }
     return rounded;
+}
+function normalizeBriefAttachments(input) {
+    if (input === undefined || input === null || input === "") {
+        return [];
+    }
+    let payload;
+    if (typeof input === "string") {
+        const trimmed = input.trim();
+        if (!trimmed) {
+            return [];
+        }
+        try {
+            payload = JSON.parse(trimmed);
+        }
+        catch (error) {
+            throw new Error("Attachments payload must be valid JSON.");
+        }
+    }
+    else {
+        payload = input;
+    }
+    if (!Array.isArray(payload)) {
+        throw new Error("Attachments payload must be an array of files.");
+    }
+    if (payload.length > MAX_BRIEF_ATTACHMENTS) {
+        throw new Error(`Limit ${MAX_BRIEF_ATTACHMENTS} attachments per brief.`);
+    }
+    return payload.map((raw, index) => sanitizeAttachment(raw, index));
+}
+function sanitizeAttachment(value, index) {
+    if (!value || typeof value !== "object") {
+        throw new Error(`Attachment ${index + 1} is invalid.`);
+    }
+    const candidate = value;
+    const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
+    if (!name) {
+        throw new Error(`Attachment ${index + 1} is missing a name.`);
+    }
+    const mimeType = typeof candidate.mimeType === "string"
+        ? candidate.mimeType.trim()
+        : "";
+    if (!mimeType || !ATTACHMENT_MIME.test(mimeType)) {
+        throw new Error(`Attachment ${index + 1} has an unsupported MIME type.`);
+    }
+    if (!mimeType.toLowerCase().startsWith("image/") &&
+        mimeType.toLowerCase() !== "application/pdf") {
+        throw new Error(`Attachment ${index + 1} must be an image or PDF file.`);
+    }
+    const rawSize = typeof candidate.size === "number"
+        ? candidate.size
+        : Number.parseInt(String(candidate.size ?? ""), 10);
+    if (!Number.isFinite(rawSize) || rawSize < 0) {
+        throw new Error(`Attachment ${index + 1} has an invalid size.`);
+    }
+    const decodedSize = (() => {
+        try {
+            return Buffer.from(candidate.data ?? "", "base64").length;
+        }
+        catch {
+            return Number.NaN;
+        }
+    })();
+    if (!Number.isFinite(decodedSize) || decodedSize === 0) {
+        throw new Error(`Attachment ${index + 1} data could not be decoded.`);
+    }
+    const boundedSize = Math.max(0, Math.floor(decodedSize));
+    if (boundedSize > MAX_BRIEF_ATTACHMENT_BYTES) {
+        throw new Error(`Attachment ${index + 1} exceeds the ${Math.floor(MAX_BRIEF_ATTACHMENT_BYTES / (1024 * 1024))} MB limit.`);
+    }
+    const data = typeof candidate.data === "string" ? candidate.data.trim() : "";
+    if (!data || !ATTACHMENT_BASE64.test(data)) {
+        throw new Error(`Attachment ${index + 1} data is not valid base64.`);
+    }
+    const id = typeof candidate.id === "string" && candidate.id.trim().length > 0
+        ? candidate.id
+        : randomUUID();
+    return {
+        id,
+        name,
+        mimeType,
+        size: boundedSize,
+        data,
+    };
 }
 function lookupEnvApiKey(provider) {
     if (provider === "openai") {

@@ -3,10 +3,17 @@ import type { ChatMessage, LlmReasoningTrace, LlmUsageMetrics, ProviderSettings,
 import type { LlmClient, LlmResult } from "./client.js";
 import { logger } from "../logger.js";
 
+type InputTextPart = { type: "input_text"; text: string };
+type InputImagePart = {
+  type: "input_image";
+  image_base64: string;
+  mime_type?: string;
+};
+
 type InputMessage = {
   type: "message";
   role: "system" | "user";
-  content: Array<{ type: "input_text"; text: string }>;
+  content: Array<InputTextPart | InputImagePart>;
 };
 
 export class OpenAiClient implements LlmClient {
@@ -24,11 +31,30 @@ export class OpenAiClient implements LlmClient {
   }
 
   async generateHtml(messages: ChatMessage[]): Promise<LlmResult> {
-    const input: InputMessage[] = messages.map((message) => ({
-      type: "message",
-      role: message.role,
-      content: [{ type: "input_text", text: message.content }],
-    }));
+    const input: InputMessage[] = messages.map((message) => {
+      const parts: Array<InputTextPart | InputImagePart> = [
+        { type: "input_text", text: message.content },
+      ];
+
+      if (message.attachments && message.attachments.length > 0) {
+        for (const attachment of message.attachments) {
+          if (attachment.mimeType.toLowerCase().startsWith("image/")) {
+            parts.push({
+              type: "input_image",
+              image_base64: attachment.data,
+              mime_type: attachment.mimeType,
+            });
+          } else {
+            parts.push({
+              type: "input_text",
+              text: `Attachment ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes) encoded in base64:\n${attachment.data}`,
+            });
+          }
+        }
+      }
+
+      return { type: "message", role: message.role, content: parts };
+    });
 
     const request: Record<string, unknown> = {
       model: this.settings.model,

@@ -21,6 +21,7 @@ import {
   LLM_RESULT_ROUTE_PREFIX,
 } from "../constants.js";
 import type {
+  BriefAttachment,
   HistoryEntry,
   RuntimeConfig,
   ProviderSettings,
@@ -29,6 +30,7 @@ import type {
 } from "../types.js";
 import type { LlmClient } from "../llm/client.js";
 import { buildMessages } from "../llm/messages.js";
+import { supportsImageInputs } from "../llm/capabilities.js";
 import { parseCookies } from "../utils/cookies.js";
 import { readBody } from "../utils/body.js";
 import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
@@ -46,6 +48,7 @@ import { AdminController } from "./admin-controller.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
 import { createLlmClient } from "../llm/factory.js";
 import { getCredentialStore } from "../utils/credential-store.js";
+import { cloneAttachments } from "../utils/attachments.js";
 
 type RequestLogger = Logger;
 
@@ -69,6 +72,7 @@ export interface RequestContext {
 
 export interface MutableServerState {
   brief: string | null;
+  briefAttachments: BriefAttachment[];
   runtime: RuntimeConfig;
   provider: ProviderSettings;
   llmClient: LlmClient | null;
@@ -101,6 +105,7 @@ export function createServer(options: ServerOptions): http.Server {
   const providerState: ProviderSettings = { ...provider };
   const state: MutableServerState = {
     brief: runtimeState.brief?.trim() || null,
+    briefAttachments: [],
     runtime: runtimeState,
     provider: providerState,
     llmClient,
@@ -922,6 +927,7 @@ async function handleLlmRequest(
 
   const messages = buildMessages({
     brief: state.brief ?? "",
+    briefAttachments: state.briefAttachments,
     method,
     path,
     query,
@@ -937,6 +943,10 @@ async function handleLlmRequest(
     historyLimitOmitted: limitOmitted,
     historyByteOmitted: byteOmitted,
     adminPath: ADMIN_ROUTE_PREFIX,
+    attachmentsEnabled: supportsImageInputs(
+      state.provider.provider,
+      state.provider.model
+    ),
   });
   reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
 
@@ -1002,6 +1012,10 @@ async function handleLlmRequest(
       createdAt: new Date().toISOString(),
       durationMs,
       brief: state.brief ?? "",
+      attachments:
+        state.briefAttachments.length > 0
+          ? cloneAttachments(state.briefAttachments)
+          : undefined,
       request: {
         method,
         path,
@@ -1497,6 +1511,16 @@ function estimateHistoryEntrySize(entry: HistoryEntry): number {
   if (entry.reasoning?.details?.length) {
     fragments.push(entry.reasoning.details.join("\n"));
   }
+  if (entry.attachments?.length) {
+    for (const attachment of entry.attachments) {
+      fragments.push(
+        attachment.name,
+        attachment.mimeType,
+        String(attachment.size),
+        attachment.data
+      );
+    }
+  }
   let bytes = 0;
   for (const fragment of fragments) {
     bytes += Buffer.byteLength(fragment, "utf8");
@@ -1504,6 +1528,7 @@ function estimateHistoryEntrySize(entry: HistoryEntry): number {
   // Add a cushion for labels and formatting noise in prompts.
   return bytes + 1024;
 }
+
 function handlePendingHtmlRequest(
   context: RequestContext,
   state: MutableServerState,

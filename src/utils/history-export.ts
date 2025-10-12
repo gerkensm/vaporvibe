@@ -1,4 +1,5 @@
 import type {
+  BriefAttachment,
   HistoryEntry,
   HistorySnapshot,
   ProviderSettings,
@@ -6,18 +7,20 @@ import type {
   RuntimeConfig,
 } from "../types.js";
 import { maskSensitive } from "./sensitive.js";
+import { cloneAttachments } from "./attachments.js";
 
 const NEWLINE = "\n";
 
 export interface HistoryExportContext {
   history: HistoryEntry[];
   brief: string | null;
+  briefAttachments: BriefAttachment[];
   runtime: RuntimeConfig;
   provider: ProviderSettings;
 }
 
 export function createHistorySnapshot(context: HistoryExportContext): HistorySnapshot {
-  const { history, brief, runtime, provider } = context;
+  const { history, brief, briefAttachments, runtime, provider } = context;
   const providerSummary: ProviderSettingsSummary = {
     provider: provider.provider,
     model: provider.model,
@@ -31,6 +34,10 @@ export function createHistorySnapshot(context: HistoryExportContext): HistorySna
     version: 1,
     exportedAt: new Date().toISOString(),
     brief,
+    briefAttachments:
+      briefAttachments && briefAttachments.length > 0
+        ? cloneAttachments(briefAttachments)
+        : [],
     history,
     runtime: {
       historyLimit: runtime.historyLimit,
@@ -42,7 +49,7 @@ export function createHistorySnapshot(context: HistoryExportContext): HistorySna
 }
 
 export function createPromptMarkdown(context: HistoryExportContext): string {
-  const { history, brief, runtime, provider } = context;
+  const { history, brief, briefAttachments, runtime, provider } = context;
   const lines: string[] = [];
 
   lines.push("# serve-llm Session Export");
@@ -57,6 +64,18 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
   lines.push(brief ?? "(brief not set yet)");
   lines.push("```");
   lines.push("");
+
+  if (briefAttachments && briefAttachments.length > 0) {
+    lines.push("## Brief Attachments");
+    briefAttachments.forEach((attachment, index) => {
+      lines.push(
+        `${index + 1}. ${attachment.name} (${attachment.mimeType}, ${formatBytes(
+          attachment.size ?? 0,
+        )})`,
+      );
+    });
+    lines.push("");
+  }
 
   lines.push("## Runtime Configuration");
   lines.push(`- Provider: ${provider.provider} (${provider.model})`);
@@ -77,6 +96,18 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
     lines.push(`- Reasoning Tokens Budget: ${entry.llm.reasoningTokens ?? "n/a"}`);
     if (entry.request.instructions) {
       lines.push(`- Instructions Provided: ${entry.request.instructions}`);
+    }
+    if (entry.attachments?.length) {
+      lines.push("- Attachments:");
+      lines.push("```text");
+      entry.attachments.forEach((attachment, attachmentIndex) => {
+        lines.push(
+          `${attachmentIndex + 1}. ${attachment.name} (${attachment.mimeType}, ${formatBytes(
+            attachment.size ?? 0,
+          )})`,
+        );
+      });
+      lines.push("```");
     }
     lines.push("- Query Parameters:");
     lines.push("```json");
@@ -100,4 +131,19 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
   }
 
   return lines.join(NEWLINE);
+}
+
+function formatBytes(size: number): string {
+  if (!Number.isFinite(size) || size <= 0) {
+    return "0 B";
+  }
+  const units = ["B", "KB", "MB", "GB"];
+  let value = size;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  const precision = value >= 10 || unitIndex === 0 ? 0 : 1;
+  return `${value.toFixed(precision)} ${units[unitIndex]}`;
 }

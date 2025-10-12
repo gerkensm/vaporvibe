@@ -1,6 +1,7 @@
+import { cloneAttachments } from "../utils/attachments.js";
 const LINE_DIVIDER = "----------------------------------------";
 export function buildMessages(context) {
-    const { brief, method, path, query, body, prevHtml, timestamp, includeInstructionPanel, history, historyTotal, historyLimit, historyMaxBytes, historyBytesUsed, historyLimitOmitted, historyByteOmitted, adminPath, } = context;
+    const { brief, briefAttachments, method, path, query, body, prevHtml, timestamp, includeInstructionPanel, history, historyTotal, historyLimit, historyMaxBytes, historyBytesUsed, historyLimitOmitted, historyByteOmitted, adminPath, attachmentsEnabled, } = context;
     const nowIso = timestamp.toISOString();
     const systemLines = [
         "You are a SINGLE-VIEW HTML generator for a 'sourcecodeless web app server'.",
@@ -52,7 +53,8 @@ export function buildMessages(context) {
         historyByteOmitted,
     });
     const prevHtmlSnippet = historyMaxBytes > 0 ? prevHtml.slice(0, historyMaxBytes) : prevHtml;
-    const user = [
+    const attachmentSummary = formatAttachmentsSummary(briefAttachments, attachmentsEnabled);
+    const userSections = [
         `App Brief:\n${brief}`,
         "",
         "Current Request:",
@@ -67,19 +69,21 @@ export function buildMessages(context) {
         prevHtmlSnippet,
         "-----END PREVIOUS HTML-----",
         "",
-        historySection,
-        "",
-        "Remember:",
-        "- Render ONLY the current view as a full document.",
-        "- Include inline CSS/JS. No external dependencies.",
-        "- Align the response with the requested path AND parameters by inferring which link or form was activated in the previous HTML and how its fields map to the submitted values.",
-        "- If you need to carry state forward, include it in forms or query strings you output NOW. This includes historical state that's been forwarded to you and needs to be retained.",
-        "- For complex state that should persist invisibly, store it in HTML comments and preserve any comment-based state from the previous HTML, even if you don't need it for the current view.",
-        "- Provide clear primary actions (CTAs) and show the user what to do next.",
-    ].join("\n");
+    ];
+    if (attachmentSummary) {
+        userSections.push(attachmentSummary, "");
+    }
+    userSections.push(historySection, "", "Remember:", "- Render ONLY the current view as a full document.", "- Include inline CSS/JS. No external dependencies.", "- Align the response with the requested path AND parameters by inferring which link or form was activated in the previous HTML and how its fields map to the submitted values.", "- If you need to carry state forward, include it in forms or query strings you output NOW. This includes historical state that's been forwarded to you and needs to be retained.", "- For complex state that should persist invisibly, store it in HTML comments and preserve any comment-based state from the previous HTML, even if you don't need it for the current view.", "- Provide clear primary actions (CTAs) and show the user what to do next.");
+    const userMessage = {
+        role: "user",
+        content: userSections.join("\n"),
+    };
+    if (attachmentsEnabled && briefAttachments.length > 0) {
+        userMessage.attachments = cloneAttachments(briefAttachments);
+    }
     return [
         { role: "system", content: system },
-        { role: "user", content: user },
+        userMessage,
     ];
 }
 function buildHistorySection(options) {
@@ -119,6 +123,11 @@ function buildHistorySection(options) {
         if (entry.request.instructions) {
             requestLines.push(`Instructions: ${entry.request.instructions}`);
         }
+        if (entry.attachments?.length) {
+            requestLines.push(`Attachments (${entry.attachments.length}):\n${entry.attachments
+                .map((attachment) => `- ${attachment.name} (${attachment.mimeType}, ${formatBytes(attachment.size)})`)
+                .join("\n")}`);
+        }
         requestLines.push(`Provider: ${entry.llm.provider} (${entry.llm.model})`, `Max Output Tokens: ${entry.llm.maxOutputTokens}`, `Reasoning Mode: ${entry.llm.reasoningMode}`, `Reasoning Tokens: ${entry.llm.reasoningTokens ?? "n/a"}`);
         if (entry.usage) {
             requestLines.push(`Usage Metrics: ${JSON.stringify(entry.usage, null, 2)}`);
@@ -143,4 +152,31 @@ function buildHistorySection(options) {
         return [indexLabel, ...requestLines].join("\n");
     });
     return [...intro, ...entries].join("\n");
+}
+function formatAttachmentsSummary(attachments, attachmentsEnabled) {
+    if (!attachments || attachments.length === 0) {
+        return null;
+    }
+    const lines = [
+        "Brief attachments:",
+        ...attachments.map((attachment, index) => `${index + 1}. ${attachment.name} (${attachment.mimeType}, ${formatBytes(attachment.size)})`),
+    ];
+    if (!attachmentsEnabled) {
+        lines.push("(Current model does not accept image inputs — attachments are provided for reference only.)");
+    }
+    return lines.join("\n");
+}
+function formatBytes(size) {
+    if (!Number.isFinite(size) || size <= 0) {
+        return "0 B";
+    }
+    const units = ["B", "KB", "MB", "GB"];
+    let value = size;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex += 1;
+    }
+    const precision = value >= 10 || unitIndex === 0 ? 0 : 1;
+    return `${value.toFixed(precision)} ${units[unitIndex]}`;
 }

@@ -2,9 +2,16 @@ import { escapeHtml } from "../utils/html.js";
 import { DEFAULT_REASONING_TOKENS } from "../constants.js";
 import { PROVIDER_CHOICES, PROVIDER_LABELS, PROVIDER_PLACEHOLDERS, DEFAULT_MODEL_BY_PROVIDER, DEFAULT_MAX_TOKENS_BY_PROVIDER, REASONING_MODE_CHOICES, PROVIDER_REASONING_CAPABILITIES, REASONING_TOKEN_MIN_BY_PROVIDER, getDefaultReasoningTokens, } from "../constants/providers.js";
 import { renderModelSelector, MODEL_SELECTOR_STYLES, MODEL_SELECTOR_RUNTIME, renderModelSelectorDataScript, MODEL_INSPECTOR_STYLES, } from "./components/model-selector.js";
+const MAX_BRIEF_ATTACHMENTS = 6;
+const MAX_BRIEF_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 export function renderAdminDashboard(props) {
-    const { brief, provider, runtime, history, totalHistoryCount, sessionCount, statusMessage, errorMessage, exportJsonUrl, exportMarkdownUrl, historyEndpoint, } = props;
+    const { brief, briefAttachments, attachmentsEnabled, provider, runtime, history, totalHistoryCount, sessionCount, statusMessage, errorMessage, exportJsonUrl, exportMarkdownUrl, historyEndpoint, } = props;
     const briefText = brief && brief.trim().length > 0 ? brief : "(brief not set yet)";
+    const attachmentsJson = JSON.stringify(briefAttachments ?? []);
+    const attachmentLimitLabel = formatBytes(MAX_BRIEF_ATTACHMENT_BYTES);
+    const attachmentsSupportMessage = attachmentsEnabled
+        ? "Images and PDFs will be sent to the model alongside the brief."
+        : "Attachments are stored with the brief, but this model will ignore them.";
     const providerKey = isModelProvider(provider.provider)
         ? provider.provider
         : "openai";
@@ -338,6 +345,79 @@ export function renderAdminDashboard(props) {
       font-size: 0.78rem;
       color: var(--subtle);
     }
+    .brief-attachments-group {
+      border: 1px dashed var(--border-strong);
+      border-radius: 16px;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+      background: rgba(248, 250, 255, 0.6);
+    }
+    .brief-attachments-group[data-enabled="false"] {
+      opacity: 0.85;
+    }
+    .brief-attachments-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .brief-attachments-group input[type="file"] {
+      font: inherit;
+    }
+    .brief-attachments-status {
+      font-size: 0.75rem;
+      color: var(--muted);
+      min-height: 1.2em;
+    }
+    .brief-attachments-status[data-error="true"] {
+      color: var(--error);
+    }
+    .attachment-list {
+      display: grid;
+      gap: 12px;
+    }
+    .attachment-card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      background: var(--surface);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 10px 18px rgba(15, 23, 42, 0.06);
+    }
+    .attachment-card button {
+      border: none;
+      background: transparent;
+      color: var(--error);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.78rem;
+    }
+    .attachment-card button:hover,
+    .attachment-card button:focus-visible {
+      text-decoration: underline;
+      outline: none;
+    }
+    .attachment-card-info {
+      display: grid;
+      gap: 2px;
+    }
+    .attachment-card-info strong {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--text);
+    }
+    .attachment-card-info span {
+      font-size: 0.75rem;
+      color: var(--subtle);
+    }
+    .attachment-empty {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--subtle);
+    }
     .advanced {
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -627,6 +707,33 @@ export function renderAdminDashboard(props) {
       font-size: 0.9rem;
       color: var(--muted);
     }
+    .history-attachments {
+      display: grid;
+      gap: 16px;
+    }
+    .history-attachment {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 12px;
+      background: rgba(248, 250, 255, 0.72);
+      display: grid;
+      gap: 10px;
+    }
+    .history-attachment img {
+      width: 100%;
+      border-radius: 14px;
+      object-fit: contain;
+      background: #ffffff;
+      max-height: 320px;
+    }
+    .history-attachment figcaption {
+      font-size: 0.78rem;
+      color: var(--subtle);
+    }
+    .history-attachment a {
+      justify-self: start;
+      font-weight: 600;
+    }
     .history-content > p {
       margin: 0;
       color: inherit;
@@ -771,6 +878,40 @@ export function renderAdminDashboard(props) {
                 >${escapeHtml(briefText)}</textarea>
               </label>
               <p class="field-helper">We’ll keep a live snapshot of this brief on every request so you can iterate mid-session.</p>
+              <textarea
+                id="brief-attachments-field"
+                name="briefAttachments"
+                hidden
+              >${escapeHtml(attachmentsJson)}</textarea>
+              <div
+                class="brief-attachments-group"
+                id="brief-attachments-group"
+                data-max-count="${MAX_BRIEF_ATTACHMENTS}"
+                data-max-bytes="${MAX_BRIEF_ATTACHMENT_BYTES}"
+                data-enabled="${attachmentsEnabled ? "true" : "false"}"
+              >
+                <div class="brief-attachments-header">
+                  <span class="field-label">Reference files</span>
+                  <p class="field-helper">${escapeHtml(attachmentsSupportMessage)}</p>
+                </div>
+                <input
+                  id="brief-attachment-upload"
+                  type="file"
+                  accept="image/*,application/pdf"
+                  multiple
+                />
+                <p class="field-helper" id="brief-attachments-limit">
+                  Up to ${MAX_BRIEF_ATTACHMENTS} files, ${escapeHtml(attachmentLimitLabel)} each.
+                </p>
+                <div
+                  class="brief-attachments-status"
+                  id="brief-attachments-status"
+                  aria-live="polite"
+                ></div>
+                <div class="attachment-list" id="brief-attachments-list">
+                  ${renderBriefAttachmentGallery(briefAttachments)}
+                </div>
+              </div>
               <button type="submit" class="action-button">Save brief</button>
             </form>
           </div>
@@ -1052,6 +1193,291 @@ export function renderAdminDashboard(props) {
       const statusProvider = document.querySelector("[data-status='provider']");
       const statusLimit = document.querySelector("[data-status='historyLimit']");
       const statusBytes = document.querySelector("[data-status='historyBytes']");
+      const attachmentsField = document.getElementById("brief-attachments-field");
+      const attachmentsList = document.getElementById("brief-attachments-list");
+      const attachmentsStatus = document.getElementById("brief-attachments-status");
+      const attachmentsGroup = document.getElementById("brief-attachments-group");
+      const attachmentsInput = document.getElementById("brief-attachment-upload");
+
+      const maxAttachmentCount = attachmentsGroup instanceof HTMLElement
+        ? Number.parseInt(attachmentsGroup.dataset.maxCount || "", 10) || ${MAX_BRIEF_ATTACHMENTS}
+        : ${MAX_BRIEF_ATTACHMENTS};
+      const maxAttachmentBytes = attachmentsGroup instanceof HTMLElement
+        ? Number.parseInt(attachmentsGroup.dataset.maxBytes || "", 10) || ${MAX_BRIEF_ATTACHMENT_BYTES}
+        : ${MAX_BRIEF_ATTACHMENT_BYTES};
+
+      const attachmentsState = [];
+
+      function formatAttachmentSize(bytes) {
+        if (!Number.isFinite(bytes) || bytes <= 0) {
+          return "0 B";
+        }
+        const units = ["B", "KB", "MB", "GB"];
+        let value = bytes;
+        let unitIndex = 0;
+        while (value >= 1024 && unitIndex < units.length - 1) {
+          value /= 1024;
+          unitIndex += 1;
+        }
+        const precision = value >= 10 || unitIndex === 0 ? 0 : 1;
+        return value.toFixed(precision) + " " + units[unitIndex];
+      }
+
+      function setAttachmentStatus(message, isError) {
+        if (!(attachmentsStatus instanceof HTMLElement)) {
+          return;
+        }
+        attachmentsStatus.textContent = message || "";
+        if (isError) {
+          attachmentsStatus.dataset.error = "true";
+        } else {
+          delete attachmentsStatus.dataset.error;
+        }
+      }
+
+      function syncAttachmentField() {
+        if (attachmentsField instanceof HTMLTextAreaElement) {
+          attachmentsField.value = JSON.stringify(attachmentsState);
+        }
+      }
+
+      function renderAttachments() {
+        if (!(attachmentsList instanceof HTMLElement)) {
+          return;
+        }
+        attachmentsList.innerHTML = "";
+        if (attachmentsState.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "attachment-empty";
+          empty.textContent = "No files attached yet.";
+          attachmentsList.appendChild(empty);
+          return;
+        }
+        for (const attachment of attachmentsState) {
+          const card = document.createElement("div");
+          card.className = "attachment-card";
+          card.dataset.attachmentId = attachment.id;
+
+          const info = document.createElement("div");
+          info.className = "attachment-card-info";
+          const title = document.createElement("strong");
+          title.textContent = attachment.name;
+          const meta = document.createElement("span");
+          meta.textContent =
+            attachment.mimeType + " · " + formatAttachmentSize(attachment.size);
+          info.appendChild(title);
+          info.appendChild(meta);
+          card.appendChild(info);
+
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.textContent = "Remove";
+          remove.setAttribute("data-remove-attachment", attachment.id);
+          card.appendChild(remove);
+
+          attachmentsList.appendChild(card);
+        }
+      }
+
+      function createAttachmentId() {
+        if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+          return crypto.randomUUID();
+        }
+        return (
+          "att-" +
+          Math.random().toString(16).slice(2) +
+          "-" +
+          Date.now().toString(16)
+        );
+      }
+
+      function normalizeAttachmentPayload(value) {
+        if (!value || typeof value !== "object") {
+          return null;
+        }
+        const candidate = value;
+        const name = typeof candidate.name === "string" ? candidate.name : null;
+        const mimeType = typeof candidate.mimeType === "string" ? candidate.mimeType : null;
+        const data = typeof candidate.data === "string" ? candidate.data : null;
+        const sizeValue = typeof candidate.size === "number" ? candidate.size : Number(candidate.size);
+        if (!name || !mimeType || !data || !Number.isFinite(sizeValue)) {
+          return null;
+        }
+        return {
+          id: typeof candidate.id === "string" && candidate.id ? candidate.id : createAttachmentId(),
+          name,
+          mimeType,
+          data,
+          size: Math.max(0, Math.floor(sizeValue)),
+        };
+      }
+
+      function replaceAttachmentsFromServer(list) {
+        if (!Array.isArray(list)) {
+          return;
+        }
+        attachmentsState.length = 0;
+        for (const item of list) {
+          if (attachmentsState.length >= maxAttachmentCount) {
+            break;
+          }
+          const normalized = normalizeAttachmentPayload(item);
+          if (normalized) {
+            attachmentsState.push(normalized);
+          }
+        }
+        renderAttachments();
+        syncAttachmentField();
+      }
+
+      function loadInitialAttachments() {
+        if (!(attachmentsField instanceof HTMLTextAreaElement)) {
+          return;
+        }
+        const raw = attachmentsField.value;
+        if (!raw) {
+          return;
+        }
+        try {
+          const parsed = JSON.parse(raw);
+          replaceAttachmentsFromServer(parsed);
+        } catch {
+          setAttachmentStatus("Failed to parse saved attachments; cleared.", true);
+          attachmentsState.length = 0;
+          renderAttachments();
+          syncAttachmentField();
+        }
+      }
+
+      function inferMimeType(name) {
+        const lower = String(name || "").toLowerCase();
+        if (lower.endsWith(".png")) return "image/png";
+        if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+        if (lower.endsWith(".gif")) return "image/gif";
+        if (lower.endsWith(".webp")) return "image/webp";
+        if (lower.endsWith(".svg")) return "image/svg+xml";
+        if (lower.endsWith(".pdf")) return "application/pdf";
+        return "application/octet-stream";
+      }
+
+      function readFileAsBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === "string") {
+              const comma = reader.result.indexOf(",");
+              resolve(comma >= 0 ? reader.result.slice(comma + 1) : reader.result);
+            } else {
+              reject(new Error("Unable to read file"));
+            }
+          };
+          reader.onerror = () => reject(reader.error || new Error("Unable to read file"));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function handleAttachmentSelection() {
+        if (!(attachmentsInput instanceof HTMLInputElement)) {
+          return;
+        }
+        const files = Array.from(attachmentsInput.files || []);
+        if (files.length === 0) {
+          return;
+        }
+        const errors = [];
+        let added = 0;
+        for (const file of files) {
+          if (attachmentsState.length >= maxAttachmentCount) {
+            errors.push(
+              "Only " + maxAttachmentCount + " attachments allowed."
+            );
+            break;
+          }
+          const inferredMime = (file.type || inferMimeType(file.name)).toLowerCase();
+          if (!inferredMime.startsWith("image/") && inferredMime !== "application/pdf") {
+            errors.push(file.name + " must be an image or PDF.");
+            continue;
+          }
+          if (file.size > maxAttachmentBytes) {
+            errors.push(
+              file.name +
+                " exceeds the " +
+                formatAttachmentSize(maxAttachmentBytes) +
+                " limit."
+            );
+            continue;
+          }
+          try {
+            const base64 = await readFileAsBase64(file);
+            attachmentsState.push({
+              id: createAttachmentId(),
+              name: file.name,
+              mimeType: inferredMime,
+              size: file.size,
+              data: base64,
+            });
+            added += 1;
+          } catch (error) {
+            errors.push(file.name + " could not be processed.");
+          }
+        }
+
+        attachmentsInput.value = "";
+        renderAttachments();
+        syncAttachmentField();
+
+        if (errors.length > 0) {
+          setAttachmentStatus(errors.join(" "), true);
+        } else if (added > 0) {
+          setAttachmentStatus(
+            added +
+              " attachment" +
+              (added === 1 ? "" : "s") +
+              " ready.",
+            false
+          );
+        } else {
+          setAttachmentStatus("", false);
+        }
+      }
+
+      loadInitialAttachments();
+      renderAttachments();
+      syncAttachmentField();
+      setAttachmentStatus("", false);
+
+      if (attachmentsInput instanceof HTMLInputElement) {
+        attachmentsInput.addEventListener("change", () => {
+          handleAttachmentSelection().catch((error) => {
+            console.error("Failed to process attachment", error);
+            setAttachmentStatus("Attachment processing failed.", true);
+          });
+        });
+      }
+
+      if (attachmentsList instanceof HTMLElement) {
+        attachmentsList.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) {
+            return;
+          }
+          const button = target.closest("[data-remove-attachment]");
+          if (!(button instanceof HTMLElement)) {
+            return;
+          }
+          const identifier = button.getAttribute("data-remove-attachment");
+          if (!identifier) {
+            return;
+          }
+          const index = attachmentsState.findIndex((item) => item.id === identifier);
+          if (index >= 0) {
+            attachmentsState.splice(index, 1);
+            renderAttachments();
+            syncAttachmentField();
+            setAttachmentStatus("Attachment removed.", false);
+          }
+        });
+      }
 
       const providerForm = document.querySelector("[data-provider-form]");
       if (providerForm instanceof HTMLFormElement) {
@@ -1571,6 +1997,17 @@ export function renderAdminDashboard(props) {
           if (briefInput instanceof HTMLTextAreaElement && typeof payload.brief === "string" && document.activeElement !== briefInput) {
             briefInput.value = payload.brief;
           }
+          if (
+            Array.isArray(payload.briefAttachments) &&
+            !(
+              attachmentsGroup instanceof HTMLElement &&
+              document.activeElement instanceof HTMLElement &&
+              attachmentsGroup.contains(document.activeElement)
+            )
+          ) {
+            replaceAttachmentsFromServer(payload.briefAttachments);
+            setAttachmentStatus("", false);
+          }
           if (statusHistoryEntries && typeof payload.totalHistoryCount === "number") {
             statusHistoryEntries.textContent = "History entries: " + payload.totalHistoryCount;
           }
@@ -1643,6 +2080,9 @@ export function renderHistory(history) {
         if (item.usageSummary) {
             metaRows.push(`<div class="history-meta-row"><span>Usage</span><strong>${escapeHtml(item.usageSummary)}</strong></div>`);
         }
+        if (item.attachments?.length) {
+            metaRows.push(`<div class="history-meta-row"><span>Attachments</span><strong>${escapeHtml(formatAttachmentMeta(item.attachments))}</strong></div>`);
+        }
         const blockKey = (suffix) => `${item.id}:${suffix}`;
         const blocks = [
             `<div class="history-meta">${metaRows.join("\n")}</div>`,
@@ -1662,6 +2102,9 @@ export function renderHistory(history) {
                 .join("\n");
             blocks.push(renderExpandable("Reasoning detail", content, blockKey("reasoning-detail")));
         }
+        if (item.attachments?.length) {
+            blocks.push(renderExpandable(`Attachments (${item.attachments.length})`, renderHistoryAttachments(item.attachments), blockKey("attachments")));
+        }
         blocks.push(renderExpandable("Rendered HTML", `<pre>${escapeHtml(item.html)}</pre>`, blockKey("rendered-html")));
         blocks.push(`<div class="actions"><a class="action-button" href="${escapeHtml(item.viewUrl)}" target="_blank" rel="noopener">View HTML</a><a class="action-button" href="${escapeHtml(item.downloadUrl)}" download>Download HTML</a></div>`);
         return `<details class="history-item" data-history-id="${escapeHtml(item.id)}">
@@ -1680,4 +2123,64 @@ export function renderHistory(history) {
 function renderExpandable(title, innerHtml, blockId) {
     const idAttr = blockId ? ` data-block-id="${escapeHtml(blockId)}"` : "";
     return `<details class="reason-block"${idAttr}><summary>${escapeHtml(title)}</summary>${innerHtml}</details>`;
+}
+function renderBriefAttachmentGallery(attachments) {
+    if (!attachments || attachments.length === 0) {
+        return `<p class="attachment-empty">No files attached yet.</p>`;
+    }
+    return attachments
+        .map((attachment) => {
+        const sizeLabel = formatBytes(attachment.size);
+        return `<div class="attachment-card" data-attachment-id="${escapeHtml(attachment.id)}">
+  <div class="attachment-card-info">
+    <strong>${escapeHtml(attachment.name)}</strong>
+    <span>${escapeHtml(attachment.mimeType)} · ${escapeHtml(sizeLabel)}</span>
+  </div>
+  <button type="button" data-remove-attachment="${escapeHtml(attachment.id)}">Remove</button>
+</div>`;
+    })
+        .join("\n");
+}
+function renderHistoryAttachments(attachments) {
+    const items = attachments.map((attachment) => {
+        const label = `${attachment.name} (${attachment.mimeType}, ${formatBytes(attachment.size)})`;
+        if (attachment.mimeType.toLowerCase().startsWith("image/")) {
+            return `<figure class="history-attachment"><img src="${createAttachmentDataUrl(attachment)}" alt="${escapeHtml(attachment.name)}" loading="lazy" /><figcaption>${escapeHtml(label)}</figcaption></figure>`;
+        }
+        return `<div class="history-attachment">
+  <p>${escapeHtml(label)}</p>
+  <a href="${createAttachmentDataUrl(attachment)}" download="${escapeHtml(attachment.name)}">Download</a>
+</div>`;
+    });
+    return `<div class="history-attachments">${items.join("\n")}</div>`;
+}
+function formatAttachmentMeta(attachments) {
+    if (!attachments || attachments.length === 0) {
+        return "No files";
+    }
+    const countLabel = `${attachments.length} file${attachments.length === 1 ? "" : "s"}`;
+    const totalBytes = attachments.reduce((sum, attachment) => sum + (attachment.size ?? 0), 0);
+    const names = attachments
+        .map((attachment) => attachment.name)
+        .slice(0, 2)
+        .join(", ");
+    const nameSuffix = attachments.length > 2 ? ", …" : "";
+    return `${countLabel} · ${formatBytes(totalBytes)}${names ? ` (${names}${nameSuffix})` : ""}`;
+}
+function createAttachmentDataUrl(attachment) {
+    return `data:${attachment.mimeType};base64,${attachment.data}`;
+}
+function formatBytes(size) {
+    if (!Number.isFinite(size) || size <= 0) {
+        return "0 B";
+    }
+    const units = ["B", "KB", "MB", "GB"];
+    let value = size;
+    let unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex += 1;
+    }
+    const precision = value >= 10 || unitIndex === 0 ? 0 : 1;
+    return `${value.toFixed(precision)} ${units[unitIndex]}`;
 }

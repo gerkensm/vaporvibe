@@ -1,4 +1,4 @@
-import type { ModelProvider, ReasoningMode } from "../types.js";
+import type { BriefAttachment, ModelProvider, ReasoningMode } from "../types.js";
 export interface AdminProviderInfo {
     provider: string;
     model: string;
@@ -24,12 +24,15 @@ export interface AdminHistoryItem {
     usageSummary?: string;
     reasoningSummaries?: string[];
     reasoningDetails?: string[];
+    attachments?: BriefAttachment[];
     html: string;
     viewUrl: string;
     downloadUrl: string;
 }
 export interface AdminPageProps {
     brief: string | null;
+    briefAttachments: BriefAttachment[];
+    attachmentsEnabled: boolean;
     provider: AdminProviderInfo;
     runtime: AdminRuntimeInfo;
     history: AdminHistoryItem[];

@@ -4,6 +4,7 @@ import { URL } from "node:url";
 import { randomUUID } from "node:crypto";
 import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD, INSTRUCTIONS_PANEL_ROUTE, SETUP_ROUTE, SETUP_VERIFY_ROUTE, DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, LLM_RESULT_ROUTE_PREFIX, } from "../constants.js";
 import { buildMessages } from "../llm/messages.js";
+import { supportsImageInputs } from "../llm/capabilities.js";
 import { parseCookies } from "../utils/cookies.js";
 import { readBody } from "../utils/body.js";
 import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
@@ -16,6 +17,7 @@ import { AdminController } from "./admin-controller.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
 import { createLlmClient } from "../llm/factory.js";
 import { getCredentialStore } from "../utils/credential-store.js";
+import { cloneAttachments } from "../utils/attachments.js";
 const PENDING_HTML_TTL_MS = 3 * 60 * 1000;
 export function createServer(options) {
     const { runtime, provider, providerLocked, providerSelectionRequired, providersWithKeys, llmClient, sessionStore, } = options;
@@ -23,6 +25,7 @@ export function createServer(options) {
     const providerState = { ...provider };
     const state = {
         brief: runtimeState.brief?.trim() || null,
+        briefAttachments: [],
         runtime: runtimeState,
         provider: providerState,
         llmClient,
@@ -688,6 +691,7 @@ async function handleLlmRequest(context, state, sessionStore, reqLogger, request
     }, "History context prepared");
     const messages = buildMessages({
         brief: state.brief ?? "",
+        briefAttachments: state.briefAttachments,
         method,
         path,
         query,
@@ -703,6 +707,7 @@ async function handleLlmRequest(context, state, sessionStore, reqLogger, request
         historyLimitOmitted: limitOmitted,
         historyByteOmitted: byteOmitted,
         adminPath: ADMIN_ROUTE_PREFIX,
+        attachmentsEnabled: supportsImageInputs(state.provider.provider, state.provider.model),
     });
     reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
     const interceptorHeader = req.headers["x-serve-llm-request"];
@@ -749,6 +754,9 @@ async function handleLlmRequest(context, state, sessionStore, reqLogger, request
             createdAt: new Date().toISOString(),
             durationMs,
             brief: state.brief ?? "",
+            attachments: state.briefAttachments.length > 0
+                ? cloneAttachments(state.briefAttachments)
+                : undefined,
             request: {
                 method,
                 path,
@@ -1156,6 +1164,11 @@ function estimateHistoryEntrySize(entry) {
     }
     if (entry.reasoning?.details?.length) {
         fragments.push(entry.reasoning.details.join("\n"));
+    }
+    if (entry.attachments?.length) {
+        for (const attachment of entry.attachments) {
+            fragments.push(attachment.name, attachment.mimeType, String(attachment.size), attachment.data);
+        }
     }
     let bytes = 0;
     for (const fragment of fragments) {
