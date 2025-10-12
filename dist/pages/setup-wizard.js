@@ -1,7 +1,7 @@
 import { escapeHtml } from "../utils/html.js";
 import { DEFAULT_REASONING_TOKENS, DEFAULT_MAX_OUTPUT_TOKENS, } from "../constants.js";
-import { PROVIDER_CHOICES, PROVIDER_LABELS, PROVIDER_PLACEHOLDERS, DEFAULT_MODEL_BY_PROVIDER, DEFAULT_MAX_TOKENS_BY_PROVIDER, REASONING_MODE_CHOICES, PROVIDER_REASONING_CAPABILITIES, REASONING_TOKEN_MIN_BY_PROVIDER, } from "../constants/providers.js";
-import { renderModelDetailPanel, renderModelLineup, getModelOptionList, serializeModelCatalogForClient, } from "./components/model-inspector.js";
+import { PROVIDER_CHOICES, PROVIDER_LABELS, PROVIDER_PLACEHOLDERS, DEFAULT_MAX_TOKENS_BY_PROVIDER, REASONING_MODE_CHOICES, PROVIDER_REASONING_CAPABILITIES, REASONING_TOKEN_MIN_BY_PROVIDER, } from "../constants/providers.js";
+import { renderModelSelector, MODEL_SELECTOR_STYLES, MODEL_SELECTOR_RUNTIME, renderModelSelectorDataScript, MODEL_INSPECTOR_STYLES, } from "./components/model-selector.js";
 export function renderSetupWizardPage(options) {
     const { step, providerLabel, providerName, verifyAction, briefAction, setupPath, adminPath, providerReady, canSelectProvider, selectedProvider, selectedModel, providerSelectionRequired, providerKeyStatuses, maxOutputTokens, reasoningMode, reasoningTokens, statusMessage, errorMessage, briefValue, } = options;
     const heading = step === "provider" ? "Welcome to serve-llm" : "Shape the experience";
@@ -231,150 +231,8 @@ export function renderSetupWizardPage(options) {
     flex-wrap: wrap;
     gap: 12px;
   }
-  .model-custom {
-    display: grid;
-    gap: 12px;
-  }
-  .model-custom[hidden] {
-    display: none;
-  }
-  .model-hint {
-    margin: 0;
-    font-size: 0.85rem;
-    color: var(--subtle);
-  }
-  .model-note {
-    margin: -8px 0 0;
-    font-size: 0.85rem;
-    color: var(--subtle);
-  }
-  .model-inspector {
-    display: grid;
-    gap: 16px;
-    margin: 4px 0 12px;
-  }
-  .model-detail {
-    border-radius: 18px;
-    border: 1px solid var(--border);
-    background: var(--surface-glass);
-    padding: 18px 20px;
-    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
-  }
-  .model-detail__header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    column-gap: 16px;
-    row-gap: 10px;
-  }
-  .model-detail__header > div:first-child {
-    flex: 1 1 260px;
-    min-width: 0;
-  }
-  .model-detail__header h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    color: var(--text);
-  }
-  .model-detail__tagline {
-    margin: 4px 0 0;
-    font-size: 0.88rem;
-    color: var(--subtle);
-  }
-  .model-detail__cost {
-    font-weight: 600;
-    color: var(--accent);
-    font-size: 0.9rem;
-    margin-left: auto;
-    text-align: right;
-    line-height: 1.35;
-    white-space: normal;
-  }
-  .model-detail__description {
-    margin: 12px 0 14px;
-    color: var(--muted);
-    line-height: 1.6;
-  }
-  .model-detail__facts {
-    display: grid;
-    gap: 10px;
-    margin: 0;
-    padding: 0;
-  }
-  .model-detail__facts div {
-    display: grid;
-    gap: 4px;
-  }
-  .model-detail__facts dt {
-    margin: 0;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--subtle);
-  }
-  .model-detail__facts dd {
-    margin: 0;
-    font-weight: 500;
-    color: var(--text);
-  }
-  .model-highlight {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.2rem 0.6rem;
-    border-radius: 999px;
-    background: var(--accent-soft);
-    color: var(--accent-dark);
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-  .model-lineup {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .model-lineup[hidden] {
-    display: none;
-  }
-  .model-lineup__title {
-    font-size: 0.72rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--subtle);
-  }
-  .model-lineup__grid {
-    display: grid;
-    gap: 12px;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  }
-  .model-lineup__button {
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px 16px;
-    background: var(--surface);
-    text-align: left;
-    display: grid;
-    gap: 4px;
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-  }
-  .model-lineup__button:hover {
-    border-color: var(--accent);
-    box-shadow: 0 14px 36px rgba(29, 78, 216, 0.14);
-    transform: translateY(-1px);
-  }
-  .model-lineup__button.is-active {
-    border-color: var(--accent);
-    box-shadow: 0 16px 36px rgba(29, 78, 216, 0.18);
-    background: rgba(29, 78, 216, 0.08);
-  }
-  .model-lineup__name {
-    font-weight: 600;
-    color: var(--text);
-    font-size: 0.95rem;
-  }
-  .model-lineup__tag {
-    font-size: 0.82rem;
-    color: var(--muted);
-  }
+  ${MODEL_SELECTOR_STYLES}
+  ${MODEL_INSPECTOR_STYLES}
   .key-status {
     margin: 8px 0 0;
     font-size: 0.9rem;
@@ -615,59 +473,21 @@ function renderProviderStep(options) {
         : `<p class="provider-fixed">Provider locked to ${escapeHtml(providerName)} via CLI/env flags.</p>
       <input type="hidden" name="provider" value="${escapeHtml(selectedProvider)}" />`;
     const apiPlaceholder = PROVIDER_PLACEHOLDERS[selectedProvider] ?? "sk-...";
-    const defaultModel = DEFAULT_MODEL_BY_PROVIDER[selectedProvider] ?? "";
-    let initialModel = selectedModel && selectedModel.trim().length > 0
-        ? selectedModel.trim()
-        : "";
-    if (!initialModel) {
-        initialModel = defaultModel;
-    }
-    const suggestionOptions = getModelOptionList(selectedProvider, initialModel);
-    const suggestionValues = suggestionOptions.map((option) => option.value);
-    const includesInitial = suggestionValues.includes(initialModel);
-    const selectValue = includesInitial ? initialModel : "__custom";
-    const customValue = includesInitial ? "" : initialModel;
     const modelOptionsId = "model-options";
-    const modelOptions = suggestionOptions
-        .map((option) => {
-        const selectedAttr = option.value === selectValue ? " selected" : "";
-        return `<option value="${escapeHtml(option.value)}"${selectedAttr}>${escapeHtml(option.label)}</option>`;
-    })
-        .join("\n");
-    const detailPanel = renderModelDetailPanel(selectedProvider, initialModel);
-    const lineupMarkup = renderModelLineup(selectedProvider, initialModel);
+    const modelSelectorMarkup = renderModelSelector({
+        provider: selectedProvider,
+        providerLabel,
+        selectedModel,
+        selectId: modelOptionsId,
+        customInputId: "model-custom-input",
+        inputName: "model",
+    });
     return `<section class="card">
     <div>${statusPill}</div>
     <p data-provider-copy>${escapeHtml(copyText)}</p>
     <form method="post" action="${escapeHtml(verifyAction)}" autocomplete="off" data-key-state="${escapeHtml(keyStatusVariant)}" data-selection-required="${providerSelectionRequired ? "true" : "false"}">
       ${providerSelection}
-      <input type="hidden" name="model" value="${escapeHtml(initialModel)}" data-model-value />
-      <label for="${modelOptionsId}">
-        <span data-model-label>Model · ${escapeHtml(providerLabel)}</span>
-      </label>
-      <select id="${modelOptionsId}" data-model-select>
-        ${modelOptions}
-        <option value="__custom" ${selectValue === "__custom" ? "selected" : ""}>Custom…</option>
-      </select>
-      <p class="model-note">These options are curated defaults. Choose “Custom…” to supply an exact identifier.</p>
-      <div class="model-custom" data-model-custom ${selectValue === "__custom" ? "" : "hidden"}>
-        <label for="model-custom-input"><span>Custom model identifier</span></label>
-        <input
-          id="model-custom-input"
-          type="text"
-          inputmode="text"
-          spellcheck="false"
-          autocomplete="off"
-          data-model-custom-input
-          value="${escapeHtml(customValue)}"
-          placeholder="Enter the exact model ID"
-        />
-        <p class="model-hint">Need a specific tier or preview build? Paste the full model identifier here.</p>
-      </div>
-      <div class="model-inspector" data-model-inspector>
-        <div class="model-inspector__detail" data-model-detail-container>${detailPanel}</div>
-        <div class="model-inspector__lineup" data-model-lineup-container>${lineupMarkup}</div>
-      </div>
+      ${modelSelectorMarkup}
       <label for="apiKey">
         <span data-provider-label-text>${escapeHtml(providerLabel)} API key</span>
       </label>
@@ -767,85 +587,114 @@ function renderBriefStep(options) {
   </section>`;
 }
 function renderProviderScript(_canSelectProvider, selectedProvider, selectedModel, reasoningMode, reasoningTokens, maxOutputTokens, providerKeyStatuses) {
-    const modelCatalogJson = serializeModelCatalogForClient();
-    const defaultModelJson = JSON.stringify(DEFAULT_MODEL_BY_PROVIDER).replace(/</g, "\\u003c");
-    const providerLabelJson = JSON.stringify(PROVIDER_LABELS).replace(/</g, "\\u003c");
-    const placeholderJson = JSON.stringify(PROVIDER_PLACEHOLDERS).replace(/</g, "\\u003c");
-    const maxTokensJson = JSON.stringify(DEFAULT_MAX_TOKENS_BY_PROVIDER).replace(/</g, "\\u003c");
-    const reasoningDescriptionsJson = JSON.stringify(Object.fromEntries(REASONING_MODE_CHOICES.map((choice) => [choice.value, choice.description]))).replace(/</g, "\\u003c");
-    const reasoningCapabilitiesJson = JSON.stringify(PROVIDER_REASONING_CAPABILITIES).replace(/</g, "\\u003c");
-    const reasoningDefaultsJson = JSON.stringify(DEFAULT_REASONING_TOKENS).replace(/</g, "\\u003c");
-    const reasoningMinJson = JSON.stringify(REASONING_TOKEN_MIN_BY_PROVIDER).replace(/</g, "\\u003c");
-    const providerStatusJson = JSON.stringify(providerKeyStatuses).replace(/</g, "\\u003c");
+    const providerLabelJson = JSON.stringify(PROVIDER_LABELS).replace(/</g, "\u003c");
+    const placeholderJson = JSON.stringify(PROVIDER_PLACEHOLDERS).replace(/</g, "\u003c");
+    const maxTokensJson = JSON.stringify(DEFAULT_MAX_TOKENS_BY_PROVIDER).replace(/</g, "\u003c");
+    const reasoningDescriptionsJson = JSON.stringify(Object.fromEntries(REASONING_MODE_CHOICES.map((choice) => [choice.value, choice.description]))).replace(/</g, "\u003c");
+    const reasoningDefaultsJson = JSON.stringify(DEFAULT_REASONING_TOKENS).replace(/</g, "\u003c");
+    const reasoningCapabilitiesJson = JSON.stringify(PROVIDER_REASONING_CAPABILITIES).replace(/</g, "\u003c");
+    const reasoningMinJson = JSON.stringify(REASONING_TOKEN_MIN_BY_PROVIDER).replace(/</g, "\u003c");
+    const keyStatusJson = JSON.stringify(providerKeyStatuses).replace(/</g, "\u003c");
     const initialProviderJson = JSON.stringify(selectedProvider);
     const initialModelJson = JSON.stringify(selectedModel);
     const initialReasoningModeJson = JSON.stringify(reasoningMode);
     const initialReasoningTokensJson = JSON.stringify(reasoningTokens ?? null);
-    const script = `
+    const initialMaxTokensJson = JSON.stringify(maxOutputTokens);
+    const dataScript = renderModelSelectorDataScript();
+    const runtimeScript = `<script>${MODEL_SELECTOR_RUNTIME}</script>`;
+    const pageScript = `
   <script>
     (() => {
-      const modelCatalog = ${modelCatalogJson};
-      const defaultModels = ${defaultModelJson};
       const providerLabels = ${providerLabelJson};
       const placeholderMap = ${placeholderJson};
       const maxTokenDefaults = ${maxTokensJson};
       const reasoningDescriptions = ${reasoningDescriptionsJson};
-      const reasoningCapabilities = ${reasoningCapabilitiesJson};
       const reasoningDefaults = ${reasoningDefaultsJson};
+      const reasoningCapabilities = ${reasoningCapabilitiesJson};
       const reasoningMins = ${reasoningMinJson};
-      const cachedReasoningTokensByProvider = {};
-      const providerKeyStatus = ${providerStatusJson};
-      const initialProviderKeyStatus = JSON.parse(JSON.stringify(providerKeyStatus));
-      const cachedApiInputs = {};
-      const cachedModelByProvider = Object.create(null);
-      const copyTemplates = {
-        verified: "Pick your creative partner. We already have a verified {provider} key on file—leave the field blank to keep it, or paste a new one to replace it.",
-        detected: "Pick your creative partner. We detected a {provider} key from your environment—continue to verify it or paste a different key.",
-        missing: "Pick your creative partner and hand us a fresh API key—we will secure it in your OS keychain and wire {provider} into the experience."
-      };
-      const keyStatusTemplates = {
-        verified: "{provider} key verified and stored in your OS keychain. Leave the field blank to keep using it, or paste a replacement.",
-        detected: "{provider} key detected from environment variables (not stored). Continue to verify it or paste a different key to store in your OS keychain.",
-        missing: "Paste your API key. Keys entered here are securely stored in your OS keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service). Keys from environment variables or CLI options are never stored."
-      };
-      let activeProvider = ${initialProviderJson} || 'openai';
-      let currentModel = ${initialModelJson} || '';
-      let currentReasoningMode = ${initialReasoningModeJson} || 'none';
+      const providerKeyStatus = ${keyStatusJson};
+      const initialProvider = ${initialProviderJson};
+      const initialModel = ${initialModelJson} || '';
+      const initialReasoningMode = ${initialReasoningModeJson} || 'none';
       const initialReasoningTokens = ${initialReasoningTokensJson};
-      let reasoningModeSupported = !!(reasoningCapabilities[activeProvider] && reasoningCapabilities[activeProvider].mode);
-      let reasoningTokensSupported = !!(reasoningCapabilities[activeProvider] && reasoningCapabilities[activeProvider].tokens);
+      const initialMaxTokens = ${initialMaxTokensJson};
 
-      const container = document.querySelector('[data-provider-options]');
-      const radios = container ? Array.from(container.querySelectorAll('input[name="provider"]')) : [];
-      const optionEls = container ? Array.from(container.querySelectorAll('.provider-option')) : [];
-      const labelEl = document.querySelector('[data-provider-label-text]');
+      const formEl = document.querySelector('form[data-key-state]');
+      if (!(formEl instanceof HTMLFormElement)) {
+        return;
+      }
+
+      const providerOptions = formEl.querySelector('[data-provider-options]');
+      const providerRadios = providerOptions
+        ? Array.from(providerOptions.querySelectorAll('input[name="provider"]'))
+        : [];
+      const providerOptionEls = providerOptions
+        ? Array.from(providerOptions.querySelectorAll('.provider-option'))
+        : [];
       const copyEl = document.querySelector('[data-provider-copy]');
-      const modelLabelEl = document.querySelector('[data-model-label]');
-      const apiInput = document.getElementById('apiKey');
-      const modelValueInput = document.querySelector('[data-model-value]');
-      const modelSelect = document.querySelector('[data-model-select]');
-      const customWrapper = document.querySelector('[data-model-custom]');
-      const customInput = document.querySelector('[data-model-custom-input]');
-      const detailContainer = document.querySelector('[data-model-detail-container]');
-      const lineupContainer = document.querySelector('[data-model-lineup-container]');
+      const keyStatusEl = document.querySelector('[data-key-status]');
+      const labelEl = document.querySelector('[data-provider-label-text]');
+      const apiInput = document.querySelector('[data-key-input]');
       const maxTokensInput = document.querySelector('[data-max-tokens]');
       const reasoningModeWrapper = document.querySelector('[data-reasoning-mode-wrapper]');
       const reasoningModeSelect = document.querySelector('[data-reasoning-mode]');
       const reasoningTokensWrapper = document.querySelector('[data-reasoning-tokens-wrapper]');
       const reasoningTokensInput = document.querySelector('[data-reasoning-tokens]');
       const reasoningHelper = document.querySelector('[data-reasoning-helper]');
-      const keyStatusEl = document.querySelector('[data-key-status]');
-      const formEl = document.querySelector('form[data-key-state]');
+      const modelRoot = document.querySelector('[data-model-selector]');
+
+      const modelSelector = window.__SERVE_LLM_MODEL_SELECTOR?.init(modelRoot, {
+        provider: initialProvider,
+        providerLabel: providerLabels[initialProvider] || initialProvider,
+        model: initialModel,
+      });
+
+      if (!modelSelector) {
+        console.warn('Model selector failed to initialize.');
+        return;
+      }
+
+      const copyTemplates = {
+        verified:
+          'Pick your creative partner. We already have a verified {provider} key on file—leave the field blank to keep it, or paste a new one to replace it.',
+        detected:
+          'Pick your creative partner. We detected a {provider} key from your environment—continue to verify it or paste a different key.',
+        missing:
+          'Pick your creative partner and hand us a fresh API key—we will secure it in your OS keychain and wire {provider} into the experience.',
+      };
+      const keyStatusTemplates = {
+        verified:
+          '{provider} key verified and stored in your OS keychain. Leave the field blank to keep using it, or paste a replacement.',
+        detected:
+          '{provider} key detected from environment variables (not stored). Continue to verify it or paste a different key to store in your OS keychain.',
+        missing:
+          'Paste your API key. Keys entered here are securely stored in your OS keychain (macOS Keychain, Windows Credential Manager, or Linux Secret Service). Keys from environment variables or CLI options are never stored.',
+      };
+
+      const cachedApiInputs = Object.create(null);
+      const cachedReasoningTokensByProvider = Object.create(null);
+      const cachedModelByProvider = Object.create(null);
+
+      let activeProvider = initialProvider;
+      let currentReasoningMode = initialReasoningMode;
+      let reasoningModeSupported = false;
+      let reasoningTokensSupported = false;
+
+      cachedModelByProvider[initialProvider] = modelSelector.getState().input;
+
+      modelSelector.onChange((state) => {
+        cachedModelByProvider[state.provider] = state.input;
+      });
 
       const setActiveOption = (radio) => {
-        if (!optionEls.length) return;
-        optionEls.forEach((option) => {
+        if (!providerOptionEls.length) return;
+        providerOptionEls.forEach((option) => {
           const optionRadio = option.querySelector('input[name="provider"]');
           option.dataset.active = optionRadio === radio ? 'true' : 'false';
         });
       };
 
-      const getKeyVariantForProvider = (provider) => {
+      const getKeyVariant = (provider) => {
         const status = providerKeyStatus[provider] || { hasKey: false, verified: false };
         if (status.verified) return 'verified';
         if (status.hasKey) return 'detected';
@@ -853,17 +702,17 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
       };
 
       const applyKeyVariant = (provider, providerLabel, overrideVariant) => {
-        const variant = overrideVariant || getKeyVariantForProvider(provider);
+        const variant = overrideVariant || getKeyVariant(provider);
         const copyTemplate = copyTemplates[variant] || copyTemplates.missing;
         const statusTemplate = keyStatusTemplates[variant] || keyStatusTemplates.missing;
-        if (copyEl) {
+        if (copyEl instanceof HTMLElement) {
           copyEl.textContent = copyTemplate.replace('{provider}', providerLabel);
         }
-        if (keyStatusEl) {
+        if (keyStatusEl instanceof HTMLElement) {
           keyStatusEl.textContent = statusTemplate.replace('{provider}', providerLabel);
           keyStatusEl.dataset.keyVariant = variant;
         }
-        if (formEl) {
+        if (formEl instanceof HTMLElement) {
           formEl.dataset.keyState = variant;
         }
         if (apiInput instanceof HTMLInputElement) {
@@ -876,531 +725,139 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
         return variant;
       };
 
-      const updateProviderUI = (provider, explicitLabel, overrideVariant) => {
-        const providerLabel = explicitLabel || providerLabels[provider] || provider;
-        const placeholder = placeholderMap[provider];
-        if (labelEl) {
-          labelEl.textContent = providerLabel + ' API key';
-        }
-        if (modelLabelEl) {
-          modelLabelEl.textContent = 'Model · ' + providerLabel;
-        }
-        if (apiInput instanceof HTMLInputElement && placeholder) {
-          apiInput.placeholder = placeholder;
-        }
-        if (maxTokensInput instanceof HTMLInputElement) {
-          const defaultMax = maxTokenDefaults[provider];
-          if (typeof defaultMax === 'number') {
-            maxTokensInput.placeholder = String(defaultMax);
-          }
-        }
-        applyKeyVariant(provider, providerLabel, overrideVariant);
-      };
-
-      const getModelList = (provider) => {
-        const list = modelCatalog[provider];
-        return Array.isArray(list) ? [...list] : [];
-      };
-
-      const updateModelDetail = (provider, value) => {
-        if (!(detailContainer instanceof HTMLElement)) {
+      const updateMaxTokensPlaceholder = (provider) => {
+        if (!(maxTokensInput instanceof HTMLInputElement)) {
           return;
         }
-        const trimmed = value && typeof value === 'string' ? value.trim() : '';
-        const list = getModelList(provider);
-        const fallback = trimmed || defaultModels[provider] || (list[0] ? list[0].value : '');
-        const metadata = list.find((model) => model.value === fallback);
-        detailContainer.innerHTML = '';
-        const detail = document.createElement('div');
-        detail.className = 'model-detail';
-        if (metadata) {
-          detail.innerHTML = [
-            '<div class="model-detail__header">',
-            '  <div>',
-            '    <h3 data-model-name></h3>',
-            '    <p class="model-detail__tagline" data-model-tagline></p>',
-            '  </div>',
-            '  <div class="model-detail__cost" data-model-cost></div>',
-            '</div>',
-            '<p class="model-detail__description" data-model-description></p>',
-            '<dl class="model-detail__facts">',
-            '  <div><dt>Context window</dt><dd data-model-context></dd></div>',
-            '  <div><dt>Recommended for</dt><dd data-model-recommended></dd></div>',
-            '  <div><dt>Highlights</dt><dd data-model-highlights></dd></div>',
-            '  <div><dt>Release</dt><dd data-model-release></dd></div>',
-            '</dl>',
-          ].join('');
-          const name = detail.querySelector('[data-model-name]');
-          const tagline = detail.querySelector('[data-model-tagline]');
-          const description = detail.querySelector('[data-model-description]');
-          const context = detail.querySelector('[data-model-context]');
-          const recommended = detail.querySelector('[data-model-recommended]');
-          const highlights = detail.querySelector('[data-model-highlights]');
-          const release = detail.querySelector('[data-model-release]');
-          const costEl = detail.querySelector('[data-model-cost]');
-          if (name) name.textContent = metadata.label;
-          if (tagline) tagline.textContent = metadata.tagline || '';
-          if (description) description.textContent = metadata.description || '';
-          if (context) {
-            if (typeof metadata.contextWindow === 'number') {
-              const unit = metadata.contextWindowUnit || 'tokens';
-              context.textContent = metadata.contextWindow.toLocaleString() + ' ' + unit;
-            } else {
-              context.textContent = '—';
-            }
-          }
-          if (recommended) {
-            recommended.textContent = metadata.recommendedFor || 'Versatile creative work';
-          }
-          if (highlights) {
-            highlights.innerHTML = '';
-            if (Array.isArray(metadata.highlights) && metadata.highlights.length) {
-              metadata.highlights.forEach((item) => {
-                const badge = document.createElement('span');
-                badge.className = 'model-highlight';
-                badge.textContent = item;
-                highlights.appendChild(badge);
-                highlights.appendChild(document.createTextNode(' '));
-              });
-            } else {
-              highlights.textContent = '—';
-            }
-          }
-          if (release) {
-            release.textContent = metadata.release || '—';
-          }
-          if (costEl) {
-            const cost = metadata.cost;
-            const parts = [];
-            if (cost && typeof cost.input === 'number') {
-              parts.push('$' + cost.input.toFixed(cost.input >= 1 ? 2 : 3) + ' in');
-            }
-            if (cost && typeof cost.output === 'number') {
-              parts.push('$' + cost.output.toFixed(cost.output >= 1 ? 2 : 3) + ' out');
-            }
-            if (cost && typeof cost.reasoning === 'number') {
-              parts.push('$' + cost.reasoning.toFixed(cost.reasoning >= 1 ? 2 : 3) + ' reasoning');
-            }
-            costEl.textContent = parts.length
-              ? parts.join(' · ') + ' · ' + cost.currency + '/' + cost.unit
-              : 'Cost info coming soon';
-          }
-        } else {
-          detail.innerHTML = [
-            '<div class="model-detail__header">',
-            '  <div>',
-            '    <h3 data-model-name></h3>',
-            '    <p class="model-detail__tagline">Custom model</p>',
-            '  </div>',
-            '</div>',
-            '<p class="model-detail__description"></p>',
-            '<dl class="model-detail__facts">',
-            '  <div><dt>Context window</dt><dd>—</dd></div>',
-            '  <div><dt>Recommended for</dt><dd>Define your own sweet spot.</dd></div>',
-            '  <div><dt>Highlights</dt><dd>—</dd></div>',
-            '  <div><dt>Cost</dt><dd>Cost info coming soon</dd></div>',
-            '</dl>',
-          ].join('');
-          const name = detail.querySelector('[data-model-name]');
-          if (name) name.textContent = trimmed || 'Custom model';
-          const desc = detail.querySelector('[data-model-description]');
-          if (desc) {
-            desc.textContent =
-              'Provide a custom model identifier supported by the provider. You can adjust token budgets below.';
-          }
-        }
-        detailContainer.appendChild(detail);
-      };
-
-      const updateModelLineup = (provider, value) => {
-        if (!(lineupContainer instanceof HTMLElement)) {
-          return;
-        }
-        lineupContainer.innerHTML = '';
-        const list = getModelList(provider);
-        let featured = list.filter((model) => model && model.featured);
-        if (featured.length === 0) {
-          featured = list.slice(0, 4);
-        }
-        if (featured.length === 0) {
-          lineupContainer.hidden = true;
-          return;
-        }
-        lineupContainer.hidden = false;
-        const trimmed = typeof value === 'string' ? value.trim() : '';
-        const activeValue = trimmed || defaultModels[provider] || (featured[0] ? featured[0].value : '');
-        const title = document.createElement('span');
-        title.className = 'model-lineup__title';
-        title.textContent = 'Quick swap';
-        const grid = document.createElement('div');
-        grid.className = 'model-lineup__grid';
-        featured.forEach((model) => {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'model-lineup__button';
-          if (model.value === activeValue) {
-            button.classList.add('is-active');
-          }
-          const name = document.createElement('span');
-          name.className = 'model-lineup__name';
-          name.textContent = model.label;
-          const tag = document.createElement('span');
-          tag.className = 'model-lineup__tag';
-          tag.textContent = model.tagline || '';
-          button.appendChild(name);
-          button.appendChild(tag);
-          button.addEventListener('click', () => {
-            selectModel(model.value, { focus: false });
-          });
-          grid.appendChild(button);
-        });
-        lineupContainer.appendChild(title);
-        lineupContainer.appendChild(grid);
-      };
-
-      const updateModelPanels = (provider, value) => {
-        updateModelDetail(provider, value);
-        updateModelLineup(provider, value);
-      };
-
-      const ensureModelValue = (value) => {
-        currentModel = value;
-        if (modelValueInput) {
-          modelValueInput.value = value;
-        }
-        cachedModelByProvider[activeProvider] = value;
-        updateModelPanels(activeProvider, value);
-      };
-
-      const showCustom = (value, shouldFocus) => {
-        if (customWrapper) {
-          customWrapper.hidden = false;
-        }
-        if (customInput instanceof HTMLInputElement) {
-          customInput.value = value || '';
-          if (shouldFocus) {
-            customInput.focus({ preventScroll: true });
-          }
-        }
-        ensureModelValue((customInput && customInput.value.trim()) || '');
-      };
-
-      const hideCustom = () => {
-        if (customWrapper) {
-          customWrapper.hidden = true;
-        }
-        if (customInput instanceof HTMLInputElement) {
-          customInput.value = '';
+        const defaultMax = maxTokenDefaults[provider];
+        if (typeof defaultMax === 'number' && !Number.isNaN(defaultMax)) {
+          maxTokensInput.placeholder = String(defaultMax);
         }
       };
-
-      const primeReasoningTokensForProvider = (provider) => {
-        const existing = cachedReasoningTokensByProvider[provider];
-        if (existing !== undefined && existing !== null && existing !== '') {
-          return existing;
-        }
-        const defaultTokens = reasoningDefaults[provider];
-        if (typeof defaultTokens === 'number') {
-          const asString = String(defaultTokens);
-          cachedReasoningTokensByProvider[provider] = asString;
-          return asString;
-        }
-        return '';
-      };
-
-      let cachedReasoningTokens = typeof initialReasoningTokens === 'number' ? String(initialReasoningTokens) : '';
-      if (reasoningTokensInput instanceof HTMLInputElement) {
-        const existing = reasoningTokensInput.value.trim();
-        if (existing) {
-          cachedReasoningTokens = existing;
-        }
-      }
-      if (cachedReasoningTokens) {
-        cachedReasoningTokensByProvider[activeProvider] = cachedReasoningTokens;
-      } else {
-        cachedReasoningTokens = primeReasoningTokensForProvider(activeProvider);
-        if (reasoningTokensInput instanceof HTMLInputElement && cachedReasoningTokens) {
-          reasoningTokensInput.value = cachedReasoningTokens;
-        }
-      }
 
       const applyReasoningMode = (mode) => {
-        cachedReasoningTokens = cachedReasoningTokensByProvider[activeProvider] || cachedReasoningTokens || primeReasoningTokensForProvider(activeProvider);
         const normalized = (mode || 'none').toLowerCase();
         currentReasoningMode = normalized;
         if (reasoningModeSelect instanceof HTMLSelectElement) {
           reasoningModeSelect.value = normalized;
         }
-        if (reasoningHelper) {
+        if (reasoningHelper instanceof HTMLElement) {
           reasoningHelper.textContent = reasoningDescriptions[normalized] || '';
         }
-        const disabled = !reasoningTokensSupported || (reasoningModeSupported && normalized === 'none');
+        const tokensDisabled = !reasoningTokensSupported || (reasoningModeSupported && normalized === 'none');
         if (reasoningTokensWrapper instanceof HTMLElement) {
-          if (disabled) {
+          if (tokensDisabled) {
             reasoningTokensWrapper.setAttribute('data-disabled', 'true');
           } else {
             reasoningTokensWrapper.removeAttribute('data-disabled');
           }
         }
         if (reasoningTokensInput instanceof HTMLInputElement) {
-          if (disabled) {
-            const trimmed = reasoningTokensInput.value.trim();
-            if (trimmed) {
-              cachedReasoningTokens = trimmed;
-              cachedReasoningTokensByProvider[activeProvider] = trimmed;
-            }
+          if (tokensDisabled) {
             reasoningTokensInput.value = '';
-            reasoningTokensInput.disabled = true;
+            reasoningTokensInput.setAttribute('disabled', 'true');
           } else {
-            reasoningTokensInput.disabled = false;
-            if (!reasoningTokensInput.value.trim()) {
-              cachedReasoningTokens = cachedReasoningTokens || primeReasoningTokensForProvider(activeProvider);
-              if (cachedReasoningTokens) {
-                reasoningTokensInput.value = cachedReasoningTokens;
-              }
+            reasoningTokensInput.removeAttribute('disabled');
+            const cachedValue = cachedReasoningTokensByProvider[activeProvider];
+            if (typeof cachedValue === 'string') {
+              reasoningTokensInput.value = cachedValue;
+            } else {
+              const defaultTokens = reasoningDefaults[activeProvider];
+              reasoningTokensInput.value =
+                typeof defaultTokens === 'number' ? String(defaultTokens) : '';
             }
-            cachedReasoningTokens = reasoningTokensInput.value.trim();
-            cachedReasoningTokensByProvider[activeProvider] = cachedReasoningTokens;
           }
         }
       };
 
-      const toggleFieldVisibility = (wrapper, shouldShow) => {
-        if (!(wrapper instanceof HTMLElement)) {
-          return;
+      const updateReasoningSupport = (provider) => {
+        const capability = reasoningCapabilities[provider] || { mode: false, tokens: false };
+        reasoningModeSupported = Boolean(capability.mode);
+        reasoningTokensSupported = Boolean(capability.tokens);
+        if (reasoningModeWrapper instanceof HTMLElement) {
+          reasoningModeWrapper.hidden = !reasoningModeSupported;
         }
-        if (shouldShow) {
-          wrapper.hidden = false;
-          wrapper.setAttribute('aria-hidden', 'false');
-          wrapper.style.display = '';
-        } else {
-          const active = document.activeElement;
-          if (active && wrapper.contains(active) && typeof active.blur === 'function') {
-            active.blur();
-          }
-          wrapper.hidden = true;
-          wrapper.setAttribute('aria-hidden', 'true');
-          wrapper.style.display = 'none';
-        }
-      };
-
-      const syncReasoningAvailability = () => {
-        const caps = reasoningCapabilities[activeProvider] || { mode: false, tokens: false };
-        reasoningModeSupported = !!caps.mode;
-        reasoningTokensSupported = !!caps.tokens;
-
-        toggleFieldVisibility(reasoningModeWrapper, reasoningModeSupported);
-
-        if (!reasoningModeSupported) {
-          currentReasoningMode = 'none';
-          if (reasoningModeSelect instanceof HTMLSelectElement) {
-            reasoningModeSelect.value = 'none';
-          }
-          if (reasoningHelper) {
-            reasoningHelper.textContent = '';
-          }
-        }
-
-        toggleFieldVisibility(reasoningTokensWrapper, reasoningTokensSupported);
-        if (reasoningTokensWrapper instanceof HTMLElement && !reasoningTokensSupported) {
-          reasoningTokensWrapper.removeAttribute('data-disabled');
+        if (reasoningTokensWrapper instanceof HTMLElement) {
+          reasoningTokensWrapper.hidden = !reasoningTokensSupported;
         }
         if (reasoningTokensInput instanceof HTMLInputElement) {
-          const minValue = reasoningMins[activeProvider];
-          if (typeof minValue === 'number' && minValue >= 0) {
-            reasoningTokensInput.min = String(minValue);
+          const min = reasoningMins[provider];
+          if (typeof min === 'number' && !Number.isNaN(min)) {
+            reasoningTokensInput.min = String(min);
           } else {
             reasoningTokensInput.removeAttribute('min');
           }
-          if (!reasoningTokensSupported) {
-            reasoningTokensInput.value = '';
-            reasoningTokensInput.disabled = true;
-          }
         }
-
-        if (reasoningModeSelect instanceof HTMLSelectElement) {
-          reasoningModeSelect.disabled = !reasoningModeSupported;
+        if (cachedReasoningTokensByProvider[provider] === undefined) {
+          const defaultTokens = reasoningDefaults[provider];
+          cachedReasoningTokensByProvider[provider] =
+            typeof defaultTokens === 'number' ? String(defaultTokens) : '';
         }
-
-        if (reasoningTokensSupported) {
-          cachedReasoningTokens = cachedReasoningTokensByProvider[activeProvider] || primeReasoningTokensForProvider(activeProvider);
-        } else {
-          cachedReasoningTokens = '';
-        }
-
-        if (reasoningModeSupported) {
-          const modeValue = reasoningModeSelect instanceof HTMLSelectElement
-            ? reasoningModeSelect.value
-            : currentReasoningMode;
-          applyReasoningMode(modeValue);
-        } else if (reasoningTokensSupported) {
-          applyReasoningMode('none');
-          if (reasoningTokensInput instanceof HTMLInputElement) {
-            if (!reasoningTokensInput.value.trim() && cachedReasoningTokens) {
-              reasoningTokensInput.value = cachedReasoningTokens;
-            }
-            reasoningTokensInput.disabled = false;
-            cachedReasoningTokens = reasoningTokensInput.value.trim();
-            cachedReasoningTokensByProvider[activeProvider] = cachedReasoningTokens;
-          }
-        }
+        const nextMode = reasoningModeSupported ? currentReasoningMode : 'none';
+        applyReasoningMode(nextMode);
       };
 
-      const rebuildModelOptions = (provider, preserveSelection) => {
-        if (!(modelSelect instanceof HTMLSelectElement)) {
+      const applyProvider = (provider, explicitLabel, overrideVariant) => {
+        const providerLabel = explicitLabel || providerLabels[provider] || provider;
+        if (labelEl instanceof HTMLElement) {
+          labelEl.textContent = providerLabel + ' API key';
+        }
+        const variant = applyKeyVariant(provider, providerLabel, overrideVariant);
+        if (apiInput instanceof HTMLInputElement) {
+          const placeholder = placeholderMap[provider];
+          if (placeholder) {
+            apiInput.placeholder = placeholder;
+          }
+          const cachedValue = cachedApiInputs[provider];
+          apiInput.value = typeof cachedValue === 'string' ? cachedValue : '';
+          if (variant === 'missing' && !apiInput.value) {
+            apiInput.focus({ preventScroll: true });
+          }
+        }
+        updateMaxTokensPlaceholder(provider);
+        const cachedModel = cachedModelByProvider[provider];
+        modelSelector.setProvider(provider, {
+          providerLabel,
+          model: typeof cachedModel === 'string' ? cachedModel : '',
+        });
+        updateReasoningSupport(provider);
+      };
+
+      const handleProviderChange = (radio) => {
+        if (!(radio instanceof HTMLInputElement) || !radio.checked) {
           return;
         }
-        const base = getModelList(provider);
-        const trimmedCurrent = (preserveSelection ? currentModel : '').trim();
-        if (trimmedCurrent.length > 0 && !base.some((option) => option.value === trimmedCurrent)) {
-          base.push({ value: trimmedCurrent, label: trimmedCurrent + ' (current)' });
-        }
-        const defaultModel = defaultModels[provider] || (base[0] ? base[0].value : '');
-        const effective = preserveSelection && trimmedCurrent
-          ? trimmedCurrent
-          : (currentModel || defaultModel || '');
-
-        modelSelect.innerHTML = '';
-        base.forEach((option) => {
-          const opt = document.createElement('option');
-          opt.value = option.value;
-          opt.textContent = option.label;
-          modelSelect.appendChild(opt);
-        });
-        const customOpt = document.createElement('option');
-        customOpt.value = '__custom';
-        customOpt.textContent = 'Custom…';
-        modelSelect.appendChild(customOpt);
-
-        const matchesSuggestion = effective && base.some((option) => option.value === effective);
-        if (matchesSuggestion) {
-          modelSelect.value = effective;
-          hideCustom();
-          ensureModelValue(effective);
-        } else {
-          modelSelect.value = '__custom';
-          showCustom(effective, false);
-        }
-
-        if (!effective && defaultModel) {
-          ensureModelValue(defaultModel);
-          modelSelect.value = defaultModel;
-          hideCustom();
-        }
-      };
-
-      function selectModel(value, options = {}) {
-        const trimmed = typeof value === 'string' ? value.trim() : '';
-        const list = getModelList(activeProvider);
-        const hasSuggestion = trimmed && list.some((model) => model.value === trimmed);
-        if (modelSelect instanceof HTMLSelectElement) {
-          if (hasSuggestion) {
-            const exists = Array.from(modelSelect.options).some((opt) => opt.value === trimmed);
-            if (!exists) {
-              rebuildModelOptions(activeProvider, false);
-            }
-            modelSelect.value = trimmed;
-          } else if (trimmed) {
-            modelSelect.value = '__custom';
-          }
-        }
-        if (hasSuggestion) {
-          hideCustom();
-          ensureModelValue(trimmed);
-        } else if (trimmed) {
-          showCustom(trimmed, options.focus !== false);
-        } else {
-          const fallback = defaultModels[activeProvider] || '';
-          if (fallback) {
-            if (modelSelect instanceof HTMLSelectElement) {
-              const exists = Array.from(modelSelect.options).some((opt) => opt.value === fallback);
-              if (!exists) {
-                rebuildModelOptions(activeProvider, false);
-              }
-              modelSelect.value = fallback;
-            }
-            hideCustom();
-            ensureModelValue(fallback);
-          } else {
-            hideCustom();
-            ensureModelValue('');
-          }
-        }
-      }
-
-      const applyProvider = (radio, preserveModel) => {
-        if (!(radio instanceof HTMLInputElement)) return;
-        const previousProvider = activeProvider;
-        const previousCaps = reasoningCapabilities[previousProvider] || { tokens: false };
-        if (previousCaps.tokens && reasoningTokensInput instanceof HTMLInputElement) {
-          cachedReasoningTokensByProvider[previousProvider] = reasoningTokensInput.value.trim();
+        const nextProvider = radio.value;
+        if (nextProvider === activeProvider) {
+          return;
         }
         if (apiInput instanceof HTMLInputElement) {
-          cachedApiInputs[previousProvider] = apiInput.value;
-        }
-        cachedModelByProvider[previousProvider] = currentModel;
-        activeProvider = radio.value;
-        cachedReasoningTokens = cachedReasoningTokensByProvider[activeProvider] || '';
-        setActiveOption(radio);
-        let nextModel = preserveModel ? currentModel : '';
-        const cachedModel = cachedModelByProvider[activeProvider];
-        if (typeof cachedModel === 'string' && cachedModel.trim().length > 0) {
-          nextModel = cachedModel;
-        } else if (!preserveModel) {
-          nextModel = defaultModels[activeProvider] || '';
-        }
-        currentModel = nextModel || '';
-        rebuildModelOptions(activeProvider, true);
-        selectModel(currentModel, { focus: false });
-        let overrideVariant;
-        const providerLabel = radio.dataset.providerLabel || providerLabels[activeProvider] || activeProvider;
-        if (apiInput instanceof HTMLInputElement) {
-          const cachedValue = cachedApiInputs[activeProvider] ?? '';
-          apiInput.value = cachedValue;
-          const trimmed = cachedValue.trim();
-          if (trimmed.length > 0) {
-            providerKeyStatus[activeProvider] = { hasKey: true, verified: false };
-            overrideVariant = 'detected';
-          } else {
-            const original = initialProviderKeyStatus[activeProvider] || providerKeyStatus[activeProvider] || { hasKey: false, verified: false };
-            providerKeyStatus[activeProvider] = { ...original };
-          }
-        }
-        updateProviderUI(activeProvider, providerLabel, overrideVariant);
-        const overridePlaceholder = radio.dataset.placeholder;
-        if (apiInput instanceof HTMLInputElement && overridePlaceholder) {
-          apiInput.placeholder = overridePlaceholder;
-        }
-        syncReasoningAvailability();
-      };
-
-      if (apiInput instanceof HTMLInputElement) {
-        cachedApiInputs[activeProvider] = apiInput.value;
-        apiInput.addEventListener('input', () => {
-          const trimmed = apiInput.value.trim();
           cachedApiInputs[activeProvider] = apiInput.value;
-          const label = providerLabels[activeProvider] || activeProvider;
-          if (trimmed.length > 0) {
-            providerKeyStatus[activeProvider] = { hasKey: true, verified: false };
-            applyKeyVariant(activeProvider, label, 'detected');
-          } else {
-            const original = initialProviderKeyStatus[activeProvider] || providerKeyStatus[activeProvider] || { hasKey: false, verified: false };
-            providerKeyStatus[activeProvider] = { ...original };
-            applyKeyVariant(activeProvider, label);
-          }
-        });
+        }
+        if (reasoningTokensInput instanceof HTMLInputElement && !reasoningTokensInput.disabled) {
+          cachedReasoningTokensByProvider[activeProvider] = reasoningTokensInput.value.trim();
+        }
+        const providerLabel =
+          radio.getAttribute('data-provider-label') || providerLabels[nextProvider] || nextProvider;
+        activeProvider = nextProvider;
+        setActiveOption(radio);
+        applyProvider(nextProvider, providerLabel);
+      };
+
+      providerRadios.forEach((radio) => {
+        radio.addEventListener('change', () => handleProviderChange(radio));
+      });
+
+      const initialRadio = providerRadios.find((radio) => radio.value === activeProvider);
+      if (initialRadio) {
+        setActiveOption(initialRadio);
       }
 
-      if (modelSelect instanceof HTMLSelectElement) {
-        modelSelect.addEventListener('change', () => {
-          const value = modelSelect.value;
-          if (value === '__custom') {
-            showCustom(currentModel, true);
-          } else {
-            selectModel(value, { focus: false });
-          }
-        });
-      }
+      applyProvider(
+        activeProvider,
+        providerLabels[activeProvider] || activeProvider,
+        getKeyVariant(activeProvider),
+      );
 
       if (reasoningModeSelect instanceof HTMLSelectElement) {
         reasoningModeSelect.addEventListener('change', () => {
@@ -1409,77 +866,37 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
       }
 
       if (reasoningTokensInput instanceof HTMLInputElement) {
+        if (typeof initialReasoningTokens === 'number') {
+          const initialTokens = String(initialReasoningTokens);
+          reasoningTokensInput.value = initialTokens;
+          cachedReasoningTokensByProvider[initialProvider] = initialTokens;
+        } else if (reasoningTokensInput.value) {
+          cachedReasoningTokensByProvider[initialProvider] = reasoningTokensInput.value.trim();
+        }
         reasoningTokensInput.addEventListener('input', () => {
-          const trimmed = reasoningTokensInput.value.trim();
-          if (trimmed) {
-            cachedReasoningTokens = trimmed;
-            cachedReasoningTokensByProvider[activeProvider] = trimmed;
-          } else {
-            cachedReasoningTokens = '';
-            cachedReasoningTokensByProvider[activeProvider] = '';
-          }
+          cachedReasoningTokensByProvider[activeProvider] = reasoningTokensInput.value.trim();
         });
       }
 
-      if (customInput instanceof HTMLInputElement) {
-        customInput.addEventListener('input', () => {
-          const trimmed = customInput.value.trim();
-          ensureModelValue(trimmed);
-        });
-      }
-
-      if (modelValueInput instanceof HTMLInputElement) {
-        const initialValue = modelValueInput.value.trim();
-        if (initialValue) {
-          currentModel = initialValue;
+      if (maxTokensInput instanceof HTMLInputElement) {
+        const defaultMax = maxTokenDefaults[activeProvider];
+        if (
+          typeof defaultMax === 'number' &&
+          Number(initialMaxTokens) === defaultMax &&
+          maxTokensInput.value
+        ) {
+          maxTokensInput.value = '';
         }
       }
-      if (!currentModel) {
-        currentModel = defaultModels[activeProvider] || '';
-      }
-      ensureModelValue(currentModel);
-      syncReasoningAvailability();
 
-      if (radios.length > 0) {
-        radios.forEach((radio) => {
-          radio.addEventListener('change', () => applyProvider(radio, false));
-        });
-        const initialRadio = radios.find((radio) => radio.checked) || radios[0];
-        if (initialRadio) {
-          applyProvider(initialRadio, true);
-        } else {
-          rebuildModelOptions(activeProvider, true);
-          let overrideVariant;
-          const label = providerLabels[activeProvider] || activeProvider;
-          if (apiInput instanceof HTMLInputElement) {
-            const cachedValue = cachedApiInputs[activeProvider] ?? apiInput.value;
-            apiInput.value = cachedValue;
-            const trimmed = cachedValue.trim();
-            if (trimmed.length > 0) {
-              providerKeyStatus[activeProvider] = { hasKey: true, verified: false };
-              overrideVariant = 'detected';
-            }
-          }
-          updateProviderUI(activeProvider, label, overrideVariant);
-          syncReasoningAvailability();
-        }
+      if (reasoningModeSelect instanceof HTMLSelectElement) {
+        applyReasoningMode(reasoningModeSelect.value);
       } else {
-        rebuildModelOptions(activeProvider, true);
-        let overrideVariant;
-        const label = providerLabels[activeProvider] || activeProvider;
-        if (apiInput instanceof HTMLInputElement) {
-          const cachedValue = cachedApiInputs[activeProvider] ?? apiInput.value;
-          apiInput.value = cachedValue;
-          const trimmed = cachedValue.trim();
-          if (trimmed.length > 0) {
-            providerKeyStatus[activeProvider] = { hasKey: true, verified: false };
-            overrideVariant = 'detected';
-          }
-        }
-        updateProviderUI(activeProvider, label, overrideVariant);
-        syncReasoningAvailability();
+        applyReasoningMode(initialReasoningMode);
       }
     })();
   </script>`;
-    return script;
+    return `${dataScript}
+${runtimeScript}
+${pageScript}`;
 }
