@@ -2706,7 +2706,8 @@ function isModelProvider(value: string): value is ModelProvider {
     value === "openai" ||
     value === "gemini" ||
     value === "anthropic" ||
-    value === "grok"
+    value === "grok" ||
+    value === "groq"
   );
 }
 

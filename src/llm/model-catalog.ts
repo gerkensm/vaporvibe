@@ -701,37 +701,6 @@ const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
       reasoningTimeSeconds: 0,
     },
   },
-  "grok:grok-code-fast-1": {
-    artificialAnalysisIntelligenceIndex: 49,
-    terminalBenchHard: 0.16,
-    telecomBench: 0.76,
-    aaLcr: 0.48,
-    humanitysLastExam: 0.08,
-    mmluPro: 0.79,
-    gpqaDiamond: 0.73,
-    liveCodeBench: 0.66,
-    sciCode: 0.36,
-    ifBench: 0.41,
-    aime2025: 0.43,
-    blendedCostUsdPer1MTokens: 0.53,
-    throughput: {
-      medianTokensPerSecond: 272,
-      p5TokensPerSecond: 139,
-      p25TokensPerSecond: 229,
-      p75TokensPerSecond: 317,
-      p95TokensPerSecond: 360,
-    },
-    latency: {
-      firstAnswerChunkSeconds: 7.57,
-      firstAnswerTokenSeconds: 7.57,
-      p5FirstChunkSeconds: 3.23,
-      p25FirstChunkSeconds: 5.94,
-      p75FirstChunkSeconds: 9.14,
-      p95FirstChunkSeconds: 11.93,
-      totalResponseSeconds: 9.41,
-      reasoningTimeSeconds: 0,
-    },
-  },
 };
 
 function benchmarkFor(key: string): ModelBenchmarks | undefined {
@@ -2020,7 +1989,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
     placeholder: "gsk_...",
     defaultModel: "llama-3.3-70b-versatile",
     defaultReasoningMode: "none",
-    reasoningModes: ["none"],
+    reasoningModes: ["none", "low", "medium", "high"],
     maxOutputTokens: {
       default: 8192,
       max: 1048576,
@@ -2038,10 +2007,15 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         recommendedFor:
           "Demanding applications requiring deep understanding and nuanced text generation.",
         release: "2024",
-        contextWindow: 128000,
+        contextWindow: 131_072,
         contextWindowUnit: "tokens",
         featured: true,
-        cost: usdCost({ input: 0.5, output: 0.64 }),
+        maxOutputTokens: {
+          default: 32_768,
+          max: 32_768,
+          description: "Groq caps completions at 32,768 tokens for Llama 3.3 70B.",
+        },
+        cost: usdCost({ input: 0.59, output: 0.79 }),
         benchmarks: benchmarkFor("groq:llama-3.3-70b-versatile"),
       },
       {
@@ -2053,10 +2027,16 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         recommendedFor:
           "Processing and reasoning over large documents, codebases, or extensive conversation histories.",
         release: "2024",
-        contextWindow: 1000000,
+        contextWindow: 131_072,
         contextWindowUnit: "tokens",
         featured: true,
-        cost: usdCost({ input: 0.24, output: 0.85 }),
+        maxOutputTokens: {
+          default: 8_192,
+          max: 8_192,
+          description:
+            "Groq lists an 8,192 token completion budget for this preview build.",
+        },
+        cost: usdCost({ input: 0.2, output: 0.6 }),
         benchmarks: benchmarkFor(
           "groq:meta-llama/llama-4-maverick-17b-128e-instruct"
         ),
@@ -2064,15 +2044,22 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
       {
         value: "meta-llama/llama-4-scout-17b-16e-instruct",
         label: "Llama 4 Scout",
-        tagline: "An enormous 10M token context window for deep analysis.",
+        tagline: "Preview build tuned for analytical guardrails.",
         description:
-          "Llama 4 Scout pushes the boundaries of context length, enabling unprecedented long-form analysis.",
+          "Llama 4 Scout delivers Groq’s preview alignment work with a generous 131K context for structured evaluations.",
         recommendedFor:
           "Large-scale research, financial analysis, and legal document review.",
         release: "2024",
-        contextWindow: 10000000,
+        contextWindow: 131_072,
         contextWindowUnit: "tokens",
-        cost: usdCost({ input: 0.14, output: 0.54 }),
+        featured: true,
+        maxOutputTokens: {
+          default: 8_192,
+          max: 8_192,
+          description:
+            "Groq quotes an 8,192 token completion limit for this Scout preview model.",
+        },
+        cost: usdCost({ input: 0.11, output: 0.34 }),
         benchmarks: benchmarkFor(
           "groq:meta-llama/llama-4-scout-17b-16e-instruct"
         ),
@@ -2086,9 +2073,16 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         recommendedFor:
           "Workflows that require tool integration and complex reasoning chains.",
         release: "Sep 2025",
-        contextWindow: 256000,
+        contextWindow: 262_144,
         contextWindowUnit: "tokens",
-        cost: usdCost({ input: 0.99, output: 2.75 }),
+        featured: true,
+        maxOutputTokens: {
+          default: 16_384,
+          max: 16_384,
+          description:
+            "Groq documents a 16,384 token completion ceiling for Kimi K2.",
+        },
+        cost: usdCost({ input: 1, output: 3 }),
         benchmarks: benchmarkFor("groq:moonshotai/kimi-k2-instruct-0905"),
       },
       {
@@ -2100,10 +2094,19 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         recommendedFor:
           "Advanced tasks requiring strong intelligence and coding skills.",
         release: "2024",
-        contextWindow: 131000,
+        contextWindow: 131_072,
         contextWindowUnit: "tokens",
-        cost: usdCost({ input: 0.15, output: 0.6 }),
+        featured: true,
+        maxOutputTokens: {
+          default: 65_536,
+          max: 65_536,
+          description: "Groq sets a 65,536 token completion limit for GPT-OSS 120B.",
+        },
+        cost: usdCost({ input: 0.15, output: 0.75 }),
         benchmarks: benchmarkFor("groq:openai/gpt-oss-120b"),
+        supportsReasoningMode: true,
+        reasoningModeNotes:
+          "Supports Groq reasoning efforts (low, medium, high) with detailed traces via the Responses API.",
       },
       {
         value: "openai/gpt-oss-20b",
@@ -2114,10 +2117,19 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         recommendedFor:
           "General purpose tasks, prototyping, and balanced workloads.",
         release: "2024",
-        contextWindow: 131000,
+        contextWindow: 131_072,
         contextWindowUnit: "tokens",
-        cost: usdCost({ input: 0.06, output: 0.2 }),
+        featured: true,
+        maxOutputTokens: {
+          default: 65_536,
+          max: 65_536,
+          description: "Groq lists a 65,536 token completion limit for GPT-OSS 20B.",
+        },
+        cost: usdCost({ input: 0.1, output: 0.5 }),
         benchmarks: benchmarkFor("groq:openai/gpt-oss-20b"),
+        supportsReasoningMode: true,
+        reasoningModeNotes:
+          "Enable Groq reasoning efforts (low, medium, high) to request chain-of-thought output and tool use planning.",
       },
     ],
   },

@@ -120,12 +120,14 @@ export class AdminController {
             "gemini",
             "anthropic",
             "grok",
+            "groq",
         ];
         const result = {
             openai: { hasKey: false, verified: false },
             gemini: { hasKey: false, verified: false },
             anthropic: { hasKey: false, verified: false },
             grok: { hasKey: false, verified: false },
+            groq: { hasKey: false, verified: false },
         };
         for (const p of providers) {
             const storedKey = await this.credentialStore.getApiKey(p);
@@ -517,6 +519,9 @@ export class AdminController {
         else if (settings.provider === "grok") {
             process.env.XAI_API_KEY = settings.apiKey;
         }
+        else if (settings.provider === "groq") {
+            process.env.GROQ_API_KEY = settings.apiKey;
+        }
     }
     isKeyFromEnvironment(provider) {
         const envKey = lookupEnvApiKey(provider);
@@ -646,6 +651,9 @@ function lookupEnvApiKey(provider) {
             process.env.GROK_API_KEY?.trim() ||
             undefined);
     }
+    if (provider === "groq") {
+        return process.env.GROQ_API_KEY?.trim() || process.env.GROQ_KEY?.trim() || undefined;
+    }
     return undefined;
 }
 function sanitizeProvider(value) {
@@ -657,6 +665,9 @@ function sanitizeProvider(value) {
     }
     if (normalized === "grok" || normalized === "xai" || normalized === "x.ai") {
         return "grok";
+    }
+    if (normalized === "groq") {
+        return "groq";
     }
     return "openai";
 }

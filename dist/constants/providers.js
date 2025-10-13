@@ -17,12 +17,14 @@ export const DEFAULT_MODEL_BY_PROVIDER = {
     gemini: PROVIDER_METADATA.gemini.defaultModel,
     anthropic: PROVIDER_METADATA.anthropic.defaultModel,
     grok: PROVIDER_METADATA.grok.defaultModel,
+    groq: PROVIDER_METADATA.groq.defaultModel,
 };
 export const DEFAULT_MAX_TOKENS_BY_PROVIDER = {
     openai: PROVIDER_METADATA.openai.maxOutputTokens.default,
     gemini: PROVIDER_METADATA.gemini.maxOutputTokens.default,
     anthropic: PROVIDER_METADATA.anthropic.maxOutputTokens.default,
     grok: PROVIDER_METADATA.grok.maxOutputTokens.default,
+    groq: PROVIDER_METADATA.groq.maxOutputTokens.default,
 };
 export const REASONING_MODE_CHOICES = [
     { value: "none", label: "None", description: "Disable the provider’s structured reasoning traces." },

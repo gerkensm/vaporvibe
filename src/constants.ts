@@ -24,6 +24,7 @@ const OPENAI_METADATA = PROVIDER_METADATA.openai;
 const GEMINI_METADATA = PROVIDER_METADATA.gemini;
 const ANTHROPIC_METADATA = PROVIDER_METADATA.anthropic;
 const GROK_METADATA = PROVIDER_METADATA.grok;
+const GROQ_METADATA = PROVIDER_METADATA.groq;
 
 export const DEFAULT_MAX_OUTPUT_TOKENS =
   OPENAI_METADATA.maxOutputTokens.default;
@@ -33,6 +34,7 @@ export const DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS =
   ANTHROPIC_METADATA.maxOutputTokens.default;
 export const DEFAULT_GEMINI_MODEL = GEMINI_METADATA.defaultModel;
 export const DEFAULT_GROK_MODEL = GROK_METADATA.defaultModel;
+export const DEFAULT_GROQ_MODEL = GROQ_METADATA.defaultModel;
 export const DEFAULT_HISTORY_LIMIT = 30;
 export const DEFAULT_HISTORY_MAX_BYTES = 200_000;
 export const LOOPBACK_HOST = "127.0.0.1";
@@ -45,6 +47,7 @@ export const DEFAULT_REASONING_TOKENS: Record<
   gemini: GEMINI_METADATA.reasoningTokens?.default,
   anthropic: ANTHROPIC_METADATA.reasoningTokens?.default,
   grok: GROK_METADATA.reasoningTokens?.default,
+  groq: GROQ_METADATA.reasoningTokens?.default,
 };
 
 export const BRIEF_FORM_ROUTE = "/__set-brief";

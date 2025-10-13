@@ -183,7 +183,7 @@ export class AdminController {
 
   private async computeProviderKeyStatuses(): Promise<
     Record<
-      "openai" | "gemini" | "anthropic" | "grok",
+      "openai" | "gemini" | "anthropic" | "grok" | "groq",
       { hasKey: boolean; verified: boolean }
     >
   > {
@@ -192,15 +192,17 @@ export class AdminController {
       "gemini",
       "anthropic",
       "grok",
+      "groq",
     ];
     const result: Record<
-      "openai" | "gemini" | "anthropic" | "grok",
+      "openai" | "gemini" | "anthropic" | "grok" | "groq",
       { hasKey: boolean; verified: boolean }
     > = {
       openai: { hasKey: false, verified: false },
       gemini: { hasKey: false, verified: false },
       anthropic: { hasKey: false, verified: false },
       grok: { hasKey: false, verified: false },
+      groq: { hasKey: false, verified: false },
     };
 
     for (const p of providers) {
@@ -217,7 +219,7 @@ export class AdminController {
             this.state.provider.apiKey &&
             this.state.provider.apiKey.trim().length > 0
         );
-      result[p as "openai" | "gemini" | "anthropic" | "grok"] = {
+      result[p as "openai" | "gemini" | "anthropic" | "grok" | "groq"] = {
         hasKey,
         verified,
       };
@@ -748,6 +750,8 @@ export class AdminController {
       process.env.ANTHROPIC_API_KEY = settings.apiKey;
     } else if (settings.provider === "grok") {
       process.env.XAI_API_KEY = settings.apiKey;
+    } else if (settings.provider === "groq") {
+      process.env.GROQ_API_KEY = settings.apiKey;
     }
   }
 
@@ -911,6 +915,9 @@ function lookupEnvApiKey(
       undefined
     );
   }
+  if (provider === "groq") {
+    return process.env.GROQ_API_KEY?.trim() || process.env.GROQ_KEY?.trim() || undefined;
+  }
   return undefined;
 }
 
@@ -925,6 +932,9 @@ function sanitizeProvider(value: string): ProviderSettings["provider"] {
   }
   if (normalized === "grok" || normalized === "xai" || normalized === "x.ai") {
     return "grok";
+  }
+  if (normalized === "groq") {
+    return "groq";
   }
   return "openai";
 }

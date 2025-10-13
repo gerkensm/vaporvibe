@@ -8,6 +8,7 @@ export declare const DEFAULT_ANTHROPIC_MODEL: string;
 export declare const DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS: number;
 export declare const DEFAULT_GEMINI_MODEL: string;
 export declare const DEFAULT_GROK_MODEL: string;
+export declare const DEFAULT_GROQ_MODEL: string;
 export declare const DEFAULT_HISTORY_LIMIT = 30;
 export declare const DEFAULT_HISTORY_MAX_BYTES = 200000;
 export declare const LOOPBACK_HOST = "127.0.0.1";
