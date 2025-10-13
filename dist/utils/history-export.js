@@ -7,6 +7,7 @@ export function createHistorySnapshot(context) {
         model: provider.model,
         maxOutputTokens: provider.maxOutputTokens,
         reasoningMode: provider.reasoningMode,
+        reasoningTokensEnabled: provider.reasoningTokensEnabled,
         reasoningTokens: provider.reasoningTokens,
         apiKeyMask: maskSensitive(provider.apiKey),
     };

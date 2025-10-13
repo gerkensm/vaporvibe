@@ -4,6 +4,7 @@ export interface AdminProviderInfo {
     model: string;
     maxOutputTokens: number;
     reasoningMode: ReasoningMode;
+    reasoningTokensEnabled?: boolean;
     reasoningTokens?: number;
     apiKeyMask: string;
 }

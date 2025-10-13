@@ -20,6 +20,7 @@ import {
   DEFAULT_REASONING_TOKENS,
   LLM_RESULT_ROUTE_PREFIX,
 } from "../constants.js";
+import { DEFAULT_MAX_TOKENS_BY_PROVIDER } from "../constants/providers.js";
 import type {
   BriefAttachment,
   ChatMessage,
@@ -323,6 +324,7 @@ async function handleSetupFlow(
           providerKeyStatuses: buildProviderKeyStatuses(state),
           maxOutputTokens: state.provider.maxOutputTokens,
           reasoningMode: state.provider.reasoningMode ?? "none",
+          reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
           reasoningTokens: getEffectiveReasoningTokens(state.provider),
           errorMessage: "Choose a provider before adding an API key.",
         });
@@ -371,6 +373,7 @@ async function handleSetupFlow(
         providerKeyStatuses: buildProviderKeyStatuses(state),
         maxOutputTokens: state.provider.maxOutputTokens,
         reasoningMode: state.provider.reasoningMode ?? "none",
+        reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
         reasoningTokens: getEffectiveReasoningTokens(state.provider),
         errorMessage: message,
       });
@@ -392,8 +395,15 @@ async function handleSetupFlow(
         )
       : "none";
 
+    const toggleRaw =
+      typeof body.data.reasoningTokensEnabled === "string"
+        ? body.data.reasoningTokensEnabled.trim().toLowerCase()
+        : "";
+    const reasoningTokensEnabled =
+      supportsTokens && !["", "off", "false", "0"].includes(toggleRaw);
+
     let submittedReasoningTokens: number | undefined;
-    if (supportsTokens) {
+    if (supportsTokens && reasoningTokensEnabled) {
       try {
         submittedReasoningTokens = parseReasoningTokensInput(
           body.data.reasoningTokens,
@@ -420,6 +430,7 @@ async function handleSetupFlow(
           providerKeyStatuses: buildProviderKeyStatuses(state),
           maxOutputTokens: state.provider.maxOutputTokens,
           reasoningMode: state.provider.reasoningMode ?? "none",
+          reasoningTokensEnabled,
           reasoningTokens: getEffectiveReasoningTokens(state.provider),
           errorMessage: message,
         });
@@ -430,9 +441,10 @@ async function handleSetupFlow(
       }
     }
 
-    let adjustedReasoningTokens = supportsTokens
-      ? submittedReasoningTokens
-      : undefined;
+    let adjustedReasoningTokens =
+      supportsTokens && reasoningTokensEnabled
+        ? submittedReasoningTokens
+        : undefined;
     if (state.provider.provider === "anthropic") {
       if (typeof adjustedReasoningTokens === "number") {
         adjustedReasoningTokens = Math.min(
@@ -451,6 +463,9 @@ async function handleSetupFlow(
     state.provider.maxOutputTokens = submittedMaxTokens;
     state.provider.reasoningMode = submittedReasoningMode;
     state.provider.reasoningTokens = adjustedReasoningTokens;
+    state.provider.reasoningTokensEnabled = supportsTokens
+      ? reasoningTokensEnabled
+      : undefined;
     state.provider.model = submittedModel;
 
     // Try to get stored credential if no input provided
@@ -481,13 +496,14 @@ async function handleSetupFlow(
         selectedProvider,
         selectedModel: state.provider.model || "",
         providerSelectionRequired: state.providerSelectionRequired,
-        providerKeyStatuses: buildProviderKeyStatuses(state),
-        maxOutputTokens: state.provider.maxOutputTokens,
-        reasoningMode: state.provider.reasoningMode ?? "none",
-        reasoningTokens: getEffectiveReasoningTokens(state.provider),
-        errorMessage:
-          "Add an API key or leave the field blank to reuse the stored key.",
-      });
+      providerKeyStatuses: buildProviderKeyStatuses(state),
+      maxOutputTokens: state.provider.maxOutputTokens,
+      reasoningMode: state.provider.reasoningMode ?? "none",
+      reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
+      reasoningTokens: getEffectiveReasoningTokens(state.provider),
+      errorMessage:
+        "Add an API key or leave the field blank to reuse the stored key.",
+    });
       res.statusCode = 400;
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.end(html);
@@ -593,6 +609,7 @@ async function handleSetupFlow(
           providerKeyStatuses: buildProviderKeyStatuses(state),
           maxOutputTokens: state.provider.maxOutputTokens,
           reasoningMode: state.provider.reasoningMode ?? "none",
+          reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
           reasoningTokens: getEffectiveReasoningTokens(state.provider),
           errorMessage: `Unable to configure provider: ${message}`,
         });
@@ -622,16 +639,17 @@ async function handleSetupFlow(
       providerReady: state.providerReady,
       canSelectProvider,
       selectedProvider,
-      selectedModel: state.provider.model || "",
-      providerSelectionRequired: state.providerSelectionRequired,
-      providerKeyStatuses: buildProviderKeyStatuses(state),
-      maxOutputTokens: state.provider.maxOutputTokens,
-      reasoningMode: state.provider.reasoningMode ?? "none",
-      reasoningTokens: getEffectiveReasoningTokens(state.provider),
-      errorMessage:
-        verificationMessage ??
-        "We could not verify that key. Please try again.",
-    });
+    selectedModel: state.provider.model || "",
+    providerSelectionRequired: state.providerSelectionRequired,
+    providerKeyStatuses: buildProviderKeyStatuses(state),
+    maxOutputTokens: state.provider.maxOutputTokens,
+    reasoningMode: state.provider.reasoningMode ?? "none",
+    reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
+    reasoningTokens: getEffectiveReasoningTokens(state.provider),
+    errorMessage:
+      verificationMessage ??
+      "We could not verify that key. Please try again.",
+  });
     res.statusCode = 400;
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.end(html);
@@ -663,13 +681,14 @@ async function handleSetupFlow(
         selectedProvider,
         selectedModel: state.provider.model || "",
         providerSelectionRequired: state.providerSelectionRequired,
-        providerKeyStatuses: buildProviderKeyStatuses(state),
-        maxOutputTokens: state.provider.maxOutputTokens,
-        reasoningMode: state.provider.reasoningMode ?? "none",
-        reasoningTokens: getEffectiveReasoningTokens(state.provider),
-        errorMessage: "Add a short brief so we know where to begin.",
-        briefValue: "",
-      });
+      providerKeyStatuses: buildProviderKeyStatuses(state),
+      maxOutputTokens: state.provider.maxOutputTokens,
+      reasoningMode: state.provider.reasoningMode ?? "none",
+      reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
+      reasoningTokens: getEffectiveReasoningTokens(state.provider),
+      errorMessage: "Add a short brief so we know where to begin.",
+      briefValue: "",
+    });
       res.statusCode = 400;
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.end(html);
@@ -859,6 +878,7 @@ async function handleSetupFlow(
     providerKeyStatuses: buildProviderKeyStatuses(state),
     maxOutputTokens: state.provider.maxOutputTokens,
     reasoningMode: state.provider.reasoningMode ?? "none",
+    reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
     reasoningTokens: getEffectiveReasoningTokens(state.provider),
     statusMessage: url.searchParams.get("status") ?? undefined,
   });
@@ -1350,6 +1370,10 @@ function getDefaultModelForProvider(
 function getDefaultMaxTokensForProvider(
   provider: ProviderSettings["provider"]
 ): number {
+  const mappedDefault = DEFAULT_MAX_TOKENS_BY_PROVIDER[provider as ModelProvider];
+  if (typeof mappedDefault === "number") {
+    return mappedDefault;
+  }
   if (provider === "anthropic") {
     return DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS;
   }
@@ -1359,9 +1383,16 @@ function getDefaultMaxTokensForProvider(
 function getEffectiveReasoningTokens(
   provider: ProviderSettings
 ): number | undefined {
+  const tokensEnabled = provider.reasoningTokensEnabled ?? true;
+  if (!tokensEnabled) {
+    return undefined;
+  }
   const tokens = provider.reasoningTokens;
   if (typeof tokens === "number") {
     return tokens;
+  }
+  if (!tokensEnabled) {
+    return undefined;
   }
   return DEFAULT_REASONING_TOKENS[provider.provider];
 }

@@ -20,6 +20,7 @@ interface SetupWizardPageOptions {
     providerKeyStatuses: Record<ModelProvider, ProviderKeyStatus>;
     maxOutputTokens: number;
     reasoningMode: ReasoningMode;
+    reasoningTokensEnabled?: boolean;
     reasoningTokens?: number;
     statusMessage?: string;
     errorMessage?: string;

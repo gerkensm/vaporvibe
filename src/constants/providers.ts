@@ -9,6 +9,24 @@ import {
 } from "../llm/model-catalog.js";
 import { DEFAULT_REASONING_TOKENS } from "../constants.js";
 
+export interface NumericRangeSummary {
+  min?: number;
+  max?: number;
+  default?: number;
+  description?: string;
+}
+
+export interface ReasoningRangeSummary extends NumericRangeSummary {
+  supported: boolean;
+  helper?: string;
+  allowDisable?: boolean;
+}
+
+export interface ProviderTokenGuidance {
+  maxOutputTokens: NumericRangeSummary;
+  reasoningTokens?: ReasoningRangeSummary;
+}
+
 export interface ProviderChoice {
   value: ModelProvider;
   title: string;
@@ -68,6 +86,35 @@ export const PROVIDER_REASONING_CAPABILITIES: Record<ModelProvider, { mode: bool
     return [provider, { mode: supportsModes, tokens: supportsTokens }] as const;
   }),
 ) as Record<ModelProvider, { mode: boolean; tokens: boolean }>;
+
+export const PROVIDER_TOKEN_GUIDANCE: Record<ModelProvider, ProviderTokenGuidance> = Object.fromEntries(
+  (Object.keys(PROVIDER_METADATA) as ModelProvider[]).map((provider) => {
+    const metadata = PROVIDER_METADATA[provider];
+    const reasoning = metadata.reasoningTokens;
+    return [
+      provider,
+      {
+        maxOutputTokens: {
+          min: metadata.maxOutputTokens.min,
+          max: metadata.maxOutputTokens.max,
+          default: metadata.maxOutputTokens.default,
+          description: metadata.maxOutputTokens.description,
+        },
+        reasoningTokens: reasoning
+          ? {
+              supported: Boolean(reasoning.supported),
+              min: reasoning.min,
+              max: reasoning.max,
+              default: reasoning.default,
+              description: reasoning.description,
+              helper: reasoning.helper,
+              allowDisable: reasoning.allowDisable,
+            }
+          : undefined,
+      },
+    ] as const;
+  }),
+) as Record<ModelProvider, ProviderTokenGuidance>;
 
 export const REASONING_TOKEN_MIN_BY_PROVIDER: Record<ModelProvider, number> = Object.fromEntries(
   (Object.keys(PROVIDER_METADATA) as ModelProvider[]).map((provider) => {

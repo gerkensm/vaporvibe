@@ -6,6 +6,7 @@ export interface NumericRange {
   readonly step?: number;
   readonly default?: number;
   readonly description?: string;
+  readonly allowDisable?: boolean;
 }
 
 export interface ModelCostInfo {
@@ -68,11 +69,12 @@ export interface ModelMetadata {
   readonly contextWindowUnit?: string;
   readonly featured?: boolean;
   readonly maxOutputTokens?: NumericRange;
-  readonly reasoningTokens?: NumericRange;
+  readonly reasoningTokens?: NumericRange | null;
   readonly reasoningModeNotes?: string;
   readonly documentationUrl?: string;
   readonly cost?: ModelCostInfo;
   readonly benchmarks?: ModelBenchmarks;
+  readonly supportsReasoningMode?: boolean;
 }
 
 export interface ProviderMetadata {
@@ -88,6 +90,7 @@ export interface ProviderMetadata {
   readonly maxOutputTokens: NumericRange & { readonly default: number };
   readonly reasoningTokens?: (NumericRange & {
     readonly supported: boolean;
+    readonly allowDisable?: boolean;
   }) & {
     readonly helper?: string;
   };
@@ -547,6 +550,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 128_000,
           description: "OpenAI advertises up to 128K output tokens on GPT-5.",
         },
+        supportsReasoningMode: true,
         cost: usdCost({ input: 1.25, output: 10 }),
         benchmarks: benchmarkFor("openai:gpt-5"),
       },
@@ -570,6 +574,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 128_000,
           description: "OpenAI advertises up to 128K output tokens on GPT-5.",
         },
+        supportsReasoningMode: true,
         cost: usdCost({ input: 1.25, output: 10 }),
       },
       {
@@ -589,6 +594,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 128_000,
           description: "Matches GPT-5’s 128K output ceiling in a smaller footprint.",
         },
+        supportsReasoningMode: true,
         cost: usdCost({ input: 0.25, output: 2 }),
         benchmarks: benchmarkFor("openai:gpt-5-mini"),
       },
@@ -608,6 +614,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 128_000,
           description: "Matches GPT-5’s 128K output ceiling in a smaller footprint.",
         },
+        supportsReasoningMode: true,
         cost: usdCost({ input: 0.25, output: 2 }),
       },
       {
@@ -626,6 +633,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 128_000,
           description: "Shares GPT-5’s 128K output token limit in a nano-sized package.",
         },
+        supportsReasoningMode: true,
         cost: usdCost({ input: 0.05, output: 0.4 }),
         benchmarks: benchmarkFor("openai:gpt-5-nano"),
       },
@@ -645,6 +653,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 128_000,
           description: "Shares GPT-5’s 128K output token limit in a nano-sized package.",
         },
+        supportsReasoningMode: true,
         cost: usdCost({ input: 0.05, output: 0.4 }),
       },
       {
@@ -952,6 +961,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 100_000,
           description: "o1 responses top out around 100K tokens.",
         },
+        supportsReasoningMode: true,
         cost: usdCost({ input: 15, output: 60 }),
         reasoningModeNotes: "Pair with reasoning mode for best effect.",
       },
@@ -971,6 +981,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 100_000,
           description: "o1 responses top out around 100K tokens.",
         },
+        supportsReasoningMode: true,
         cost: usdCost({ input: 15, output: 60 }),
       },
       {
@@ -989,6 +1000,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 32_768,
           description: "Preview runs share the 32,768 output token limit.",
         },
+        supportsReasoningMode: true,
         reasoningModeNotes: "Reasoning modes are available, but token limits are lower than o1.",
       },
       {
@@ -1025,6 +1037,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 100_000,
           description: "o3 shares the 100K output ceiling with o1.",
         },
+        supportsReasoningMode: true,
         cost: usdCost({ input: 2, output: 8 }),
         benchmarks: benchmarkFor("openai:o3"),
       },
@@ -1044,6 +1057,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 100_000,
           description: "o3 Mini shares the 100K output ceiling with the full model.",
         },
+        supportsReasoningMode: true,
         reasoningModeNotes: "Reasoning modes mirror the o3 defaults while keeping spend approachable.",
       },
       {
@@ -1062,6 +1076,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 100_000,
           description: "Early o4 Mini builds align with o3’s output ceiling while pricing continues to evolve.",
         },
+        supportsReasoningMode: true,
         reasoningModeNotes: "Pricing is still stabilizing as o4 rolls out—confirm latest rates with OpenAI.",
       },
     ],
@@ -1078,18 +1093,22 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
     defaultReasoningMode: "none",
     reasoningModes: ["none"],
     maxOutputTokens: {
-      default: 128_000,
-      max: 1_048_576,
-      min: 1_024,
-      description: "Flash models comfortably stream long outputs, with the family topping out around the 1,048,576-token mark.",
+      default: 65_536,
+      max: 65_536,
+      min: 1,
+      description:
+        "Gemini 2.5 responses cap at 65,536 output tokens, while earlier experimental builds follow their documented ceilings.",
     },
     reasoningTokens: {
       supported: true,
-      min: -1,
-      max: 64_000,
+      min: 0,
+      max: 32_768,
       default: -1,
-      description: "Set -1 to let Gemini auto-manage deliberate reasoning bursts.",
-      helper: "Gemini uses a shared budget for deliberate reasoning. Leave blank for auto or set a ceiling.",
+      allowDisable: true,
+      description:
+        "Leave blank or -1 for Gemini’s dynamic thinking. Set 0 to disable where supported or raise the cap for deliberate runs.",
+      helper:
+        "Flash and Flash Lite support disabling reasoning with 0. Pro always thinks but lets you set a ceiling or use auto (-1).",
     },
     models: [
       {
@@ -1105,13 +1124,21 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         contextWindowUnit: "tokens",
         featured: true,
         maxOutputTokens: {
-          default: 65_535,
-          max: 65_535,
-          description: "Google documents a 65,535 token output cap on Flash.",
+          default: 65_536,
+          max: 65_536,
+          description: "Google documents a 65,536 token output cap on Flash.",
         },
         cost: usdCost({ input: 0.3, output: 2.5, reasoning: 2.5 }),
         reasoningModeNotes:
           "Output pricing already includes deliberate “thinking” tokens. Audio inputs are billed at $1.00 per 1M tokens.",
+        reasoningTokens: {
+          min: 0,
+          max: 24_576,
+          default: -1,
+          description:
+            "Use -1 for Gemini’s dynamic thinking, 0 to disable, or raise the ceiling up to 24,576 tokens.",
+          allowDisable: true,
+        },
         benchmarks: benchmarkFor("gemini:gemini-2.5-flash"),
       },
       {
@@ -1127,13 +1154,21 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         contextWindowUnit: "tokens",
         featured: true,
         maxOutputTokens: {
-          default: 65_535,
-          max: 65_535,
-          description: "Flash Lite shares the 65,535 token output cap.",
+          default: 65_536,
+          max: 65_536,
+          description: "Flash Lite shares the 65,536 token output cap.",
         },
         cost: usdCost({ input: 0.1, output: 0.4, reasoning: 0.4 }),
         reasoningModeNotes:
           "Output pricing includes thinking tokens. Audio inputs are billed at $0.30 per 1M tokens.",
+        reasoningTokens: {
+          min: 512,
+          max: 24_576,
+          default: 4_096,
+          description:
+            "Flash Lite defaults to no deliberate thinking. Enable reasoning to budget between 512 and 24,576 tokens.",
+          allowDisable: true,
+        },
         benchmarks: benchmarkFor("gemini:gemini-2.5-flash-lite"),
       },
       {
@@ -1149,13 +1184,21 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         contextWindowUnit: "tokens",
         featured: true,
         maxOutputTokens: {
-          default: 65_535,
-          max: 65_535,
-          description: "Pro runs share the 65,535 token output cap for standard calls.",
+          default: 65_536,
+          max: 65_536,
+          description: "Pro runs share the 65,536 token output cap for standard calls.",
         },
         cost: usdCost({ input: 1.25, output: 10 }),
         reasoningModeNotes:
           "Pricing shown is for prompts up to 200K tokens; requests above that tier increase to $2.50 input / $15 output per 1M tokens.",
+        reasoningTokens: {
+          min: 128,
+          max: 32_768,
+          default: -1,
+          description:
+            "Gemini Pro always engages deliberate thinking. Set -1 for dynamic budgeting or cap it up to 32,768 tokens.",
+          allowDisable: false,
+        },
         benchmarks: benchmarkFor("gemini:gemini-2.5-pro"),
       },
       {
@@ -1209,15 +1252,15 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
     reasoningModes: ["none"],
     maxOutputTokens: {
       default: 64_000,
-      max: 200_000,
-      min: 1_024,
+      max: 64_000,
+      min: 1,
       description:
-        "Standard Claude responses land around 64K tokens, with Sonnet and Opus tiers stretching toward 200K when needed.",
+        "Claude responses comfortably scale to 64K tokens across the Sonnet and Opus tiers.",
     },
     reasoningTokens: {
       supported: true,
       min: 0,
-      max: 128_000,
+      max: 64_000,
       default: 64_000,
       description: "Reserve a deliberate thinking budget for Claude’s chain-of-thought traces.",
       helper: "Claude shines with a reasoning allowance—set a ceiling or leave blank to stay near the default budget.",
@@ -1236,9 +1279,10 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         contextWindowUnit: "tokens",
         featured: true,
         maxOutputTokens: {
-          default: 128_000,
-          max: 128_000,
-          description: "The latest Sonnet tier can emit up to roughly 128K tokens when needed.",
+          default: 64_000,
+          min: 1,
+          max: 64_000,
+          description: "Latest Sonnet tiers target a 64K output ceiling for balanced pacing.",
         },
         cost: usdCost({ input: 3, output: 15 }),
         benchmarks: benchmarkFor("anthropic:claude-sonnet-4-5-20250929"),

@@ -18,6 +18,7 @@ export interface ProviderSettings {
     model: string;
     maxOutputTokens: number;
     reasoningMode: ReasoningMode;
+    reasoningTokensEnabled?: boolean;
     reasoningTokens?: number;
 }
 export interface LlmUsageMetrics {
@@ -68,6 +69,7 @@ export interface ProviderSettingsSummary {
     model: string;
     maxOutputTokens: number;
     reasoningMode: ReasoningMode;
+    reasoningTokensEnabled?: boolean;
     reasoningTokens?: number;
     apiKeyMask?: string;
 }

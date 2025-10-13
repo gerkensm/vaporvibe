@@ -1,4 +1,5 @@
 import { ADMIN_ROUTE_PREFIX } from "../constants.js";
+import { PROVIDER_REASONING_CAPABILITIES } from "../constants/providers.js";
 import { createLlmClient } from "../llm/factory.js";
 import { readBody } from "../utils/body.js";
 import { maskSensitive } from "../utils/sensitive.js";
@@ -81,6 +82,7 @@ export class AdminController {
             model: this.state.provider.model,
             maxOutputTokens: this.state.provider.maxOutputTokens,
             reasoningMode: this.state.provider.reasoningMode,
+            reasoningTokensEnabled: this.state.provider.reasoningTokensEnabled,
             reasoningTokens: this.state.provider.reasoningTokens,
             apiKeyMask: maskSensitive(this.state.provider.apiKey),
         };
@@ -210,7 +212,16 @@ export class AdminController {
             : this.state.provider.model;
         const maxOutputTokens = parsePositiveInt(data.maxOutputTokens, this.state.provider.maxOutputTokens);
         const reasoningMode = sanitizeReasoningMode(String(data.reasoningMode ?? this.state.provider.reasoningMode));
-        const reasoningTokens = parseReasoningTokensValue(data.reasoningTokens, provider, this.state.provider.reasoningTokens);
+        const reasoningCapability = PROVIDER_REASONING_CAPABILITIES[provider] || { tokens: false };
+        const toggleRaw = typeof data.reasoningTokensEnabled === "string"
+            ? data.reasoningTokensEnabled.trim().toLowerCase()
+            : "";
+        const reasoningTokensEnabled = reasoningCapability.tokens
+            ? !["", "off", "false", "0"].includes(toggleRaw)
+            : undefined;
+        const reasoningTokens = reasoningTokensEnabled === false
+            ? undefined
+            : parseReasoningTokensValue(data.reasoningTokens, provider, this.state.provider.reasoningTokens);
         const newApiKey = typeof data.apiKey === "string" ? data.apiKey.trim() : "";
         const previousProvider = this.state.provider.provider;
         let apiKeyCandidate = newApiKey;
@@ -245,7 +256,10 @@ export class AdminController {
             model,
             maxOutputTokens,
             reasoningMode,
-            reasoningTokens: reasoningMode === "none" ? undefined : reasoningTokens,
+            reasoningTokensEnabled,
+            reasoningTokens: reasoningMode === "none" || reasoningTokensEnabled === false
+                ? undefined
+                : reasoningTokens,
             apiKey: apiKeyCandidate,
         };
         if (!updatedSettings.apiKey || updatedSettings.apiKey.trim().length === 0) {

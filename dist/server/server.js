@@ -3,6 +3,7 @@ import { Buffer } from "node:buffer";
 import { URL } from "node:url";
 import { randomUUID } from "node:crypto";
 import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD, INSTRUCTIONS_PANEL_ROUTE, SETUP_ROUTE, SETUP_VERIFY_ROUTE, DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, LLM_RESULT_ROUTE_PREFIX, } from "../constants.js";
+import { DEFAULT_MAX_TOKENS_BY_PROVIDER } from "../constants/providers.js";
 import { buildMessages } from "../llm/messages.js";
 import { supportsImageInput } from "../llm/capabilities.js";
 import { parseCookies } from "../utils/cookies.js";
@@ -179,6 +180,7 @@ async function handleSetupFlow(context, state, reqLogger) {
                     providerKeyStatuses: buildProviderKeyStatuses(state),
                     maxOutputTokens: state.provider.maxOutputTokens,
                     reasoningMode: state.provider.reasoningMode ?? "none",
+                    reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
                     reasoningTokens: getEffectiveReasoningTokens(state.provider),
                     errorMessage: "Choose a provider before adding an API key.",
                 });
@@ -224,6 +226,7 @@ async function handleSetupFlow(context, state, reqLogger) {
                 providerKeyStatuses: buildProviderKeyStatuses(state),
                 maxOutputTokens: state.provider.maxOutputTokens,
                 reasoningMode: state.provider.reasoningMode ?? "none",
+                reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
                 reasoningTokens: getEffectiveReasoningTokens(state.provider),
                 errorMessage: message,
             });
@@ -237,8 +240,12 @@ async function handleSetupFlow(context, state, reqLogger) {
         let submittedReasoningMode = supportsMode
             ? sanitizeReasoningModeValue(body.data.reasoningMode, state.provider.reasoningMode ?? "none")
             : "none";
+        const toggleRaw = typeof body.data.reasoningTokensEnabled === "string"
+            ? body.data.reasoningTokensEnabled.trim().toLowerCase()
+            : "";
+        const reasoningTokensEnabled = supportsTokens && !["", "off", "false", "0"].includes(toggleRaw);
         let submittedReasoningTokens;
-        if (supportsTokens) {
+        if (supportsTokens && reasoningTokensEnabled) {
             try {
                 submittedReasoningTokens = parseReasoningTokensInput(body.data.reasoningTokens, state.provider.provider);
             }
@@ -262,6 +269,7 @@ async function handleSetupFlow(context, state, reqLogger) {
                     providerKeyStatuses: buildProviderKeyStatuses(state),
                     maxOutputTokens: state.provider.maxOutputTokens,
                     reasoningMode: state.provider.reasoningMode ?? "none",
+                    reasoningTokensEnabled,
                     reasoningTokens: getEffectiveReasoningTokens(state.provider),
                     errorMessage: message,
                 });
@@ -271,7 +279,7 @@ async function handleSetupFlow(context, state, reqLogger) {
                 return;
             }
         }
-        let adjustedReasoningTokens = supportsTokens
+        let adjustedReasoningTokens = supportsTokens && reasoningTokensEnabled
             ? submittedReasoningTokens
             : undefined;
         if (state.provider.provider === "anthropic") {
@@ -290,6 +298,9 @@ async function handleSetupFlow(context, state, reqLogger) {
         state.provider.maxOutputTokens = submittedMaxTokens;
         state.provider.reasoningMode = submittedReasoningMode;
         state.provider.reasoningTokens = adjustedReasoningTokens;
+        state.provider.reasoningTokensEnabled = supportsTokens
+            ? reasoningTokensEnabled
+            : undefined;
         state.provider.model = submittedModel;
         // Try to get stored credential if no input provided
         const existingKey = state.provider.apiKey?.trim() ?? "";
@@ -319,6 +330,7 @@ async function handleSetupFlow(context, state, reqLogger) {
                 providerKeyStatuses: buildProviderKeyStatuses(state),
                 maxOutputTokens: state.provider.maxOutputTokens,
                 reasoningMode: state.provider.reasoningMode ?? "none",
+                reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
                 reasoningTokens: getEffectiveReasoningTokens(state.provider),
                 errorMessage: "Add an API key or leave the field blank to reuse the stored key.",
             });
@@ -399,6 +411,7 @@ async function handleSetupFlow(context, state, reqLogger) {
                     providerKeyStatuses: buildProviderKeyStatuses(state),
                     maxOutputTokens: state.provider.maxOutputTokens,
                     reasoningMode: state.provider.reasoningMode ?? "none",
+                    reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
                     reasoningTokens: getEffectiveReasoningTokens(state.provider),
                     errorMessage: `Unable to configure provider: ${message}`,
                 });
@@ -429,6 +442,7 @@ async function handleSetupFlow(context, state, reqLogger) {
             providerKeyStatuses: buildProviderKeyStatuses(state),
             maxOutputTokens: state.provider.maxOutputTokens,
             reasoningMode: state.provider.reasoningMode ?? "none",
+            reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
             reasoningTokens: getEffectiveReasoningTokens(state.provider),
             errorMessage: verificationMessage ??
                 "We could not verify that key. Please try again.",
@@ -465,6 +479,7 @@ async function handleSetupFlow(context, state, reqLogger) {
                 providerKeyStatuses: buildProviderKeyStatuses(state),
                 maxOutputTokens: state.provider.maxOutputTokens,
                 reasoningMode: state.provider.reasoningMode ?? "none",
+                reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
                 reasoningTokens: getEffectiveReasoningTokens(state.provider),
                 errorMessage: "Add a short brief so we know where to begin.",
                 briefValue: "",
@@ -638,6 +653,7 @@ async function handleSetupFlow(context, state, reqLogger) {
         providerKeyStatuses: buildProviderKeyStatuses(state),
         maxOutputTokens: state.provider.maxOutputTokens,
         reasoningMode: state.provider.reasoningMode ?? "none",
+        reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
         reasoningTokens: getEffectiveReasoningTokens(state.provider),
         statusMessage: url.searchParams.get("status") ?? undefined,
     });
@@ -1029,15 +1045,26 @@ function getDefaultModelForProvider(provider) {
     return DEFAULT_ANTHROPIC_MODEL;
 }
 function getDefaultMaxTokensForProvider(provider) {
+    const mappedDefault = DEFAULT_MAX_TOKENS_BY_PROVIDER[provider];
+    if (typeof mappedDefault === "number") {
+        return mappedDefault;
+    }
     if (provider === "anthropic") {
         return DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS;
     }
     return DEFAULT_MAX_OUTPUT_TOKENS;
 }
 function getEffectiveReasoningTokens(provider) {
+    const tokensEnabled = provider.reasoningTokensEnabled ?? true;
+    if (!tokensEnabled) {
+        return undefined;
+    }
     const tokens = provider.reasoningTokens;
     if (typeof tokens === "number") {
         return tokens;
+    }
+    if (!tokensEnabled) {
+        return undefined;
     }
     return DEFAULT_REASONING_TOKENS[provider.provider];
 }

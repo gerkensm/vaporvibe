@@ -1,10 +1,11 @@
 import { escapeHtml } from "../utils/html.js";
 import { DEFAULT_REASONING_TOKENS, DEFAULT_MAX_OUTPUT_TOKENS, } from "../constants.js";
-import { PROVIDER_CHOICES, PROVIDER_LABELS, PROVIDER_PLACEHOLDERS, DEFAULT_MAX_TOKENS_BY_PROVIDER, REASONING_MODE_CHOICES, PROVIDER_REASONING_CAPABILITIES, REASONING_TOKEN_MIN_BY_PROVIDER, } from "../constants/providers.js";
+import { PROVIDER_CHOICES, PROVIDER_LABELS, PROVIDER_PLACEHOLDERS, DEFAULT_MAX_TOKENS_BY_PROVIDER, REASONING_MODE_CHOICES, PROVIDER_REASONING_CAPABILITIES, PROVIDER_TOKEN_GUIDANCE, getModelMetadata, } from "../constants/providers.js";
 import { renderModelSelector, MODEL_SELECTOR_STYLES, MODEL_SELECTOR_RUNTIME, renderModelSelectorDataScript, MODEL_INSPECTOR_STYLES, } from "./components/model-selector.js";
 import { ATTACHMENT_UPLOADER_STYLES, ATTACHMENT_UPLOADER_RUNTIME, renderAttachmentUploader, } from "./components/attachment-uploader.js";
+import { renderTokenBudgetControl, TOKEN_BUDGET_STYLES, TOKEN_BUDGET_RUNTIME, } from "./components/token-budget-control.js";
 export function renderSetupWizardPage(options) {
-    const { step, providerLabel, providerName, verifyAction, briefAction, setupPath, adminPath, providerReady, canSelectProvider, selectedProvider, selectedModel, providerSelectionRequired, providerKeyStatuses, maxOutputTokens, reasoningMode, reasoningTokens, statusMessage, errorMessage, briefValue, } = options;
+    const { step, providerLabel, providerName, verifyAction, briefAction, setupPath, adminPath, providerReady, canSelectProvider, selectedProvider, selectedModel, providerSelectionRequired, providerKeyStatuses, maxOutputTokens, reasoningMode, reasoningTokensEnabled, reasoningTokens, statusMessage, errorMessage, briefValue, } = options;
     const heading = step === "provider" ? "Welcome to serve-llm" : "Shape the experience";
     const description = step === "provider"
         ? "Serve-llm hosts a living web canvas that your chosen model reimagines on every request—pick a provider and supply a secure API key to begin."
@@ -24,10 +25,11 @@ export function renderSetupWizardPage(options) {
             providerKeyStatuses,
             maxOutputTokens,
             reasoningMode,
+            reasoningTokensEnabled,
             reasoningTokens,
         })
         : renderBriefStep({ briefAction, setupPath, adminPath, briefValue });
-    const script = renderProviderScript(canSelectProvider, selectedProvider, selectedModel, reasoningMode, reasoningTokens, maxOutputTokens, providerKeyStatuses);
+    const script = renderProviderScript(canSelectProvider, selectedProvider, selectedModel, reasoningMode, reasoningTokensEnabled, reasoningTokens, maxOutputTokens, providerKeyStatuses);
     const attachmentRuntimeScript = `<script>${ATTACHMENT_UPLOADER_RUNTIME}</script>`;
     return `<!DOCTYPE html>
 <html lang="en">
@@ -57,6 +59,9 @@ export function renderSetupWizardPage(options) {
     --error: #b91c1c;
     --shadow-strong: 0 46px 96px rgba(15, 23, 42, 0.18);
     --shadow-soft: 0 28px 70px rgba(15, 23, 42, 0.12);
+  }
+  [hidden] {
+    display: none !important;
   }
   * { box-sizing: border-box; }
   body {
@@ -233,6 +238,81 @@ export function renderSetupWizardPage(options) {
     flex-wrap: wrap;
     gap: 12px;
   }
+  .token-field {
+    display: grid;
+    gap: 0;
+  }
+  .token-field[data-disabled="true"] {
+    opacity: 0.7;
+  }
+  .reasoning-toggle-group {
+    display: grid;
+    gap: 12px;
+  }
+  .reasoning-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(99, 102, 241, 0.28);
+    background: linear-gradient(135deg, rgba(238, 242, 255, 0.7), rgba(224, 231, 255, 0.4));
+  }
+  .reasoning-toggle[data-disabled="true"] {
+    opacity: 0.6;
+  }
+  .reasoning-toggle__control {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .reasoning-toggle__checkbox {
+    appearance: none;
+    width: 44px;
+    height: 26px;
+    border-radius: 999px;
+    border: 1px solid rgba(99, 102, 241, 0.5);
+    background: rgba(99, 102, 241, 0.18);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .reasoning-toggle__checkbox::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+    transition: transform 0.2s ease;
+  }
+  .reasoning-toggle__checkbox:checked {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.88), rgba(79, 70, 229, 0.92));
+    border-color: transparent;
+  }
+  .reasoning-toggle__checkbox:checked::after {
+    transform: translateX(18px);
+  }
+  .reasoning-toggle__checkbox:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  .reasoning-toggle__label {
+    font-size: 0.9rem;
+  }
+  .reasoning-toggle__helper {
+    flex: 1;
+    margin: 0;
+    text-align: right;
+    font-size: 0.78rem;
+    color: var(--subtle);
+  }
   .attachment-section {
     display: grid;
     gap: 12px;
@@ -251,6 +331,7 @@ export function renderSetupWizardPage(options) {
   ${MODEL_SELECTOR_STYLES}
   ${MODEL_INSPECTOR_STYLES}
   ${ATTACHMENT_UPLOADER_STYLES}
+  ${TOKEN_BUDGET_STYLES}
   .key-status {
     margin: 8px 0 0;
     font-size: 0.9rem;
@@ -419,32 +500,147 @@ function buildBanner(statusMessage, errorMessage) {
     return "";
 }
 function renderProviderStep(options) {
-    const { providerLabel, providerName, verifyAction, providerReady, canSelectProvider, selectedProvider, selectedModel, providerSelectionRequired, providerKeyStatuses, maxOutputTokens, reasoningMode, reasoningTokens, } = options;
+    const { providerLabel, providerName, verifyAction, providerReady, canSelectProvider, selectedProvider, selectedModel, providerSelectionRequired, providerKeyStatuses, maxOutputTokens, reasoningMode, reasoningTokensEnabled, reasoningTokens, } = options;
     const capabilities = PROVIDER_REASONING_CAPABILITIES[selectedProvider] ?? {
         mode: false,
         tokens: false,
     };
     const providerSupportsReasoningMode = capabilities.mode;
-    const providerSupportsReasoningTokens = capabilities.tokens;
     const defaultReasoningTokens = DEFAULT_REASONING_TOKENS[selectedProvider];
-    const defaultMaxTokens = DEFAULT_MAX_TOKENS_BY_PROVIDER[selectedProvider] ??
-        DEFAULT_MAX_OUTPUT_TOKENS;
-    const effectiveReasoningTokens = reasoningTokens ?? defaultReasoningTokens;
-    const reasoningTokenValue = effectiveReasoningTokens !== undefined && effectiveReasoningTokens !== null
-        ? String(effectiveReasoningTokens)
-        : "";
-    const maxTokensValue = maxOutputTokens !== defaultMaxTokens ? String(maxOutputTokens) : "";
-    const advancedOpen = (providerSupportsReasoningMode && reasoningMode !== "none") ||
-        (providerSupportsReasoningTokens &&
-            reasoningTokens !== undefined &&
-            reasoningTokens !== defaultReasoningTokens) ||
-        maxOutputTokens !== defaultMaxTokens;
-    const reasoningTokensDisabled = !providerSupportsReasoningTokens ||
-        (providerSupportsReasoningMode && reasoningMode === "none");
-    const reasoningTokenMinValue = REASONING_TOKEN_MIN_BY_PROVIDER[selectedProvider];
-    const reasoningInputMinAttr = typeof reasoningTokenMinValue === "number" && reasoningTokenMinValue >= 0
-        ? `min="${escapeHtml(String(reasoningTokenMinValue))}"`
-        : "";
+    const providerGuidance = PROVIDER_TOKEN_GUIDANCE[selectedProvider];
+    const modelMetadata = getModelMetadata(selectedProvider, selectedModel);
+    const maxOutputRange = (() => {
+        const base = providerGuidance?.maxOutputTokens ?? {};
+        const override = modelMetadata?.maxOutputTokens ?? {};
+        const description = override.description ?? base.description ?? "";
+        const defaultValue = override.default ??
+            base.default ??
+            DEFAULT_MAX_TOKENS_BY_PROVIDER[selectedProvider] ??
+            DEFAULT_MAX_OUTPUT_TOKENS;
+        return {
+            min: override.min ?? base.min,
+            max: override.max ?? base.max,
+            default: defaultValue,
+            description,
+        };
+    })();
+    const maxOutputDefault = typeof maxOutputRange.default === "number"
+        ? maxOutputRange.default
+        : DEFAULT_MAX_TOKENS_BY_PROVIDER[selectedProvider] ?? DEFAULT_MAX_OUTPUT_TOKENS;
+    const hasStoredMaxOutput = typeof maxOutputTokens === "number" && Number.isFinite(maxOutputTokens);
+    const sanitizedMaxOutput = hasStoredMaxOutput ? maxOutputTokens : maxOutputDefault;
+    const respectStoredMaxOutput = providerReady && hasStoredMaxOutput;
+    const explicitMaxOutputValue = respectStoredMaxOutput && sanitizedMaxOutput !== maxOutputDefault
+        ? sanitizedMaxOutput
+        : null;
+    const reasoningGuidance = (() => {
+        const base = providerGuidance?.reasoningTokens;
+        if (!base) {
+            return undefined;
+        }
+        const override = modelMetadata?.reasoningTokens;
+        const overrideRange = override ?? undefined;
+        const baseDefault = typeof base.default === "number" ? base.default : defaultReasoningTokens;
+        const mergedDefault = typeof overrideRange?.default === "number"
+            ? overrideRange.default
+            : baseDefault;
+        const allowDisable = overrideRange &&
+            Object.prototype.hasOwnProperty.call(overrideRange, "allowDisable")
+            ? overrideRange.allowDisable
+            : base.allowDisable;
+        return {
+            supported: Boolean(base.supported && override !== null),
+            min: overrideRange?.min ?? base.min,
+            max: overrideRange?.max ?? base.max,
+            default: mergedDefault,
+            description: overrideRange?.description ?? base.description ?? "",
+            helper: base.helper ?? "",
+            allowDisable: allowDisable !== undefined ? allowDisable : true,
+        };
+    })();
+    const modelSupportsReasoningTokens = Boolean(reasoningGuidance?.supported);
+    const metadataAllowsReasoningMode = !modelMetadata || modelMetadata.supportsReasoningMode === true;
+    const modelSupportsReasoningMode = providerSupportsReasoningMode &&
+        !modelSupportsReasoningTokens &&
+        metadataAllowsReasoningMode;
+    const reasoningToggleAllowed = modelSupportsReasoningTokens && (reasoningGuidance?.allowDisable !== false);
+    const reasoningToggleEnabled = modelSupportsReasoningTokens
+        ? reasoningToggleAllowed
+            ? reasoningTokensEnabled !== false
+            : true
+        : false;
+    const reasoningDefaultValue = reasoningGuidance?.default ?? defaultReasoningTokens ?? undefined;
+    const currentReasoningTokens = reasoningToggleEnabled && typeof reasoningTokens === "number"
+        ? reasoningTokens
+        : null;
+    const explicitReasoningValue = reasoningToggleEnabled &&
+        currentReasoningTokens !== null &&
+        (reasoningDefaultValue === undefined ||
+            currentReasoningTokens !== reasoningDefaultValue)
+        ? currentReasoningTokens
+        : null;
+    const reasoningTokensChanged = reasoningToggleEnabled
+        ? explicitReasoningValue !== null
+        : modelSupportsReasoningTokens && reasoningTokensEnabled === false;
+    const advancedOpen = (modelSupportsReasoningMode && reasoningMode !== "none") ||
+        reasoningTokensChanged ||
+        explicitMaxOutputValue !== null;
+    const initialReasoningDisabled = !reasoningToggleEnabled ||
+        (modelSupportsReasoningMode && reasoningMode === "none");
+    const reasoningSliderHelperParts = [
+        "Less reasoning tokens = faster. More tokens unlock complex flows.",
+    ];
+    if (reasoningGuidance?.helper) {
+        reasoningSliderHelperParts.push(reasoningGuidance.helper);
+    }
+    const reasoningSliderHelper = reasoningSliderHelperParts.join(" ");
+    const reasoningSliderDescription = reasoningGuidance?.description?.trim().length
+        ? reasoningGuidance.description
+        : "Reserve a deliberate thinking budget for this provider.";
+    const reasoningSpecialLabels = selectedProvider === "gemini"
+        ? { "-1": "Auto-managed", "0": "Disabled" }
+        : {};
+    const maxTokensControlMarkup = renderTokenBudgetControl({
+        id: "maxOutputTokens",
+        name: "maxOutputTokens",
+        label: "Max output tokens",
+        description: maxOutputRange.description?.trim().length
+            ? maxOutputRange.description
+            : "Let the model know how much it can write in each response.",
+        helper: "Higher limits unlock richer layouts; smaller caps return faster.",
+        value: explicitMaxOutputValue ?? null,
+        defaultValue: typeof maxOutputDefault === "number" ? maxOutputDefault : undefined,
+        min: maxOutputRange.min,
+        max: maxOutputRange.max,
+        units: "tokens",
+        allowBlank: true,
+        sliderEnabled: true,
+        disabled: false,
+        accent: "output",
+        manualPlaceholder: "Exact token cap or leave blank",
+    });
+    const reasoningTokensControlMarkup = renderTokenBudgetControl({
+        id: "reasoningTokens",
+        name: "reasoningTokens",
+        label: "Reasoning budget",
+        description: reasoningSliderDescription,
+        helper: reasoningSliderHelper,
+        value: explicitReasoningValue ?? null,
+        defaultValue: typeof reasoningDefaultValue === "number"
+            ? reasoningDefaultValue
+            : undefined,
+        min: reasoningGuidance?.min ?? providerGuidance?.reasoningTokens?.min,
+        max: reasoningGuidance?.max ?? providerGuidance?.reasoningTokens?.max,
+        units: "tokens",
+        allowBlank: true,
+        sliderEnabled: modelSupportsReasoningTokens,
+        disabled: initialReasoningDisabled,
+        accent: "reasoning",
+        manualPlaceholder: "Leave blank for provider defaults",
+        emptyLabel: "Auto (provider default)",
+        defaultLabel: "Provider default",
+        specialLabels: reasoningSpecialLabels,
+    });
     const selectedStatus = providerKeyStatuses[selectedProvider] ?? {
         hasKey: false,
         verified: false,
@@ -504,7 +700,7 @@ function renderProviderStep(options) {
     return `<section class="card">
     <div>${statusPill}</div>
     <p data-provider-copy>${escapeHtml(copyText)}</p>
-    <form method="post" action="${escapeHtml(verifyAction)}" autocomplete="off" data-key-state="${escapeHtml(keyStatusVariant)}" data-selection-required="${providerSelectionRequired ? "true" : "false"}">
+    <form method="post" action="${escapeHtml(verifyAction)}" autocomplete="off" data-key-state="${escapeHtml(keyStatusVariant)}" data-selection-required="${providerSelectionRequired ? "true" : "false"}" data-initial-reasoning-enabled="${reasoningToggleEnabled ? "true" : "false"}">
       ${providerSelection}
       ${modelSelectorMarkup}
       <label for="apiKey">
@@ -528,26 +724,12 @@ function renderProviderStep(options) {
           <span>Advanced controls</span>
           <span class="advanced-subtitle">Tune token budgets and reasoning traces.</span>
         </summary>
-        <div class="advanced-body">
-          <div class="advanced-grid">
-            <div class="field-group">
-              <label for="maxOutputTokens">
-                <span>Max output tokens</span>
-              </label>
-              <input
-                id="maxOutputTokens"
-                name="maxOutputTokens"
-                type="number"
-                min="1"
-                step="1"
-                inputmode="numeric"
-                placeholder="${escapeHtml(String(defaultMaxTokens))}"
-                value="${escapeHtml(maxTokensValue)}"
-                data-max-tokens
-              />
-              <p class="field-helper">Cap each response size. Leave blank to stick with the provider default.</p>
+          <div class="advanced-body">
+            <div class="advanced-grid">
+            <div class="token-field" data-token-control-wrapper="maxOutputTokens">
+              ${maxTokensControlMarkup}
             </div>
-            <div class="field-group" data-reasoning-mode-wrapper ${providerSupportsReasoningMode ? "" : "hidden"}>
+            <div class="field-group" data-reasoning-mode-wrapper ${modelSupportsReasoningMode ? "" : "hidden"}>
               <label for="reasoningMode">
                 <span>Reasoning mode</span>
               </label>
@@ -559,22 +741,41 @@ function renderProviderStep(options) {
               </select>
               <p class="field-helper" data-reasoning-helper>${escapeHtml(REASONING_MODE_CHOICES.find((choice) => choice.value === reasoningMode)?.description ?? "")}</p>
             </div>
-            <div class="field-group" data-reasoning-tokens-wrapper ${providerSupportsReasoningTokens ? "" : "hidden"} ${reasoningTokensDisabled ? 'data-disabled="true"' : ""}>
-              <label for="reasoningTokens">
-                <span>Reasoning max tokens</span>
-              </label>
-      <input
-        id="reasoningTokens"
-        name="reasoningTokens"
-        type="number"
-        ${reasoningInputMinAttr}
-        step="1"
-        inputmode="numeric"
-        value="${escapeHtml(reasoningTokenValue)}"
-        ${reasoningTokensDisabled ? "disabled" : ""}
-        data-reasoning-tokens
-              />
-              <p class="field-helper">Reserve a budget for deliberate reasoning. Leave blank for provider defaults.</p>
+            <div
+              class="reasoning-toggle-group"
+              data-reasoning-toggle-block
+              data-allow-disable="${reasoningToggleAllowed ? "true" : "false"}"
+              ${modelSupportsReasoningTokens ? "" : "hidden"}
+            >
+              <div class="reasoning-toggle" data-reasoning-toggle-wrapper ${reasoningToggleAllowed ? "" : "hidden"}>
+                <input
+                  type="hidden"
+                  name="reasoningTokensEnabled"
+                  value="${reasoningToggleEnabled ? "on" : "off"}"
+                  data-reasoning-toggle-hidden
+                />
+                <label class="reasoning-toggle__control">
+                  <input
+                    type="checkbox"
+                    class="reasoning-toggle__checkbox"
+                    data-reasoning-toggle-input
+                    ${reasoningToggleEnabled ? "checked" : ""}
+                  />
+                  <span class="reasoning-toggle__label">Enable reasoning</span>
+                </label>
+                <p class="field-helper reasoning-toggle__helper">
+                  Disable to skip deliberate thinking for faster setup.
+                </p>
+              </div>
+              <div
+                class="token-field"
+                data-reasoning-tokens-wrapper
+                data-token-control-wrapper="reasoningTokens"
+                ${reasoningToggleEnabled ? "" : "hidden"}
+                ${initialReasoningDisabled ? 'data-disabled="true"' : ""}
+              >
+                ${reasoningTokensControlMarkup}
+              </div>
             </div>
           </div>
         </div>
@@ -616,38 +817,36 @@ function renderBriefStep(options) {
     <p><a href="${escapeHtml(adminPath)}">Preview the admin tools</a> (opens once setup completes).</p>
   </section>`;
 }
-function renderProviderScript(_canSelectProvider, selectedProvider, selectedModel, reasoningMode, reasoningTokens, maxOutputTokens, providerKeyStatuses) {
+function renderProviderScript(_canSelectProvider, selectedProvider, selectedModel, reasoningMode, reasoningTokensEnabled, _reasoningTokens, _maxOutputTokens, providerKeyStatuses) {
     const providerLabelJson = JSON.stringify(PROVIDER_LABELS).replace(/</g, "\u003c");
     const placeholderJson = JSON.stringify(PROVIDER_PLACEHOLDERS).replace(/</g, "\u003c");
-    const maxTokensJson = JSON.stringify(DEFAULT_MAX_TOKENS_BY_PROVIDER).replace(/</g, "\u003c");
+    const providerDefaultsJson = JSON.stringify(DEFAULT_MAX_TOKENS_BY_PROVIDER).replace(/</g, "\u003c");
     const reasoningDescriptionsJson = JSON.stringify(Object.fromEntries(REASONING_MODE_CHOICES.map((choice) => [choice.value, choice.description]))).replace(/</g, "\u003c");
-    const reasoningDefaultsJson = JSON.stringify(DEFAULT_REASONING_TOKENS).replace(/</g, "\u003c");
     const reasoningCapabilitiesJson = JSON.stringify(PROVIDER_REASONING_CAPABILITIES).replace(/</g, "\u003c");
-    const reasoningMinJson = JSON.stringify(REASONING_TOKEN_MIN_BY_PROVIDER).replace(/</g, "\u003c");
+    const tokenGuidanceJson = JSON.stringify(PROVIDER_TOKEN_GUIDANCE).replace(/</g, "\u003c");
     const keyStatusJson = JSON.stringify(providerKeyStatuses).replace(/</g, "\u003c");
     const initialProviderJson = JSON.stringify(selectedProvider);
     const initialModelJson = JSON.stringify(selectedModel);
     const initialReasoningModeJson = JSON.stringify(reasoningMode);
-    const initialReasoningTokensJson = JSON.stringify(reasoningTokens ?? null);
-    const initialMaxTokensJson = JSON.stringify(maxOutputTokens);
     const dataScript = renderModelSelectorDataScript();
     const runtimeScript = `<script>${MODEL_SELECTOR_RUNTIME}</script>`;
+    const tokenBudgetRuntimeScript = `<script>${TOKEN_BUDGET_RUNTIME}</script>`;
     const pageScript = `
   <script>
     (() => {
       const providerLabels = ${providerLabelJson};
       const placeholderMap = ${placeholderJson};
-      const maxTokenDefaults = ${maxTokensJson};
       const reasoningDescriptions = ${reasoningDescriptionsJson};
-      const reasoningDefaults = ${reasoningDefaultsJson};
       const reasoningCapabilities = ${reasoningCapabilitiesJson};
-      const reasoningMins = ${reasoningMinJson};
+      const providerTokenGuidance = ${tokenGuidanceJson};
+      const providerDefaultMaxTokens = ${providerDefaultsJson};
       const providerKeyStatus = ${keyStatusJson};
       const initialProvider = ${initialProviderJson};
       const initialModel = ${initialModelJson} || '';
       const initialReasoningMode = ${initialReasoningModeJson} || 'none';
-      const initialReasoningTokens = ${initialReasoningTokensJson};
-      const initialMaxTokens = ${initialMaxTokensJson};
+      const tokenControlApi = window.__SERVE_LLM_TOKEN_CONTROL;
+      const modelCatalogData =
+        window.__SERVE_LLM_MODEL_SELECTOR_DATA?.catalog || {};
 
       const formEl = document.querySelector('form[data-key-state]');
       if (!(formEl instanceof HTMLFormElement)) {
@@ -665,13 +864,39 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
       const keyStatusEl = document.querySelector('[data-key-status]');
       const labelEl = document.querySelector('[data-provider-label-text]');
       const apiInput = document.querySelector('[data-key-input]');
-      const maxTokensInput = document.querySelector('[data-max-tokens]');
       const reasoningModeWrapper = document.querySelector('[data-reasoning-mode-wrapper]');
       const reasoningModeSelect = document.querySelector('[data-reasoning-mode]');
       const reasoningTokensWrapper = document.querySelector('[data-reasoning-tokens-wrapper]');
-      const reasoningTokensInput = document.querySelector('[data-reasoning-tokens]');
       const reasoningHelper = document.querySelector('[data-reasoning-helper]');
       const modelRoot = document.querySelector('[data-model-selector]');
+      const advancedDetails = formEl.querySelector('[data-advanced]');
+      const maxTokensControlRoot = formEl.querySelector(
+        '[data-token-control="maxOutputTokens"]'
+      );
+      const reasoningTokensControlRoot = formEl.querySelector(
+        '[data-token-control="reasoningTokens"]'
+      );
+      const reasoningToggleBlock = formEl.querySelector(
+        '[data-reasoning-toggle-block]'
+      );
+      const reasoningToggleWrapper = formEl.querySelector(
+        '[data-reasoning-toggle-wrapper]'
+      );
+      const reasoningToggleInput = formEl.querySelector(
+        '[data-reasoning-toggle-input]'
+      );
+      const reasoningToggleHidden = formEl.querySelector(
+        '[data-reasoning-toggle-hidden]'
+      );
+
+      const maxTokensControl =
+        tokenControlApi && typeof tokenControlApi.init === 'function'
+          ? tokenControlApi.init(maxTokensControlRoot)
+          : null;
+      const reasoningTokensControl =
+        tokenControlApi && typeof tokenControlApi.init === 'function'
+          ? tokenControlApi.init(reasoningTokensControlRoot)
+          : null;
 
       const modelSelector = window.__SERVE_LLM_MODEL_SELECTOR?.init(modelRoot, {
         provider: initialProvider,
@@ -702,19 +927,88 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
       };
 
       const cachedApiInputs = Object.create(null);
-      const cachedReasoningTokensByProvider = Object.create(null);
       const cachedModelByProvider = Object.create(null);
+
+      const buildMaxTokenCacheKey = (provider, modelValue) => {
+        const normalizedProvider = (provider || '').trim() || '__default__';
+        const normalizedModel = (modelValue || '').trim() || '__default__';
+        return normalizedProvider + '::' + normalizedModel;
+      };
+
+      const clampNumber = (value, min, max) => {
+        let next = value;
+        if (typeof min === 'number' && Number.isFinite(min)) {
+          next = Math.max(next, min);
+        }
+        if (typeof max === 'number' && Number.isFinite(max)) {
+          next = Math.min(next, max);
+        }
+        return next;
+      };
+
+      const cachedMaxTokensBySelection = Object.create(null);
+      const cachedReasoningTokensByProvider = Object.create(null);
+      const defaultMaxTokensAppliedBySelection = Object.create(null);
 
       let activeProvider = initialProvider;
       let currentReasoningMode = initialReasoningMode;
+      let providerSupportsMode = false;
+      let providerSupportsTokens = false;
       let reasoningModeSupported = false;
       let reasoningTokensSupported = false;
+      let reasoningToggleAllowed = true;
+      const reasoningEnabledByProvider = Object.create(null);
 
-      cachedModelByProvider[initialProvider] = modelSelector.getState().input;
+      const ensureProviderCaches = (provider) => {
+        if (cachedReasoningTokensByProvider[provider] === undefined) {
+          cachedReasoningTokensByProvider[provider] = '';
+        }
+        if (reasoningEnabledByProvider[provider] === undefined) {
+          reasoningEnabledByProvider[provider] = true;
+        }
+      };
 
-      modelSelector.onChange((state) => {
-        cachedModelByProvider[state.provider] = state.input;
-      });
+      const ensureMaxTokenCache = (cacheKey) => {
+        if (cachedMaxTokensBySelection[cacheKey] === undefined) {
+          cachedMaxTokensBySelection[cacheKey] = '';
+        }
+        if (defaultMaxTokensAppliedBySelection[cacheKey] === undefined) {
+          defaultMaxTokensAppliedBySelection[cacheKey] = false;
+        }
+      };
+
+      const initialReasoningEnabled =
+        formEl.dataset.initialReasoningEnabled !== 'false';
+      reasoningEnabledByProvider[activeProvider] = initialReasoningEnabled;
+      let reasoningTokensEnabledState = initialReasoningEnabled;
+
+      if (apiInput instanceof HTMLInputElement && apiInput.value) {
+        cachedApiInputs[activeProvider] = apiInput.value;
+      }
+
+      const initialModelState = modelSelector.getState();
+      cachedModelByProvider[initialModelState.provider] = initialModelState.input;
+
+      if (maxTokensControl) {
+        const maxState = maxTokensControl.getState();
+        const initialCacheKey = buildMaxTokenCacheKey(
+          initialModelState.provider,
+          initialModelState.value || initialModelState.input,
+        );
+        cachedMaxTokensBySelection[initialCacheKey] = maxState.raw || '';
+        if (defaultMaxTokensAppliedBySelection[initialCacheKey] === undefined) {
+          defaultMaxTokensAppliedBySelection[initialCacheKey] = false;
+        }
+      }
+
+      if (reasoningTokensControl) {
+        const reasoningState = reasoningTokensControl.getState();
+        cachedReasoningTokensByProvider[activeProvider] = reasoningState.raw || '';
+      }
+
+      let activeMaxRange = null;
+      let activeReasoningRange = null;
+      let isApplyingConstraint = false;
 
       const setActiveOption = (radio) => {
         if (!providerOptionEls.length) return;
@@ -742,9 +1036,7 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
           keyStatusEl.textContent = statusTemplate.replace('{provider}', providerLabel);
           keyStatusEl.dataset.keyVariant = variant;
         }
-        if (formEl instanceof HTMLElement) {
-          formEl.dataset.keyState = variant;
-        }
+        formEl.dataset.keyState = variant;
         if (apiInput instanceof HTMLInputElement) {
           if (variant === 'missing') {
             apiInput.setAttribute('required', 'true');
@@ -755,14 +1047,502 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
         return variant;
       };
 
-      const updateMaxTokensPlaceholder = (provider) => {
-        if (!(maxTokensInput instanceof HTMLInputElement)) {
+      const updateReasoningHelper = (mode) => {
+        if (reasoningHelper instanceof HTMLElement) {
+          reasoningHelper.textContent = reasoningDescriptions[mode] || '';
+        }
+      };
+
+      const getProviderGuidance = (provider) =>
+        providerTokenGuidance?.[provider] || {};
+
+      const getModelList = (provider) => {
+        const list = modelCatalogData?.[provider];
+        return Array.isArray(list) ? list : [];
+      };
+
+      const findModelMetadata = (provider, value) => {
+        if (!value) {
+          return null;
+        }
+        const normalized = value.trim();
+        if (!normalized) {
+          return null;
+        }
+        return (
+          getModelList(provider).find((item) => item.value === normalized) || null
+        );
+      };
+
+      const isCustomModel = (provider, value) => {
+        if (!value) {
+          return false;
+        }
+        return !findModelMetadata(provider, value);
+      };
+
+      const reasoningSpecialLabelsByProvider = {
+        gemini: { '-1': 'Auto-managed', '0': 'Disabled' },
+      };
+
+      const getReasoningSpecialLabels = (provider) =>
+        reasoningSpecialLabelsByProvider[provider] || {};
+
+      const getCurrentModelState = () => {
+        if (modelSelector) {
+          return modelSelector.getState();
+        }
+        return {
+          provider: activeProvider,
+          value: '',
+          input: '',
+          providerLabel: providerLabels[activeProvider] || activeProvider,
+        };
+      };
+
+      const getActiveMaxTokenCacheKey = () => {
+        const modelState = getCurrentModelState();
+        const modelValue = modelState?.value || modelState?.input || '';
+        return buildMaxTokenCacheKey(activeProvider, modelValue);
+      };
+
+      const enforceTokenConstraint = () => {
+        if (!maxTokensControl || isApplyingConstraint) {
           return;
         }
-        const defaultMax = maxTokenDefaults[provider];
-        if (typeof defaultMax === 'number' && !Number.isNaN(defaultMax)) {
-          maxTokensInput.placeholder = String(defaultMax);
+        isApplyingConstraint = true;
+        try {
+          const providerMin =
+            typeof activeMaxRange?.min === 'number'
+              ? activeMaxRange.min
+              : undefined;
+          let requiredOutput =
+            typeof providerMin === 'number' ? providerMin : undefined;
+          let statusMessage = '';
+          const reasoningModeActive =
+            reasoningModeSupported && !reasoningTokensSupported;
+          if (
+            reasoningTokensControl &&
+            activeReasoningRange &&
+            activeReasoningRange.supported &&
+            reasoningTokensEnabledState &&
+            !(reasoningModeActive && currentReasoningMode === 'none')
+          ) {
+            const reasoningState = reasoningTokensControl.getState();
+            let effectiveReasoning = null;
+            if (reasoningState.isBlank) {
+              if (typeof activeReasoningRange.default === 'number') {
+                effectiveReasoning = activeReasoningRange.default;
+              }
+            } else if (typeof reasoningState.numeric === 'number') {
+              effectiveReasoning = reasoningState.numeric;
+            }
+            if (
+              typeof effectiveReasoning === 'number' &&
+              Number.isFinite(effectiveReasoning) &&
+              effectiveReasoning >= 0
+            ) {
+              const baseConstraint =
+                effectiveReasoning === -1
+                  ? typeof activeReasoningRange.min === 'number'
+                    ? activeReasoningRange.min ?? 0
+                    : 0
+                  : effectiveReasoning;
+              const candidate = baseConstraint + 1;
+              requiredOutput =
+                typeof requiredOutput === 'number'
+                  ? Math.max(requiredOutput, candidate)
+                  : candidate;
+              if (
+                typeof requiredOutput === 'number' &&
+                (typeof providerMin !== 'number' || requiredOutput > providerMin)
+              ) {
+                statusMessage = 'Raised to stay aligned with the reasoning budget.';
+              }
+            }
+          }
+
+          const minFloor =
+            typeof providerMin === 'number'
+              ? providerMin
+              : typeof activeMaxRange?.min === 'number'
+              ? activeMaxRange.min
+              : undefined;
+
+          if (typeof minFloor === 'number') {
+            if (activeMaxRange) {
+              activeMaxRange.min = minFloor;
+              if (
+                typeof activeMaxRange.default === 'number' &&
+                activeMaxRange.default < minFloor
+              ) {
+                activeMaxRange.default = minFloor;
+              }
+            }
+            const defaultFloor =
+              typeof activeMaxRange?.default === 'number'
+                ? Math.max(activeMaxRange.default, minFloor)
+                : minFloor;
+            maxTokensControl.configure({
+              min: minFloor,
+              autoStep: true,
+              defaultValue: defaultFloor,
+            });
+          }
+
+          const constraintActive =
+            typeof requiredOutput === 'number' &&
+            Number.isFinite(requiredOutput) &&
+            statusMessage !== '';
+          if (constraintActive) {
+            const maxState = maxTokensControl.getState();
+            const needsAdjustment =
+              !maxState ||
+              typeof maxState.numeric !== 'number' ||
+              maxState.numeric < requiredOutput;
+            if (needsAdjustment) {
+              const adjusted = Math.max(requiredOutput, Math.ceil(requiredOutput));
+              const adjustedValue = String(adjusted);
+              maxTokensControl.setValue(adjustedValue);
+              const cacheKey = getActiveMaxTokenCacheKey();
+              ensureMaxTokenCache(cacheKey);
+              cachedMaxTokensBySelection[cacheKey] = adjustedValue;
+            }
+          }
+
+          if (statusMessage) {
+            maxTokensControl.configure({ status: statusMessage });
+          } else {
+            maxTokensControl.configure({ status: '' });
+          }
+        } finally {
+          isApplyingConstraint = false;
         }
+      };
+
+      const updateTokenControls = () => {
+        ensureProviderCaches(activeProvider);
+        const modelState = getCurrentModelState();
+        const modelValue = modelState?.value || modelState?.input || '';
+        const maxTokenCacheKey = buildMaxTokenCacheKey(
+          activeProvider,
+          modelValue,
+        );
+        ensureMaxTokenCache(maxTokenCacheKey);
+        const metadata = findModelMetadata(activeProvider, modelValue || '');
+        const customModel = isCustomModel(activeProvider, modelValue || '');
+        const guidance = getProviderGuidance(activeProvider);
+        const maxGuidance = guidance.maxOutputTokens || {};
+        const reasoningGuidance = guidance.reasoningTokens;
+
+        const providerDefaultMax = (() => {
+          const mapped = providerDefaultMaxTokens?.[activeProvider];
+          return typeof mapped === 'number' && Number.isFinite(mapped)
+            ? mapped
+            : null;
+        })();
+
+        const mergedMaxRange = {
+          min:
+            typeof metadata?.maxOutputTokens?.min === 'number'
+              ? metadata.maxOutputTokens.min
+              : maxGuidance.min,
+          max:
+            typeof metadata?.maxOutputTokens?.max === 'number'
+              ? metadata.maxOutputTokens.max
+              : maxGuidance.max,
+          default:
+            typeof metadata?.maxOutputTokens?.default === 'number'
+              ? metadata.maxOutputTokens.default
+              : maxGuidance.default,
+          description:
+            (metadata?.maxOutputTokens?.description || maxGuidance.description || '').trim(),
+        };
+        const minBound =
+          typeof mergedMaxRange.min === 'number' && Number.isFinite(mergedMaxRange.min)
+            ? mergedMaxRange.min
+            : null;
+        const normalizedDefault =
+          typeof mergedMaxRange.default === 'number' &&
+          Number.isFinite(mergedMaxRange.default)
+            ? mergedMaxRange.default
+            : providerDefaultMax;
+        const finalDefault =
+          normalizedDefault !== null
+            ? minBound !== null
+              ? Math.max(normalizedDefault, minBound)
+              : normalizedDefault
+            : minBound ?? providerDefaultMax;
+        if (typeof finalDefault === 'number' && Number.isFinite(finalDefault)) {
+          mergedMaxRange.default = finalDefault;
+        } else {
+          mergedMaxRange.default = undefined;
+        }
+        activeMaxRange = mergedMaxRange;
+
+        if (maxTokensControl) {
+          const cachedValue = cachedMaxTokensBySelection[maxTokenCacheKey];
+          const maxConfig = {
+            min: mergedMaxRange.min,
+            max: mergedMaxRange.max,
+            defaultValue: mergedMaxRange.default,
+            description:
+              mergedMaxRange.description || 'Give the model a ceiling for each response.',
+            helper: 'Higher limits unlock richer layouts; smaller caps return faster.',
+            autoStep: true,
+          };
+          if (
+            typeof cachedValue === 'string' &&
+            cachedValue.trim().length > 0
+          ) {
+            const numeric = Number(cachedValue);
+            if (Number.isFinite(numeric)) {
+              const clamped = clampNumber(
+                numeric,
+                mergedMaxRange.min,
+                mergedMaxRange.max,
+              );
+              const clampedValue = String(Math.floor(clamped));
+              maxConfig.value = clampedValue;
+              if (clampedValue !== cachedValue) {
+                cachedMaxTokensBySelection[maxTokenCacheKey] = clampedValue;
+              }
+            } else {
+              maxConfig.value = cachedValue;
+            }
+          }
+          maxTokensControl.configure(maxConfig);
+          const shouldApplyDefault =
+            (!cachedValue || cachedValue.trim().length === 0) &&
+            typeof mergedMaxRange.default === 'number' &&
+            Number.isFinite(mergedMaxRange.default) &&
+            !defaultMaxTokensAppliedBySelection[maxTokenCacheKey];
+          if (shouldApplyDefault) {
+            const currentState = maxTokensControl.getState();
+            if (!currentState || currentState.isBlank || currentState.numeric === null) {
+              const defaultNumeric = Math.floor(mergedMaxRange.default);
+              const defaultValueString = String(defaultNumeric);
+              maxTokensControl.setValue(defaultValueString);
+              cachedMaxTokensBySelection[maxTokenCacheKey] = defaultValueString;
+            }
+            defaultMaxTokensAppliedBySelection[maxTokenCacheKey] = true;
+          }
+        }
+
+        let mergedReasoningRange = null;
+        let allowDisable = true;
+        if (reasoningGuidance) {
+          const override = metadata?.reasoningTokens;
+          const providerSupports = Boolean(reasoningGuidance.supported);
+          const hasOverride =
+            metadata &&
+            Object.prototype.hasOwnProperty.call(metadata, 'reasoningTokens');
+          const supported =
+            providerSupports &&
+            (customModel || !metadata || !hasOverride || override !== null);
+          const overrideAllows =
+            override &&
+            Object.prototype.hasOwnProperty.call(override, 'allowDisable')
+              ? override.allowDisable
+              : undefined;
+          const guidanceAllows = reasoningGuidance.allowDisable;
+          const normalizedAllow =
+            overrideAllows !== undefined ? overrideAllows : guidanceAllows;
+          allowDisable =
+            normalizedAllow === undefined ? true : normalizedAllow !== false;
+          mergedReasoningRange = {
+            supported,
+            min:
+              typeof override?.min === 'number'
+                ? override.min
+                : reasoningGuidance.min,
+            max:
+              typeof override?.max === 'number'
+                ? override.max
+                : reasoningGuidance.max,
+            default:
+              typeof override?.default === 'number'
+                ? override.default
+                : reasoningGuidance.default,
+            description:
+              (override?.description || reasoningGuidance.description || '').trim(),
+            helper: reasoningGuidance.helper || '',
+            allowDisable: normalizedAllow,
+          };
+        }
+        activeReasoningRange = mergedReasoningRange;
+        const tokensSupported =
+          providerSupportsTokens && Boolean(mergedReasoningRange?.supported);
+        reasoningTokensSupported = tokensSupported;
+        const metadataAllowsMode =
+          providerSupportsMode &&
+          (customModel || !metadata || metadata.supportsReasoningMode === true);
+        const showReasoningMode = metadataAllowsMode && !tokensSupported;
+        reasoningModeSupported = showReasoningMode;
+        if (reasoningModeWrapper instanceof HTMLElement) {
+          reasoningModeWrapper.hidden = !showReasoningMode;
+        }
+        if (reasoningModeSelect instanceof HTMLSelectElement) {
+          reasoningModeSelect.disabled = !showReasoningMode;
+          if (!showReasoningMode) {
+            currentReasoningMode = 'none';
+          }
+          reasoningModeSelect.value = currentReasoningMode;
+        } else if (!showReasoningMode) {
+          currentReasoningMode = 'none';
+        }
+        updateReasoningHelper(currentReasoningMode);
+        if (tokensSupported) {
+          if (reasoningEnabledByProvider[activeProvider] === undefined) {
+            reasoningEnabledByProvider[activeProvider] = true;
+          }
+          const storedToggle = reasoningEnabledByProvider[activeProvider];
+          reasoningTokensEnabledState = allowDisable
+            ? storedToggle !== false
+            : true;
+        } else {
+          reasoningTokensEnabledState = false;
+        }
+
+        const helperPieces = [
+          'Less reasoning tokens = faster. More tokens unlock complex flows.',
+        ];
+        if (mergedReasoningRange?.helper) {
+          helperPieces.push(mergedReasoningRange.helper);
+        }
+        const sliderHelper = helperPieces.join(' ');
+        const sliderDescription =
+          mergedReasoningRange?.description ||
+          'Reserve a deliberate thinking budget for models that support it.';
+
+        const modeDisablesTokens =
+          showReasoningMode && currentReasoningMode === 'none';
+        reasoningToggleAllowed =
+          tokensSupported && allowDisable && !modeDisablesTokens;
+        const showReasoningBudget =
+          tokensSupported &&
+          reasoningTokensEnabledState &&
+          !modeDisablesTokens;
+        const tokensDisabled = !showReasoningBudget;
+
+        if (reasoningToggleBlock instanceof HTMLElement) {
+          reasoningToggleBlock.hidden = !tokensSupported;
+          reasoningToggleBlock.setAttribute(
+            'data-allow-disable',
+            tokensSupported && allowDisable ? 'true' : 'false',
+          );
+        }
+        if (reasoningToggleWrapper instanceof HTMLElement) {
+          reasoningToggleWrapper.hidden = !reasoningToggleAllowed;
+          if (!reasoningToggleAllowed && tokensSupported && modeDisablesTokens) {
+            reasoningToggleWrapper.setAttribute('data-disabled', 'true');
+          } else {
+            reasoningToggleWrapper.removeAttribute('data-disabled');
+          }
+        }
+        if (reasoningToggleInput instanceof HTMLInputElement) {
+          reasoningToggleInput.checked = reasoningTokensEnabledState;
+          reasoningToggleInput.disabled =
+            !tokensSupported || !allowDisable || modeDisablesTokens;
+        }
+        if (reasoningToggleHidden instanceof HTMLInputElement) {
+          reasoningToggleHidden.value = reasoningTokensEnabledState ? 'on' : 'off';
+        }
+
+        if (reasoningTokensWrapper instanceof HTMLElement) {
+          reasoningTokensWrapper.hidden = !showReasoningBudget;
+          if (!showReasoningBudget) {
+            reasoningTokensWrapper.setAttribute('data-disabled', 'true');
+          } else {
+            reasoningTokensWrapper.removeAttribute('data-disabled');
+          }
+        }
+
+        if (reasoningTokensControl) {
+          const cachedReason = cachedReasoningTokensByProvider[activeProvider];
+          const reasoningConfig = {
+            helper: sliderHelper,
+            description: sliderDescription,
+            sliderEnabled: showReasoningBudget,
+            disabled: tokensDisabled,
+            min: mergedReasoningRange?.min,
+            max: mergedReasoningRange?.max,
+            defaultValue:
+              typeof mergedReasoningRange?.default === 'number'
+                ? mergedReasoningRange.default
+                : undefined,
+            specialLabels: getReasoningSpecialLabels(activeProvider),
+            emptyLabel: 'Auto (provider default)',
+            defaultLabel: 'Provider default',
+            autoStep: true,
+          };
+          if (cachedReason !== undefined) {
+            reasoningConfig.value = cachedReason;
+          }
+          reasoningTokensControl.configure(reasoningConfig);
+        }
+
+        enforceTokenConstraint();
+      };
+
+      if (maxTokensControl) {
+        maxTokensControl.onChange((state) => {
+          if (!state || state.source === 'configure' || isApplyingConstraint) {
+            return;
+          }
+          const cacheKey = getActiveMaxTokenCacheKey();
+          ensureMaxTokenCache(cacheKey);
+          cachedMaxTokensBySelection[cacheKey] = state.raw || '';
+          enforceTokenConstraint();
+        });
+      }
+
+      if (reasoningTokensControl) {
+        reasoningTokensControl.onChange((state) => {
+          if (!state || state.source === 'configure' || isApplyingConstraint) {
+            return;
+          }
+          cachedReasoningTokensByProvider[activeProvider] = state.raw || '';
+          enforceTokenConstraint();
+        });
+      }
+
+      const updateReasoningSupport = (provider) => {
+        const capability = reasoningCapabilities[provider] || { mode: false, tokens: false };
+        providerSupportsMode = Boolean(capability.mode);
+        providerSupportsTokens = Boolean(capability.tokens);
+        reasoningModeSupported = false;
+        reasoningTokensSupported = false;
+        reasoningToggleAllowed = providerSupportsTokens;
+        if (!providerSupportsMode) {
+          currentReasoningMode = 'none';
+        }
+        if (reasoningModeWrapper instanceof HTMLElement) {
+          reasoningModeWrapper.hidden = true;
+        }
+        if (reasoningModeSelect instanceof HTMLSelectElement) {
+          reasoningModeSelect.disabled = true;
+          reasoningModeSelect.value = currentReasoningMode;
+        }
+        if (reasoningToggleBlock instanceof HTMLElement) {
+          reasoningToggleBlock.hidden = !providerSupportsTokens;
+          reasoningToggleBlock.setAttribute(
+            'data-allow-disable',
+            providerSupportsTokens ? 'true' : 'false',
+          );
+        }
+        if (reasoningToggleWrapper instanceof HTMLElement) {
+          reasoningToggleWrapper.hidden = true;
+          reasoningToggleWrapper.removeAttribute('data-disabled');
+        }
+        if (reasoningToggleInput instanceof HTMLInputElement) {
+          reasoningToggleInput.checked = true;
+          reasoningToggleInput.disabled = !providerSupportsTokens;
+        }
+        if (reasoningToggleHidden instanceof HTMLInputElement) {
+          reasoningToggleHidden.value = 'on';
+        }
+        updateReasoningHelper(currentReasoningMode);
       };
 
       const applyReasoningMode = (mode) => {
@@ -771,61 +1551,28 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
         if (reasoningModeSelect instanceof HTMLSelectElement) {
           reasoningModeSelect.value = normalized;
         }
-        if (reasoningHelper instanceof HTMLElement) {
-          reasoningHelper.textContent = reasoningDescriptions[normalized] || '';
-        }
-        const tokensDisabled = !reasoningTokensSupported || (reasoningModeSupported && normalized === 'none');
-        if (reasoningTokensWrapper instanceof HTMLElement) {
-          if (tokensDisabled) {
-            reasoningTokensWrapper.setAttribute('data-disabled', 'true');
-          } else {
-            reasoningTokensWrapper.removeAttribute('data-disabled');
-          }
-        }
-        if (reasoningTokensInput instanceof HTMLInputElement) {
-          if (tokensDisabled) {
-            reasoningTokensInput.value = '';
-            reasoningTokensInput.setAttribute('disabled', 'true');
-          } else {
-            reasoningTokensInput.removeAttribute('disabled');
-            const cachedValue = cachedReasoningTokensByProvider[activeProvider];
-            if (typeof cachedValue === 'string') {
-              reasoningTokensInput.value = cachedValue;
-            } else {
-              const defaultTokens = reasoningDefaults[activeProvider];
-              reasoningTokensInput.value =
-                typeof defaultTokens === 'number' ? String(defaultTokens) : '';
-            }
-          }
-        }
+        updateReasoningHelper(normalized);
+        updateTokenControls();
       };
 
-      const updateReasoningSupport = (provider) => {
-        const capability = reasoningCapabilities[provider] || { mode: false, tokens: false };
-        reasoningModeSupported = Boolean(capability.mode);
-        reasoningTokensSupported = Boolean(capability.tokens);
-        if (reasoningModeWrapper instanceof HTMLElement) {
-          reasoningModeWrapper.hidden = !reasoningModeSupported;
+      const applyReasoningToggle = (enabled) => {
+        const effective = reasoningToggleAllowed ? enabled : true;
+        if (reasoningToggleAllowed) {
+          reasoningEnabledByProvider[activeProvider] = effective;
         }
-        if (reasoningTokensWrapper instanceof HTMLElement) {
-          reasoningTokensWrapper.hidden = !reasoningTokensSupported;
+        reasoningTokensEnabledState = effective;
+        if (reasoningToggleHidden instanceof HTMLInputElement) {
+          reasoningToggleHidden.value = effective ? 'on' : 'off';
         }
-        if (reasoningTokensInput instanceof HTMLInputElement) {
-          const min = reasoningMins[provider];
-          if (typeof min === 'number' && !Number.isNaN(min)) {
-            reasoningTokensInput.min = String(min);
-          } else {
-            reasoningTokensInput.removeAttribute('min');
-          }
-        }
-        if (cachedReasoningTokensByProvider[provider] === undefined) {
-          const defaultTokens = reasoningDefaults[provider];
-          cachedReasoningTokensByProvider[provider] =
-            typeof defaultTokens === 'number' ? String(defaultTokens) : '';
-        }
-        const nextMode = reasoningModeSupported ? currentReasoningMode : 'none';
-        applyReasoningMode(nextMode);
+        updateTokenControls();
       };
+
+      modelSelector.onChange((state) => {
+        cachedModelByProvider[state.provider] = state.input;
+        if (state.provider === activeProvider) {
+          updateTokenControls();
+        }
+      });
 
       const applyProvider = (provider, explicitLabel, overrideVariant) => {
         const providerLabel = explicitLabel || providerLabels[provider] || provider;
@@ -844,13 +1591,34 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
             apiInput.focus({ preventScroll: true });
           }
         }
-        updateMaxTokensPlaceholder(provider);
+        ensureProviderCaches(provider);
         const cachedModel = cachedModelByProvider[provider];
         modelSelector.setProvider(provider, {
           providerLabel,
           model: typeof cachedModel === 'string' ? cachedModel : '',
         });
+        const providerState = modelSelector.getState();
+        const providerModelValue =
+          providerState.provider === provider
+            ? providerState.value || providerState.input
+            : cachedModel || '';
+        const providerCacheKey = buildMaxTokenCacheKey(
+          provider,
+          providerModelValue,
+        );
+        ensureMaxTokenCache(providerCacheKey);
         updateReasoningSupport(provider);
+        const storedToggle = reasoningEnabledByProvider[provider];
+        reasoningTokensEnabledState = storedToggle !== false;
+        const nextMode = reasoningModeSupported ? currentReasoningMode : 'none';
+        applyReasoningMode(nextMode);
+        if (
+          advancedDetails instanceof HTMLDetailsElement &&
+          !advancedDetails.open &&
+          (reasoningModeSupported || reasoningTokensSupported)
+        ) {
+          advancedDetails.open = true;
+        }
       };
 
       const handleProviderChange = (radio) => {
@@ -864,8 +1632,15 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
         if (apiInput instanceof HTMLInputElement) {
           cachedApiInputs[activeProvider] = apiInput.value;
         }
-        if (reasoningTokensInput instanceof HTMLInputElement && !reasoningTokensInput.disabled) {
-          cachedReasoningTokensByProvider[activeProvider] = reasoningTokensInput.value.trim();
+        if (maxTokensControl) {
+          const maxState = maxTokensControl.getState();
+          const cacheKey = getActiveMaxTokenCacheKey();
+          ensureMaxTokenCache(cacheKey);
+          cachedMaxTokensBySelection[cacheKey] = maxState.raw || '';
+        }
+        if (reasoningTokensControl) {
+          const reasoningState = reasoningTokensControl.getState();
+          cachedReasoningTokensByProvider[activeProvider] = reasoningState.raw || '';
         }
         const providerLabel =
           radio.getAttribute('data-provider-label') || providerLabels[nextProvider] || nextProvider;
@@ -889,44 +1664,26 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
         getKeyVariant(activeProvider),
       );
 
+      if (apiInput instanceof HTMLInputElement) {
+        apiInput.addEventListener('input', () => {
+          cachedApiInputs[activeProvider] = apiInput.value;
+        });
+      }
+
       if (reasoningModeSelect instanceof HTMLSelectElement) {
         reasoningModeSelect.addEventListener('change', () => {
           applyReasoningMode(reasoningModeSelect.value);
         });
       }
 
-      if (reasoningTokensInput instanceof HTMLInputElement) {
-        if (typeof initialReasoningTokens === 'number') {
-          const initialTokens = String(initialReasoningTokens);
-          reasoningTokensInput.value = initialTokens;
-          cachedReasoningTokensByProvider[initialProvider] = initialTokens;
-        } else if (reasoningTokensInput.value) {
-          cachedReasoningTokensByProvider[initialProvider] = reasoningTokensInput.value.trim();
-        }
-        reasoningTokensInput.addEventListener('input', () => {
-          cachedReasoningTokensByProvider[activeProvider] = reasoningTokensInput.value.trim();
+      if (reasoningToggleInput instanceof HTMLInputElement) {
+        reasoningToggleInput.addEventListener('change', () => {
+          applyReasoningToggle(Boolean(reasoningToggleInput.checked));
         });
       }
 
-      if (maxTokensInput instanceof HTMLInputElement) {
-        const defaultMax = maxTokenDefaults[activeProvider];
-        if (
-          typeof defaultMax === 'number' &&
-          Number(initialMaxTokens) === defaultMax &&
-          maxTokensInput.value
-        ) {
-          maxTokensInput.value = '';
-        }
-      }
-
-      if (reasoningModeSelect instanceof HTMLSelectElement) {
-        applyReasoningMode(reasoningModeSelect.value);
-      } else {
-        applyReasoningMode(initialReasoningMode);
-      }
+      updateTokenControls();
     })();
   </script>`;
-    return `${dataScript}
-${runtimeScript}
-${pageScript}`;
+    return `${dataScript}` + `${runtimeScript}` + `${tokenBudgetRuntimeScript}` + `${pageScript}`;
 }
