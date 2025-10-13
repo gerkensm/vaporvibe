@@ -91,12 +91,13 @@ async function resolveProviderSettings(provider, options, env) {
             env.MODEL?.trim() ||
             DEFAULT_GEMINI_MODEL;
         const maxOutputTokens = maxOverride ?? DEFAULT_MAX_OUTPUT_TOKENS;
+        const reasoningTokensExplicit = reasoning.tokensExplicit && typeof reasoning.tokens === "number";
+        const reasoningTokensEnabled = reasoningTokensExplicit ? reasoning.tokens !== 0 : true;
         let reasoningTokens;
-        if (reasoning.tokensExplicit && typeof reasoning.tokens === "number") {
-            reasoningTokens = reasoning.tokens;
-        }
-        else {
-            reasoningTokens = DEFAULT_REASONING_TOKENS.gemini;
+        if (reasoningTokensEnabled) {
+            reasoningTokens = reasoningTokensExplicit
+                ? reasoning.tokens
+                : DEFAULT_REASONING_TOKENS.gemini;
         }
         return {
             provider,
@@ -104,6 +105,7 @@ async function resolveProviderSettings(provider, options, env) {
             model,
             maxOutputTokens,
             reasoningMode: reasoning.mode,
+            reasoningTokensEnabled,
             reasoningTokens,
         };
     }
@@ -131,15 +133,21 @@ async function resolveProviderSettings(provider, options, env) {
     const maxOutputTokens = typeof maxOverride === "number"
         ? Math.min(maxOverride, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
         : DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS;
-    let reasoningTokens = reasoning.tokensExplicit && typeof reasoning.tokens === "number"
-        ? Math.min(reasoning.tokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
-        : DEFAULT_REASONING_TOKENS.anthropic;
+    const reasoningTokensExplicit = reasoning.tokensExplicit && typeof reasoning.tokens === "number";
+    const reasoningTokensEnabled = reasoningTokensExplicit ? reasoning.tokens !== 0 : true;
+    let reasoningTokens;
+    if (reasoningTokensEnabled) {
+        reasoningTokens = reasoningTokensExplicit
+            ? Math.min(reasoning.tokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
+            : DEFAULT_REASONING_TOKENS.anthropic;
+    }
     return {
         provider,
         apiKey,
         model,
         maxOutputTokens,
         reasoningMode: "none",
+        reasoningTokensEnabled,
         reasoningTokens,
     };
 }
