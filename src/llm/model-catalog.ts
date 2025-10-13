@@ -68,6 +68,9 @@ export interface ModelMetadata {
   readonly contextWindow?: number;
   readonly contextWindowUnit?: string;
   readonly featured?: boolean;
+  readonly isMultimodal?: boolean;
+  readonly supportsImageInput?: boolean;
+  readonly supportsPDFInput?: boolean;
   readonly maxOutputTokens?: NumericRange;
   readonly reasoningTokens?: NumericRange | null;
   readonly reasoningModeNotes?: string;
@@ -139,20 +142,20 @@ const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
     humanEval: 0.99,
     blendedCostUsdPer1MTokens: 3.44,
     throughput: {
-      medianTokensPerSecond: 150,
+      medianTokensPerSecond: 170,
       p5TokensPerSecond: 41,
-      p25TokensPerSecond: 95,
-      p75TokensPerSecond: 209,
-      p95TokensPerSecond: 233,
+      p25TokensPerSecond: 81,
+      p75TokensPerSecond: 201,
+      p95TokensPerSecond: 251,
     },
     latency: {
-      firstAnswerChunkSeconds: 56.99,
-      firstAnswerTokenSeconds: 56.99,
-      p5FirstChunkSeconds: 39.75,
-      p25FirstChunkSeconds: 46.18,
-      p75FirstChunkSeconds: 84.2,
-      p95FirstChunkSeconds: 121.54,
-      totalResponseSeconds: 60.32,
+      firstAnswerChunkSeconds: 62.27,
+      firstAnswerTokenSeconds: 62.27,
+      p5FirstChunkSeconds: 35.92,
+      p25FirstChunkSeconds: 50.38,
+      p75FirstChunkSeconds: 74.58,
+      p95FirstChunkSeconds: 116.13,
+      totalResponseSeconds: 65.21,
       reasoningTimeSeconds: 0,
     },
   },
@@ -170,20 +173,20 @@ const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
     aime2025: 0.91,
     blendedCostUsdPer1MTokens: 0.69,
     throughput: {
-      medianTokensPerSecond: 67,
-      p5TokensPerSecond: 50,
-      p25TokensPerSecond: 58,
-      p75TokensPerSecond: 82,
-      p95TokensPerSecond: 99,
+      medianTokensPerSecond: 66,
+      p5TokensPerSecond: 36,
+      p25TokensPerSecond: 57,
+      p75TokensPerSecond: 84,
+      p95TokensPerSecond: 102,
     },
     latency: {
-      firstAnswerChunkSeconds: 89.28,
-      firstAnswerTokenSeconds: 89.28,
-      p5FirstChunkSeconds: 58.5,
-      p25FirstChunkSeconds: 73.67,
-      p75FirstChunkSeconds: 103.44,
-      p95FirstChunkSeconds: 145,
-      totalResponseSeconds: 96.74,
+      firstAnswerChunkSeconds: 92.38,
+      firstAnswerTokenSeconds: 92.38,
+      p5FirstChunkSeconds: 48.81,
+      p25FirstChunkSeconds: 76.84,
+      p75FirstChunkSeconds: 120.71,
+      p95FirstChunkSeconds: 162.6,
+      totalResponseSeconds: 99.96,
       reasoningTimeSeconds: 0,
     },
   },
@@ -201,20 +204,20 @@ const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
     aime2025: 0.84,
     blendedCostUsdPer1MTokens: 0.14,
     throughput: {
-      medianTokensPerSecond: 106,
-      p5TokensPerSecond: 70,
-      p25TokensPerSecond: 86,
-      p75TokensPerSecond: 156,
-      p95TokensPerSecond: 179,
+      medianTokensPerSecond: 142,
+      p5TokensPerSecond: 94,
+      p25TokensPerSecond: 102,
+      p75TokensPerSecond: 174,
+      p95TokensPerSecond: 235,
     },
     latency: {
-      firstAnswerChunkSeconds: 94.06,
-      firstAnswerTokenSeconds: 94.06,
-      p5FirstChunkSeconds: 64.45,
-      p25FirstChunkSeconds: 68.04,
-      p75FirstChunkSeconds: 118.13,
-      p95FirstChunkSeconds: 138.09,
-      totalResponseSeconds: 98.77,
+      firstAnswerChunkSeconds: 70.41,
+      firstAnswerTokenSeconds: 70.41,
+      p5FirstChunkSeconds: 56.28,
+      p25FirstChunkSeconds: 61.65,
+      p75FirstChunkSeconds: 99.29,
+      p95FirstChunkSeconds: 115.57,
+      totalResponseSeconds: 73.94,
       reasoningTimeSeconds: 0,
     },
   },
@@ -235,20 +238,20 @@ const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
     humanEval: 0.99,
     blendedCostUsdPer1MTokens: 3.5,
     throughput: {
-      medianTokensPerSecond: 210,
-      p5TokensPerSecond: 106,
-      p25TokensPerSecond: 165,
-      p75TokensPerSecond: 257,
-      p95TokensPerSecond: 297,
+      medianTokensPerSecond: 234,
+      p5TokensPerSecond: 113,
+      p25TokensPerSecond: 191,
+      p75TokensPerSecond: 279,
+      p95TokensPerSecond: 301,
     },
     latency: {
-      firstAnswerChunkSeconds: 10.15,
-      firstAnswerTokenSeconds: 10.15,
-      p5FirstChunkSeconds: 8.5,
-      p25FirstChunkSeconds: 9.42,
-      p75FirstChunkSeconds: 12.24,
-      p95FirstChunkSeconds: 14.2,
-      totalResponseSeconds: 12.54,
+      firstAnswerChunkSeconds: 11.78,
+      firstAnswerTokenSeconds: 11.78,
+      p5FirstChunkSeconds: 7.72,
+      p25FirstChunkSeconds: 9.69,
+      p75FirstChunkSeconds: 13.93,
+      p95FirstChunkSeconds: 16.06,
+      totalResponseSeconds: 13.92,
       reasoningTimeSeconds: 0,
     },
   },
@@ -268,20 +271,20 @@ const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
     math500: 0.97,
     blendedCostUsdPer1MTokens: 3.44,
     throughput: {
-      medianTokensPerSecond: 156,
-      p5TokensPerSecond: 142,
-      p25TokensPerSecond: 152,
-      p75TokensPerSecond: 161,
-      p95TokensPerSecond: 167,
+      medianTokensPerSecond: 154,
+      p5TokensPerSecond: 139,
+      p25TokensPerSecond: 148,
+      p75TokensPerSecond: 164,
+      p95TokensPerSecond: 169,
     },
     latency: {
-      firstAnswerChunkSeconds: 30.75,
-      firstAnswerTokenSeconds: 30.75,
-      p5FirstChunkSeconds: 22.16,
-      p25FirstChunkSeconds: 27.67,
-      p75FirstChunkSeconds: 31.71,
-      p95FirstChunkSeconds: 34.06,
-      totalResponseSeconds: 33.96,
+      firstAnswerChunkSeconds: 29.84,
+      firstAnswerTokenSeconds: 29.84,
+      p5FirstChunkSeconds: 25.29,
+      p25FirstChunkSeconds: 27.2,
+      p75FirstChunkSeconds: 32.16,
+      p95FirstChunkSeconds: 34.16,
+      totalResponseSeconds: 33.1,
       reasoningTimeSeconds: 0,
     },
   },
@@ -299,20 +302,20 @@ const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
     aime2025: 0.78,
     blendedCostUsdPer1MTokens: 0.85,
     throughput: {
-      medianTokensPerSecond: 269,
-      p5TokensPerSecond: 235,
-      p25TokensPerSecond: 252,
-      p75TokensPerSecond: 275,
+      medianTokensPerSecond: 265,
+      p5TokensPerSecond: 244,
+      p25TokensPerSecond: 256,
+      p75TokensPerSecond: 273,
       p95TokensPerSecond: 289,
     },
     latency: {
-      firstAnswerChunkSeconds: 9.01,
-      firstAnswerTokenSeconds: 9.01,
-      p5FirstChunkSeconds: 7.67,
-      p25FirstChunkSeconds: 8.52,
-      p75FirstChunkSeconds: 11.68,
-      p95FirstChunkSeconds: 13.02,
-      totalResponseSeconds: 10.87,
+      firstAnswerChunkSeconds: 8.53,
+      firstAnswerTokenSeconds: 8.53,
+      p5FirstChunkSeconds: 7.58,
+      p25FirstChunkSeconds: 7.86,
+      p75FirstChunkSeconds: 9.88,
+      p95FirstChunkSeconds: 12.59,
+      totalResponseSeconds: 10.42,
       reasoningTimeSeconds: 0,
     },
   },
@@ -330,20 +333,20 @@ const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
     aime2025: 0.69,
     blendedCostUsdPer1MTokens: 0.17,
     throughput: {
-      medianTokensPerSecond: 720,
-      p5TokensPerSecond: 632,
-      p25TokensPerSecond: 698,
-      p75TokensPerSecond: 781,
-      p95TokensPerSecond: 846,
+      medianTokensPerSecond: 717,
+      p5TokensPerSecond: 620,
+      p25TokensPerSecond: 691,
+      p75TokensPerSecond: 755,
+      p95TokensPerSecond: 835,
     },
     latency: {
-      firstAnswerChunkSeconds: 4.81,
-      firstAnswerTokenSeconds: 4.81,
-      p5FirstChunkSeconds: 3.19,
-      p25FirstChunkSeconds: 3.63,
-      p75FirstChunkSeconds: 5.56,
-      p95FirstChunkSeconds: 5.98,
-      totalResponseSeconds: 5.51,
+      firstAnswerChunkSeconds: 4.74,
+      firstAnswerTokenSeconds: 4.74,
+      p5FirstChunkSeconds: 3.01,
+      p25FirstChunkSeconds: 3.31,
+      p75FirstChunkSeconds: 5.84,
+      p95FirstChunkSeconds: 6.16,
+      totalResponseSeconds: 5.44,
       reasoningTimeSeconds: 0,
     },
   },
@@ -361,21 +364,21 @@ const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
     aime2025: 0.88,
     blendedCostUsdPer1MTokens: 6,
     throughput: {
-      medianTokensPerSecond: 66,
-      p5TokensPerSecond: 54,
-      p25TokensPerSecond: 65,
-      p75TokensPerSecond: 69,
-      p95TokensPerSecond: 73,
+      medianTokensPerSecond: 65,
+      p5TokensPerSecond: 55,
+      p25TokensPerSecond: 58,
+      p75TokensPerSecond: 70,
+      p95TokensPerSecond: 76,
     },
     latency: {
-      firstAnswerChunkSeconds: 2,
-      firstAnswerTokenSeconds: 32.32,
+      firstAnswerChunkSeconds: 1.95,
+      firstAnswerTokenSeconds: 32.58,
       p5FirstChunkSeconds: 1.65,
-      p25FirstChunkSeconds: 1.89,
-      p75FirstChunkSeconds: 2.15,
-      p95FirstChunkSeconds: 2.8,
-      totalResponseSeconds: 39.9,
-      reasoningTimeSeconds: 30.32,
+      p25FirstChunkSeconds: 1.73,
+      p75FirstChunkSeconds: 2.02,
+      p95FirstChunkSeconds: 2.46,
+      totalResponseSeconds: 40.24,
+      reasoningTimeSeconds: 30.63,
     },
   },
   "anthropic:claude-sonnet-4-20250514": {
@@ -393,21 +396,21 @@ const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
     aime2024: 0.77,
     blendedCostUsdPer1MTokens: 6,
     throughput: {
-      medianTokensPerSecond: 58,
-      p5TokensPerSecond: 45,
-      p25TokensPerSecond: 53,
-      p75TokensPerSecond: 62,
-      p95TokensPerSecond: 71,
+      medianTokensPerSecond: 62,
+      p5TokensPerSecond: 44,
+      p25TokensPerSecond: 50,
+      p75TokensPerSecond: 71,
+      p95TokensPerSecond: 73,
     },
     latency: {
-      firstAnswerChunkSeconds: 1.72,
-      firstAnswerTokenSeconds: 36.13,
-      p5FirstChunkSeconds: 1.49,
+      firstAnswerChunkSeconds: 1.7,
+      firstAnswerTokenSeconds: 34.22,
+      p5FirstChunkSeconds: 1.53,
       p25FirstChunkSeconds: 1.63,
-      p75FirstChunkSeconds: 1.81,
-      p95FirstChunkSeconds: 2.07,
-      totalResponseSeconds: 44.73,
-      reasoningTimeSeconds: 34.41,
+      p75FirstChunkSeconds: 1.79,
+      p95FirstChunkSeconds: 2.14,
+      totalResponseSeconds: 42.35,
+      reasoningTimeSeconds: 32.52,
     },
   },
   "anthropic:claude-opus-4-1-20250805": {
@@ -425,20 +428,20 @@ const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
     blendedCostUsdPer1MTokens: 30,
     throughput: {
       medianTokensPerSecond: 45,
-      p5TokensPerSecond: 37,
-      p25TokensPerSecond: 41,
-      p75TokensPerSecond: 49,
-      p95TokensPerSecond: 52,
+      p5TokensPerSecond: 36,
+      p25TokensPerSecond: 42,
+      p75TokensPerSecond: 51,
+      p95TokensPerSecond: 55,
     },
     latency: {
-      firstAnswerChunkSeconds: 2.67,
-      firstAnswerTokenSeconds: 47.11,
-      p5FirstChunkSeconds: 2.06,
-      p25FirstChunkSeconds: 2.54,
-      p75FirstChunkSeconds: 2.95,
-      p95FirstChunkSeconds: 3.17,
-      totalResponseSeconds: 58.22,
-      reasoningTimeSeconds: 44.44,
+      firstAnswerChunkSeconds: 2.6,
+      firstAnswerTokenSeconds: 46.97,
+      p5FirstChunkSeconds: 2.09,
+      p25FirstChunkSeconds: 2.36,
+      p75FirstChunkSeconds: 2.76,
+      p95FirstChunkSeconds: 3.03,
+      totalResponseSeconds: 58.06,
+      reasoningTimeSeconds: 44.37,
     },
   },
   "grok:grok-4-fast-reasoning": {
@@ -455,20 +458,20 @@ const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
     aime2025: 0.9,
     blendedCostUsdPer1MTokens: 0.28,
     throughput: {
-      medianTokensPerSecond: 100,
-      p5TokensPerSecond: 71,
-      p25TokensPerSecond: 79,
-      p75TokensPerSecond: 122,
-      p95TokensPerSecond: 157,
+      medianTokensPerSecond: 79,
+      p5TokensPerSecond: 36,
+      p25TokensPerSecond: 61,
+      p75TokensPerSecond: 114,
+      p95TokensPerSecond: 205,
     },
     latency: {
-      firstAnswerChunkSeconds: 8.64,
-      firstAnswerTokenSeconds: 8.64,
-      p5FirstChunkSeconds: 3.6,
-      p25FirstChunkSeconds: 5.17,
-      p75FirstChunkSeconds: 13.59,
-      p95FirstChunkSeconds: 30.71,
-      totalResponseSeconds: 13.64,
+      firstAnswerChunkSeconds: 13.44,
+      firstAnswerTokenSeconds: 13.44,
+      p5FirstChunkSeconds: 2.85,
+      p25FirstChunkSeconds: 8.9,
+      p75FirstChunkSeconds: 19.39,
+      p95FirstChunkSeconds: 38.44,
+      totalResponseSeconds: 19.73,
       reasoningTimeSeconds: 0,
     },
   },
@@ -486,20 +489,20 @@ const MODEL_BENCHMARKS: Record<string, ModelBenchmarks> = {
     aime2025: 0.43,
     blendedCostUsdPer1MTokens: 0.53,
     throughput: {
-      medianTokensPerSecond: 270,
-      p5TokensPerSecond: 179,
-      p25TokensPerSecond: 239,
-      p75TokensPerSecond: 339,
-      p95TokensPerSecond: 393,
+      medianTokensPerSecond: 272,
+      p5TokensPerSecond: 139,
+      p25TokensPerSecond: 229,
+      p75TokensPerSecond: 317,
+      p95TokensPerSecond: 360,
     },
     latency: {
-      firstAnswerChunkSeconds: 7.34,
-      firstAnswerTokenSeconds: 7.34,
-      p5FirstChunkSeconds: 3.08,
-      p25FirstChunkSeconds: 5.85,
-      p75FirstChunkSeconds: 8.2,
-      p95FirstChunkSeconds: 12.53,
-      totalResponseSeconds: 9.19,
+      firstAnswerChunkSeconds: 7.57,
+      firstAnswerTokenSeconds: 7.57,
+      p5FirstChunkSeconds: 3.23,
+      p25FirstChunkSeconds: 5.94,
+      p75FirstChunkSeconds: 9.14,
+      p95FirstChunkSeconds: 11.93,
+      totalResponseSeconds: 9.41,
       reasoningTimeSeconds: 0,
     },
   },
@@ -535,16 +538,20 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Flagship creative director",
         description:
           "OpenAI’s crown jewel for frontier-quality UX, complex product orchestration, and imaginative storytelling.",
-        recommendedFor: "When you want the most refined, high-touch experience and can afford premium tokens.",
+        recommendedFor:
+          "When you want the most refined, high-touch experience and can afford premium tokens.",
         highlights: [
           "Deep reasoning with a playful voice",
           "Strong at long-form UX choreography",
-          "Great at synthesizing research into tone"
+          "Great at synthesizing research into tone",
         ],
         release: "2025",
         contextWindow: 400_000,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 128_000,
           max: 128_000,
@@ -560,15 +567,19 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Latest GPT-5 tuning",
         description:
           "A tuned GPT-5 build with extra polish for autumn 2025 launches—refined voice, calmer pacing, and sharper visuals.",
-        recommendedFor: "Campaigns that need the freshest GPT-5 tone with steady delivery.",
+        recommendedFor:
+          "Campaigns that need the freshest GPT-5 tone with steady delivery.",
         highlights: [
           "Steadier layout pacing",
           "Warm, brand-ready storytelling",
-          "Balances ambition with reliability"
+          "Balances ambition with reliability",
         ],
         release: "Aug 2025",
         contextWindow: 400_000,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 128_000,
           max: 128_000,
@@ -583,16 +594,25 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Agile product partner",
         description:
           "A nimble GPT-5 variant with most of the sparkle at a far friendlier price, perfect for daily prototyping.",
-        recommendedFor: "Teams iterating quickly on flows and copy without burning through budgets.",
-        highlights: ["Fast iteration", "Balanced creativity", "Budget-conscious"],
+        recommendedFor:
+          "Teams iterating quickly on flows and copy without burning through budgets.",
+        highlights: [
+          "Fast iteration",
+          "Balanced creativity",
+          "Budget-conscious",
+        ],
         release: "2025",
         contextWindow: 400_000,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 128_000,
           max: 128_000,
-          description: "Matches GPT-5’s 128K output ceiling in a smaller footprint.",
+          description:
+            "Matches GPT-5’s 128K output ceiling in a smaller footprint.",
         },
         supportsReasoningMode: true,
         cost: usdCost({ input: 0.25, output: 2 }),
@@ -604,15 +624,24 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Fresh mini tuning",
         description:
           "The August 2025 refresh adds calmer pacing and smarter defaults for product microcopy.",
-        recommendedFor: "Marketing and product teams who love GPT-5 Mini but want the latest tone tweaks.",
-        highlights: ["Snappy microcopy", "Improved summarization", "Smoother transitions"],
+        recommendedFor:
+          "Marketing and product teams who love GPT-5 Mini but want the latest tone tweaks.",
+        highlights: [
+          "Snappy microcopy",
+          "Improved summarization",
+          "Smoother transitions",
+        ],
         release: "Aug 2025",
         contextWindow: 400_000,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 128_000,
           max: 128_000,
-          description: "Matches GPT-5’s 128K output ceiling in a smaller footprint.",
+          description:
+            "Matches GPT-5’s 128K output ceiling in a smaller footprint.",
         },
         supportsReasoningMode: true,
         cost: usdCost({ input: 0.25, output: 2 }),
@@ -623,15 +652,24 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Ultra-light GPT",
         description:
           "Keeps the GPT house style while running lean—ideal for previews, quick validations, or budget-sensitive demos.",
-        recommendedFor: "Internal stakeholders who need a feel for the experience without the full price tag.",
-        highlights: ["Instant responses", "Small budget footprint", "Keeps the GPT-5 vibe"],
+        recommendedFor:
+          "Internal stakeholders who need a feel for the experience without the full price tag.",
+        highlights: [
+          "Instant responses",
+          "Small budget footprint",
+          "Keeps the GPT-5 vibe",
+        ],
         release: "2025",
         contextWindow: 400_000,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 128_000,
           max: 128_000,
-          description: "Shares GPT-5’s 128K output token limit in a nano-sized package.",
+          description:
+            "Shares GPT-5’s 128K output token limit in a nano-sized package.",
         },
         supportsReasoningMode: true,
         cost: usdCost({ input: 0.05, output: 0.4 }),
@@ -643,15 +681,24 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Nano refresh",
         description:
           "The August 2025 cut smooths tone shifts and keeps the nano build aligned with GPT-5’s new defaults.",
-        recommendedFor: "Tiny experiments and fast-turn prototypes where tone still matters.",
-        highlights: ["More expressive than older nanos", "Great for copy drafts", "Friendly on cost"],
+        recommendedFor:
+          "Tiny experiments and fast-turn prototypes where tone still matters.",
+        highlights: [
+          "More expressive than older nanos",
+          "Great for copy drafts",
+          "Friendly on cost",
+        ],
         release: "Aug 2025",
         contextWindow: 400_000,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 128_000,
           max: 128_000,
-          description: "Shares GPT-5’s 128K output token limit in a nano-sized package.",
+          description:
+            "Shares GPT-5’s 128K output token limit in a nano-sized package.",
         },
         supportsReasoningMode: true,
         cost: usdCost({ input: 0.05, output: 0.4 }),
@@ -662,19 +709,28 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Bridge between 4o and 5",
         description:
           "A playful glimpse at GPT-5 capabilities with GPT-4 pricing—excellent for concepting and iteration.",
-        recommendedFor: "Teams who want to experiment with GPT-5 energy while staying close to GPT-4 budgets.",
-        highlights: ["Notable reasoning upgrade", "Trendy visuals", "Still affordable"],
+        recommendedFor:
+          "Teams who want to experiment with GPT-5 energy while staying close to GPT-4 budgets.",
+        highlights: [
+          "Notable reasoning upgrade",
+          "Trendy visuals",
+          "Still affordable",
+        ],
         release: "2025",
         contextWindow: 128_000,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 16_384,
           max: 16_384,
           description: "OpenAI caps output at 16,384 tokens on this preview.",
         },
         cost: usdCost({ input: 75, output: 150 }),
-        reasoningModeNotes: "Reasoning modes are not supported on this preview release.",
+        reasoningModeNotes:
+          "Reasoning modes are not supported on this preview release.",
       },
       {
         value: "gpt-4.5-preview-2025-02-27",
@@ -682,18 +738,27 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Winter preview build",
         description:
           "The February drop keeps GPT-4.5 experimental flair with a slightly steadier tone for product teams.",
-        recommendedFor: "Design sprints that want fresh ideas without unpredictable tone swings.",
-        highlights: ["Improved rhythm", "Less variance", "Playful yet grounded"],
+        recommendedFor:
+          "Design sprints that want fresh ideas without unpredictable tone swings.",
+        highlights: [
+          "Improved rhythm",
+          "Less variance",
+          "Playful yet grounded",
+        ],
         release: "Feb 2025",
         contextWindow: 128_000,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 16_384,
           max: 16_384,
           description: "OpenAI caps output at 16,384 tokens on this preview.",
         },
         cost: usdCost({ input: 75, output: 150 }),
-        reasoningModeNotes: "Reasoning modes are not supported on this preview release.",
+        reasoningModeNotes:
+          "Reasoning modes are not supported on this preview release.",
       },
       {
         value: "gpt-4o",
@@ -701,12 +766,16 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "All-rounder with heart",
         description:
           "A beloved multi-modal model that balances wit, speed, and empathy—perfect for polished interactive demos.",
-        recommendedFor: "Showcases that need reliable brilliance without GPT-5 pricing.",
+        recommendedFor:
+          "Showcases that need reliable brilliance without GPT-5 pricing.",
         highlights: ["Expressive visuals", "Emotive copy", "Great latency"],
         release: "2024",
         contextWindow: 128_000,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 16_384,
           max: 16_384,
@@ -721,18 +790,28 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Consumer-grade delight",
         description:
           "A friendly, always-fresh cut of 4o that mirrors the public ChatGPT experience.",
-        recommendedFor: "Onboarding flows and copy that need warmth and approachability.",
-        highlights: ["Low-friction tone", "Great for help content", "Instantly familiar"],
+        recommendedFor:
+          "Onboarding flows and copy that need warmth and approachability.",
+        highlights: [
+          "Low-friction tone",
+          "Great for help content",
+          "Instantly familiar",
+        ],
         release: "2024",
         contextWindow: 128_000,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 4_096,
           max: 4_096,
-          description: "Mirrors the ChatGPT front-end cap of 4,096 output tokens.",
+          description:
+            "Mirrors the ChatGPT front-end cap of 4,096 output tokens.",
         },
         cost: usdCost({ input: 2.5, output: 10 }),
-        reasoningModeNotes: "Reasoning modes are not available for ChatGPT-4o Latest.",
+        reasoningModeNotes:
+          "Reasoning modes are not available for ChatGPT-4o Latest.",
       },
       {
         value: "gpt-4o-mini",
@@ -740,19 +819,24 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Speedy charmer",
         description:
           "An energetic mini version of 4o—keeps the charm with near real-time responses.",
-        recommendedFor: "Interactive prototypes and assistive flows where latency matters.",
+        recommendedFor:
+          "Interactive prototypes and assistive flows where latency matters.",
         highlights: ["Super fast", "Still witty", "Budget friendly"],
         release: "2024",
         contextWindow: 128_000,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 16_384,
           max: 16_384,
           description: "Outputs top out around 16K tokens for GPT-4o Mini.",
         },
         cost: usdCost({ input: 0.15, output: 0.6 }),
-        reasoningModeNotes: "Reasoning modes are not available for GPT-4o Mini.",
+        reasoningModeNotes:
+          "Reasoning modes are not available for GPT-4o Mini.",
       },
       {
         value: "gpt-4.1",
@@ -760,11 +844,15 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Reliable classic",
         description:
           "A dependable GPT-4 era pro that still shines for thoughtful UX and structured reasoning.",
-        recommendedFor: "Enterprise flows or compliance-heavy demos where predictability is key.",
+        recommendedFor:
+          "Enterprise flows or compliance-heavy demos where predictability is key.",
         highlights: ["Calm pacing", "Structured output", "Strong reasoning"],
         release: "2024",
         contextWindow: 1_047_576,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 32_768,
           max: 32_768,
@@ -783,6 +871,9 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         release: "2024",
         contextWindow: 1_047_576,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 32_768,
           max: 32_768,
@@ -796,11 +887,15 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Tiny yet thoughtful",
         description:
           "A micro budget GPT-4 variant for smoke tests and baseline flows.",
-        recommendedFor: "Developers verifying pipelines or testing integrations.",
+        recommendedFor:
+          "Developers verifying pipelines or testing integrations.",
         highlights: ["Lightweight", "Predictable", "Surprisingly capable"],
         release: "2024",
         contextWindow: 1_047_576,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 32_768,
           max: 32_768,
@@ -814,11 +909,15 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "The classic trailblazer",
         description:
           "The original multi-modal darling—still outstanding for deliberate, careful UX and prompts with nuance.",
-        recommendedFor: "Legacy experiences or when teams need the well-known GPT-4 signature tone.",
+        recommendedFor:
+          "Legacy experiences or when teams need the well-known GPT-4 signature tone.",
         highlights: ["Trusted", "Careful", "Rich semantics"],
         release: "2023",
         contextWindow: 8_000,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: false,
         maxOutputTokens: {
           default: 4_096,
           max: 4_096,
@@ -832,15 +931,20 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Deep context classic",
         description:
           "Extends GPT-4’s sensibility to long briefs and knowledge dumps with the 32K context window.",
-        recommendedFor: "Docs-heavy flows, research explainers, and meticulous prototypes.",
+        recommendedFor:
+          "Docs-heavy flows, research explainers, and meticulous prototypes.",
         highlights: ["Handles long docs", "Deliberate", "Stable"],
         release: "2023",
         contextWindow: 32_000,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 4_096,
           max: 4_096,
-          description: "Despite the 32K context, outputs land around 4K tokens.",
+          description:
+            "Despite the 32K context, outputs land around 4K tokens.",
         },
         cost: usdCost({ input: 60, output: 120 }),
       },
@@ -855,6 +959,9 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         release: "Nov 2023",
         contextWindow: 128_000,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 4_096,
           max: 4_096,
@@ -873,6 +980,9 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         release: "Jan 2024",
         contextWindow: 128_000,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 4_096,
           max: 4_096,
@@ -886,12 +996,16 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Workhorse turbo",
         description:
           "OpenAI’s pragmatic, production-ready GPT-4 build. Fast, expressive, and still easy on spend.",
-        recommendedFor: "Teams who want GPT-4 quality with guardrails and predictable costs.",
+        recommendedFor:
+          "Teams who want GPT-4 quality with guardrails and predictable costs.",
         highlights: ["Battle-tested", "Fast", "Great doc summarization"],
         release: "2023",
         contextWindow: 128_000,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 4_096,
           max: 4_096,
@@ -905,11 +1019,19 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Spring turbo update",
         description:
           "April’s turbo refresh brings smoother storytelling and calmer tone out of the box.",
-        recommendedFor: "Brand-sensitive prototypes that still want GPT-4 turbo efficiency.",
-        highlights: ["Softened tone", "Improved UX instincts", "Great reliability"],
+        recommendedFor:
+          "Brand-sensitive prototypes that still want GPT-4 turbo efficiency.",
+        highlights: [
+          "Softened tone",
+          "Improved UX instincts",
+          "Great reliability",
+        ],
         release: "Apr 2024",
         contextWindow: 128_000,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 4_096,
           max: 4_096,
@@ -923,12 +1045,20 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Beloved budget classic",
         description:
           "The scrappy model that started it all—still fantastic for copy drafts, support flows, and quick tests.",
-        recommendedFor: "Content-heavy flows and super fast idea validation on a shoestring.",
-        highlights: ["Extremely affordable", "Quick", "Good enough for many demos"],
+        recommendedFor:
+          "Content-heavy flows and super fast idea validation on a shoestring.",
+        highlights: [
+          "Extremely affordable",
+          "Quick",
+          "Good enough for many demos",
+        ],
         release: "2022",
         contextWindow: 16_385,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: false,
         cost: usdCost({ input: 0.5, output: 1.5 }),
       },
       {
@@ -937,11 +1067,15 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Extended 3.5",
         description:
           "Extends the classic GPT-3.5 with a larger context window while keeping costs microscopic.",
-        recommendedFor: "Support transcripts, content rewrites, and idea dumps that need more room.",
+        recommendedFor:
+          "Support transcripts, content rewrites, and idea dumps that need more room.",
         highlights: ["Bigger context", "Tiny budget", "Great for support UX"],
         release: "2023",
         contextWindow: 16_385,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         cost: usdCost({ input: 1, output: 2 }),
       },
       {
@@ -950,12 +1084,20 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Reasoning specialist",
         description:
           "OpenAI’s o-series focus on deliberate reasoning and step-by-step analysis with a calm, confident tone.",
-        recommendedFor: "Complex flows, product calculators, and anything needing tight logic.",
-        highlights: ["Transparent thinking", "Structured plans", "Confident voice"],
+        recommendedFor:
+          "Complex flows, product calculators, and anything needing tight logic.",
+        highlights: [
+          "Transparent thinking",
+          "Structured plans",
+          "Confident voice",
+        ],
         release: "2024",
         contextWindow: 200_000,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 100_000,
           max: 100_000,
@@ -971,11 +1113,19 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "December reasoning update",
         description:
           "Adds steadier pacing and clearer explanations for year-end workflows.",
-        recommendedFor: "Strategy decks and product planning demos that need trust-building clarity.",
-        highlights: ["Sharper analysis", "Less rambling", "Great for exec readouts"],
+        recommendedFor:
+          "Strategy decks and product planning demos that need trust-building clarity.",
+        highlights: [
+          "Sharper analysis",
+          "Less rambling",
+          "Great for exec readouts",
+        ],
         release: "Dec 2024",
         contextWindow: 200_000,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 100_000,
           max: 100_000,
@@ -990,18 +1140,22 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Early o-series peek",
         description:
           "A lighter cut of o1 that still showcases transparent reasoning while being easier on spend.",
-        recommendedFor: "Product walk-throughs where you want reasoning glimpses without premium costs.",
+        recommendedFor:
+          "Product walk-throughs where you want reasoning glimpses without premium costs.",
         highlights: ["Quick logic", "Clear steps", "Budget aware"],
         release: "2024",
         contextWindow: 32_768,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 32_768,
           max: 32_768,
           description: "Preview runs share the 32,768 output token limit.",
         },
-        supportsReasoningMode: true,
-        reasoningModeNotes: "Reasoning modes are available, but token limits are lower than o1.",
+        reasoningModeNotes:
+          "Reasoning modes are available, but token limits are lower than o1.",
       },
       {
         value: "o1-mini",
@@ -1009,11 +1163,15 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Compact reasoning",
         description:
           "Small but mighty—keeps o-series discipline in a budget package.",
-        recommendedFor: "Assistants and calculators that need logical steps without premium costs.",
+        recommendedFor:
+          "Assistants and calculators that need logical steps without premium costs.",
         highlights: ["Fast reasoning", "Friendly voice", "Great value"],
         release: "2024",
         contextWindow: 65_536,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 65_536,
           max: 65_536,
@@ -1027,11 +1185,15 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Frontier analyst",
         description:
           "The o-series model that takes on deeply technical and strategic reasoning with poise.",
-        recommendedFor: "Executive summaries, policy reasoning, and complex planning.",
+        recommendedFor:
+          "Executive summaries, policy reasoning, and complex planning.",
         highlights: ["High confidence", "Rich reasoning", "Structured reports"],
         release: "2025",
         contextWindow: 200_000,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 100_000,
           max: 100_000,
@@ -1047,18 +1209,23 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Accessible strategist",
         description:
           "Delivers thoughtful plans quickly, perfect for product squads doing structured brainstorming.",
-        recommendedFor: "Sprint planning, growth experiments, and scenario analysis.",
+        recommendedFor:
+          "Sprint planning, growth experiments, and scenario analysis.",
         highlights: ["Speedy reasoning", "Clear action items", "Friendly tone"],
         release: "2025",
         contextWindow: 160_000,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 100_000,
           max: 100_000,
-          description: "o3 Mini shares the 100K output ceiling with the full model.",
+          description:
+            "o3 Mini shares the 100K output ceiling with the full model.",
         },
-        supportsReasoningMode: true,
-        reasoningModeNotes: "Reasoning modes mirror the o3 defaults while keeping spend approachable.",
+        reasoningModeNotes:
+          "Reasoning modes mirror the o3 defaults while keeping spend approachable.",
       },
       {
         value: "o4-mini",
@@ -1066,18 +1233,27 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Early o4 energy",
         description:
           "Hints at the upcoming o4 capabilities with extra focus on debugging and code reasoning.",
-        recommendedFor: "Technical prototypes, developer copilots, and architecture reviews.",
-        highlights: ["Understands code", "Step-by-step fixes", "Keeps tone practical"],
+        recommendedFor:
+          "Technical prototypes, developer copilots, and architecture reviews.",
+        highlights: [
+          "Understands code",
+          "Step-by-step fixes",
+          "Keeps tone practical",
+        ],
         release: "2025",
         contextWindow: 160_000,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 100_000,
           max: 100_000,
-          description: "Early o4 Mini builds align with o3’s output ceiling while pricing continues to evolve.",
+          description:
+            "Early o4 Mini builds align with o3’s output ceiling while pricing continues to evolve.",
         },
-        supportsReasoningMode: true,
-        reasoningModeNotes: "Pricing is still stabilizing as o4 rolls out—confirm latest rates with OpenAI.",
+        reasoningModeNotes:
+          "Pricing is still stabilizing as o4 rolls out—confirm latest rates with OpenAI.",
       },
     ],
   },
@@ -1117,12 +1293,20 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Instant lightning",
         description:
           "Blazing-fast, multi-modal, and joyful—Flash is your go-to for interactive prototypes and rapid ideation.",
-        recommendedFor: "Teams running constant iterations or live workshops with stakeholders.",
-        highlights: ["Ultra-low latency", "Great image understanding", "Affordable"],
+        recommendedFor:
+          "Teams running constant iterations or live workshops with stakeholders.",
+        highlights: [
+          "Ultra-low latency",
+          "Great image understanding",
+          "Affordable",
+        ],
         release: "2025",
         contextWindow: 1_048_576,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 65_536,
           max: 65_536,
@@ -1147,12 +1331,16 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Pocket rocket",
         description:
           "A featherweight Flash build for real-time interactions and playful ideas with virtually no latency.",
-        recommendedFor: "Moments where you want near-instant feedback or embed experiences on the web.",
+        recommendedFor:
+          "Moments where you want near-instant feedback or embed experiences on the web.",
         highlights: ["Blink-fast", "Great for chat", "Stretch your budget"],
         release: "2025",
         contextWindow: 1_048_576,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 65_536,
           max: 65_536,
@@ -1177,16 +1365,21 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Deliberate storyteller",
         description:
           "Takes Gemini’s expansive context and marries it with thoughtful reasoning and premium outputs.",
-        recommendedFor: "Flagship demos, editorial experiences, and detailed planning workflows.",
+        recommendedFor:
+          "Flagship demos, editorial experiences, and detailed planning workflows.",
         highlights: ["Massive context", "Calm narration", "Search-savvy"],
         release: "2025",
         contextWindow: 1_048_576,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
-          default: 65_536,
-          max: 65_536,
-          description: "Pro runs share the 65,536 token output cap for standard calls.",
+          default: 65_535,
+          max: 65_535,
+          description:
+            "Pro runs share the 65,535 token output cap for standard calls.",
         },
         cost: usdCost({ input: 1.25, output: 10 }),
         reasoningModeNotes:
@@ -1207,17 +1400,23 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Experimental deep thinker",
         description:
           "An experimental Pro build that leans into creative leaps and bold, exploratory reasoning.",
-        recommendedFor: "Innovation sprints and creative labs chasing novel ideas.",
+        recommendedFor:
+          "Innovation sprints and creative labs chasing novel ideas.",
         highlights: ["Bold concepts", "Exploratory", "Great for brainstorming"],
         release: "2024",
         contextWindow: 1_048_576,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 65_535,
           max: 65_535,
-          description: "Experimental Pro builds follow the 65,535 output token limit.",
+          description:
+            "Experimental Pro builds follow the 65,535 output token limit.",
         },
-        reasoningModeNotes: "Experimental pricing fluctuates; confirm current rates in Google AI Studio before launching.",
+        reasoningModeNotes:
+          "Experimental pricing fluctuates; confirm current rates in Google AI Studio before launching.",
       },
       {
         value: "gemini-2.0-flash",
@@ -1225,11 +1424,15 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Classic Flash energy",
         description:
           "The 2.0 release that made Flash famous—still an excellent choice for energetic experiences.",
-        recommendedFor: "Marketing previews and education prototypes needing vivid storytelling.",
+        recommendedFor:
+          "Marketing previews and education prototypes needing vivid storytelling.",
         highlights: ["Playful", "Responsive", "Generous context"],
         release: "2024",
         contextWindow: 1_048_576,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 8_192,
           max: 8_192,
@@ -1262,8 +1465,10 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
       min: 0,
       max: 64_000,
       default: 64_000,
-      description: "Reserve a deliberate thinking budget for Claude’s chain-of-thought traces.",
-      helper: "Claude shines with a reasoning allowance—set a ceiling or leave blank to stay near the default budget.",
+      description:
+        "Reserve a deliberate thinking budget for Claude’s chain-of-thought traces.",
+      helper:
+        "Claude shines with a reasoning allowance—set a ceiling or leave blank to stay near the default budget.",
     },
     models: [
       {
@@ -1272,17 +1477,25 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Warm strategic partner",
         description:
           "The everyday Claude adored by product strategists—empathetic, structured, and ready for complex narratives.",
-        recommendedFor: "Story-driven flows, research synthesis, and collaborative planning.",
-        highlights: ["Empathetic tone", "Great reasoning", "Reliable formatting"],
+        recommendedFor:
+          "Story-driven flows, research synthesis, and collaborative planning.",
+        highlights: [
+          "Empathetic tone",
+          "Great reasoning",
+          "Reliable formatting",
+        ],
         release: "Sep 2025",
         contextWindow: 200_000, // 1M token context available with the 'context-1m-2025-08-07' beta header
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
-          default: 64_000,
-          min: 1,
-          max: 64_000,
-          description: "Latest Sonnet tiers target a 64K output ceiling for balanced pacing.",
+          default: 128_000,
+          max: 128_000,
+          description:
+            "The latest Sonnet tier can emit up to roughly 128K tokens when needed.",
         },
         cost: usdCost({ input: 3, output: 15 }),
         benchmarks: benchmarkFor("anthropic:claude-sonnet-4-5-20250929"),
@@ -1293,11 +1506,15 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Balanced and expressive",
         description:
           "A spring 2025 Sonnet tune that feels especially collaborative with designers and researchers.",
-        recommendedFor: "Workshops, customer journey design, and content strategy.",
+        recommendedFor:
+          "Workshops, customer journey design, and content strategy.",
         highlights: ["Conversational", "Structured", "Team player"],
         release: "May 2025",
         contextWindow: 200_000, // 1M token context available with the 'context-1m-2025-08-07' beta header
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         cost: usdCost({ input: 3, output: 15 }),
         benchmarks: benchmarkFor("anthropic:claude-sonnet-4-20250514"),
       },
@@ -1307,12 +1524,16 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Evolved storyteller",
         description:
           "The latest Sonnet cut that blends speed with Claude’s signature warmth and insight.",
-        recommendedFor: "Customer journeys, service blueprints, and tone explorations.",
+        recommendedFor:
+          "Customer journeys, service blueprints, and tone explorations.",
         highlights: ["Fast", "Grounded", "Warm"],
         release: "2025",
         contextWindow: 200_000,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         cost: usdCost({ input: 3, output: 15 }),
       },
       {
@@ -1321,12 +1542,16 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Premium deep thinker",
         description:
           "Anthropic’s most capable model—patient, thorough, and brilliant at complex analysis.",
-        recommendedFor: "Executive briefings, policy explorations, and nuanced decision support.",
+        recommendedFor:
+          "Executive briefings, policy explorations, and nuanced decision support.",
         highlights: ["Exceptional reasoning", "Rich language", "Premium feel"],
         release: "Aug 2025",
         contextWindow: 200_000,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         cost: usdCost({ input: 15, output: 75 }),
         benchmarks: benchmarkFor("anthropic:claude-opus-4-1-20250805"),
       },
@@ -1336,11 +1561,15 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Opus debut",
         description:
           "The original Opus release that set the bar for high-touch, trustworthy reasoning.",
-        recommendedFor: "Policy explainers, legal prototypes, and thoughtful storytelling.",
+        recommendedFor:
+          "Policy explainers, legal prototypes, and thoughtful storytelling.",
         highlights: ["Deep insights", "Careful tone", "Great memory"],
         release: "May 2025",
         contextWindow: 200_000,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         cost: usdCost({ input: 15, output: 75 }),
       },
       {
@@ -1349,12 +1578,16 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Playful productivity",
         description:
           "Haiku is Claude’s zippy sidekick—quick responses, charming tone, and very friendly pricing.",
-        recommendedFor: "Support flows, onboarding assistants, and content edits.",
+        recommendedFor:
+          "Support flows, onboarding assistants, and content edits.",
         highlights: ["Charming", "Fast", "Affordable"],
         release: "2024",
         contextWindow: 8_192,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 8_192,
           max: 8_192,
@@ -1368,13 +1601,18 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Starter Haiku",
         description:
           "The original Haiku cut—still delightful for copy refreshes and casual customer support experiences.",
-        recommendedFor: "Quick copy reviews, FAQ flows, and conversational UI tests.",
+        recommendedFor:
+          "Quick copy reviews, FAQ flows, and conversational UI tests.",
         highlights: ["Friendly", "Reliable", "Tiny cost"],
         release: "Mar 2024",
         contextWindow: 200_000,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
         cost: usdCost({ input: 0.25, output: 1.25 }),
-        reasoningModeNotes: "Haiku 3 focuses on speed and does not expose explicit reasoning budgets.",
+        reasoningModeNotes:
+          "Haiku 3 focuses on speed and does not expose explicit reasoning budgets.",
         maxOutputTokens: {
           default: 4_096,
           max: 4_096,
@@ -1408,16 +1646,21 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Witty and analytical",
         description:
           "The sweet spot Grok: rapid reasoning, up-to-the-minute knowledge, and a playful narration style.",
-        recommendedFor: "Real-time dashboards, cultural commentary, and playful explainers.",
+        recommendedFor:
+          "Real-time dashboards, cultural commentary, and playful explainers.",
         highlights: ["Realtime aware", "Great reasoning", "Fun personality"],
         release: "2025",
         contextWindow: 2_000_000,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 2_000_000,
           max: 2_000_000,
-          description: "Fast reasoning runs can stretch toward two million output tokens.",
+          description:
+            "Fast reasoning runs can stretch toward two million output tokens.",
         },
         cost: usdCost({ input: 0.2, output: 0.5 }),
         benchmarks: benchmarkFor("grok:grok-4-fast-reasoning"),
@@ -1433,12 +1676,17 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         release: "2025",
         contextWindow: 2_000_000,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 2_000_000,
           max: 2_000_000,
-          description: "Shares the fast reasoning tier’s two million output ceiling, but without deliberate traces.",
+          description:
+            "Shares the fast reasoning tier’s two million output ceiling, but without deliberate traces.",
         },
-        reasoningModeNotes: "Deliberate reasoning is disabled to favor latency.",
+        reasoningModeNotes:
+          "Deliberate reasoning is disabled to favor latency.",
       },
       {
         value: "grok-4-0709",
@@ -1446,17 +1694,22 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Summer 4 build",
         description:
           "A summer build with steadier pacing and improved doc summarization.",
-        recommendedFor: "Enterprise updates or editorial recaps with a Grok twist.",
+        recommendedFor:
+          "Enterprise updates or editorial recaps with a Grok twist.",
         highlights: ["Improved summarization", "Friendly tone", "Fast"],
         release: "Jul 2025",
         contextWindow: 256_000,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 256_000,
           max: 256_000,
           description: "This summer build emits up to ~256K tokens.",
         },
-        reasoningModeNotes: "Pricing varies by deployment tier; confirm in the xAI console.",
+        reasoningModeNotes:
+          "Pricing varies by deployment tier; confirm in the xAI console.",
       },
       {
         value: "grok-3",
@@ -1464,16 +1717,21 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Classic Grok attitude",
         description:
           "The model that introduced the world to Grok’s cheeky personality and real-time knowledge.",
-        recommendedFor: "Social prototypes, commentary bots, and experimental interfaces.",
+        recommendedFor:
+          "Social prototypes, commentary bots, and experimental interfaces.",
         highlights: ["Realtime context", "Playful", "Great for pop culture"],
         release: "2024",
         contextWindow: 131_072,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 131_072,
           max: 131_072,
-          description: "Outputs land around 131,072 tokens for the Grok 3 family.",
+          description:
+            "Outputs land around 131,072 tokens for the Grok 3 family.",
         },
         cost: usdCost({ input: 3, output: 15 }),
       },
@@ -1488,6 +1746,9 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         release: "2024",
         contextWindow: 131_072,
         contextWindowUnit: "tokens",
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 131_072,
           max: 131_072,
@@ -1501,18 +1762,24 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         tagline: "Coder co-pilot",
         description:
           "A Grok flavor tuned for code reading and debugging with candid suggestions.",
-        recommendedFor: "Developer tools, debugging explainers, and technical walkthroughs.",
+        recommendedFor:
+          "Developer tools, debugging explainers, and technical walkthroughs.",
         highlights: ["Understands repos", "Direct guidance", "Keeps the humor"],
         release: "2025",
         contextWindow: 256_000,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: true,
         maxOutputTokens: {
           default: 256_000,
           max: 256_000,
-          description: "Code Fast mirrors the 256K output limit of other Grok code tiers.",
+          description:
+            "Code Fast mirrors the 256K output limit of other Grok code tiers.",
         },
-        reasoningModeNotes: "Pricing for the code-tuned tier varies; check the latest xAI announcements.",
+        reasoningModeNotes:
+          "Pricing for the code-tuned tier varies; check the latest xAI announcements.",
         benchmarks: benchmarkFor("grok:grok-code-fast-1"),
       },
     ],
@@ -1527,7 +1794,7 @@ export function getProviderMetadata(provider: ModelProvider): ProviderMetadata {
 
 export function getModelMetadata(
   provider: ModelProvider,
-  modelValue: string,
+  modelValue: string
 ): ModelMetadata | undefined {
   const metadata = PROVIDER_METADATA[provider];
   if (!metadata) {
@@ -1537,13 +1804,16 @@ export function getModelMetadata(
 }
 
 export function getModelOptions(
-  provider: ModelProvider,
+  provider: ModelProvider
 ): Array<{ value: string; label: string }> {
   const metadata = PROVIDER_METADATA[provider];
   if (!metadata) {
     return [];
   }
-  return metadata.models.map((model) => ({ value: model.value, label: model.label }));
+  return metadata.models.map((model) => ({
+    value: model.value,
+    label: model.label,
+  }));
 }
 
 export function getFeaturedModels(provider: ModelProvider): ModelMetadata[] {
