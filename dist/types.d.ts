@@ -1,4 +1,4 @@
-export type ModelProvider = "openai" | "gemini" | "anthropic" | "grok";
+export type ModelProvider = "openai" | "gemini" | "anthropic" | "grok" | "groq";
 export type ReasoningMode = "none" | "low" | "medium" | "high";
 export interface BriefAttachment {
     id: string;

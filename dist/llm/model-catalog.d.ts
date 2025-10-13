@@ -62,6 +62,9 @@ export interface ModelMetadata {
     readonly contextWindow?: number;
     readonly contextWindowUnit?: string;
     readonly featured?: boolean;
+    readonly isMultimodal?: boolean;
+    readonly supportsImageInput?: boolean;
+    readonly supportsPDFInput?: boolean;
     readonly maxOutputTokens?: NumericRange;
     readonly reasoningTokens?: NumericRange | null;
     readonly reasoningModeNotes?: string;
