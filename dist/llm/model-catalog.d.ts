@@ -62,7 +62,7 @@ export interface ModelMetadata {
     readonly contextWindowUnit?: string;
     readonly featured?: boolean;
     readonly maxOutputTokens?: NumericRange;
-    readonly reasoningTokens?: NumericRange;
+    readonly reasoningTokens?: NumericRange | null;
     readonly reasoningModeNotes?: string;
     readonly documentationUrl?: string;
     readonly cost?: ModelCostInfo;

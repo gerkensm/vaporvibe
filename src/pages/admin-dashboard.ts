@@ -158,17 +158,23 @@ export function renderAdminDashboard(props: AdminPageProps): string {
       return undefined;
     }
     const override = modelMetadata?.reasoningTokens;
+    const overrideRange = override ?? undefined;
+    const baseDefault =
+      typeof base.default === "number" ? base.default : baselineReasoningTokens;
     const mergedDefault =
-      override?.default ?? base.default ?? baselineReasoningTokens;
+      typeof overrideRange?.default === "number"
+        ? overrideRange.default
+        : baseDefault;
     return {
-      supported: base.supported,
-      min: override?.min ?? base.min,
-      max: override?.max ?? base.max,
+      supported: Boolean(base.supported && override !== null),
+      min: overrideRange?.min ?? base.min,
+      max: overrideRange?.max ?? base.max,
       default: mergedDefault,
-      description: override?.description ?? base.description ?? "",
+      description: overrideRange?.description ?? base.description ?? "",
       helper: base.helper ?? "",
     };
   })();
+  const modelSupportsReasoningTokens = Boolean(reasoningGuidance?.supported);
   const reasoningDefaultValue =
     typeof baselineReasoningTokens === "number"
       ? baselineReasoningTokens
@@ -239,7 +245,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
   const reasoningSpecialLabels: Record<string, string> =
     providerKey === "gemini" ? { "-1": "Auto-managed" } : {};
   const initialReasoningDisabled =
-    !reasoningCapability.tokens ||
+    !modelSupportsReasoningTokens ||
     (reasoningCapability.mode && provider.reasoningMode === "none");
   const reasoningTokensControlMarkup = renderTokenBudgetControl({
     id: reasoningTokensId,
@@ -256,7 +262,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
     max: reasoningGuidance?.max ?? providerGuidance?.reasoningTokens?.max,
     units: "tokens",
     allowBlank: true,
-    sliderEnabled: Boolean(reasoningCapability.tokens),
+    sliderEnabled: modelSupportsReasoningTokens,
     disabled: initialReasoningDisabled,
     accent: "reasoning",
     manualPlaceholder: "Leave blank to follow provider defaults",
@@ -1181,7 +1187,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
                   )}</p>
                 </div>
                 <div class="token-field" data-reasoning-tokens-wrapper data-token-control-wrapper="reasoningTokens" ${
-                  reasoningCapability.tokens ? "" : "hidden"
+                  modelSupportsReasoningTokens ? "" : "hidden"
                 } ${initialReasoningDisabled ? 'data-disabled="true"' : ""}>
                   ${reasoningTokensControlMarkup}
                 </div>
@@ -1704,9 +1710,12 @@ export function renderAdminDashboard(props: AdminPageProps): string {
           if (reasoningGuidance) {
             const override = metadata?.reasoningTokens;
             const providerSupports = Boolean(reasoningGuidance.supported);
+            const hasOverride =
+              metadata &&
+              Object.prototype.hasOwnProperty.call(metadata, "reasoningTokens");
             const supported =
-              (providerSupports && (!metadata || override !== undefined)) ||
-              (customModel && providerSupports);
+              providerSupports &&
+              (customModel || !metadata || !hasOverride || override !== null);
             mergedReasoningRange = {
               supported,
               min:

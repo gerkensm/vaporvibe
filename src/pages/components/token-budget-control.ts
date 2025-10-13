@@ -511,7 +511,7 @@ export const TOKEN_BUDGET_RUNTIME = `(() => {
       if (manualInput instanceof HTMLInputElement) {
         manualInput.value = normalized;
       }
-      const numeric = Number(normalized);
+      const numeric = normalized === "" ? Number.NaN : Number(normalized);
       let sliderInRange = true;
       if (slider instanceof HTMLInputElement) {
         if (!Number.isFinite(numeric)) {

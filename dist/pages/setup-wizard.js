@@ -434,7 +434,6 @@ function renderProviderStep(options) {
         tokens: false,
     };
     const providerSupportsReasoningMode = capabilities.mode;
-    const providerSupportsReasoningTokens = capabilities.tokens;
     const defaultReasoningTokens = DEFAULT_REASONING_TOKENS[selectedProvider];
     const providerGuidance = PROVIDER_TOKEN_GUIDANCE[selectedProvider];
     const modelMetadata = getModelMetadata(selectedProvider, selectedModel);
@@ -463,16 +462,21 @@ function renderProviderStep(options) {
             return undefined;
         }
         const override = modelMetadata?.reasoningTokens;
-        const mergedDefault = override?.default ?? base.default ?? defaultReasoningTokens;
+        const overrideRange = override ?? undefined;
+        const baseDefault = typeof base.default === "number" ? base.default : defaultReasoningTokens;
+        const mergedDefault = typeof overrideRange?.default === "number"
+            ? overrideRange.default
+            : baseDefault;
         return {
-            supported: base.supported,
-            min: override?.min ?? base.min,
-            max: override?.max ?? base.max,
+            supported: Boolean(base.supported && override !== null),
+            min: overrideRange?.min ?? base.min,
+            max: overrideRange?.max ?? base.max,
             default: mergedDefault,
-            description: override?.description ?? base.description ?? "",
+            description: overrideRange?.description ?? base.description ?? "",
             helper: base.helper ?? "",
         };
     })();
+    const modelSupportsReasoningTokens = Boolean(reasoningGuidance?.supported);
     const reasoningDefaultValue = reasoningGuidance?.default ?? defaultReasoningTokens ?? undefined;
     const explicitReasoningValue = reasoningTokens !== undefined &&
         reasoningTokens !== null &&
@@ -483,7 +487,7 @@ function renderProviderStep(options) {
     const advancedOpen = (providerSupportsReasoningMode && reasoningMode !== "none") ||
         reasoningTokensChanged ||
         explicitMaxOutputValue !== null;
-    const initialReasoningDisabled = !providerSupportsReasoningTokens ||
+    const initialReasoningDisabled = !modelSupportsReasoningTokens ||
         (providerSupportsReasoningMode && reasoningMode === "none");
     const reasoningSliderHelperParts = [
         "Less reasoning tokens = faster. More tokens unlock complex flows.",
@@ -529,7 +533,7 @@ function renderProviderStep(options) {
         max: reasoningGuidance?.max ?? providerGuidance?.reasoningTokens?.max,
         units: "tokens",
         allowBlank: true,
-        sliderEnabled: providerSupportsReasoningTokens,
+        sliderEnabled: modelSupportsReasoningTokens,
         disabled: initialReasoningDisabled,
         accent: "reasoning",
         manualPlaceholder: "Leave blank for provider defaults",
@@ -637,7 +641,7 @@ function renderProviderStep(options) {
               </select>
               <p class="field-helper" data-reasoning-helper>${escapeHtml(REASONING_MODE_CHOICES.find((choice) => choice.value === reasoningMode)?.description ?? "")}</p>
             </div>
-            <div class="token-field" data-reasoning-tokens-wrapper data-token-control-wrapper="reasoningTokens" ${providerSupportsReasoningTokens ? "" : "hidden"} ${initialReasoningDisabled ? 'data-disabled="true"' : ""}>
+            <div class="token-field" data-reasoning-tokens-wrapper data-token-control-wrapper="reasoningTokens" ${modelSupportsReasoningTokens ? "" : "hidden"} ${initialReasoningDisabled ? 'data-disabled="true"' : ""}>
               ${reasoningTokensControlMarkup}
             </div>
           </div>
@@ -1029,9 +1033,12 @@ function renderProviderScript(_canSelectProvider, selectedProvider, selectedMode
         if (reasoningGuidance) {
           const override = metadata?.reasoningTokens;
           const providerSupports = Boolean(reasoningGuidance.supported);
+          const hasOverride =
+            metadata &&
+            Object.prototype.hasOwnProperty.call(metadata, 'reasoningTokens');
           const supported =
-            (providerSupports && (!metadata || override !== undefined)) ||
-            (customModel && providerSupports);
+            providerSupports &&
+            (customModel || !metadata || !hasOverride || override !== null);
           mergedReasoningRange = {
             supported,
             min:
