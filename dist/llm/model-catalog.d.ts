@@ -15,41 +15,11 @@ export interface ModelCostInfo {
     readonly reasoning?: number | null;
     readonly notes?: string;
 }
-export interface BenchmarkThroughput {
-    readonly medianTokensPerSecond?: number;
-    readonly p5TokensPerSecond?: number;
-    readonly p25TokensPerSecond?: number;
-    readonly p75TokensPerSecond?: number;
-    readonly p95TokensPerSecond?: number;
-}
-export interface BenchmarkLatency {
-    readonly firstAnswerChunkSeconds?: number;
-    readonly firstAnswerTokenSeconds?: number;
-    readonly p5FirstChunkSeconds?: number;
-    readonly p25FirstChunkSeconds?: number;
-    readonly p75FirstChunkSeconds?: number;
-    readonly p95FirstChunkSeconds?: number;
-    readonly totalResponseSeconds?: number;
-    readonly reasoningTimeSeconds?: number;
-}
-export interface ModelBenchmarks {
-    readonly artificialAnalysisIntelligenceIndex?: number;
-    readonly terminalBenchHard?: number;
-    readonly telecomBench?: number;
-    readonly aaLcr?: number;
-    readonly humanitysLastExam?: number;
-    readonly mmluPro?: number;
-    readonly gpqaDiamond?: number;
-    readonly liveCodeBench?: number;
-    readonly sciCode?: number;
-    readonly ifBench?: number;
-    readonly aime2025?: number;
-    readonly aime2024?: number;
-    readonly math500?: number;
-    readonly humanEval?: number;
-    readonly blendedCostUsdPer1MTokens?: number;
-    readonly throughput?: BenchmarkThroughput;
-    readonly latency?: BenchmarkLatency;
+export interface ModelCompositeScores {
+    readonly reasoning: number;
+    readonly codingSkill: number;
+    readonly responsiveness: number;
+    readonly valueForMoney: number;
 }
 export interface ModelMetadata {
     readonly value: string;
@@ -70,7 +40,7 @@ export interface ModelMetadata {
     readonly reasoningModeNotes?: string;
     readonly documentationUrl?: string;
     readonly cost?: ModelCostInfo;
-    readonly benchmarks?: ModelBenchmarks;
+    readonly compositeScores?: ModelCompositeScores;
     readonly supportsReasoningMode?: boolean;
 }
 export interface ProviderMetadata {
