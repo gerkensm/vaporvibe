@@ -2510,7 +2510,8 @@ function isModelProvider(value) {
     return (value === "openai" ||
         value === "gemini" ||
         value === "anthropic" ||
-        value === "grok");
+        value === "grok" ||
+        value === "groq");
 }
 export function renderHistory(history) {
     if (history.length === 0) {

@@ -1,4 +1,4 @@
-export type ModelProvider = "openai" | "gemini" | "anthropic" | "grok";
+export type ModelProvider = "openai" | "gemini" | "anthropic" | "grok" | "groq";
 
 export type ReasoningMode = "none" | "low" | "medium" | "high";
 
@@ -89,7 +89,10 @@ export interface HistorySnapshot {
   brief: string | null;
   briefAttachments: BriefAttachment[];
   history: HistoryEntry[];
-  runtime: Pick<RuntimeConfig, "historyLimit" | "historyMaxBytes" | "includeInstructionPanel">;
+  runtime: Pick<
+    RuntimeConfig,
+    "historyLimit" | "historyMaxBytes" | "includeInstructionPanel"
+  >;
   llm: ProviderSettingsSummary;
 }
 

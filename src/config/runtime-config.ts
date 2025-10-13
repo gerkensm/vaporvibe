@@ -1,6 +1,7 @@
 import {
   DEFAULT_GEMINI_MODEL,
   DEFAULT_GROK_MODEL,
+  DEFAULT_GROQ_MODEL,
   DEFAULT_MAX_OUTPUT_TOKENS,
   DEFAULT_OPENAI_MODEL,
   DEFAULT_PORT,
@@ -21,6 +22,7 @@ import type {
 } from "../types.js";
 import type { CliOptions } from "../cli/args.js";
 import { getCredentialStore } from "../utils/credential-store.js";
+import { logger } from "../logger.js";
 
 const SESSION_TTL_MS = 15 * 60 * 1000;
 const SESSION_CAP = 200;
@@ -184,6 +186,33 @@ async function resolveProviderSettings(
     };
   }
 
+  if (provider === "groq") {
+    const model =
+      modelFromCli ||
+      env.GROQ_MODEL?.trim() ||
+      env.MODEL?.trim() ||
+      DEFAULT_GROQ_MODEL;
+    const maxOutputTokens = maxOverride ?? DEFAULT_MAX_OUTPUT_TOKENS;
+    if (
+      reasoning.tokensExplicit &&
+      typeof reasoning.tokens === "number" &&
+      reasoning.tokens > 0
+    ) {
+      logger.info(
+        `Groq does not expose reasoning token budgets; requested value ${reasoning.tokens} will be ignored.`,
+      );
+    }
+    const reasoningMode = reasoning.mode;
+    return {
+      provider,
+      apiKey,
+      model,
+      maxOutputTokens,
+      reasoningMode,
+      reasoningTokens: undefined,
+    };
+  }
+
   const model =
     modelFromCli ||
     env.ANTHROPIC_MODEL?.trim() ||
@@ -240,11 +269,13 @@ async function determineProvider(
   const hasAnthropicKey =
     Boolean(getAnthropicKey(env)) || (await hasStoredKey("anthropic"));
   const hasGrokKey = Boolean(getGrokKey(env)) || (await hasStoredKey("grok"));
+  const hasGroqKey = Boolean(getGroqKey(env)) || (await hasStoredKey("groq"));
   const providersWithKeys: ModelProvider[] = [];
   if (hasOpenAiKey) providersWithKeys.push("openai");
   if (hasGeminiKey) providersWithKeys.push("gemini");
   if (hasAnthropicKey) providersWithKeys.push("anthropic");
   if (hasGrokKey) providersWithKeys.push("grok");
+  if (hasGroqKey) providersWithKeys.push("groq");
 
   if (hasOpenAiKey && !hasGeminiKey && !hasAnthropicKey) {
     return { provider: "openai", locked: false, providersWithKeys };
@@ -255,8 +286,23 @@ async function determineProvider(
   if (hasAnthropicKey && !hasOpenAiKey && !hasGeminiKey) {
     return { provider: "anthropic", locked: false, providersWithKeys };
   }
-  if (hasGrokKey && !hasOpenAiKey && !hasGeminiKey && !hasAnthropicKey) {
+  if (
+    hasGrokKey &&
+    !hasOpenAiKey &&
+    !hasGeminiKey &&
+    !hasAnthropicKey &&
+    !hasGroqKey
+  ) {
     return { provider: "grok", locked: false, providersWithKeys };
+  }
+  if (
+    hasGroqKey &&
+    !hasOpenAiKey &&
+    !hasGeminiKey &&
+    !hasAnthropicKey &&
+    !hasGrokKey
+  ) {
+    return { provider: "groq", locked: false, providersWithKeys };
   }
 
   if (hasOpenAiKey) {
@@ -270,6 +316,9 @@ async function determineProvider(
   }
   if (hasGrokKey) {
     return { provider: "grok", locked: false, providersWithKeys };
+  }
+  if (hasGroqKey) {
+    return { provider: "groq", locked: false, providersWithKeys };
   }
 
   // Default to OpenAI when no preference is supplied.
@@ -287,6 +336,7 @@ async function detectProvidersWithKeys(
   if (getAnthropicKey(env) || (await hasStoredKey("anthropic")))
     detected.push("anthropic");
   if (getGrokKey(env) || (await hasStoredKey("grok"))) detected.push("grok");
+  if (getGroqKey(env) || (await hasStoredKey("groq"))) detected.push("groq");
   return detected;
 }
 
@@ -399,6 +449,7 @@ function parseProviderValue(value: unknown): ModelProvider | undefined {
   if (normalized === "anthropic") return "anthropic";
   if (normalized === "grok" || normalized === "xai" || normalized === "x.ai")
     return "grok";
+  if (normalized === "groq") return "groq";
   return undefined;
 }
 
@@ -435,6 +486,10 @@ function getGrokKey(env: NodeJS.ProcessEnv): string | undefined {
   return env.XAI_API_KEY || env.GROK_API_KEY || env.XAI_KEY || undefined;
 }
 
+function getGroqKey(env: NodeJS.ProcessEnv): string | undefined {
+  return env.GROQ_API_KEY || env.GROQ_KEY || undefined;
+}
+
 function lookupEnvApiKey(
   provider: ModelProvider,
   env: NodeJS.ProcessEnv
@@ -447,6 +502,9 @@ function lookupEnvApiKey(
   }
   if (provider === "grok") {
     return getGrokKey(env);
+  }
+  if (provider === "groq") {
+    return getGroqKey(env);
   }
   return getAnthropicKey(env);
 }
@@ -465,6 +523,10 @@ function applyProviderEnv(settings: ProviderSettings): void {
   }
   if (settings.provider === "grok") {
     process.env.XAI_API_KEY = settings.apiKey;
+    return;
+  }
+  if (settings.provider === "groq") {
+    process.env.GROQ_API_KEY = settings.apiKey;
     return;
   }
   process.env.ANTHROPIC_API_KEY = settings.apiKey;

@@ -15,12 +15,16 @@ import {
   DEFAULT_GEMINI_MODEL,
   DEFAULT_ANTHROPIC_MODEL,
   DEFAULT_GROK_MODEL,
+  DEFAULT_GROQ_MODEL,
   DEFAULT_MAX_OUTPUT_TOKENS,
   DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS,
   DEFAULT_REASONING_TOKENS,
   LLM_RESULT_ROUTE_PREFIX,
 } from "../constants.js";
-import { DEFAULT_MAX_TOKENS_BY_PROVIDER } from "../constants/providers.js";
+import {
+  DEFAULT_MAX_TOKENS_BY_PROVIDER,
+  PROVIDER_REASONING_CAPABILITIES,
+} from "../constants/providers.js";
 import type {
   BriefAttachment,
   ChatMessage,
@@ -1207,6 +1211,10 @@ function applyProviderEnv(settings: ProviderSettings): void {
     process.env.XAI_API_KEY = key;
     return;
   }
+  if (settings.provider === "groq") {
+    process.env.GROQ_API_KEY = key;
+    return;
+  }
   process.env.ANTHROPIC_API_KEY = key;
 }
 
@@ -1236,6 +1244,9 @@ function getEnvApiKeyForProvider(provider: ModelProvider): string | undefined {
       undefined
     );
   }
+  if (provider === "groq") {
+    return process.env.GROQ_API_KEY || process.env.GROQ_KEY || undefined;
+  }
   return (
     process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_KEY || undefined
   );
@@ -1251,19 +1262,22 @@ function getProviderLabel(provider: ProviderSettings["provider"]): string {
   if (provider === "grok") {
     return "xAI (Grok)";
   }
+  if (provider === "groq") {
+    return "Groq";
+  }
   return "Anthropic";
 }
 
 function providerSupportsReasoningMode(
   provider: ProviderSettings["provider"]
 ): boolean {
-  return provider === "openai" || provider === "grok";
+  return Boolean(PROVIDER_REASONING_CAPABILITIES[provider]?.mode);
 }
 
 function providerSupportsReasoningTokens(
   provider: ProviderSettings["provider"]
 ): boolean {
-  return provider === "gemini" || provider === "anthropic";
+  return Boolean(PROVIDER_REASONING_CAPABILITIES[provider]?.tokens);
 }
 
 async function updateProviderSelection(
@@ -1308,6 +1322,8 @@ async function updateProviderSelection(
       reasoningTokens = DEFAULT_REASONING_TOKENS.gemini;
     }
   } else if (provider === "grok") {
+    reasoningMode = "none";
+  } else if (provider === "groq") {
     reasoningMode = "none";
   }
 
@@ -1364,6 +1380,9 @@ function getDefaultModelForProvider(
   if (provider === "grok") {
     return DEFAULT_GROK_MODEL;
   }
+  if (provider === "groq") {
+    return DEFAULT_GROQ_MODEL;
+  }
   return DEFAULT_ANTHROPIC_MODEL;
 }
 
@@ -1400,7 +1419,13 @@ function getEffectiveReasoningTokens(
 function buildProviderKeyStatuses(
   state: MutableServerState
 ): Record<ModelProvider, { hasKey: boolean; verified: boolean }> {
-  const providers: ModelProvider[] = ["openai", "gemini", "anthropic", "grok"];
+  const providers: ModelProvider[] = [
+    "openai",
+    "gemini",
+    "anthropic",
+    "grok",
+    "groq",
+  ];
   return providers.reduce<
     Record<ModelProvider, { hasKey: boolean; verified: boolean }>
   >(
@@ -1422,6 +1447,7 @@ function buildProviderKeyStatuses(
       gemini: { hasKey: false, verified: false },
       anthropic: { hasKey: false, verified: false },
       grok: { hasKey: false, verified: false },
+      groq: { hasKey: false, verified: false },
     }
   );
 }
@@ -1438,6 +1464,7 @@ function parseProviderValue(
   if (normalized === "anthropic") return "anthropic";
   if (normalized === "grok" || normalized === "xai" || normalized === "x.ai")
     return "grok";
+  if (normalized === "groq") return "groq";
   return undefined;
 }
 

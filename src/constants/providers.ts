@@ -62,6 +62,7 @@ export const DEFAULT_MODEL_BY_PROVIDER: Record<ModelProvider, string> = {
   gemini: PROVIDER_METADATA.gemini.defaultModel,
   anthropic: PROVIDER_METADATA.anthropic.defaultModel,
   grok: PROVIDER_METADATA.grok.defaultModel,
+  groq: PROVIDER_METADATA.groq.defaultModel,
 };
 
 export const DEFAULT_MAX_TOKENS_BY_PROVIDER: Record<ModelProvider, number> = {
@@ -69,6 +70,7 @@ export const DEFAULT_MAX_TOKENS_BY_PROVIDER: Record<ModelProvider, number> = {
   gemini: PROVIDER_METADATA.gemini.maxOutputTokens.default,
   anthropic: PROVIDER_METADATA.anthropic.maxOutputTokens.default,
   grok: PROVIDER_METADATA.grok.maxOutputTokens.default,
+  groq: PROVIDER_METADATA.groq.maxOutputTokens.default,
 };
 
 export const REASONING_MODE_CHOICES: Array<{ value: ReasoningMode; label: string; description: string }> = [

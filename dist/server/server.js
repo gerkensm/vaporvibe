@@ -2,8 +2,8 @@ import http from "node:http";
 import { Buffer } from "node:buffer";
 import { URL } from "node:url";
 import { randomUUID } from "node:crypto";
-import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD, INSTRUCTIONS_PANEL_ROUTE, SETUP_ROUTE, SETUP_VERIFY_ROUTE, DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, LLM_RESULT_ROUTE_PREFIX, } from "../constants.js";
-import { DEFAULT_MAX_TOKENS_BY_PROVIDER } from "../constants/providers.js";
+import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD, INSTRUCTIONS_PANEL_ROUTE, SETUP_ROUTE, SETUP_VERIFY_ROUTE, DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL, DEFAULT_GROQ_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, LLM_RESULT_ROUTE_PREFIX, } from "../constants.js";
+import { DEFAULT_MAX_TOKENS_BY_PROVIDER, PROVIDER_REASONING_CAPABILITIES, } from "../constants/providers.js";
 import { buildMessages } from "../llm/messages.js";
 import { supportsImageInput } from "../llm/capabilities.js";
 import { parseCookies } from "../utils/cookies.js";
@@ -918,6 +918,10 @@ function applyProviderEnv(settings) {
         process.env.XAI_API_KEY = key;
         return;
     }
+    if (settings.provider === "groq") {
+        process.env.GROQ_API_KEY = key;
+        return;
+    }
     process.env.ANTHROPIC_API_KEY = key;
 }
 function getEnvApiKeyForProvider(provider) {
@@ -940,6 +944,9 @@ function getEnvApiKeyForProvider(provider) {
             process.env.XAI_KEY ||
             undefined);
     }
+    if (provider === "groq") {
+        return process.env.GROQ_API_KEY || process.env.GROQ_KEY || undefined;
+    }
     return (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_KEY || undefined);
 }
 function getProviderLabel(provider) {
@@ -952,13 +959,16 @@ function getProviderLabel(provider) {
     if (provider === "grok") {
         return "xAI (Grok)";
     }
+    if (provider === "groq") {
+        return "Groq";
+    }
     return "Anthropic";
 }
 function providerSupportsReasoningMode(provider) {
-    return provider === "openai" || provider === "grok";
+    return Boolean(PROVIDER_REASONING_CAPABILITIES[provider]?.mode);
 }
 function providerSupportsReasoningTokens(provider) {
-    return provider === "gemini" || provider === "anthropic";
+    return Boolean(PROVIDER_REASONING_CAPABILITIES[provider]?.tokens);
 }
 async function updateProviderSelection(state, provider, reqLogger) {
     if (state.provider.provider === provider) {
@@ -995,6 +1005,9 @@ async function updateProviderSelection(state, provider, reqLogger) {
         }
     }
     else if (provider === "grok") {
+        reasoningMode = "none";
+    }
+    else if (provider === "groq") {
         reasoningMode = "none";
     }
     const envKey = getEnvApiKeyForProvider(provider)?.trim() ?? "";
@@ -1042,6 +1055,9 @@ function getDefaultModelForProvider(provider) {
     if (provider === "grok") {
         return DEFAULT_GROK_MODEL;
     }
+    if (provider === "groq") {
+        return DEFAULT_GROQ_MODEL;
+    }
     return DEFAULT_ANTHROPIC_MODEL;
 }
 function getDefaultMaxTokensForProvider(provider) {
@@ -1069,7 +1085,13 @@ function getEffectiveReasoningTokens(provider) {
     return DEFAULT_REASONING_TOKENS[provider.provider];
 }
 function buildProviderKeyStatuses(state) {
-    const providers = ["openai", "gemini", "anthropic", "grok"];
+    const providers = [
+        "openai",
+        "gemini",
+        "anthropic",
+        "grok",
+        "groq",
+    ];
     return providers.reduce((acc, provider) => {
         const isCurrent = state.provider.provider === provider;
         const hasKeyInState = isCurrent
@@ -1086,6 +1108,7 @@ function buildProviderKeyStatuses(state) {
         gemini: { hasKey: false, verified: false },
         anthropic: { hasKey: false, verified: false },
         grok: { hasKey: false, verified: false },
+        groq: { hasKey: false, verified: false },
     });
 }
 function parseProviderValue(value) {
@@ -1101,6 +1124,8 @@ function parseProviderValue(value) {
         return "anthropic";
     if (normalized === "grok" || normalized === "xai" || normalized === "x.ai")
         return "grok";
+    if (normalized === "groq")
+        return "groq";
     return undefined;
 }
 function sanitizeReasoningModeValue(value, fallback) {
