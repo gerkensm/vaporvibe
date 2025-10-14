@@ -1561,6 +1561,9 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         contextWindow: 131_072,
         contextWindowUnit: "tokens",
         featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: false,
         maxOutputTokens: {
           default: 8_192,
           max: 8_192,
@@ -1583,6 +1586,9 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         release: "2024",
         contextWindow: 131_072,
         contextWindowUnit: "tokens",
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: false,
         featured: true,
         maxOutputTokens: {
           default: 8_192,

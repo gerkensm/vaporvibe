@@ -15,6 +15,11 @@ const ANTHROPIC_IMAGE_MODEL_PATTERNS: RegExp[] = [
   /haiku/i,
 ];
 
+const GROQ_IMAGE_MODELS = new Set<string>([
+  "meta-llama/llama-4-maverick-17b-128e-instruct",
+  "meta-llama/llama-4-scout-17b-16e-instruct",
+]);
+
 export function supportsImageInput(
   provider: ModelProvider,
   model: string,
@@ -35,6 +40,8 @@ export function supportsImageInput(
       return ANTHROPIC_IMAGE_MODEL_PATTERNS.some((pattern) =>
         pattern.test(normalizedModel)
       );
+    case "groq":
+      return GROQ_IMAGE_MODELS.has(normalizedModel);
     default:
       return false;
   }

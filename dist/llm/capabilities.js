@@ -11,6 +11,10 @@ const ANTHROPIC_IMAGE_MODEL_PATTERNS = [
     /sonnet/i,
     /haiku/i,
 ];
+const GROQ_IMAGE_MODELS = new Set([
+    "meta-llama/llama-4-maverick-17b-128e-instruct",
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+]);
 export function supportsImageInput(provider, model) {
     const normalizedModel = model.trim().toLowerCase();
     if (!normalizedModel) {
@@ -23,6 +27,8 @@ export function supportsImageInput(provider, model) {
             return true;
         case "anthropic":
             return ANTHROPIC_IMAGE_MODEL_PATTERNS.some((pattern) => pattern.test(normalizedModel));
+        case "groq":
+            return GROQ_IMAGE_MODELS.has(normalizedModel);
         default:
             return false;
     }
