@@ -34,7 +34,7 @@ All you need is **Node.js (v20+, ideally 24)** and an API key from OpenAI, Googl
 
 ## Demo: From Brief to Interactive App
 
-Watch how a single brief turns into an improv UI loop. The model invents an enterprise incident tracker, gets feedback via the AI Assist panel to fix a CSS bug, and then hallucinates a consistent detail page on the fly.
+Watch how a single brief turns into an improv UI loop. The model invents a note taking app from scratch, gets feedback via the Iterations panel to add features, and then hallucinates consistent interactions on the fly.
 
 https://github.com/user-attachments/assets/2dc2cc71-811b-477e-b217-3c46606c39bd
 
