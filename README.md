@@ -36,22 +36,7 @@ All you need is **Node.js (v20+, ideally 24)** and an API key from OpenAI, Googl
 
 Watch how a single brief turns into an improv UI loop. The model invents an enterprise incident tracker, gets feedback via the AI Assist panel to fix a CSS bug, and then hallucinates a consistent detail page on the fly.
 
-https://github.com/user-attachments/assets/749b04c7-7684-4e6f-ad46-98379bb63364
-
-Prefer a GIF? Grab [assets/demo/incident-walkthrough.gif](assets/demo/incident-walkthrough.gif) (~2.2 MB).
-
-<details>
-<summary><strong>Step-by-step screenshots</strong></summary>
-
-| Step | Preview                                                                                       | What happened                                                                                                                                                     |
-| ---- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | [![Entering the app brief](assets/thumbs/incident-step0.png)](assets/screenshot0.png)         | The CLI launches the brief form at `http://localhost:3000`, where the enterprise incident-tracker prompt is pasted into the textarea before starting the session. |
-| 2    | [![Initial incident overview](assets/thumbs/incident-step1.png)](assets/screenshot1.png)      | The landing view loads with a richly styled overview of active incidents, but a styling glitch causes the incident badges to overlap when they wrap.              |
-| 3    | [![Issuing AI assist instructions](assets/thumbs/incident-step2.png)](assets/screenshot2.png) | Using the floating `AI Assist` panel, the admin submits a fix request describing the badge overlap issue.                                                         |
-| 4    | [![Layout fix applied](assets/thumbs/incident-step3.png)](assets/screenshot3.png)             | The regenerated page applies the patch: badges now stay on a single line, and an inline note confirms the change the model just made.                             |
-| 5    | [![Incident deep-dive page](assets/thumbs/incident-step4.png)](assets/screenshot4.png)        | Clicking an incident ID (INC-1042) opens a fully fabricated detail view that keeps the theme, data tone, and interaction model consistent with the overview.      |
-
-</details>
+https://github.com/user-attachments/assets/2dc2cc71-811b-477e-b217-3c46606c39bd
 
 ---
 
