@@ -8,8 +8,12 @@ import type {
 } from "../types.js";
 import type { LlmClient, LlmResult } from "./client.js";
 import { logger } from "../logger.js";
+import { supportsImageInput } from "./capabilities.js";
 
 const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
+
+const MAX_GROQ_IMAGE_ATTACHMENTS = 5;
+const MAX_GROQ_IMAGE_BYTES = 4 * 1024 * 1024;
 
 /** Models with Groq reasoning knobs on the Chat API */
 const GROQ_REASONING_SUPPORTED_MODELS = new Set<string>([
@@ -51,7 +55,12 @@ export class GroqClient implements LlmClient {
   async generateHtml(messages: ChatMessage[]): Promise<LlmResult> {
     // Convert your internal messages to Chat Completions messages
     const chatMessages = messages.map((m) =>
-      toChatCompletionMessage(m.content, m.role, m.attachments as any)
+      toChatCompletionMessage(
+        this.settings.model,
+        m.content,
+        m.role,
+        m.attachments as any
+      )
     );
 
     // Build a typed request. Setting stream:false as const narrows the return type to ChatCompletion.
@@ -64,8 +73,6 @@ export class GroqClient implements LlmClient {
       };
 
     applyReasoningOptionsForChat(request, this.settings);
-
-    logger.info(request);
 
     const resp = await this.client.chat.completions.create(request);
 
@@ -116,6 +123,7 @@ export async function verifyGroqApiKey(
 /* ----------------------- helpers ----------------------- */
 
 function toChatCompletionMessage(
+  model: string,
   text: string,
   role: "system" | "user" | "assistant",
   attachments?: ImageAttachment[]
@@ -135,15 +143,38 @@ function toChatCompletionMessage(
     parts.push({ type: "text", text });
   }
 
+  const modelSupportsVision = supportsImageInput("groq", model);
+  let imagesAdded = 0;
+
   for (const a of attachments) {
     const mimeType = (a.mimeType || "image/png").toLowerCase();
-    if (mimeType.startsWith("image/")) {
+    if (mimeType.startsWith("image/") && modelSupportsVision) {
+      if (imagesAdded >= MAX_GROQ_IMAGE_ATTACHMENTS) {
+        logger.warn(
+          `Skipping image attachment ${a.name} — Groq vision models accept at most ${MAX_GROQ_IMAGE_ATTACHMENTS} images per message.`
+        );
+        continue;
+      }
+      const imageBytes = getBase64ByteSize(a.base64);
+      if (imageBytes === null) {
+        logger.warn(
+          `Skipping attachment ${a.name} — invalid base64 payload provided.`
+        );
+        continue;
+      }
+      if (imageBytes > MAX_GROQ_IMAGE_BYTES) {
+        logger.warn(
+          `Skipping image attachment ${a.name} (${imageBytes} bytes) — Groq vision models require base64 images under ${MAX_GROQ_IMAGE_BYTES} bytes.`
+        );
+        continue;
+      }
       parts.push({
         type: "image_url",
         image_url: {
           url: buildImageDataUrl(mimeType, a.base64),
         },
       });
+      imagesAdded += 1;
     } else {
       // Non-image attachments: inline a description so the model can see the data
       const desc = `Attachment ${a.name} (${a.mimeType}, ${a.size} bytes) encoded in Base64:`;
@@ -152,6 +183,9 @@ function toChatCompletionMessage(
   }
 
   // The OpenAI SDK accepts an array of content parts for multimodal
+  if (parts.length === 0) {
+    return { role, content: text };
+  }
   return { role, content: parts as any };
 }
 
@@ -159,6 +193,17 @@ function buildImageDataUrl(mimeType: string, base64: string): string {
   const safeMime =
     mimeType && mimeType.trim().length > 0 ? mimeType : "image/png";
   return `data:${safeMime};base64,${base64}`;
+}
+
+function getBase64ByteSize(base64: string): number | null {
+  try {
+    return Buffer.from(base64, "base64").byteLength;
+  } catch (error) {
+    logger.debug(
+      `Failed to measure base64 payload size: ${(error as Error).message}`
+    );
+    return null;
+  }
 }
 
 /* -------------------- extraction helpers -------------------- */

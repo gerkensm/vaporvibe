@@ -136,7 +136,10 @@ export function renderAdminDashboard(props: AdminPageProps): string {
     const override = modelMetadata?.maxOutputTokens ?? {};
     const description = override.description ?? base.description ?? "";
     const defaultValue =
-      override.default ?? base.default ?? defaultMaxTokens ?? provider.maxOutputTokens;
+      override.default ??
+      base.default ??
+      defaultMaxTokens ??
+      provider.maxOutputTokens;
     return {
       min: override.min ?? base.min,
       max: override.max ?? base.max,
@@ -188,7 +191,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
     !modelSupportsReasoningTokens &&
     metadataAllowsReasoningMode;
   const reasoningToggleAllowed =
-    modelSupportsReasoningTokens && (reasoningGuidance?.allowDisable !== false);
+    modelSupportsReasoningTokens && reasoningGuidance?.allowDisable !== false;
   const reasoningToggleEnabled = modelSupportsReasoningTokens
     ? reasoningToggleAllowed
       ? provider.reasoningTokensEnabled !== false
@@ -229,7 +232,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
     selectId: modelInputId,
     customInputId: "admin-model-custom",
     inputName: "model",
-    note: 'Curated defaults are pre-filled. Override with an exact identifier to target preview builds.',
+    note: "Curated defaults are pre-filled. Override with an exact identifier to target preview builds.",
   });
   const apiInputId = "admin-api-key";
   const maxTokensId = "admin-max-output";
@@ -265,7 +268,8 @@ export function renderAdminDashboard(props: AdminPageProps): string {
     reasoningSliderHelperParts.push(reasoningGuidance.helper);
   }
   const reasoningSliderHelper = reasoningSliderHelperParts.join(" ");
-  const reasoningSliderDescription = reasoningGuidance?.description?.trim().length
+  const reasoningSliderDescription = reasoningGuidance?.description?.trim()
+    .length
     ? reasoningGuidance.description
     : "Reserve a deliberate thinking budget for models that support it.";
   const reasoningSpecialLabels: Record<string, string> =
@@ -313,9 +317,10 @@ export function renderAdminDashboard(props: AdminPageProps): string {
   const reasoningCapabilitiesPayload = JSON.stringify(
     PROVIDER_REASONING_CAPABILITIES
   ).replace(/</g, "\\u003C");
-  const tokenGuidancePayload = JSON.stringify(
-    PROVIDER_TOKEN_GUIDANCE
-  ).replace(/</g, "\\u003C");
+  const tokenGuidancePayload = JSON.stringify(PROVIDER_TOKEN_GUIDANCE).replace(
+    /</g,
+    "\\u003C"
+  );
   const reasoningDescriptionsPayload = JSON.stringify(
     Object.fromEntries(
       REASONING_MODE_CHOICES.map(
@@ -1174,7 +1179,7 @@ export function renderAdminDashboard(props: AdminPageProps): string {
         <section class="tab-panel" id="tab-brief" role="tabpanel">
           <div class="panel-body brief-panel">
             <div class="pill">Craft the brief</div>
-            <p class="panel-note">Describe the product vision just like you did in setup—tone, audience, signature moments. Updates land instantly for the next render.</p>
+            <p class="panel-note">Describe the product vision — tone, audience, signature moments. Updates land instantly for the next render.</p>
             <form
               method="post"
               action="${escapeHtml(`/serve-llm/update-brief`)}"
@@ -1188,16 +1193,15 @@ export function renderAdminDashboard(props: AdminPageProps): string {
                   spellcheck="true"
                 >${escapeHtml(briefText)}</textarea>
               </label>
-              <p class="field-helper">We’ll keep a live snapshot of this brief on every request so you can iterate mid-session.</p>
+              <p class="field-helper">The brief will guide the model throughout this session.</p>
               <div class="attachment-section">
                 <span class="field-label">Brief attachments</span>
-                <p class="field-helper">Drop in reference images or PDFs to ground the model. We’ll inline them for models that accept image inputs and preserve them in history exports.</p>
+                <p class="field-helper">Drop in napkin sketches, screenshots, reference images or PDFs (depending on the model) to set the scene.</p>
                 ${renderBriefAttachmentManager(attachments)}
                 ${renderAttachmentUploader({
                   inputName: "briefAttachments",
                   label: "Add brief attachments",
-                  hint:
-                    "Drop files, paste with Ctrl+V, or click browse to upload images and PDFs.",
+                  hint: "Drop files, paste with Ctrl+V, or click browse to upload images and PDFs.",
                   browseLabel: "Browse files",
                   emptyStatus: "No new files selected yet.",
                 })}
@@ -1292,7 +1296,9 @@ export function renderAdminDashboard(props: AdminPageProps): string {
                 <div
                   class="reasoning-toggle-group"
                   data-reasoning-toggle-block
-                  data-allow-disable="${reasoningToggleAllowed ? "true" : "false"}"
+                  data-allow-disable="${
+                    reasoningToggleAllowed ? "true" : "false"
+                  }"
                   ${modelSupportsReasoningTokens ? "" : "hidden"}
                 >
                   <div class="reasoning-toggle" data-reasoning-toggle-wrapper ${
@@ -1600,7 +1606,10 @@ export function renderAdminDashboard(props: AdminPageProps): string {
             ? tokenControlApi.init(reasoningTokensControlRoot)
             : null;
 
-        const fallbackProvider = ${JSON.stringify(providerKey).replace(/</g, "\\u003C")};
+        const fallbackProvider = ${JSON.stringify(providerKey).replace(
+          /</g,
+          "\\u003C"
+        )};
         const initialProvider = providerForm.dataset.initialProvider || fallbackProvider;
         const initialHasKey = providerForm.dataset.initialHasKey === "true";
         let forcedKeyEntry = !initialHasKey;
@@ -2854,8 +2863,8 @@ function renderFormAttachmentCard(attachment: AdminBriefAttachment): string {
     <div class="attachment-meta">
       <strong>${escapeHtml(attachment.name)}</strong>
       <span>${escapeHtml(attachment.mimeType)} · ${escapeHtml(
-        formatBytes(attachment.size)
-      )}</span>
+    formatBytes(attachment.size)
+  )}</span>
     </div>
     <div class="attachment-actions">
       <label class="attachment-remove">
@@ -2871,18 +2880,14 @@ function renderFormAttachmentCard(attachment: AdminBriefAttachment): string {
   </div>`;
 }
 
-function renderHistoryAttachments(
-  attachments: AdminBriefAttachment[]
-): string {
+function renderHistoryAttachments(attachments: AdminBriefAttachment[]): string {
   const cards = attachments
     .map((attachment) => renderHistoryAttachmentCard(attachment))
     .join("\n");
   return `<div class="attachment-gallery attachment-gallery--history">${cards}</div>`;
 }
 
-function renderHistoryAttachmentCard(
-  attachment: AdminBriefAttachment
-): string {
+function renderHistoryAttachmentCard(attachment: AdminBriefAttachment): string {
   const preview = attachment.isImage
     ? `<img src="${escapeHtml(attachment.dataUrl)}" alt="${escapeHtml(
         `${attachment.name} preview`
@@ -2895,8 +2900,8 @@ function renderHistoryAttachmentCard(
     <div class="attachment-meta">
       <strong>${escapeHtml(attachment.name)}</strong>
       <span>${escapeHtml(attachment.mimeType)} · ${escapeHtml(
-        formatBytes(attachment.size)
-      )}</span>
+    formatBytes(attachment.size)
+  )}</span>
     </div>
     <div class="attachment-actions">
       <a class="attachment-download" href="${escapeHtml(

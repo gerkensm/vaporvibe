@@ -82,7 +82,6 @@ export function getNavigationInterceptorScript(): string {
   var dvdPosition = { x: 0, y: 0, vx: 0.2, vy: 0.18 };
   var overlayStatusTimeout = null;
   var overlayStatusInterval = null;
-  var overlayEffectCursor = 0;
 
   function ensureOverlayMotionNode() {
     if (!overlay) return null;
@@ -223,17 +222,16 @@ export function getNavigationInterceptorScript(): string {
       return;
     }
 
-    var minChance = 0.1;
-    var maxChance = 0.2;
-    var threshold = minChance + Math.random() * (maxChance - minChance);
+    var chance = 0.3;
 
-    if (Math.random() > threshold) {
+    if (Math.random() > chance) {
       applyOverlayEffectById(null);
       return;
     }
 
-    var chosen = overlayEffectsConfig[overlayEffectCursor % overlayEffectsConfig.length];
-    overlayEffectCursor = (overlayEffectCursor + 1) % overlayEffectsConfig.length;
+    var chosen = overlayEffectsConfig[
+      Math.floor(Math.random() * overlayEffectsConfig.length)
+    ];
     applyOverlayEffectById(chosen ? chosen.id : null);
   }
 

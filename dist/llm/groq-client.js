@@ -1,6 +1,9 @@
 import OpenAI from "openai";
 import { logger } from "../logger.js";
+import { supportsImageInput } from "./capabilities.js";
 const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
+const MAX_GROQ_IMAGE_ATTACHMENTS = 5;
+const MAX_GROQ_IMAGE_BYTES = 4 * 1024 * 1024;
 /** Models with Groq reasoning knobs on the Chat API */
 const GROQ_REASONING_SUPPORTED_MODELS = new Set([
     "openai/gpt-oss-20b",
@@ -27,7 +30,7 @@ export class GroqClient {
     }
     async generateHtml(messages) {
         // Convert your internal messages to Chat Completions messages
-        const chatMessages = messages.map((m) => toChatCompletionMessage(m.content, m.role, m.attachments));
+        const chatMessages = messages.map((m) => toChatCompletionMessage(this.settings.model, m.content, m.role, m.attachments));
         // Build a typed request. Setting stream:false as const narrows the return type to ChatCompletion.
         const request = {
             model: this.settings.model,
@@ -36,7 +39,6 @@ export class GroqClient {
             max_completion_tokens: this.settings.maxOutputTokens,
         };
         applyReasoningOptionsForChat(request, this.settings);
-        logger.info(request);
         const resp = await this.client.chat.completions.create(request);
         const html = extractHtmlFromChat(resp);
         const usage = extractUsageFromChat(resp);
@@ -75,7 +77,7 @@ export async function verifyGroqApiKey(apiKey) {
     }
 }
 /* ----------------------- helpers ----------------------- */
-function toChatCompletionMessage(text, role, attachments) {
+function toChatCompletionMessage(model, text, role, attachments) {
     // If there are no attachments, send simple string content
     if (!attachments || attachments.length === 0) {
         return { role, content: text };
@@ -85,15 +87,31 @@ function toChatCompletionMessage(text, role, attachments) {
     if (text && text.trim().length > 0) {
         parts.push({ type: "text", text });
     }
+    const modelSupportsVision = supportsImageInput("groq", model);
+    let imagesAdded = 0;
     for (const a of attachments) {
         const mimeType = (a.mimeType || "image/png").toLowerCase();
-        if (mimeType.startsWith("image/")) {
+        if (mimeType.startsWith("image/") && modelSupportsVision) {
+            if (imagesAdded >= MAX_GROQ_IMAGE_ATTACHMENTS) {
+                logger.warn(`Skipping image attachment ${a.name} — Groq vision models accept at most ${MAX_GROQ_IMAGE_ATTACHMENTS} images per message.`);
+                continue;
+            }
+            const imageBytes = getBase64ByteSize(a.base64);
+            if (imageBytes === null) {
+                logger.warn(`Skipping attachment ${a.name} — invalid base64 payload provided.`);
+                continue;
+            }
+            if (imageBytes > MAX_GROQ_IMAGE_BYTES) {
+                logger.warn(`Skipping image attachment ${a.name} (${imageBytes} bytes) — Groq vision models require base64 images under ${MAX_GROQ_IMAGE_BYTES} bytes.`);
+                continue;
+            }
             parts.push({
                 type: "image_url",
                 image_url: {
                     url: buildImageDataUrl(mimeType, a.base64),
                 },
             });
+            imagesAdded += 1;
         }
         else {
             // Non-image attachments: inline a description so the model can see the data
@@ -102,11 +120,23 @@ function toChatCompletionMessage(text, role, attachments) {
         }
     }
     // The OpenAI SDK accepts an array of content parts for multimodal
+    if (parts.length === 0) {
+        return { role, content: text };
+    }
     return { role, content: parts };
 }
 function buildImageDataUrl(mimeType, base64) {
     const safeMime = mimeType && mimeType.trim().length > 0 ? mimeType : "image/png";
     return `data:${safeMime};base64,${base64}`;
+}
+function getBase64ByteSize(base64) {
+    try {
+        return Buffer.from(base64, "base64").byteLength;
+    }
+    catch (error) {
+        logger.debug(`Failed to measure base64 payload size: ${error.message}`);
+        return null;
+    }
 }
 /* -------------------- extraction helpers -------------------- */
 function extractHtmlFromChat(resp) {
