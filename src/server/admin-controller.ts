@@ -6,6 +6,7 @@ import {
   PROVIDER_LABELS,
   PROVIDER_PLACEHOLDERS,
   PROVIDER_REASONING_CAPABILITIES,
+  PROVIDER_REASONING_MODES,
   PROVIDER_TOKEN_GUIDANCE,
   DEFAULT_MODEL_BY_PROVIDER,
   DEFAULT_MAX_TOKENS_BY_PROVIDER,
@@ -58,6 +59,19 @@ const MARKDOWN_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history/prompt.md`;
 interface AdminControllerOptions {
   state: MutableServerState;
   sessionStore: SessionStore;
+}
+
+interface HistorySnapshot {
+  version: number;
+  history: HistoryEntry[];
+  brief?: string | null;
+  briefAttachments?: BriefAttachment[] | null;
+  runtime?: {
+    historyLimit?: number;
+    historyMaxBytes?: number;
+    includeInstructionPanel?: boolean;
+  } | null;
+  llm?: (Partial<ProviderSettings> & { provider?: string | null }) | null;
 }
 
 export class AdminController {
@@ -237,6 +251,48 @@ export class AdminController {
       return true;
     }
 
+    if (method === "POST" && subPath === "/history/import") {
+      const body = await readBody(req);
+      const candidate = extractSnapshotCandidate(body.data);
+      const fallbackRaw =
+        typeof body.raw === "string" && body.raw.trim().length > 0
+          ? body.raw
+          : undefined;
+      const snapshotInput = candidate ?? fallbackRaw;
+
+      if (snapshotInput == null) {
+        this.respondJson(
+          res,
+          {
+            success: false,
+            message: "History import failed: provide a snapshot payload.",
+          },
+          400
+        );
+        return true;
+      }
+
+      try {
+        const entries = await this.importHistorySnapshot(snapshotInput, reqLogger);
+        const state = await this.buildAdminStateResponse();
+        const payload: AdminUpdateResponse = {
+          success: true,
+          message: describeHistoryImportResult(entries),
+          state,
+        };
+        this.respondJson(res, payload);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        reqLogger.error({ err: error }, "Failed to import history snapshot via API");
+        const payload: AdminUpdateResponse = {
+          success: false,
+          message,
+        };
+        this.respondJson(res, payload, 400);
+      }
+      return true;
+    }
+
     if (method === "GET" && subPath === "/history") {
       const params = context.url.searchParams;
       const limitParam = params.get("limit");
@@ -314,13 +370,21 @@ export class AdminController {
         (storedKey && storedKey.trim().length > 0) ||
           (envKey && envKey.trim().length > 0)
       );
-      const verified =
-        p === this.state.provider.provider &&
-        Boolean(
+
+      const isCurrentProvider = p === this.state.provider.provider;
+      const currentVerified = Boolean(
+        isCurrentProvider &&
           this.state.providerReady &&
-            this.state.provider.apiKey &&
-            this.state.provider.apiKey.trim().length > 0
-        );
+          this.state.provider.apiKey &&
+          this.state.provider.apiKey.trim().length > 0
+      );
+      const previouslyVerified = Boolean(this.state.verifiedProviders[p]);
+      const startupVerified = this.state.providersWithKeys.has(p) && hasKey;
+
+      const verified = Boolean(
+        currentVerified || previouslyVerified || startupVerified
+      );
+
       result[p as "openai" | "gemini" | "anthropic" | "grok" | "groq"] = {
         hasKey,
         verified,
@@ -403,6 +467,7 @@ export class AdminController {
       modelCatalog: PROVIDER_MODEL_METADATA,
       modelOptions,
       featuredModels,
+      providerReasoningModes: PROVIDER_REASONING_MODES,
       providerReasoningCapabilities: PROVIDER_REASONING_CAPABILITIES,
     };
   }
@@ -537,13 +602,21 @@ export class AdminController {
       data.maxOutputTokens,
       this.state.provider.maxOutputTokens
     );
-    const reasoningMode = sanitizeReasoningMode(
+    const requestedReasoningMode = sanitizeReasoningMode(
       String(data.reasoningMode ?? this.state.provider.reasoningMode)
     );
     const reasoningCapability =
       PROVIDER_REASONING_CAPABILITIES[provider] || { tokens: false, mode: false };
-    const providerGuidance = PROVIDER_TOKEN_GUIDANCE[provider]?.reasoningTokens;
     const modelMetadata = getModelMetadata(provider, model);
+    const modelReasoningModes = modelMetadata?.reasoningModes;
+    const providerReasoningModes = PROVIDER_REASONING_MODES[provider] ?? [];
+    const availableReasoningModes = modelReasoningModes && modelReasoningModes.length > 0
+      ? modelReasoningModes
+      : modelMetadata
+      ? []
+      : providerReasoningModes;
+    const reasoningModesSupported = availableReasoningModes.some((mode) => mode !== "none");
+    const providerGuidance = PROVIDER_TOKEN_GUIDANCE[provider]?.reasoningTokens;
     const modelReasoningTokens = modelMetadata?.reasoningTokens;
     const maxOutputTokens = clampMaxOutputTokensForModel(
       rawMaxOutputTokens,
@@ -561,6 +634,22 @@ export class AdminController {
         : undefined;
     const toggleAllowed =
       Boolean(tokenGuidance?.allowDisable !== false) && tokensSupported;
+
+    let normalizedReasoningMode = requestedReasoningMode;
+    if (!reasoningModesSupported) {
+      normalizedReasoningMode = "none";
+    } else if (
+      availableReasoningModes.length > 0 &&
+      !availableReasoningModes.includes(normalizedReasoningMode)
+    ) {
+      if (availableReasoningModes.includes("default")) {
+        normalizedReasoningMode = "default";
+      } else if (availableReasoningModes.includes("low")) {
+        normalizedReasoningMode = "low";
+      } else {
+        normalizedReasoningMode = availableReasoningModes[0];
+      }
+    }
 
     const previousTokensEnabled =
       this.state.provider.reasoningTokensEnabled !== false;
@@ -604,16 +693,17 @@ export class AdminController {
             tokenGuidance
           )
         : undefined;
-    let normalizedReasoningMode = reasoningCapability.mode
-      ? reasoningMode
-      : "none";
     if (
+      reasoningModesSupported &&
       reasoningCapability.mode &&
       tokensSupported &&
       nextReasoningTokensEnabled &&
       normalizedReasoningMode === "none"
     ) {
-      normalizedReasoningMode = "low";
+      const fallbackMode = availableReasoningModes.find((mode) => mode !== "none");
+      if (fallbackMode) {
+        normalizedReasoningMode = fallbackMode;
+      }
     }
     const storedReasoningTokensEnabled = tokensSupported
       ? toggleAllowed
@@ -892,11 +982,17 @@ export class AdminController {
   ): Promise<void> {
     const { req, res } = context;
     const body = await readBody(req);
-    const raw =
+    const dataCandidate = extractSnapshotCandidate(body.data);
+    const rawCandidate =
       typeof body.data.historyJson === "string"
-        ? body.data.historyJson.trim()
-        : "";
-    if (!raw) {
+        ? body.data.historyJson
+        : typeof body.raw === "string"
+          ? body.raw
+          : undefined;
+    const snapshotInput =
+      dataCandidate ?? (typeof rawCandidate === "string" ? rawCandidate : undefined);
+
+    if (snapshotInput == null || (typeof snapshotInput === "string" && !snapshotInput.trim())) {
       this.redirectWithMessage(
         res,
         "History import failed: no JSON provided",
@@ -905,111 +1001,180 @@ export class AdminController {
       return;
     }
     try {
-      const parsed = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object") {
-        throw new Error("Snapshot must be a JSON object");
-      }
-      if (parsed.version !== 1 || !Array.isArray(parsed.history)) {
-        throw new Error("Unsupported snapshot format");
-      }
-
-      const historyEntries = (parsed.history as HistoryEntry[]).map(
-        (entry) => ({
-          ...entry,
-          createdAt: entry.createdAt,
-          response: entry.response,
-          briefAttachments: cloneAttachments(entry.briefAttachments),
-        })
+      const entries = await this.importHistorySnapshot(snapshotInput, reqLogger);
+      this.redirectWithMessage(
+        res,
+        describeHistoryImportResult(entries),
+        false
       );
-      this.sessionStore.replaceHistory(historyEntries);
-
-      if (typeof parsed.brief === "string") {
-        this.state.brief = parsed.brief.trim() || null;
-      }
-
-      if (Array.isArray(parsed.briefAttachments)) {
-        this.state.briefAttachments = cloneAttachments(
-          parsed.briefAttachments as BriefAttachment[]
-        );
-      } else {
-        const latestAttachments = historyEntries.at(-1)?.briefAttachments;
-        this.state.briefAttachments = cloneAttachments(latestAttachments);
-      }
-
-      if (parsed.runtime && typeof parsed.runtime === "object") {
-        const runtimeData = parsed.runtime as Partial<{
-          historyLimit: number;
-          historyMaxBytes: number;
-          includeInstructionPanel: boolean;
-        }>;
-        if (
-          typeof runtimeData.historyLimit === "number" &&
-          runtimeData.historyLimit > 0
-        ) {
-          this.state.runtime.historyLimit = runtimeData.historyLimit;
-        }
-        if (
-          typeof runtimeData.historyMaxBytes === "number" &&
-          runtimeData.historyMaxBytes > 0
-        ) {
-          this.state.runtime.historyMaxBytes = runtimeData.historyMaxBytes;
-        }
-        if (typeof runtimeData.includeInstructionPanel === "boolean") {
-          this.state.runtime.includeInstructionPanel =
-            runtimeData.includeInstructionPanel;
-        }
-      }
-
-      if (parsed.llm && typeof parsed.llm === "object") {
-        const summary = parsed.llm as Partial<ProviderSettings> & {
-          provider?: string;
-        };
-        if (summary.provider && typeof summary.provider === "string") {
-          this.state.provider.provider = sanitizeProvider(summary.provider);
-        }
-        if (summary.model && typeof summary.model === "string") {
-          this.state.provider.model = summary.model;
-        }
-        if (
-          typeof summary.maxOutputTokens === "number" &&
-          summary.maxOutputTokens > 0
-        ) {
-          this.state.provider.maxOutputTokens = summary.maxOutputTokens;
-        }
-        if (
-          summary.reasoningMode &&
-          typeof summary.reasoningMode === "string"
-        ) {
-          this.state.provider.reasoningMode = sanitizeReasoningMode(
-            summary.reasoningMode
-          );
-        }
-        if (
-          typeof summary.reasoningTokens === "number" &&
-          summary.reasoningTokens > 0
-        ) {
-          this.state.provider.reasoningTokens = summary.reasoningTokens;
-        }
-      }
-
-      const refreshedSettings: ProviderSettings = { ...this.state.provider };
-      this.state.llmClient = createLlmClient(refreshedSettings);
-      this.state.provider = refreshedSettings;
-      this.state.providerReady = Boolean(
-        refreshedSettings.apiKey && refreshedSettings.apiKey.trim().length > 0
-      );
-      this.applyProviderEnv(refreshedSettings);
-
-      reqLogger.info(
-        { entries: historyEntries.length },
-        "Imported history snapshot via admin console"
-      );
-      this.redirectWithMessage(res, "History snapshot imported", false);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       reqLogger.error({ err: error }, "Failed to import history snapshot");
       this.redirectWithMessage(res, `History import failed: ${message}`, true);
     }
+  }
+
+  private async importHistorySnapshot(
+    snapshotInput: unknown,
+    reqLogger: Logger
+  ): Promise<number> {
+    let snapshot: HistorySnapshot;
+
+    if (typeof snapshotInput === "string") {
+      const trimmed = snapshotInput.trim();
+      if (!trimmed) {
+        throw new Error("History snapshot payload is empty");
+      }
+      try {
+        snapshot = JSON.parse(trimmed) as HistorySnapshot;
+      } catch (error) {
+        throw new Error(
+          `Invalid snapshot JSON: ${(error as Error).message ?? String(error)}`
+        );
+      }
+    } else if (snapshotInput && typeof snapshotInput === "object") {
+      snapshot = snapshotInput as HistorySnapshot;
+    } else {
+      throw new Error("Provide a history snapshot JSON payload");
+    }
+
+    if (snapshot.version !== 1) {
+      throw new Error("Unsupported snapshot version");
+    }
+    if (!Array.isArray(snapshot.history)) {
+      throw new Error("Snapshot history must be an array");
+    }
+
+    const previousProvider = this.state.provider.provider;
+    const previousApiKey = this.state.provider.apiKey;
+
+    const historyEntries = (snapshot.history as HistoryEntry[]).map((entry) => ({
+      ...entry,
+      createdAt: entry.createdAt,
+      response: entry.response,
+      briefAttachments: cloneAttachments(entry.briefAttachments),
+    }));
+    this.sessionStore.replaceHistory(historyEntries);
+
+    if (typeof snapshot.brief === "string") {
+      this.state.brief = snapshot.brief.trim() || null;
+    } else if (snapshot.brief === null) {
+      this.state.brief = null;
+    }
+
+    if (Array.isArray(snapshot.briefAttachments)) {
+      this.state.briefAttachments = cloneAttachments(
+        snapshot.briefAttachments as BriefAttachment[]
+      );
+    } else {
+      const latestAttachments = historyEntries.at(-1)?.briefAttachments;
+      this.state.briefAttachments = cloneAttachments(latestAttachments);
+    }
+
+    if (snapshot.runtime && typeof snapshot.runtime === "object") {
+      const runtimeData = snapshot.runtime as Partial<{
+        historyLimit: number;
+        historyMaxBytes: number;
+        includeInstructionPanel: boolean;
+      }>;
+      if (
+        typeof runtimeData.historyLimit === "number" &&
+        runtimeData.historyLimit > 0
+      ) {
+        this.state.runtime.historyLimit = runtimeData.historyLimit;
+      }
+      if (
+        typeof runtimeData.historyMaxBytes === "number" &&
+        runtimeData.historyMaxBytes > 0
+      ) {
+        this.state.runtime.historyMaxBytes = runtimeData.historyMaxBytes;
+      }
+      if (typeof runtimeData.includeInstructionPanel === "boolean") {
+        this.state.runtime.includeInstructionPanel =
+          runtimeData.includeInstructionPanel;
+      }
+    }
+
+    if (snapshot.llm && typeof snapshot.llm === "object") {
+      const summary = snapshot.llm as Partial<ProviderSettings> & {
+        provider?: string;
+      };
+      if (summary.provider && typeof summary.provider === "string") {
+        this.state.provider.provider = sanitizeProvider(summary.provider);
+      }
+      if (summary.model && typeof summary.model === "string") {
+        this.state.provider.model = summary.model;
+      }
+      if (
+        typeof summary.maxOutputTokens === "number" &&
+        summary.maxOutputTokens > 0
+      ) {
+        this.state.provider.maxOutputTokens = summary.maxOutputTokens;
+      }
+      if (summary.reasoningMode && typeof summary.reasoningMode === "string") {
+        this.state.provider.reasoningMode = sanitizeReasoningMode(
+          summary.reasoningMode
+        );
+      }
+      if (
+        typeof summary.reasoningTokens === "number" &&
+        summary.reasoningTokens > 0
+      ) {
+        this.state.provider.reasoningTokens = summary.reasoningTokens;
+      } else if (summary.reasoningTokens === null) {
+        this.state.provider.reasoningTokens = undefined;
+      }
+    }
+
+    const nextProvider = this.state.provider.provider;
+    let nextApiKey = previousApiKey;
+
+    if (nextProvider !== previousProvider) {
+      const storedKey = await this.credentialStore.getApiKey(nextProvider);
+      if (storedKey && storedKey.trim().length > 0) {
+        nextApiKey = storedKey.trim();
+      } else {
+        const envKey = lookupEnvApiKey(nextProvider);
+        nextApiKey = envKey?.trim() ?? "";
+      }
+    }
+
+    this.state.provider.apiKey = typeof nextApiKey === "string" ? nextApiKey : "";
+    const refreshedSettings: ProviderSettings = { ...this.state.provider };
+    this.state.provider = refreshedSettings;
+
+    const hasKey =
+      typeof refreshedSettings.apiKey === "string"
+      && refreshedSettings.apiKey.trim().length > 0;
+
+    if (hasKey) {
+      this.state.llmClient = createLlmClient(refreshedSettings);
+      this.state.providerReady = true;
+      this.state.providersWithKeys.add(nextProvider);
+      this.state.verifiedProviders[nextProvider] =
+        this.state.verifiedProviders[nextProvider] ?? false;
+      this.applyProviderEnv(refreshedSettings);
+    } else {
+      this.state.llmClient = null;
+      this.state.providerReady = false;
+      this.state.providersWithKeys.delete(nextProvider);
+      delete this.state.verifiedProviders[nextProvider];
+      this.applyProviderEnv(refreshedSettings);
+    }
+
+    this.state.providerSelectionRequired = !hasKey;
+
+    if (nextProvider !== previousProvider) {
+      this.state.providersWithKeys.delete(previousProvider);
+      delete this.state.verifiedProviders[previousProvider];
+    }
+
+    reqLogger.info(
+      { entries: historyEntries.length },
+      "Imported history snapshot via admin console"
+    );
+
+    return historyEntries.length;
   }
 
   private handleHistoryLatest(context: RequestContext): void {
@@ -1201,6 +1366,35 @@ function cloneAttachments(
   return attachments.map((attachment) => ({ ...attachment }));
 }
 
+function extractSnapshotCandidate(
+  data: unknown
+): unknown {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return undefined;
+  }
+  const record = data as Record<string, unknown>;
+  if (Object.prototype.hasOwnProperty.call(record, "snapshot")) {
+    return record.snapshot;
+  }
+  if (Object.prototype.hasOwnProperty.call(record, "historyJson")) {
+    return record.historyJson;
+  }
+  if (Object.keys(record).length === 0) {
+    return undefined;
+  }
+  return record;
+}
+
+function describeHistoryImportResult(entries: number): string {
+  if (!Number.isFinite(entries) || entries <= 0) {
+    return "History snapshot imported (no entries)";
+  }
+  if (entries === 1) {
+    return "Imported 1 history entry";
+  }
+  return `Imported ${entries} history entries`;
+}
+
 function clampMaxOutputTokensForModel(
   requested: number,
   provider: ModelProvider,
@@ -1377,11 +1571,12 @@ function sanitizeProvider(value: string): ProviderSettings["provider"] {
 function sanitizeReasoningMode(value: string): ReasoningMode {
   const normalized = value.toLowerCase();
   if (
+    normalized === "default" ||
     normalized === "low" ||
     normalized === "medium" ||
     normalized === "high"
   ) {
-    return normalized;
+    return normalized as ReasoningMode;
   }
   return "none";
 }

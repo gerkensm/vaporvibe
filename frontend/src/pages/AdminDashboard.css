@@ -1054,3 +1054,134 @@
   outline: 3px solid rgba(29, 78, 216, 0.3);
   outline-offset: 4px;
 }
+
+.admin-advanced {
+  width: 100%;
+  margin: 12px 0 24px;
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(241, 245, 249, 0.82) 100%);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.admin-advanced__summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px clamp(20px, 3vw, 28px);
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  color: #1d4ed8;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.admin-advanced__summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-advanced__title {
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.admin-advanced__hint {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.admin-advanced__chevron {
+  margin-left: auto;
+  width: 12px;
+  height: 12px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
+}
+
+.admin-advanced[open] .admin-advanced__chevron {
+  transform: rotate(135deg);
+}
+
+.admin-advanced__body {
+  padding: 6px clamp(20px, 3vw, 28px) clamp(24px, 3vw, 32px);
+  display: grid;
+  gap: 20px;
+  background: rgba(248, 250, 253, 0.9);
+}
+
+.admin-import__dropzone {
+  border: 2px dashed rgba(148, 163, 184, 0.6);
+  border-radius: 18px;
+  padding: clamp(24px, 4vw, 36px);
+  text-align: center;
+  background: rgba(248, 250, 252, 0.85);
+  color: #475569;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  display: grid;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.admin-import__dropzone--active {
+  border-color: rgba(59, 130, 246, 0.8);
+  background: rgba(219, 234, 254, 0.75);
+}
+
+.admin-import__prompt {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+.admin-import__file {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #1e3a8a;
+}
+
+.admin-import__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+  margin: 12px 0 8px;
+}
+
+.admin-import__summary {
+  margin-top: 20px;
+  padding: clamp(18px, 3vw, 24px);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(147, 197, 253, 0.16));
+}
+
+.admin-import__summary h3 {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  color: #1e3a8a;
+}
+
+.admin-import__preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.admin-import__preview dt {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.admin-import__preview dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #0f172a;
+}

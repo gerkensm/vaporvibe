@@ -26,6 +26,7 @@ export declare class AdminController {
     private applyBriefUpdate;
     private handleBriefUpdate;
     private handleHistoryImport;
+    private importHistorySnapshot;
     private handleHistoryLatest;
     private getSortedHistoryEntries;
     private redirectWithMessage;

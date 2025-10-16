@@ -59,6 +59,7 @@ export interface ModelMetadata {
   maxOutputTokens?: NumericRange;
   reasoningTokens: ModelReasoningTokens;
   reasoningModeNotes?: string;
+  reasoningModes?: string[];
   documentationUrl?: string;
   cost?: ModelCostInfo;
   compositeScores?: ModelCompositeScores;
@@ -145,6 +146,7 @@ export interface AdminStateResponse {
     string,
     Array<{ value: string; label: string; tagline?: string }>
   >;
+  providerReasoningModes: Record<string, string[]>;
   providerReasoningCapabilities: Record<
     string,
     { mode: boolean; tokens: boolean }

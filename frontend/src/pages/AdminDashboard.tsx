@@ -5,6 +5,7 @@ import {
   ModelSelector,
   TokenBudgetControl,
 } from "../components";
+import type { CustomModelConfig } from "../components";
 import HistoryExplorer from "../components/HistoryExplorer";
 import {
   fetchAdminState,
@@ -12,6 +13,7 @@ import {
   submitBriefUpdate,
   submitProviderUpdate,
   submitRuntimeUpdate,
+  submitHistoryImport,
   type ProviderUpdatePayload,
 } from "../api/admin";
 import type {
@@ -49,6 +51,18 @@ const PROVIDER_SORT_ORDER: ProviderKey[] = [
   "grok",
   "groq",
 ];
+
+const DEFAULT_CUSTOM_MODEL_CONFIG: CustomModelConfig = {
+  isMultimodal: false,
+  supportsImageInput: false,
+  supportsPDFInput: false,
+  supportsReasoning: false,
+  supportsReasoningMode: false,
+};
+
+const createDefaultCustomConfig = (): CustomModelConfig => ({
+  ...DEFAULT_CUSTOM_MODEL_CONFIG,
+});
 
 const TAB_ORDER = [
   "brief",
@@ -505,7 +519,12 @@ export function AdminDashboard() {
             />
           );
         case "import":
-          return <ImportPanel />;
+          return (
+            <ImportPanel
+              onState={handleStateUpdate}
+              onHistoryRefresh={handleHistoryRefresh}
+            />
+          );
         case "export":
           return (
             <ExportPanel
@@ -924,7 +943,92 @@ function ProviderPanel({
   stepNumber,
 }: ProviderPanelProps) {
   const provider = state.provider;
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [customModelConfigs, setCustomModelConfigs] = useState<
+    Record<ProviderKey, CustomModelConfig>
+  >({});
+  const [customModelIds, setCustomModelIds] = useState<Record<ProviderKey, string>>({});
   const currentProvider = provider.provider as ProviderKey;
+
+  useEffect(() => {
+    setCustomModelConfigs((prev) => {
+      if (prev[currentProvider]) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [currentProvider]: createDefaultCustomConfig(),
+      };
+    });
+  }, [currentProvider]);
+
+  useEffect(() => {
+    const catalog = state.modelCatalog[currentProvider] ?? [];
+    const isCurated = catalog.some((item) => item.value === state.provider.model);
+    const currentValue = state.provider.model ?? "";
+
+    setCustomModelIds((prev) => {
+      const existing = prev[currentProvider];
+      if (isCurated) {
+        if (existing !== undefined) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [currentProvider]: "",
+        };
+      }
+      if (existing === currentValue) {
+        return prev;
+      }
+      return {
+        ...prev,
+        [currentProvider]: currentValue,
+      };
+    });
+  }, [currentProvider, state.modelCatalog, state.provider.model]);
+
+  const currentCustomConfig =
+    customModelConfigs[currentProvider] ?? DEFAULT_CUSTOM_MODEL_CONFIG;
+  const currentCustomId = customModelIds[currentProvider] ?? "";
+
+  const providerUnlockedMap = useMemo(() => {
+    const entries = (Object.keys(state.providerKeyStatuses) as ProviderKey[]).map(
+      (key) => {
+        const status = state.providerKeyStatuses[key];
+        const unlocked = Boolean(status?.verified || status?.hasKey);
+        return [key, unlocked] as const;
+      }
+    );
+    return Object.fromEntries(entries) as Record<string, boolean>;
+  }, [state.providerKeyStatuses]);
+
+  const handleCustomConfigChange = useCallback(
+    (next: CustomModelConfig) => {
+      setCustomModelConfigs((prev) => ({
+        ...prev,
+        [currentProvider]: next,
+      }));
+    },
+    [currentProvider]
+  );
+
+  const handleCustomModelIdChange = useCallback(
+    (nextId: string) => {
+      setCustomModelIds((prev) => ({
+        ...prev,
+        [currentProvider]: nextId,
+      }));
+      onState({
+        ...state,
+        provider: {
+          ...state.provider,
+          model: nextId,
+        },
+      });
+    },
+    [currentProvider, onState, state]
+  );
   const computeGuidance = useCallback(
     (target: ProviderKey, targetModel?: string) => {
       const providerDefaultMax = state.defaultMaxOutputTokens[target];
@@ -935,12 +1039,14 @@ function ProviderPanel({
         tokens: false,
       };
       const providerReasoning = tokenGuidance?.reasoningTokens;
+      const providerReasoningModes = state.providerReasoningModes[target] ?? [];
       const modelList = state.modelCatalog[target] ?? [];
       const selectedModel = targetModel
         ? modelList.find((item) => item.value === targetModel)
         : undefined;
       const modelReasoning = selectedModel?.reasoningTokens;
       const modelMaxTokens = selectedModel?.maxOutputTokens;
+      const modelReasoningModes = selectedModel?.reasoningModes;
 
       const combinedMaxTokens = (() => {
         if (providerMaxTokens && modelMaxTokens) {
@@ -971,7 +1077,26 @@ function ProviderPanel({
       const reasoningToggleAllowed =
         reasoningTokensSupported &&
         reasoningTokensGuidance?.allowDisable !== false;
-      const reasoningModesSupported = Boolean(capability.mode);
+      const providerSupportsModes = Boolean(capability.mode);
+      const modelSupportsModes = selectedModel?.supportsReasoningMode;
+      const availableReasoningModes = (() => {
+        if (modelReasoningModes && modelReasoningModes.length > 0) {
+          return modelReasoningModes;
+        }
+        if (providerReasoningModes.length > 0) {
+          return providerReasoningModes;
+        }
+        if (providerSupportsModes) {
+          return state.providerReasoningModes[target] ?? [];
+        }
+        return undefined;
+      })();
+      const reasoningModesSupported = Boolean(
+        availableReasoningModes?.some((mode) => mode !== "none")
+      );
+      const showReasoningModeControl = Boolean(
+        availableReasoningModes && availableReasoningModes.length > 1
+      );
       const guidanceSource = reasoningTokensSupported
         ? usingModelGuidance
           ? "model"
@@ -987,6 +1112,8 @@ function ProviderPanel({
         reasoningTokensSupported,
         reasoningToggleAllowed,
         reasoningModesSupported,
+        showReasoningModeControl,
+        availableReasoningModes,
         modelMetadata: selectedModel,
         providerReasoningGuidance: providerReasoning,
         guidanceSource,
@@ -996,6 +1123,7 @@ function ProviderPanel({
     [
       state.defaultMaxOutputTokens,
       state.modelCatalog,
+      state.providerReasoningModes,
       state.providerReasoningCapabilities,
       state.providerTokenGuidance,
     ]
@@ -1132,6 +1260,71 @@ function ProviderPanel({
       "Less reasoning tokens = faster. More tokens unlock complex flows."
     );
   })();
+  const availableReasoningModes = currentGuidance.availableReasoningModes;
+  const reasoningModeChoices = useMemo(() => {
+    if (!availableReasoningModes || availableReasoningModes.length === 0) {
+      return state.reasoningModeChoices;
+    }
+    return state.reasoningModeChoices.filter((choice) =>
+      availableReasoningModes.includes(choice.value)
+    );
+  }, [availableReasoningModes, state.reasoningModeChoices]);
+  const safeReasoningMode = currentGuidance.reasoningModesSupported
+    ? availableReasoningModes && availableReasoningModes.length > 0
+      ? (() => {
+          const currentMode = provider.reasoningMode ?? "none";
+          if (
+            availableReasoningModes.includes(currentMode) &&
+            !(currentMode === "none" && availableReasoningModes.includes("default"))
+          ) {
+            return currentMode;
+          }
+          if (availableReasoningModes.includes("default")) {
+            return "default" as const;
+          }
+          const firstNonNone = availableReasoningModes.find((mode) => mode !== "none");
+          if (firstNonNone) {
+            return firstNonNone;
+          }
+          return availableReasoningModes[0];
+        })()
+      : provider.reasoningMode ?? "none"
+    : "none";
+
+  useEffect(() => {
+    if (!currentGuidance.reasoningModesSupported) {
+      if (provider.reasoningMode !== "none") {
+        onState({
+          ...state,
+          provider: {
+            ...state.provider,
+            reasoningMode: "none",
+          },
+        });
+      }
+      return;
+    }
+    if (
+      availableReasoningModes &&
+      availableReasoningModes.length > 0 &&
+      !availableReasoningModes.includes(provider.reasoningMode)
+    ) {
+      onState({
+        ...state,
+        provider: {
+          ...state.provider,
+          reasoningMode: safeReasoningMode,
+        },
+      });
+    }
+  }, [
+    availableReasoningModes,
+    currentGuidance.reasoningModesSupported,
+    provider.reasoningMode,
+    safeReasoningMode,
+    onState,
+    state,
+  ]);
 
   const applyProviderDefaults = useCallback(
     (nextProvider: ProviderKey, hintedModel?: string) => {
@@ -1146,11 +1339,18 @@ function ProviderPanel({
       );
       const guidance = computeGuidance(nextProvider, defaultModel);
 
+      const availableModes = guidance.availableReasoningModes ?? state.providerReasoningModes[nextProvider] ?? [];
       let nextReasoningMode = provider.reasoningMode ?? "none";
-      if (!guidance.reasoningModesSupported) {
-        nextReasoningMode = "none";
-      } else if (nextProvider === "openai" && nextReasoningMode === "none") {
-        nextReasoningMode = "low";
+      if (!availableModes.includes(nextReasoningMode)) {
+        if (availableModes.includes("default")) {
+          nextReasoningMode = "default";
+        } else if (availableModes.includes("low")) {
+          nextReasoningMode = "low";
+        } else if (availableModes.length > 0) {
+          nextReasoningMode = availableModes[0];
+        } else {
+          nextReasoningMode = "none";
+        }
       }
 
       const tokensSupported = guidance.reasoningTokensSupported;
@@ -1271,7 +1471,7 @@ function ProviderPanel({
         )
       : undefined;
     const reasoningMode = currentGuidance.reasoningModesSupported
-      ? provider.reasoningMode ?? "none"
+      ? safeReasoningMode
       : "none";
 
     const payload: ProviderUpdatePayload = {
@@ -1400,8 +1600,14 @@ function ProviderPanel({
           defaultModelByProvider={state.defaultModelByProvider}
           providerTokenGuidance={state.providerTokenGuidance}
           providerReasoningCapabilities={state.providerReasoningCapabilities}
+          providerStatuses={state.providerKeyStatuses}
+          providerUnlockedMap={providerUnlockedMap}
+          customConfig={currentCustomConfig}
+          customModelId={currentCustomId}
           customDescription={state.customModelDescription}
           disableProviderSelection={!canSelectProvider}
+          onCustomConfigChange={handleCustomConfigChange}
+          onCustomModelIdChange={handleCustomModelIdChange}
           onProviderChange={(nextProvider, nextModel) => {
             applyProviderDefaults(nextProvider as ProviderKey, nextModel);
           }}
@@ -1433,137 +1639,44 @@ function ProviderPanel({
           </p>
         </label>
 
-        <TokenBudgetControl
-          label="Max output tokens"
-          description={
-            currentGuidance.maxTokensGuidance?.description ??
-            state.providerTokenGuidance[provider.provider]?.maxOutputTokens
-              ?.description ??
-            "Give the model a ceiling for each response."
-          }
-          helper="Higher limits unlock richer layouts; smaller caps return faster."
-          value={
-            typeof provider.maxOutputTokens === "number"
-              ? sanitizeMaxOutputTokens(
-                  provider.maxOutputTokens,
-                  currentProvider,
-                  provider.model
-                )
-              : currentGuidance.defaultMax ?? null
-          }
-          defaultValue={
-            currentGuidance.maxTokensGuidance?.default ??
-            currentGuidance.defaultMax ??
-            state.defaultMaxOutputTokens[provider.provider]
-          }
-          min={currentGuidance.maxTokensGuidance?.min}
-          max={currentGuidance.maxTokensGuidance?.max}
-          onChange={(next) => {
-            const sanitized = sanitizeMaxOutputTokens(
-              next,
-              currentProvider,
-              provider.model
-            );
-            onState({
-              ...state,
-              provider: {
-                ...state.provider,
-                maxOutputTokens: sanitized,
-              },
-            });
-          }}
-        />
-
-        <label className="admin-field">
-          <span className="admin-field__label">Reasoning mode</span>
-          <select
-            name="reasoningMode"
-            value={
-              currentGuidance.reasoningModesSupported
-                ? provider.reasoningMode
-                : "none"
-            }
-            disabled={!currentGuidance.reasoningModesSupported}
-            onChange={(event) => {
-              const nextMode = event.target.value;
-              onState({
-                ...state,
-                provider: {
-                  ...state.provider,
-                  reasoningMode: nextMode as string,
-                },
-              });
-            }}
-          >
-            {state.reasoningModeChoices.map((choice) => (
-              <option key={choice.value} value={choice.value}>
-                {choice.label}
-              </option>
-            ))}
-          </select>
-          <p className="admin-field__helper">
-            {currentGuidance.reasoningModesSupported
-              ? state.reasoningModeChoices.find(
-                  (choice) => choice.value === provider.reasoningMode
-                )?.description
-              : "This provider manages reasoning mode automatically."}
-          </p>
-        </label>
-
-        {currentGuidance.reasoningTokensSupported ? (
-          <>
-            {currentGuidance.reasoningToggleAllowed ? (
-              <label className="admin-field admin-field--row">
-                <span className="admin-field__label">Reasoning tokens</span>
-                <div className="admin-toggle">
-                  <input
-                    type="checkbox"
-                    checked={effectiveReasoningEnabled}
-                    onChange={(event) => handleReasoningToggle(event.target.checked)}
-                  />
-                  <span>
-                    {currentGuidance.guidanceSource === "provider"
-                      ? "Enable manual reasoning budget (provider defaults)"
-                      : "Enable manual reasoning budget"}
-                  </span>
-                </div>
-              </label>
-            ) : (
-              <div className="admin-field">
-                <span className="admin-field__label">Reasoning tokens</span>
-                <p className="admin-field__helper">
-                  This model always applies a deliberate reasoning budget—adjust the cap below.
-                </p>
-              </div>
-            )}
-
+        <details
+          className="admin-advanced"
+          open={advancedOpen}
+          onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
+        >
+          <summary className="admin-advanced__summary">
+            <span className="admin-advanced__title">Advanced Model Settings</span>
+            <span className="admin-advanced__hint">Tune output limits & reasoning</span>
+            <span className="admin-advanced__chevron" aria-hidden="true" />
+          </summary>
+          <div className="admin-advanced__body">
             <TokenBudgetControl
-              label="Reasoning budget"
-              description={reasoningDescription}
-              helper={reasoningHelper}
+              label="Max output tokens"
+              description={
+                currentGuidance.maxTokensGuidance?.description ??
+                state.providerTokenGuidance[provider.provider]?.maxOutputTokens
+                  ?.description ??
+                "Give the model a ceiling for each response."
+              }
+              helper="Higher limits unlock richer layouts; smaller caps return faster."
               value={
-                effectiveReasoningEnabled
-                  ? sanitizeReasoningTokens(
-                      provider.reasoningTokens,
+                typeof provider.maxOutputTokens === "number"
+                  ? sanitizeMaxOutputTokens(
+                      provider.maxOutputTokens,
                       currentProvider,
                       provider.model
-                    ) ??
-                    currentGuidance.reasoningTokensGuidance?.default ??
-                    null
-                  : null
+                    )
+                  : currentGuidance.defaultMax ?? null
               }
-              defaultValue={currentGuidance.reasoningTokensGuidance?.default}
-              min={currentGuidance.reasoningTokensGuidance?.min}
-              max={currentGuidance.reasoningTokensGuidance?.max}
-              disabled={!effectiveReasoningEnabled}
-              accent="reasoning"
-              specialLabels={
-                provider.provider === "gemini"
-                  ? { "-1": "Auto-managed", "0": "Disabled" }
-                  : undefined
+              defaultValue={
+                currentGuidance.maxTokensGuidance?.default ??
+                currentGuidance.defaultMax ??
+                state.defaultMaxOutputTokens[provider.provider]
               }
+              min={currentGuidance.maxTokensGuidance?.min}
+              max={currentGuidance.maxTokensGuidance?.max}
               onChange={(next) => {
-                const sanitized = sanitizeReasoningTokens(
+                const sanitized = sanitizeMaxOutputTokens(
                   next,
                   currentProvider,
                   provider.model
@@ -1572,20 +1685,116 @@ function ProviderPanel({
                   ...state,
                   provider: {
                     ...state.provider,
-                    reasoningTokens: sanitized,
+                    maxOutputTokens: sanitized,
                   },
                 });
               }}
             />
-          </>
-        ) : (
-          <div className="admin-field">
-            <span className="admin-field__label">Reasoning tokens</span>
-            <p className="admin-field__helper">
-              This model doesn’t expose a manual reasoning budget; rely on prompts instead.
-            </p>
+
+            {currentGuidance.showReasoningModeControl ? (
+              <label className="admin-field">
+                <span className="admin-field__label">Reasoning mode</span>
+                <select
+                  name="reasoningMode"
+                  value={safeReasoningMode}
+                  onChange={(event) => {
+                    const nextMode = event.target.value;
+                    onState({
+                      ...state,
+                      provider: {
+                        ...state.provider,
+                        reasoningMode: nextMode as string,
+                      },
+                    });
+                  }}
+                >
+                  {reasoningModeChoices.map((choice) => (
+                    <option key={choice.value} value={choice.value}>
+                      {choice.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="admin-field__helper">
+                  {
+                    reasoningModeChoices.find(
+                      (choice) => choice.value === safeReasoningMode
+                    )?.description
+                  }
+                </p>
+              </label>
+            ) : null}
+
+            {currentGuidance.reasoningTokensSupported ? (
+              <>
+                {currentGuidance.reasoningToggleAllowed ? (
+                  <label className="admin-field admin-field--row">
+                    <span className="admin-field__label">Reasoning tokens</span>
+                    <div className="admin-toggle">
+                      <input
+                        type="checkbox"
+                        checked={effectiveReasoningEnabled}
+                        onChange={(event) => handleReasoningToggle(event.target.checked)}
+                      />
+                      <span>
+                        {currentGuidance.guidanceSource === "provider"
+                          ? "Enable manual reasoning budget (provider defaults)"
+                          : "Enable manual reasoning budget"}
+                      </span>
+                    </div>
+                  </label>
+                ) : (
+                  <div className="admin-field">
+                    <span className="admin-field__label">Reasoning tokens</span>
+                    <p className="admin-field__helper">
+                      This model always applies a deliberate reasoning budget—adjust the cap below.
+                    </p>
+                  </div>
+                )}
+
+                <TokenBudgetControl
+                  label="Reasoning budget"
+                  description={reasoningDescription}
+                  helper={reasoningHelper}
+                  value={
+                    effectiveReasoningEnabled
+                      ? sanitizeReasoningTokens(
+                          provider.reasoningTokens,
+                          currentProvider,
+                          provider.model
+                        ) ??
+                        currentGuidance.reasoningTokensGuidance?.default ??
+                        null
+                      : null
+                  }
+                  defaultValue={currentGuidance.reasoningTokensGuidance?.default}
+                  min={currentGuidance.reasoningTokensGuidance?.min}
+                  max={currentGuidance.reasoningTokensGuidance?.max}
+                  disabled={!effectiveReasoningEnabled}
+                  accent="reasoning"
+                  specialLabels={
+                    provider.provider === "gemini"
+                      ? { "-1": "Auto-managed", "0": "Disabled" }
+                      : undefined
+                  }
+                  onChange={(next) => {
+                    const sanitized = sanitizeReasoningTokens(
+                      next,
+                      currentProvider,
+                      provider.model
+                    );
+                    onState({
+                      ...state,
+                      provider: {
+                        ...state.provider,
+                        reasoningTokens: sanitized,
+                      },
+                    });
+                  }}
+                />
+              </>
+            ) : null}
           </div>
-        )}
+        </details>
 
         <div className="admin-actions">
           <button
@@ -2004,9 +2213,207 @@ function RuntimePanel({
   );
 }
 
-function ImportPanel() {
+interface ImportPanelProps {
+  onState: (state: AdminStateResponse) => void;
+  onHistoryRefresh: () => void;
+}
+
+interface SnapshotPreview {
+  historyCount: number;
+  attachmentCount: number;
+  briefIncluded: boolean;
+  provider?: string;
+  model?: string;
+}
+
+function ImportPanel({ onState, onHistoryRefresh }: ImportPanelProps) {
+  const [inputText, setInputText] = useState("");
+  const [selectedFile, setSelectedFile] = useState<PendingPreview | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [preview, setPreview] = useState<SnapshotPreview | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [status, setStatus] = useState<NullableStatus>(null);
+  const [saving, setSaving] = useState<AsyncStatus>("idle");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const resetStatus = useCallback(() => {
+    setStatus(null);
+    setSaving("idle");
+  }, []);
+
+  const validateSnapshot = useCallback((source: string) => {
+    const trimmed = source.trim();
+    if (!trimmed) {
+      throw new Error("Paste or upload a snapshot JSON file first.");
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch (error) {
+      throw new Error(
+        `Failed to parse JSON: ${(error as Error).message ?? String(error)}`
+      );
+    }
+    if (!parsed || typeof parsed !== "object") {
+      throw new Error("Snapshot must be a JSON object.");
+    }
+    const candidate = parsed as Record<string, unknown>;
+    if (candidate.version !== 1) {
+      throw new Error("Snapshot version must equal 1.");
+    }
+    if (!Array.isArray(candidate.history)) {
+      throw new Error("Snapshot must include a history array.");
+    }
+
+    const historyCount = candidate.history.length;
+    const attachmentCount = Array.isArray(candidate.briefAttachments)
+      ? candidate.briefAttachments.length
+      : 0;
+    const briefIncluded = Boolean(
+      typeof candidate.brief === "string" && candidate.brief.trim().length > 0
+    );
+    const provider =
+      candidate.llm &&
+      typeof candidate.llm === "object" &&
+      candidate.llm !== null &&
+      typeof (candidate.llm as Record<string, unknown>).provider === "string"
+        ? ((candidate.llm as Record<string, unknown>).provider as string)
+        : undefined;
+    const model =
+      candidate.llm &&
+      typeof candidate.llm === "object" &&
+      candidate.llm !== null &&
+      typeof (candidate.llm as Record<string, unknown>).model === "string"
+        ? ((candidate.llm as Record<string, unknown>).model as string)
+        : undefined;
+
+    return {
+      snapshot: candidate,
+      summary: {
+        historyCount,
+        attachmentCount,
+        briefIncluded,
+        provider,
+        model,
+      } as SnapshotPreview,
+    };
+  }, []);
+
+  const handleFileSelect = useCallback(
+    async (file: File) => {
+      try {
+        const text = await file.text();
+        setInputText(text);
+        setSelectedFile({ name: file.name, size: file.size });
+        const { summary } = validateSnapshot(text);
+        setPreview(summary);
+        setParseError(null);
+        setStatus({
+          tone: "info",
+          message: `Loaded snapshot from ${file.name}`,
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setPreview(null);
+        setParseError(message);
+        setStatus({ tone: "error", message });
+      }
+    },
+    [validateSnapshot]
+  );
+
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragActive(true);
+  }, []);
+
+  const handleDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragActive(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setDragActive(false);
+      const file = event.dataTransfer.files?.[0];
+      if (!file) {
+        return;
+      }
+      void handleFileSelect(file);
+    },
+    [handleFileSelect]
+  );
+
+  const handleBrowseClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        return;
+      }
+      void handleFileSelect(file);
+      event.target.value = "";
+    },
+    [handleFileSelect]
+  );
+
+  const handlePreview = useCallback(() => {
+    resetStatus();
+    try {
+      const { summary } = validateSnapshot(inputText);
+      setPreview(summary);
+      setParseError(null);
+      setStatus({
+        tone: "info",
+        message: `Snapshot ready with ${summary.historyCount} entries`,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setPreview(null);
+      setParseError(message);
+      setStatus({ tone: "error", message });
+    }
+  }, [inputText, resetStatus, validateSnapshot]);
+
+  const handleSubmit = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      setSaving("loading");
+      setStatus(null);
+      try {
+        const { snapshot, summary } = validateSnapshot(inputText);
+        const response = await submitHistoryImport(snapshot);
+        if (!response.success) {
+          throw new Error(response.message || "History import failed");
+        }
+        if (response.state) {
+          onState(response.state);
+        }
+        onHistoryRefresh();
+        setPreview(summary);
+        setParseError(null);
+        setSelectedFile(null);
+        setInputText("");
+        setStatus({ tone: "info", message: response.message });
+        setSaving("success");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setStatus({ tone: "error", message });
+        setSaving("error");
+      }
+    },
+    [inputText, onHistoryRefresh, onState, validateSnapshot]
+  );
+
   return (
-    <section className="admin-panel admin-panel--placeholder">
+    <section className="admin-card">
       <div className="admin-card__header">
         <div>
           <h2>Import history</h2>
@@ -2014,11 +2421,124 @@ function ImportPanel() {
             Restore a previous session snapshot to resume where you left off.
           </p>
         </div>
+        {status && (
+          <div
+            className={`admin-status admin-status--${
+              status.tone === "error" ? "error" : "info"
+            }`}
+          >
+            {status.message}
+          </div>
+        )}
       </div>
-      <p className="admin-placeholder">
-        Import workflow is temporarily unavailable while the new admin
-        experience is under construction.
-      </p>
+
+      <form className="admin-form" onSubmit={handleSubmit}>
+        <div
+          className={`admin-import__dropzone${
+            dragActive ? " admin-import__dropzone--active" : ""
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={handleFileInputChange}
+            hidden
+          />
+          <p className="admin-import__prompt">
+            Drag & drop a previously exported `history.json` file here
+          </p>
+          <p className="admin-import__prompt">or</p>
+          <button
+            type="button"
+            className="admin-secondary"
+            onClick={handleBrowseClick}
+          >
+            Browse files
+          </button>
+          {selectedFile ? (
+            <p className="admin-import__file" aria-live="polite">
+              Selected: {selectedFile.name} · {selectedFile.size.toLocaleString()} bytes
+            </p>
+          ) : null}
+        </div>
+
+        <label className="admin-field">
+          <span className="admin-field__label">Snapshot JSON</span>
+          <textarea
+            value={inputText}
+            onChange={(event) => {
+              setInputText(event.target.value);
+              setSelectedFile(null);
+              setPreview(null);
+              setParseError(null);
+              resetStatus();
+            }}
+            rows={10}
+            spellCheck={false}
+            placeholder="Paste the JSON snapshot here or drop a file above."
+          />
+          {parseError ? (
+            <p className="admin-field__error" role="alert">
+              {parseError}
+            </p>
+          ) : (
+            <p className="admin-field__helper">
+              You can paste the contents of an exported history snapshot to
+              import without upload.
+            </p>
+          )}
+        </label>
+
+        <div className="admin-import__actions">
+          <button
+            type="button"
+            className="admin-secondary"
+            onClick={handlePreview}
+          >
+            Preview snapshot
+          </button>
+          <button
+            type="submit"
+            className="admin-primary"
+            disabled={saving === "loading"}
+          >
+            {saving === "loading" ? "Importing…" : "Import snapshot"}
+          </button>
+        </div>
+
+        {preview ? (
+          <div className="admin-import__summary" aria-live="polite">
+            <h3>Snapshot details</h3>
+            <dl className="admin-import__preview">
+              <div>
+                <dt>History entries</dt>
+                <dd>{preview.historyCount.toLocaleString()}</dd>
+              </div>
+              <div>
+                <dt>Attachments</dt>
+                <dd>{preview.attachmentCount}</dd>
+              </div>
+              <div>
+                <dt>Brief included</dt>
+                <dd>{preview.briefIncluded ? "Yes" : "No"}</dd>
+              </div>
+              {preview.provider ? (
+                <div>
+                  <dt>Provider</dt>
+                  <dd>
+                    {preview.provider}
+                    {preview.model ? ` · ${preview.model}` : ""}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          </div>
+        ) : null}
+      </form>
     </section>
   );
 }

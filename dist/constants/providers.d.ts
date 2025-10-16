@@ -37,6 +37,7 @@ export declare const PROVIDER_REASONING_CAPABILITIES: Record<ModelProvider, {
     mode: boolean;
     tokens: boolean;
 }>;
+export declare const PROVIDER_REASONING_MODES: Record<ModelProvider, ReasoningMode[]>;
 export declare const PROVIDER_TOKEN_GUIDANCE: Record<ModelProvider, ProviderTokenGuidance>;
 export declare const REASONING_TOKEN_MIN_BY_PROVIDER: Record<ModelProvider, number>;
 export declare function getDefaultReasoningTokens(provider: ModelProvider): number | undefined;

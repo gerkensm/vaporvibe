@@ -91,20 +91,51 @@ export class AnthropicClient {
             streamRequest.betas = betas;
         }
         const stream = await this.retryOnOverload(async () => this.client.messages.stream(streamRequest));
+        const captureDiagnostics = shouldCaptureStreamDiagnostics();
+        const diagnostics = [];
         let accumulated = "";
         let streamedThinking = "";
         for await (const event of stream) {
             accumulated += this.extractStreamDelta(event);
-            streamedThinking += this.extractThinkingDelta(event);
+            const thinkingDelta = this.extractThinkingDelta(event);
+            if (thinkingDelta) {
+                streamedThinking += thinkingDelta;
+            }
+            if (captureDiagnostics) {
+                diagnostics.push(summarizeStreamEvent(event));
+                if (diagnostics.length > STREAM_DIAGNOSTIC_EVENT_LIMIT) {
+                    diagnostics.shift();
+                }
+            }
         }
         const finalMessage = await stream.finalMessage();
-        await stream.close?.();
+        try {
+            await stream.close?.();
+        }
+        catch (error) {
+            logger.debug({ message: error?.message ?? String(error) }, "Failed to close Anthropic message stream gracefully");
+        }
         if (!accumulated) {
             accumulated = this.combineContent(finalMessage?.content).trim();
         }
         const usage = extractUsage(finalMessage);
-        const reasoning = this.logAndCollectThinking(finalMessage, thinkingBudget, streamedThinking, usage?.reasoningTokens);
-        return { html: accumulated.trim(), usage, reasoning, raw: finalMessage };
+        let reasoning = this.logAndCollectThinking(finalMessage, thinkingBudget, streamedThinking, usage?.reasoningTokens);
+        const rawPayload = buildReasoningRawPayload(finalMessage, streamedThinking, captureDiagnostics ? diagnostics : undefined);
+        if (reasoning) {
+            reasoning.raw = rawPayload;
+        }
+        else if (rawPayload) {
+            reasoning = { raw: rawPayload };
+        }
+        if (captureDiagnostics && diagnostics.length > 0) {
+            logger.debug({ events: diagnostics }, "Anthropic stream trace captured");
+        }
+        return {
+            html: accumulated.trim(),
+            usage,
+            reasoning,
+            raw: rawPayload ?? finalMessage,
+        };
     }
     combineContent(blocks) {
         if (!blocks || blocks.length === 0) {
@@ -119,8 +150,17 @@ export class AnthropicClient {
             return [];
         }
         return blocks
-            .filter((block) => block?.type === "thinking")
-            .map((block) => block?.thinking ?? block?.text ?? "")
+            .map((block) => {
+            const normalizedType = typeof block?.type === "string" ? block.type.toLowerCase() : "";
+            const isThinkingType = normalizedType.includes("thinking");
+            if (isThinkingType) {
+                return block?.thinking ?? block?.text ?? "";
+            }
+            if (typeof block?.thinking === "string" && block.thinking.trim().length > 0) {
+                return block.thinking;
+            }
+            return undefined;
+        })
             .filter((value) => Boolean(value && value.trim().length > 0));
     }
     logAndCollectThinking(finalMessage, budgetTokens, streamedThinking, tokensUsed) {
@@ -188,11 +228,70 @@ export class AnthropicClient {
             return "";
         }
         const delta = event.delta ?? event.content_block_delta?.delta;
-        if (delta?.type === "thinking_delta" && typeof delta.thinking === "string") {
+        const eventType = typeof event.type === "string" ? event.type.toLowerCase() : "";
+        const deltaType = typeof delta?.type === "string" ? delta.type.toLowerCase() : "";
+        if (delta && typeof delta.thinking === "string" && delta.thinking.length > 0) {
             return delta.thinking;
+        }
+        if (deltaType.includes("thinking") && typeof delta?.text === "string") {
+            return delta.text;
+        }
+        if (eventType.includes("thinking") && typeof delta?.text === "string") {
+            return delta.text;
+        }
+        if (eventType.includes("thinking") && typeof delta?.partial_json === "string") {
+            return delta.partial_json;
         }
         return "";
     }
+}
+const STREAM_DIAGNOSTIC_EVENT_LIMIT = 40;
+const STREAM_DIAGNOSTIC_SNIPPET = 160;
+function summarizeStreamEvent(event) {
+    const delta = event?.delta ?? event?.content_block_delta?.delta;
+    const text = typeof delta?.text === "string" ? delta.text : undefined;
+    const thinking = typeof delta?.thinking === "string" ? delta.thinking : undefined;
+    return {
+        type: event?.type,
+        deltaType: delta?.type,
+        text: text ? truncateForDiagnostics(text) : undefined,
+        thinking: thinking ? truncateForDiagnostics(thinking) : undefined,
+    };
+}
+function truncateForDiagnostics(value) {
+    const trimmed = value.trim();
+    if (trimmed.length <= STREAM_DIAGNOSTIC_SNIPPET) {
+        return trimmed;
+    }
+    return `${trimmed.slice(0, STREAM_DIAGNOSTIC_SNIPPET)}…`;
+}
+function shouldCaptureStreamDiagnostics() {
+    const flag = process.env.ANTHROPIC_DEBUG_STREAM;
+    if (!flag) {
+        return false;
+    }
+    switch (flag.trim().toLowerCase()) {
+        case "1":
+        case "true":
+        case "yes":
+        case "debug":
+            return true;
+        default:
+            return false;
+    }
+}
+function buildReasoningRawPayload(finalMessage, streamedThinking, diagnostics) {
+    const hasStreamText = Boolean(streamedThinking && streamedThinking.trim().length > 0);
+    const hasFinalContent = Boolean(finalMessage?.content && finalMessage.content.length > 0);
+    const hasDiagnostics = Boolean(diagnostics && diagnostics.length > 0);
+    if (!hasStreamText && !hasFinalContent && !hasDiagnostics) {
+        return undefined;
+    }
+    return {
+        finalMessage,
+        streamedThinking: hasStreamText ? streamedThinking.trim() : undefined,
+        diagnostics,
+    };
 }
 export async function verifyAnthropicApiKey(apiKey) {
     const trimmed = apiKey.trim();

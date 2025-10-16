@@ -85,6 +85,7 @@ export interface AdminStateResponse {
     ModelProvider,
     Array<{ value: string; label: string; tagline?: string }>
   >;
+  providerReasoningModes: Record<ModelProvider, ReasoningMode[]>;
   providerReasoningCapabilities: Record<
     ModelProvider,
     { mode: boolean; tokens: boolean }

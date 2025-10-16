@@ -140,6 +140,38 @@ export async function submitRuntimeUpdate(
   return parseJson<AdminUpdateResponse>(response);
 }
 
+export async function submitHistoryImport(
+  snapshot: unknown
+): Promise<AdminUpdateResponse> {
+  const response = await fetch("/api/admin/history/import", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ snapshot }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    let message = `History import failed (status ${response.status})`;
+    try {
+      const parsed = JSON.parse(text) as AdminUpdateResponse;
+      if (parsed?.message) {
+        message = parsed.message;
+      }
+    } catch {
+      if (text) {
+        message = text;
+      }
+    }
+    throw new Error(message);
+  }
+
+  return parseJson<AdminUpdateResponse>(response);
+}
+
 export async function fetchAdminHistory(params?: {
   offset?: number;
   limit?: number;

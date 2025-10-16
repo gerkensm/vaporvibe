@@ -78,6 +78,7 @@ export const DEFAULT_MAX_TOKENS_BY_PROVIDER: Record<ModelProvider, number> = {
 
 export const REASONING_MODE_CHOICES: Array<{ value: ReasoningMode; label: string; description: string }> = [
   { value: "none", label: "None", description: "Disable the provider’s structured reasoning traces." },
+  { value: "default", label: "Default", description: "Use the provider’s default reasoning effort." },
   { value: "low", label: "Low", description: "Allow short reasoning bursts for tricky prompts." },
   { value: "medium", label: "Medium", description: "Balance latency and introspection for complex flows." },
   { value: "high", label: "High", description: "Maximize deliberate reasoning when quality is critical." },
@@ -91,6 +92,13 @@ export const PROVIDER_REASONING_CAPABILITIES: Record<ModelProvider, { mode: bool
     return [provider, { mode: supportsModes, tokens: supportsTokens }] as const;
   }),
 ) as Record<ModelProvider, { mode: boolean; tokens: boolean }>;
+
+export const PROVIDER_REASONING_MODES: Record<ModelProvider, ReasoningMode[]> = Object.fromEntries(
+  (Object.keys(PROVIDER_METADATA) as ModelProvider[]).map((provider) => [
+    provider,
+    PROVIDER_METADATA[provider].reasoningModes,
+  ]),
+) as Record<ModelProvider, ReasoningMode[]>;
 
 export const PROVIDER_TOKEN_GUIDANCE: Record<ModelProvider, ProviderTokenGuidance> = Object.fromEntries(
   (Object.keys(PROVIDER_METADATA) as ModelProvider[]).map((provider) => {

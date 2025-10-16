@@ -254,7 +254,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 128_000,
                     description: "OpenAI advertises up to 128K output tokens on GPT-5.",
                 },
-                supportsReasoningMode: true,
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 1.25, output: 10 }),
             },
             {
@@ -280,7 +280,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 128_000,
                     description: "Matches GPT-5’s 128K output ceiling in a smaller footprint.",
                 },
-                supportsReasoningMode: true,
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 0.25, output: 2 }),
                 compositeScores: compositeScoresFor("openai:gpt-5-mini"),
             },
@@ -306,7 +306,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 128_000,
                     description: "Matches GPT-5’s 128K output ceiling in a smaller footprint.",
                 },
-                supportsReasoningMode: true,
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 0.25, output: 2 }),
             },
             {
@@ -439,6 +439,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 16_384,
                     description: "Outputs top out at roughly 16K tokens for GPT-4o.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 2.5, output: 10 }),
                 reasoningModeNotes: "Reasoning modes are not available for GPT-4o.",
             },
@@ -464,6 +465,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 4_096,
                     description: "Mirrors the ChatGPT front-end cap of 4,096 output tokens.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 2.5, output: 10 }),
                 reasoningModeNotes: "Reasoning modes are not available for ChatGPT-4o Latest.",
             },
@@ -486,6 +488,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 16_384,
                     description: "Outputs top out around 16K tokens for GPT-4o Mini.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 0.15, output: 0.6 }),
                 reasoningModeNotes: "Reasoning modes are not available for GPT-4o Mini.",
             },
@@ -507,6 +510,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 32_768,
                     description: "Outputs cap at 32,768 tokens on GPT-4.1.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 2, output: 8 }),
             },
             {
@@ -527,6 +531,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 32_768,
                     description: "Outputs cap at 32,768 tokens on GPT-4.1 Mini.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 0.4, output: 1.6 }),
             },
             {
@@ -547,6 +552,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 32_768,
                     description: "Outputs cap at 32,768 tokens on GPT-4.1 Nano.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 0.1, output: 0.4 }),
             },
             {
@@ -567,6 +573,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 4_096,
                     description: "Outputs are capped at roughly 4K tokens on GPT-4.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 30, output: 60 }),
             },
             {
@@ -587,6 +594,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 4_096,
                     description: "Despite the 32K context, outputs land around 4K tokens.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 60, output: 120 }),
             },
             {
@@ -607,6 +615,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 4_096,
                     description: "Preview builds cap output around 4K tokens.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 8, output: 24 }),
             },
             {
@@ -627,6 +636,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 4_096,
                     description: "Preview builds cap output around 4K tokens.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 8, output: 24 }),
             },
             {
@@ -648,6 +658,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 4_096,
                     description: "Turbo responses cap around 4K tokens.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 10, output: 30 }),
             },
             {
@@ -672,6 +683,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 4_096,
                     description: "Turbo responses cap around 4K tokens.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 10, output: 30 }),
             },
             {
@@ -796,6 +808,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 32_768,
                     description: "Preview runs share the 32,768 output token limit.",
                 },
+                supportsReasoningMode: true,
                 reasoningModeNotes: "Reasoning modes are available, but token limits are lower than o1.",
             },
             {
@@ -816,6 +829,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 65_536,
                     description: "o1 Mini caps output around 65K tokens.",
                 },
+                supportsReasoningMode: false,
                 reasoningModeNotes: "Reasoning modes are not exposed for o1 Mini.",
             },
             {
@@ -859,6 +873,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 100_000,
                     description: "o3 Mini shares the 100K output ceiling with the full model.",
                 },
+                supportsReasoningMode: true,
                 reasoningModeNotes: "Reasoning modes mirror the o3 defaults while keeping spend approachable.",
             },
             {
@@ -883,6 +898,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 100_000,
                     description: "Early o4 Mini builds align with o3’s output ceiling while pricing continues to evolve.",
                 },
+                supportsReasoningMode: true,
                 reasoningModeNotes: "Pricing is still stabilizing as o4 rolls out—confirm latest rates with OpenAI.",
             },
         ],
@@ -895,8 +911,8 @@ const RAW_PROVIDER_METADATA = {
         description: "Gemini brings Google’s massive context windows and real-time search instincts to your creative studio.",
         placeholder: "AIza...",
         defaultModel: "gemini-2.5-flash",
-        defaultReasoningMode: "low",
-        reasoningModes: ["none", "low", "medium", "high"],
+        defaultReasoningMode: "none",
+        reasoningModes: ["none"],
         maxOutputTokens: {
             default: 65_536,
             max: 65_536,
@@ -936,6 +952,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 65_536,
                     description: "Google documents a 65,536 token output cap on Flash.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 0.3, output: 2.5, reasoning: 2.5 }),
                 reasoningModeNotes: "Output pricing already includes deliberate “thinking” tokens. Audio inputs are billed at $1.00 per 1M tokens.",
                 reasoningTokens: {
@@ -966,6 +983,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 65_536,
                     description: "Flash Lite shares the 65,536 token output cap.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 0.1, output: 0.4, reasoning: 0.4 }),
                 reasoningModeNotes: "Output pricing includes thinking tokens. Audio inputs are billed at $0.30 per 1M tokens.",
                 reasoningTokens: {
@@ -996,6 +1014,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 65_535,
                     description: "Pro runs share the 65,535 token output cap for standard calls.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 1.25, output: 10 }),
                 reasoningModeNotes: "Pricing shown is for prompts up to 200K tokens; requests above that tier increase to $2.50 input / $15 output per 1M tokens.",
                 reasoningTokens: {
@@ -1025,6 +1044,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 65_535,
                     description: "Experimental Pro builds follow the 65,535 output token limit.",
                 },
+                supportsReasoningMode: false,
                 reasoningModeNotes: "Experimental pricing fluctuates; confirm current rates in Google AI Studio before launching.",
             },
             {
@@ -1045,6 +1065,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 8_192,
                     description: "Flash 2.0 caps output at 8,192 tokens.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 0.1, output: 0.4 }),
             },
         ],
@@ -1058,7 +1079,7 @@ const RAW_PROVIDER_METADATA = {
         placeholder: "sk-ant-...",
         defaultModel: "claude-sonnet-4-5-20250929",
         defaultReasoningMode: "none",
-        reasoningModes: ["none"],
+        reasoningModes: ["none", "low", "medium", "high"],
         maxOutputTokens: {
             default: 64_000,
             max: 64_000,
@@ -1097,6 +1118,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 64_000,
                     description: "The latest Sonnet tier can emit up to roughly 128K tokens when needed.",
                 },
+                supportsReasoningMode: false,
                 reasoningTokens: {
                     min: 0,
                     max: 64_000,
@@ -1121,6 +1143,11 @@ const RAW_PROVIDER_METADATA = {
                 isMultimodal: true,
                 supportsImageInput: true,
                 supportsPDFInput: true,
+                maxOutputTokens: {
+                    default: 64_000,
+                    max: 64_000,
+                },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 3, output: 15 }),
                 reasoningTokens: {
                     min: 0,
@@ -1146,6 +1173,11 @@ const RAW_PROVIDER_METADATA = {
                 isMultimodal: true,
                 supportsImageInput: true,
                 supportsPDFInput: true,
+                maxOutputTokens: {
+                    default: 64_000,
+                    max: 64_000,
+                },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 3, output: 15 }),
                 reasoningTokens: {
                     min: 0,
@@ -1170,6 +1202,11 @@ const RAW_PROVIDER_METADATA = {
                 isMultimodal: true,
                 supportsImageInput: true,
                 supportsPDFInput: true,
+                maxOutputTokens: {
+                    default: 64_000,
+                    max: 64_000,
+                },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 15, output: 75 }),
                 reasoningTokens: {
                     min: 0,
@@ -1194,6 +1231,11 @@ const RAW_PROVIDER_METADATA = {
                 isMultimodal: true,
                 supportsImageInput: true,
                 supportsPDFInput: true,
+                maxOutputTokens: {
+                    default: 64_000,
+                    max: 64_000,
+                },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 15, output: 75 }),
                 reasoningTokens: {
                     min: 0,
@@ -1210,11 +1252,7 @@ const RAW_PROVIDER_METADATA = {
                 tagline: "Lightning-fast extended thinking",
                 description: "Anthropic’s most capable Haiku release—keeps the near-instant feel while unlocking extended thinking for tougher briefs.",
                 recommendedFor: "Responsive agents, support automation, and product flows that still need credible reasoning.",
-                highlights: [
-                    "Extended thinking",
-                    "Ultra fast",
-                    "Great value",
-                ],
+                highlights: ["Extended thinking", "Ultra fast", "Great value"],
                 release: "Jul 2025",
                 contextWindow: 200_000,
                 contextWindowUnit: "tokens",
@@ -1227,7 +1265,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 64_000,
                     description: "Haiku 4.5 supports outputs up to roughly 64K tokens while keeping latency low.",
                 },
-                supportsReasoningMode: true,
+                supportsReasoningMode: false,
                 reasoningTokens: {
                     min: 0,
                     max: 64_000,
@@ -1257,6 +1295,7 @@ const RAW_PROVIDER_METADATA = {
                     max: 8_192,
                     description: "Haiku 3.5 caps output around 8K tokens.",
                 },
+                supportsReasoningMode: false,
                 cost: usdCost({ input: 0.8, output: 4 }),
             },
         ],
@@ -1556,6 +1595,7 @@ const RAW_PROVIDER_METADATA = {
                 compositeScores: compositeScoresFor("groq:openai/gpt-oss-120b"),
                 supportsReasoningMode: true,
                 reasoningModeNotes: "Supports Groq reasoning efforts (low, medium, high) with detailed traces, but the thinking budget is provider-managed.",
+                reasoningModes: ["none", "low", "medium", "high"],
                 reasoningTokens: {
                     helper: "Groq handles the GPT-OSS thinking budget automatically—reasoning sliders stay hidden while modes remain available.",
                 },
@@ -1579,8 +1619,35 @@ const RAW_PROVIDER_METADATA = {
                 compositeScores: compositeScoresFor("groq:openai/gpt-oss-20b"),
                 supportsReasoningMode: true,
                 reasoningModeNotes: "Enable Groq reasoning efforts (low, medium, high) to request traces—reasoning tokens remain auto-managed.",
+                reasoningModes: ["none", "low", "medium", "high"],
                 reasoningTokens: {
                     helper: "Groq manages GPT-OSS thinking tokens internally, so only the reasoning mode toggle appears.",
+                },
+            },
+            {
+                value: "qwen/qwen3-32b",
+                label: "Qwen 3 32B",
+                tagline: "A powerful 32B model from Alibaba's Qwen family.",
+                description: "The Qwen 3 32B model is a powerful and efficient open-source model from Alibaba, offering strong performance in multilingual and general-purpose tasks.",
+                recommendedFor: "Multilingual applications, content generation, and balanced workloads where performance and cost are key.",
+                release: "2024",
+                contextWindow: 131_072,
+                contextWindowUnit: "tokens",
+                featured: true,
+                isMultimodal: false,
+                supportsImageInput: false,
+                supportsPDFInput: false,
+                maxOutputTokens: {
+                    default: 16_384,
+                    max: 16_384,
+                    description: "Groq supports up to 16,384 output tokens for Qwen 3 32B.",
+                },
+                cost: usdCost({ input: 0.25, output: 0.25 }),
+                supportsReasoningMode: true,
+                reasoningModeNotes: "Supports 'default' and 'none' reasoning effort via the API, but does not expose qualitative low/medium/high modes.",
+                reasoningModes: ["default", "none"],
+                reasoningTokens: {
+                    helper: "Groq does not expose a manual thinking budget for Qwen models.",
                 },
             },
         ],

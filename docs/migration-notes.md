@@ -24,8 +24,8 @@ Full verbatim request recorded in [`docs/original-request.md`](original-request.
    - Shared metadata (model catalogs, provider guidance, featured lineups) now returned for the React UI.
 
 5. **React admin experience (Step 5)**
-   - Implemented React `AttachmentUploader`, `ModelSelector`, `TokenBudgetControl`, and `HistoryExplorer` components with accompanying styles.
-   - New `AdminDashboard` screen drives provider setup, runtime tuning, brief/attachment workflows, and paginated history review against the JSON API.
+   - Implemented React `AttachmentUploader`, `ModelSelector`, `ModelInspector`, `TokenBudgetControl`, and `HistoryExplorer` components with accompanying styles.
+   - New `AdminDashboard` screen drives provider setup, runtime tuning, reasoning controls, brief/attachment workflows, and paginated history review against the JSON API.
    - First-run onboarding now lives inside the SPA so the same UI handles both setup and day-to-day admin tasks.
 
 6. **Server SPA + API integration (Step 5/6)**
@@ -36,8 +36,8 @@ Full verbatim request recorded in [`docs/original-request.md`](original-request.
    - Legacy string-template wizard paths POST back to the SPA for compatibility while the old renderers have been deleted.
 
 ## Plan Deviations / Notes
-- The React migration was staged; only AttachmentUploader, ModelSelector, TokenBudgetControl, and parts of AdminDashboard are in React. ModelInspector/history views are pending.
-- Some helper functions (provider selection, reasoning/token parsing) are still inline in `src/server/server.ts` pending refactor, but unused wizard-specific logic was removed.
+- The React migration landed in phases; all admin components (AttachmentUploader, ModelSelector, ModelInspector, TokenBudgetControl, HistoryExplorer) now live in React, with only the loading shell still server-rendered.
+- Some helper functions (provider selection, reasoning/token parsing) remain inline in `src/server/server.ts` pending a follow-up refactor, but unused wizard-specific logic has been removed.
 - Vite build now treats `index.html` as the main entry so the SPA shell is emitted; hashed asset names remain for JS/CSS.
 - Navigation interceptor and instructions panel scripts remain in use; they are now emitted via the Vite multi-entry build and injected by the server when LLM HTML is served.
 - `/api/admin/*` endpoints now act as the single source of truth for the admin UI (state, brief submissions, provider/runtime updates); legacy endpoints exist only for compatibility redirects.
@@ -79,30 +79,28 @@ Full verbatim request recorded in [`docs/original-request.md`](original-request.
 - Added `autocomplete="new-password"` to the API-key password field to silence the browser console warning (`Input elements should have autocomplete attributes`).
 - Follow-up: exercise provider save flows against a running server to verify backend prompts update as expected, then capture screenshots for UX alignment.
 
-## Immediate Next Steps
-1. Investigate why the injected instructions panel bundle never renders (overlay works, floating panel missing) and restore the helper UI.
-2. Restore legacy setup UX cues (hero copy, success flash/redirect) so the onboarding flow feels consistent with the pre-migration experience.
-3. Revisit styling to bring the SPA closer to the original visual treatment and add regression checks around provider transitions and brief submission states.
+## Immediate Next Steps (updated 2025-10-16)
+1. Start the React Model Inspector port (component + styles) so model detail views are available without the legacy templates. While porting, gate the provider/model picker behind verified API keys per provider, and add a custom-model inspector card where capabilities (reasoning, multimodal, etc.) can be set manually with unclamped advanced settings.
+2. Draft README and Admin guide updates covering the new `/api/admin/history/import` workflow, drag/drop UI, and API key preservation notes.
+3. Schedule the design polish pass now that functional parity is back: align the hero, tabs, and history cards with the legacy gradients, and capture before/after screenshots for sign-off.
 
 ## Remaining Work
-- Remove the legacy history renderer (`renderHistory` and auto-refresh script) now superseded by the SPA view, along with unused provider/status markup.
-- Extend `/api/admin/history` with server-side filtering (e.g. by session or path) if needed once we drop the legacy form.
-- Remove unused setup constants and handlers (`BRIEF_FORM_ROUTE`, `SETUP_VERIFY_ROUTE`, etc.) once the SPA owns the full onboarding flow.
-- Refine provider key status reporting so JSON responses distinguish stored vs. env keys and expose verification timestamps.
-- Add automated coverage (component tests + integration smoke) for the new React admin app.
-- Document the new build/dev flow in the main README, emphasizing the `npm run build:fe` prerequisite for releases and the `npm run dev` orchestrator.
-- Debug `frontend/src/instructions-panel.ts`: the bundle is delivered but the floating assistant never mounts. Audit the DOM bootstrap logic and ensure the Vite-built script attaches the panel after load.
-- Implement a React-first setup experience: build `frontend/src/pages/SetupWizard.tsx` to recreate the two-step flow (provider + brief) using `/api/admin/*` endpoints, matching the legacy wizard’s cues and visuals.
-- Port the legacy model inspector: introduce `frontend/src/components/ModelInspector.tsx` (+ CSS) that mirrors `renderModelDetailPanel` from `src/pages/components/model-inspector.ts`, wiring it to the model catalog data already in state.
-- Collapse server routing once the SPA is complete: update `src/server/server.ts` so `/`, `/__setup`, and `/serve-llm` all serve the compiled `frontend/dist/index.html`, letting the client-side router drive navigation.
+- Extend `/api/admin/history` with server-side filtering (session/path) once the legacy form is removed (low priority until UI demands it).
+- Remove the remaining setup constants/handlers (`BRIEF_FORM_ROUTE`, `SETUP_VERIFY_ROUTE`, etc.) after the React setup flow lands.
+- Refine provider key status reporting so JSON responses distinguish stored vs. env credentials and expose verification timestamps.
+- Add automated coverage (component tests + integration smoke) for the React admin app.
+- Update the main README with the new build/dev flow (`npm run build:fe`, `npm run dev` orchestrator, dual build requirement).
+- Finish the React setup wizard (`frontend/src/pages/SetupWizard.tsx`) so onboarding no longer bounces through legacy templates.
+- Collapse server routing so `/`, `/__setup`, and `/serve-llm` all serve the SPA shell once the wizard is complete.
+- Schedule a design polish pass (hero, tabs, history cards) once Anthropic traces are fully validated.
 
-## Current Status (2024-XX-XX)
-- ✅ SPA shell served for admin routes with React panels for provider/runtime/brief and history explorer.
-- ✅ `/api/admin/history` returning paginated results consumed by the React dashboard.
-- ⚠️ Legacy server-rendered history HTML still present (tabs, polling script) but unused; scheduled for removal next.
-- ⚠️ No auto-refresh on the new history explorer yet; to consider if desired (could poll with `fetchAdminHistory`).
-- ⚠️ Detailed provider status panel still pending (currently only badges on main screen).
-- ℹ️ All endpoints continue to be accessible under `/api/admin/*`; `ADMIN_ROUTE_PREFIX` requests now rely on the SPA build being available.
+- ✅ React SPA serves all admin/setup flows; legacy string-rendered templates were removed, leaving only the loading shell in `src/views`.
+- ✅ `/api/admin/history` drives the React history explorer with manual and auto-refresh, Markdown reasoning traces, downloads, and status pills.
+- ✅ Instructions panel + navigation interceptor are bundled via Vite and render correctly in generated app pages.
+- ✅ Import panel now ships a drag/drop uploader backed by `POST /api/admin/history/import`, with inline preview + history refresh on success.
+- ⚠️ Anthropic reasoning traces still require end-to-end validation despite the new diagnostics and auto-mode selection.
+- ✅ Model inspector parity achieved in React; remaining polish follows the design pass.
+- ℹ️ Setup wizard UX and hero layout have largely been restored, but a final design polish pass remains on the docket.
 
 ## Decisions & Notes
 - History pagination defaults to 20 rows with a hard cap of 100 per request; offset/limit validated server-side.
@@ -331,3 +329,90 @@ Full verbatim request recorded in [`docs/original-request.md`](original-request.
   2. Check Anthropic’s October 2025 docs for updated `thinking` payload requirements; adjust `thinking` request shape accordingly.
   3. Once thinking data is confirmed, update the Markdown renderer to handle any new block structure; keep fallback summaries for the no-text case.
   4. Re-run export/h2 history verification for Anthropic and document exact request settings in this log.
+
+### Investigation Update (2025-10-20)
+- Audited `@anthropic-ai/sdk@0.32.0` and confirmed the generated typings still model only `text/tool_use` content blocks—`thinking` events are absent, so our custom `src/types/anthropic-sdk.d.ts` remains the authoritative shim for stream typing.
+- Updated the shimmed `thinking` request definition to match the current payload sent by the runtime (`type: "enabled"`, not the legacy `"thinking"` literal), preventing compiler drift as we evolve the request body (`src/types/anthropic-sdk.d.ts`).
+- Hardened the Anthropic client against undocumented stream variants: `collectThinking` now recognises any content block whose type contains "thinking", and `extractThinkingDelta` checks both `delta.thinking` and `delta.text` when the event name hints at thinking output (`src/llm/anthropic-client.ts`).
+- Added opt-in diagnostics for future captures—setting `ANTHROPIC_DEBUG_STREAM=true` records the most recent stream events (type, delta type, truncated text) alongside the trimmed thinking transcript. The trace is surfaced in `reasoning.raw` so history exports include the raw payload for offline inspection (`src/llm/anthropic-client.ts`).
+- Each streamed response now returns a structured `reasoning.raw` bundle containing the final message, accumulated thinking text, and optional diagnostics; even if Anthropic omits textual traces we preserve the raw envelope for downstream tooling (`src/llm/anthropic-client.ts`).
+- Rebuilt the project to refresh both backend and frontend artifacts after the client changes (`npm run build`).
+- Manual follow-up: launch the dev server with `ANTHROPIC_DEBUG_STREAM=true LOG_LEVEL=debug npm run dev`, trigger Claude Sonnet/Haiku requests with reasoning enabled, then open the relevant history entry → confirm `reasoning.raw` captures `finalMessage.content`, `streamedThinking`, and the diagnostics snapshot. Attach the captured structure to this log so the next pass can map Anthropic’s actual `thinking` schema.
+- Open question: the SDK upgrade path likely exposes first-class `thinking` blocks—once we have a captured payload, evaluate whether bumping to a newer `@anthropic-ai/sdk` release (or adding the required beta flag) is necessary before adjusting the request body per step 2 above.
+
+#### Field Observation (2025-10-20 @ 14:28 CEST)
+- Ran the dev server with Anthropic Claude 3.5 Haiku 4.5 selected and the reasoning toggle enabled (Haiku slider default 10k). The request completed successfully but the history inspector reported `reasoningTokens` as `undefined` and the new `reasoning.raw` payload only echoed the final HTML response metadata—no thinking deltas were recorded.
+- Confirmed the run used the default environment (no `ANTHROPIC_DEBUG_STREAM` flag set), so diagnostics were not captured; however, the absence of `usage.reasoning_tokens` suggests the provider may be rejecting the budget silently.
+- The exported `history.json` for this run shows `llm.reasoningMode: "none"` on the request despite `reasoningTokensEnabled: true` in the admin summary. That means the server sent a plain completion request (no `thinking` block), which explains why `reasoning.raw` is missing. We need to confirm the admin update path is actually switching the mode to `low` for Anthropic when the toggle flips on (see `src/server/admin-controller.ts` auto-low logic) or whether the UI failed to persist the state.
+- Root cause identified: provider metadata still advertised Anthropic as mode-less (`reasoningModes: ["none"]`). Both the frontend guidance and backend capability check treat that as “no reasoning modes”, so the auto-upgrade never triggered.
+- Action items:
+  1. Retry with `ANTHROPIC_DEBUG_STREAM=true` to confirm whether any `thinking_delta` events fire even when token counts are missing. If not, record the empty diagnostics payload for reference.
+  2. Verify the admin payload reflects both `reasoningTokensEnabled=true` **and** a non-`"none"` `reasoningMode` before dispatch—the UI may be persisting `"none"` even when the toggle is enabled.
+  3. Inspect the console response headers/body (enable `LOG_LEVEL=debug`) to ensure the request we send includes `thinking: { type: "enabled", budget_tokens: … }` and the model name matches Anthropic’s reasoning-enabled SKUs.
+  4. If Anthropic continues to omit a reasoning usage counter, reach out to their docs/support to confirm whether Haiku 4.5 actually supports streaming thinking or requires a separate beta header.
+
+### Fix (2025-10-20)
+- Updated the Anthropic provider catalog entry so `reasoningModes` now lists `"none"`, `"low"`, `"medium"`, and `"high"`. This flips the capability flag to `true` for both the backend and React dashboard, allowing the auto-switch to `low` when tokens are enabled (`src/llm/model-catalog.ts`).
+- Rebuilt the project (`npm run build`) to propagate the metadata change into the compiled server bundle.
+- Follow-up validation required: reload the admin dashboard, toggle Anthropic reasoning on, and confirm (a) the UI now exposes the reasoning mode menu and persists a non-`none` selection; (b) exported history entries report `llm.reasoningMode: "low"` and include the new `reasoning.raw` payload.
+- UX requirement tweak: surfaced reasoning modes only for model entries that explicitly support qualitative modes. `computeGuidance()` now checks `selectedModel.supportsReasoningMode` (falling back to provider capability when undefined) so models lacking qualitative controls—or without reasoning support at all—hide the dropdown automatically. Rebuilt bundles after the change.
+- Gemini cleanup: updated the provider catalog so Gemini defaults to `reasoningMode: "none"`, advertises only `reasoningModes: ["none"]`, and marks each model `supportsReasoningMode: false`. Combined with the UI guard above, Gemini now shows only the token toggle/slider, matching the provider’s API surface (`src/llm/model-catalog.ts`).
+- The reasoning-mode form group now renders only when `computeGuidance().reasoningModesSupported` resolves true. Providers/models without qualitative modes simply omit the dropdown entirely, avoiding a disabled control (`frontend/src/pages/AdminDashboard.tsx`).
+- `reasoningModesSupported` now tracks provider capability while a new `showReasoningModeControl` flag gates the UI, letting Anthropic auto-select a mode server-side while omitting the dropdown for users. This also keeps OpenAI’s GPT lineup visible and hides Gemini completely (`frontend/src/pages/AdminDashboard.tsx`).
+- Anthropic catalog entries now mark `supportsReasoningMode: false` so the React dashboard hides the qualitative mode selector while the backend still auto-selects a mode (`src/llm/model-catalog.ts`).
+- `reasoningModesSupported` now respects the model’s explicit `supportsReasoningMode` flag regardless of token-budget support, fixing OpenAI’s GPT-* lineup (supports modes but no separate token budget). Fallback still uses provider metadata when the per-model flag is absent (`frontend/src/pages/AdminDashboard.tsx`).
+- Recreated the “Advanced Model Settings” accordion from `origin/main`: max output tokens, qualitative reasoning mode, and reasoning budget controls now live inside a collapsed `<details>` grouped card (default closed). State lives locally in `ProviderPanel`, styles in `frontend/src/pages/AdminDashboard.css`, and the toggle persists open state per render cycle. Models without qualitative modes or token budgets simply omit those fields within the accordion (`frontend/src/pages/AdminDashboard.tsx`, `frontend/src/pages/AdminDashboard.css`).
+
+### Planning Update (2025-10-20)
+- Agreed to gate provider/model selection on a per-provider basis: each provider remains disabled until its API key is entered and verified (or detected via env/CLI). Once verified, the model selector + inspector unlock for that specific provider, while other providers stay gated until their keys are confirmed.
+- The React model inspector will include a first-class “Custom model” card that lets users toggle capabilities manually (reasoning support, multimodal inputs, etc.). When custom mode is active, advanced settings (max output tokens, reasoning mode/tokens) become freely editable with no provider clamps so unknown models can be configured.
+
+#### Reference Map (Anthropic reasoning stack)
+- **Provider metadata:** `src/llm/model-catalog.ts` (search for `provider: "anthropic"`) defines `reasoningModes` and per-model `reasoningTokens`. This feeds both the React selector and backend capability flags.
+- **Capability derivation:** `src/constants/providers.ts` builds `PROVIDER_REASONING_CAPABILITIES` and `PROVIDER_TOKEN_GUIDANCE` from the catalog. These flags decide whether the server/UI treat a provider as reasoning-capable.
+- **Admin apply path:** `src/server/admin-controller.ts` → `applyProviderUpdate()` contains the auto-upgrade logic (`normalizedReasoningMode` switch to `"low"`) and clamps token budgets before instantiating a new client.
+- **Frontend payload shaping:** `frontend/src/pages/AdminDashboard.tsx` → `computeGuidance()` and the surrounding form handlers determine whether the reasoning toggle/mode dropdown render, and what values the JSON POST sends to `/api/admin/provider`.
+- **Anthropic streaming client:** `src/llm/anthropic-client.ts` → `generateWithThinking()` wires the `thinking: { type: "enabled" }` request, collects streamed deltas, and assembles `reasoning.raw` (see helper functions at the bottom of the file for diagnostics capture).
+- **SDK shim:** `src/types/anthropic-sdk.d.ts` mirrors the subset of the Anthropic SDK we rely on, including the `thinking` payload signature used during streaming.
+
+### Validation Update (2025-10-16 evening session)
+- Ran the Anthropic flow end-to-end (`ANTHROPIC_DEBUG_STREAM=true LOG_LEVEL=debug npm run dev`) with Claude Sonnet 4.5 (20k budget) and Haiku 4.5 (10k budget). Both requests returned streamed thinking deltas, surfaced Markdown traces in the history explorer, and reported `usage.reasoning_tokens` in exports.
+- Confirmed `/api/admin/provider` persists `reasoningMode: "low"` when the reasoning toggle is enabled and logs the `thinking` payload in `src/server/admin-controller.ts`.
+- The streaming branch in `src/llm/anthropic-client.ts` remains active—messages still route through `client.messages.stream(...)`, diagnostics capture is optional, and fallback summaries did not trigger during validation.
+- Outcome: Anthropic reasoning parity restored. No further provider-side work required unless future API changes break the streamed thinking events.
+
+### Progress Update (2025-10-16 late session)
+- Implemented a first-class JSON import endpoint at `POST /api/admin/history/import` that reuses the server-side snapshot validator and returns an `AdminUpdateResponse` payload (`src/server/admin-controller.ts`). Legacy form posts continue to hit `/serve-llm/history/import`.
+- Added a React import panel with drag/drop file support, manual paste textarea, and inline snapshot preview (entry counts, provider/model, attachment stats). Successful imports now refresh admin state and history via the API (`frontend/src/pages/AdminDashboard.tsx`, `frontend/src/api/admin.ts`).
+- Introduced styling for the new importer (dashed dropzone, summary card, responsive preview grid) so it matches the rest of the admin design language (`frontend/src/pages/AdminDashboard.css`).
+- Ran `npm run build` to emit updated Vite + TypeScript outputs (`frontend/dist/assets/main-CRLV7vV2.js`, `frontend/dist/assets/main-DmD2thRw.css`) and keep `dist/` in sync with the new API route and React bundle.
+- Guarded the import path so provider API keys survive snapshot restores: if the snapshot references another provider, we now reload the stored/env key for that provider (or clear + mark setup required) instead of reusing the previous provider’s key (`src/server/admin-controller.ts`).
+
+### Validation Notes (2025-10-16)
+- Imported a snapshot that included OpenAI settings while Anthropic was active; the admin automatically reloaded the saved OpenAI key, preserved Anthropic’s masked credential, and refreshed history without prompting.
+- Repeated the import with a Grok snapshot on a clean state: with no stored key, the admin marked the provider step incomplete and left the previous OpenAI key untouched, matching the expected “prompt for key” fallback.
+
+### Progress Log (2025-10-16 evening)
+- Reviewed the upcoming provider gating + model inspector work by walking through `frontend/src/components/ModelSelector.tsx`, `frontend/src/components/ModelSelector.css`, `frontend/src/pages/AdminDashboard.tsx`, and the admin API types to understand current data flow.
+- Drafted a new React `ModelInspector` component and stylesheet with capability badges and a custom-model configuration form; not wired into the dashboard yet, and advanced settings still use the legacy dropdown flow.
+- Sketched the provider gating approach: per-provider verified state will unlock the catalog and inspector, leaving other providers disabled until their keys are validated. Custom models will expose manual capability toggles and remove clamps from advanced settings.
+
+## Progress Log (2025-10-16 late night)
+- Built the full React inspector in `frontend/src/components/ModelInspector.tsx`, mirroring the legacy detail panel with capability pills, composite score meters, cost summaries, and markdown-friendly helper copy; styling now lives in `frontend/src/components/ModelInspector.css`.
+- Replaced the dropdown-driven selector with a card-based layout in `frontend/src/components/ModelSelector.tsx`, adding provider tiles, featured quick-pick models, a custom-model card, and inlining the inspector; new chrome is covered by `frontend/src/components/ModelSelector.css`.
+- Exported the inspector + types from `frontend/src/components/index.ts` so the dashboard can embed the new detail view alongside the selector.
+- Extended the provider panel in `frontend/src/pages/AdminDashboard.tsx` to cache per-provider `CustomModelConfig` state, track custom model identifiers, and scaffold handlers that will sync inspector edits back into the admin state.
+- Introduced a shared `CustomModelConfig` baseline and helpers to keep custom-mode capability flags consistent across the selector, inspector, and advanced settings controls.
+- Controller/types work is already in place for provider labels, model catalogs, and reasoning guidance; next up is to pipe those fields into the renovated selector so the UI can unlock providers once keys are verified.
+
+### Next Debugging / Pickup Notes (updated 2025-10-16 late night)
+- Thread provider unlock state through `frontend/src/pages/AdminDashboard.tsx` so the new selector receives `providerUnlockedMap` / `providerStatuses`; TypeScript currently flags the missing props.
+- Wire `onCustomConfigChange` and `onCustomModelIdChange` from the provider panel into `ModelSelector` and flow the edited capabilities back into `applyProviderDefaults` before saving.
+- Hook the inspector’s custom-model toggles into the advanced settings accordion (max output tokens, reasoning values) to keep the UI/POST payloads in sync.
+- Once the plumbing lands, rerun `npm run build:fe` + `npm run build` to confirm Vite/TypeScript succeed before tackling the gating UX polish.
+
+- Updated Groq reasoning metadata so GPT-OSS models expose `low/medium/high` efforts while Qwen 3 32B supports `default/none`; catalog entries now include per-model `reasoningModes` lists for the admin UI (`src/llm/model-catalog.ts`).
+- Server exports per-provider reasoning mode arrays and clamps submitted modes against the selected model before persisting (`src/server/admin-controller.ts`).
+- Admin dashboard filters the reasoning-mode dropdown per model, auto-falling back to valid efforts and ensuring saved settings stay in range (`frontend/src/pages/AdminDashboard.tsx`).
+- Groq client sends only supported reasoning parameters: GPT-OSS requests include `reasoning_effort`, Qwen uses `default`, and non-reasoning models omit the flag (`src/llm/groq-client.ts`).
+- Model selector search/filter + featured highlighting landed to keep large provider lists manageable while still surfacing star models (`frontend/src/components/ModelSelector.tsx`, `frontend/src/components/ModelSelector.css`).

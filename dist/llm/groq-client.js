@@ -11,10 +11,11 @@ const GROQ_REASONING_SUPPORTED_MODELS = new Set([
     "qwen/qwen3-32b",
 ]);
 /** GPT-OSS supports explicit effort low|medium|high on Chat */
-const GROQ_GPT_OSS_MODELS = new Set([
-    "openai/gpt-oss-20b",
-    "openai/gpt-oss-120b",
-]);
+const GROQ_MODEL_REASONING_EFFORT = {
+    "openai/gpt-oss-20b": ["none", "low", "medium", "high"],
+    "openai/gpt-oss-120b": ["none", "low", "medium", "high"],
+    "qwen/qwen3-32b": ["none", "default"],
+};
 export class GroqClient {
     settings;
     client;
@@ -302,20 +303,24 @@ function applyReasoningOptionsForChat(request, settings) {
     const normalizedModel = normalizeModelId(settings.model);
     if (!GROQ_REASONING_SUPPORTED_MODELS.has(normalizedModel))
         return;
-    const isGptOss = GROQ_GPT_OSS_MODELS.has(normalizedModel);
-    // Decide effort
-    const ossEffort = mode === "low" || mode === "medium" || mode === "high" ? mode : "medium";
-    if (isGptOss) {
-        // GPT-OSS: include_reasoning + low/medium/high
-        request.reasoning_effort = ossEffort;
-        request.include_reasoning = true;
+    const supportedModes = GROQ_MODEL_REASONING_EFFORT[normalizedModel] ?? ["none"];
+    const effectiveMode = supportedModes.includes(mode)
+        ? mode
+        : supportedModes.find((item) => item !== "none") ?? "none";
+    if (effectiveMode === "none") {
+        return;
     }
-    else {
-        // Qwen: prefer parsed reasoning format; effort mainly "default" or "none"
-        request.reasoning_effort =
-            mode === "none" ? "none" : "default";
+    if (normalizedModel === "qwen/qwen3-32b") {
+        request.reasoning_effort = effectiveMode === "default" ? "default" : "none";
         request.reasoning_format = "parsed";
+        if (effectiveMode !== "default") {
+            delete request.reasoning_effort;
+            delete request.reasoning_format;
+        }
+        return;
     }
+    request.reasoning_effort = effectiveMode;
+    request.include_reasoning = true;
 }
 /* -------------------- util -------------------- */
 function normalizeModelId(model) {

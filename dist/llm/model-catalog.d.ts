@@ -46,6 +46,7 @@ export interface ModelMetadata {
     readonly cost?: ModelCostInfo;
     readonly compositeScores?: ModelCompositeScores;
     readonly supportsReasoningMode?: boolean;
+    readonly reasoningModes?: ReasoningMode[];
 }
 export interface ProviderMetadata {
     readonly provider: ModelProvider;
