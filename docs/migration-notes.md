@@ -405,14 +405,35 @@ Full verbatim request recorded in [`docs/original-request.md`](original-request.
 - Introduced a shared `CustomModelConfig` baseline and helpers to keep custom-mode capability flags consistent across the selector, inspector, and advanced settings controls.
 - Controller/types work is already in place for provider labels, model catalogs, and reasoning guidance; next up is to pipe those fields into the renovated selector so the UI can unlock providers once keys are verified.
 
-### Next Debugging / Pickup Notes (updated 2025-10-16 late night)
-- Thread provider unlock state through `frontend/src/pages/AdminDashboard.tsx` so the new selector receives `providerUnlockedMap` / `providerStatuses`; TypeScript currently flags the missing props.
-- Wire `onCustomConfigChange` and `onCustomModelIdChange` from the provider panel into `ModelSelector` and flow the edited capabilities back into `applyProviderDefaults` before saving.
-- Hook the inspector’s custom-model toggles into the advanced settings accordion (max output tokens, reasoning values) to keep the UI/POST payloads in sync.
-- Once the plumbing lands, rerun `npm run build:fe` + `npm run build` to confirm Vite/TypeScript succeed before tackling the gating UX polish.
+### Next Debugging / Pickup Notes (updated 2025-10-21)
+- ✅ Threaded provider unlock state through `frontend/src/pages/AdminDashboard.tsx` so the selector receives `providerUnlockedMap` / `providerStatuses` and keeps locked providers inert until keys verify.
+- ✅ Wired `onCustomConfigChange` and `onCustomModelIdChange` from the provider panel into `ModelSelector`; capability edits now flow into `applyProviderDefaults` before saving.
+- ✅ Hooked the inspector’s custom-model toggles into the advanced settings accordion (max output tokens, reasoning values) so the UI/POST payloads remain aligned.
+- Next follow-up: confirm backend clamping remains compatible with the relaxed custom-model UI and capture the new gating behaviour in the README/Admin guide.
+- ✅ Reran `npm run build:fe` + `npm run build` to confirm Vite/TypeScript succeed after the wiring changes.
 
 - Updated Groq reasoning metadata so GPT-OSS models expose `low/medium/high` efforts while Qwen 3 32B supports `default/none`; catalog entries now include per-model `reasoningModes` lists for the admin UI (`src/llm/model-catalog.ts`).
 - Server exports per-provider reasoning mode arrays and clamps submitted modes against the selected model before persisting (`src/server/admin-controller.ts`).
 - Admin dashboard filters the reasoning-mode dropdown per model, auto-falling back to valid efforts and ensuring saved settings stay in range (`frontend/src/pages/AdminDashboard.tsx`).
 - Groq client sends only supported reasoning parameters: GPT-OSS requests include `reasoning_effort`, Qwen uses `default`, and non-reasoning models omit the flag (`src/llm/groq-client.ts`).
 - Model selector search/filter + featured highlighting landed to keep large provider lists manageable while still surfacing star models (`frontend/src/components/ModelSelector.tsx`, `frontend/src/components/ModelSelector.css`).
+
+## Progress Log (2025-10-21)
+- Model selector now disables provider tiles until the matching API key is verified/detected; locked providers no longer swap the runtime and the UI copy reflects the gated state (`frontend/src/components/ModelSelector.tsx`).
+- Provider panel guidance honours custom-model capability toggles: custom entries skip provider clamps for max-output tokens and reasoning budgets, and only surface controls when those toggles are enabled (`frontend/src/pages/AdminDashboard.tsx`).
+- Custom model identifiers call back into `applyProviderDefaults`, keeping advanced settings and reasoning modes in sync when switching between curated and custom selections (`frontend/src/pages/AdminDashboard.tsx`).
+- Sanitizers loosen constraints for custom IDs (manual budgets permitted) while preserving numeric sanity and provider clamps for curated models.
+- Added a capability-signature watcher that reapplies defaults whenever custom toggles change so the admin state and POST payload stay aligned before saving (`frontend/src/pages/AdminDashboard.tsx`).
+- Ran `npm run build:fe` and `npm run build` to regenerate frontend/backend artefacts (current bundles: `frontend/dist/assets/main-Dzxw_u9y.js`, `frontend/dist/assets/main-BD8EXnq_.css`).
+- Hid qualitative reasoning modes for Anthropic models while keeping the underlying token budget active; provider fallback no longer resurfaces the dropdown after state refreshes (`frontend/src/pages/AdminDashboard.tsx`, `src/server/admin-controller.ts`).
+- Server now respects OpenAI reasoning mode selections by falling back to provider-level mode lists whenever the model advertises mode support, avoiding unwanted resets to `"none"` (`src/server/admin-controller.ts`).
+- Preserved Anthropic reasoning budgets even when qualitative modes are hidden—tokens stay enabled and no longer revert to the provider default on save (`src/server/admin-controller.ts`).
+- UI guidance honours the updated server semantics so Anthropic budgets remain editable while the qualitative dropdown stays hidden; provider defaults no longer override curated entries when modes are unsupported (`frontend/src/pages/AdminDashboard.tsx`).
+- Removed the provider verification chip row from the admin panel header to declutter the layout now that gating is handled directly within the selector tiles (`frontend/src/pages/AdminDashboard.tsx`, `frontend/src/pages/AdminDashboard.css`).
+
+### QA Notes (2025-10-21)
+- Manual sanity: locked provider tiles remain inert until the key verifies; once unlocked, model cards and advanced settings enable instantly.
+- Manual sanity: toggling custom-model reasoning settings hides/shows the advanced controls and saving posts the relaxed payload without reintroducing provider-level clamps.
+- Manual sanity: Anthropic flows — enable the reasoning toggle, set a non-default budget (e.g. 12,000), save, and confirm the budget persists while the qualitative mode dropdown stays hidden and streamed traces appear in history.
+- Manual sanity: OpenAI GPT-5 — switch the qualitative mode to "Low", save, and verify the selection sticks after refresh and history entries include reasoning summaries.
+- Visual sweep: ensure the provider header no longer shows status chips and that spacing remains comfortable above the selector tiles.

@@ -413,11 +413,20 @@ export class AdminController {
         const modelMetadata = getModelMetadata(provider, model);
         const modelReasoningModes = modelMetadata?.reasoningModes;
         const providerReasoningModes = PROVIDER_REASONING_MODES[provider] ?? [];
-        const availableReasoningModes = modelReasoningModes && modelReasoningModes.length > 0
-            ? modelReasoningModes
-            : modelMetadata
-                ? []
-                : providerReasoningModes;
+        const providerSupportsModes = Boolean(reasoningCapability.mode);
+        const modelSupportsModes = modelMetadata?.supportsReasoningMode === true;
+        const availableReasoningModes = (() => {
+            if (modelReasoningModes && modelReasoningModes.length > 0) {
+                return modelReasoningModes;
+            }
+            if (!modelMetadata && providerSupportsModes) {
+                return providerReasoningModes;
+            }
+            if (modelSupportsModes && providerSupportsModes) {
+                return providerReasoningModes;
+            }
+            return [];
+        })();
         const reasoningModesSupported = availableReasoningModes.some((mode) => mode !== "none");
         const providerGuidance = PROVIDER_TOKEN_GUIDANCE[provider]?.reasoningTokens;
         const modelReasoningTokens = modelMetadata?.reasoningTokens;
@@ -487,9 +496,7 @@ export class AdminController {
                 ? nextReasoningTokensEnabled
                 : true
             : undefined;
-        const finalReasoningTokens = normalizedReasoningMode === "none" || !storedReasoningTokensEnabled
-            ? undefined
-            : sanitizedReasoningTokens;
+        const finalReasoningTokens = storedReasoningTokensEnabled === true ? sanitizedReasoningTokens : undefined;
         if (storedReasoningTokensEnabled === false) {
             normalizedReasoningMode = "none";
         }

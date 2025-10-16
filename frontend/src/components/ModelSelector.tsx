@@ -223,6 +223,7 @@ export function ModelSelector({
 
   const handleProviderChange = (value: string) => {
     if (disableProviderSelection || value === provider) return;
+    if (!providerUnlockedMap[value]) return;
     const nextOptions = modelOptions[value] ?? [];
     const hinted = defaultModelByProvider[value];
     const nextModel = nextOptions[0]?.value ?? hinted ?? "";
@@ -256,7 +257,7 @@ export function ModelSelector({
               className={`model-selector__provider${
                 isActive ? " is-active" : ""
               }${unlocked ? " is-unlocked" : " is-locked"}`}
-              disabled={disableProviderSelection}
+              disabled={disableProviderSelection || !unlocked}
               onClick={() => handleProviderChange(choice.value)}
             >
               <span className="model-selector__provider-title">
@@ -320,7 +321,7 @@ export function ModelSelector({
                 )}
                 <CustomModelCard
                   active={isCustomSelection}
-                  disabled={!providerUnlocked}
+                  disabled={!canSelectModels}
                   unlocked={providerUnlocked}
                   onSelect={handleCustomSelect}
                 />

@@ -1002,33 +1002,6 @@ function ProviderPanel({
     );
     return Object.fromEntries(entries) as Record<string, boolean>;
   }, [state.providerKeyStatuses]);
-
-  const handleCustomConfigChange = useCallback(
-    (next: CustomModelConfig) => {
-      setCustomModelConfigs((prev) => ({
-        ...prev,
-        [currentProvider]: next,
-      }));
-    },
-    [currentProvider]
-  );
-
-  const handleCustomModelIdChange = useCallback(
-    (nextId: string) => {
-      setCustomModelIds((prev) => ({
-        ...prev,
-        [currentProvider]: nextId,
-      }));
-      onState({
-        ...state,
-        provider: {
-          ...state.provider,
-          model: nextId,
-        },
-      });
-    },
-    [currentProvider, onState, state]
-  );
   const computeGuidance = useCallback(
     (target: ProviderKey, targetModel?: string) => {
       const providerDefaultMax = state.defaultMaxOutputTokens[target];
@@ -1041,14 +1014,33 @@ function ProviderPanel({
       const providerReasoning = tokenGuidance?.reasoningTokens;
       const providerReasoningModes = state.providerReasoningModes[target] ?? [];
       const modelList = state.modelCatalog[target] ?? [];
-      const selectedModel = targetModel
-        ? modelList.find((item) => item.value === targetModel)
+
+      const resolvedModel =
+        targetModel !== undefined
+          ? targetModel
+          : target === provider.provider
+          ? state.provider.model
+          : undefined;
+      const hasModelSelection = resolvedModel !== undefined;
+      const selectedModel =
+        hasModelSelection && resolvedModel
+          ? modelList.find((item) => item.value === resolvedModel)
+          : undefined;
+
+      const isCustomModel =
+        hasModelSelection && (!selectedModel || resolvedModel === "");
+      const customConfig = isCustomModel
+        ? customModelConfigs[target] ?? DEFAULT_CUSTOM_MODEL_CONFIG
         : undefined;
+
       const modelReasoning = selectedModel?.reasoningTokens;
       const modelMaxTokens = selectedModel?.maxOutputTokens;
       const modelReasoningModes = selectedModel?.reasoningModes;
 
       const combinedMaxTokens = (() => {
+        if (isCustomModel) {
+          return undefined;
+        }
         if (providerMaxTokens && modelMaxTokens) {
           return { ...providerMaxTokens, ...modelMaxTokens };
         }
@@ -1063,48 +1055,93 @@ function ProviderPanel({
       const tokensSupportedByProvider = Boolean(capability.tokens);
       const tokensSupportedByModel = selectedModel
         ? Boolean(modelReasoning?.supported)
-        : true;
+        : Boolean(customConfig?.supportsReasoning && tokensSupportedByProvider);
       const reasoningTokensSupported =
         tokensSupportedByProvider && tokensSupportedByModel;
       const usingModelGuidance =
         reasoningTokensSupported &&
         Boolean(selectedModel && modelReasoning?.supported);
-      const reasoningTokensGuidance = usingModelGuidance
-        ? modelReasoning
-        : reasoningTokensSupported && providerReasoning?.supported
-        ? providerReasoning
-        : undefined;
-      const reasoningToggleAllowed =
-        reasoningTokensSupported &&
-        reasoningTokensGuidance?.allowDisable !== false;
+
+      const reasoningTokensGuidance = (() => {
+        if (!reasoningTokensSupported) {
+          return undefined;
+        }
+        if (usingModelGuidance) {
+          return modelReasoning;
+        }
+        if (isCustomModel) {
+          if (providerReasoning) {
+            return {
+              ...providerReasoning,
+              min: undefined,
+              max: undefined,
+              supported: true,
+              allowDisable:
+                providerReasoning.allowDisable !== false
+                  ? providerReasoning.allowDisable
+                  : true,
+            };
+          }
+          return { supported: true };
+        }
+        if (providerReasoning?.supported) {
+          return providerReasoning;
+        }
+        return undefined;
+      })();
+
+      const reasoningToggleAllowed = reasoningTokensSupported
+        ? isCustomModel
+          ? true
+          : reasoningTokensGuidance?.allowDisable !== false
+        : false;
+
       const providerSupportsModes = Boolean(capability.mode);
-      const modelSupportsModes = selectedModel?.supportsReasoningMode;
+      const customSupportsModes =
+        Boolean(customConfig?.supportsReasoningMode) && providerSupportsModes;
+      const modelSupportsModes = selectedModel?.supportsReasoningMode === true;
+
       const availableReasoningModes = (() => {
         if (modelReasoningModes && modelReasoningModes.length > 0) {
           return modelReasoningModes;
         }
-        if (providerReasoningModes.length > 0) {
-          return providerReasoningModes;
+        if (isCustomModel) {
+          if (customSupportsModes && providerReasoningModes.length > 0) {
+            return providerReasoningModes;
+          }
+          return ["none"] as string[];
         }
-        if (providerSupportsModes) {
-          return state.providerReasoningModes[target] ?? [];
+        if (
+          providerSupportsModes &&
+          ((modelSupportsModes && providerReasoningModes.length > 0) || (!selectedModel && providerReasoningModes.length > 0))
+        ) {
+          return providerReasoningModes;
         }
         return undefined;
       })();
+
       const reasoningModesSupported = Boolean(
         availableReasoningModes?.some((mode) => mode !== "none")
       );
       const showReasoningModeControl = Boolean(
-        availableReasoningModes && availableReasoningModes.length > 1
+        availableReasoningModes?.some((mode) => mode !== "none")
       );
-      const guidanceSource = reasoningTokensSupported
-        ? usingModelGuidance
-          ? "model"
-          : providerReasoning?.supported
-          ? "provider"
-          : "none"
-        : "none";
-      const isCustomModel = Boolean(targetModel && !selectedModel);
+
+      const guidanceSource = (() => {
+        if (usingModelGuidance) return "model" as const;
+        if (reasoningTokensSupported && providerReasoning?.supported) {
+          return "provider" as const;
+        }
+        if (isCustomModel && reasoningTokensSupported) {
+          return "provider" as const;
+        }
+        return "none" as const;
+      })();
+
+      const providerReasoningGuidance = providerReasoning?.supported
+        ? providerReasoning
+        : undefined;
+
       return {
         defaultMax,
         maxTokensGuidance: combinedMaxTokens,
@@ -1115,17 +1152,20 @@ function ProviderPanel({
         showReasoningModeControl,
         availableReasoningModes,
         modelMetadata: selectedModel,
-        providerReasoningGuidance: providerReasoning,
+        providerReasoningGuidance,
         guidanceSource,
         isCustomModel,
       } as const;
     },
     [
+      provider.provider,
+      state.provider.model,
       state.defaultMaxOutputTokens,
       state.modelCatalog,
-      state.providerReasoningModes,
       state.providerReasoningCapabilities,
+      state.providerReasoningModes,
       state.providerTokenGuidance,
+      customModelConfigs,
     ]
   );
 
@@ -1136,8 +1176,20 @@ function ProviderPanel({
       targetModel?: string
     ) => {
       const guidance = computeGuidance(target, targetModel);
+      const fallbackBase =
+        guidance.defaultMax ??
+        state.defaultMaxOutputTokens[target] ??
+        1024;
+
+      if (guidance.isCustomModel) {
+        if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
+          return Math.floor(raw);
+        }
+        return Math.max(1, Math.floor(fallbackBase));
+      }
+
       const fallback =
-        guidance.maxTokensGuidance?.default ?? guidance.defaultMax ?? 1024;
+        guidance.maxTokensGuidance?.default ?? fallbackBase;
       let value: number;
       if (typeof raw === "number" && Number.isFinite(raw)) {
         value = Math.floor(raw);
@@ -1151,11 +1203,11 @@ function ProviderPanel({
         value = Math.min(value, guidance.maxTokensGuidance.max);
       }
       if (!Number.isFinite(value) || value <= 0) {
-        value = Math.max(1, Math.floor(fallback));
+        value = Math.max(1, Math.floor(fallbackBase));
       }
       return value;
     },
-    [computeGuidance]
+    [computeGuidance, state.defaultMaxOutputTokens]
   );
 
   const sanitizeReasoningTokens = useCallback(
@@ -1170,6 +1222,24 @@ function ProviderPanel({
         !guidance.reasoningTokensGuidance
       ) {
         return undefined;
+      }
+      if (guidance.isCustomModel) {
+        if (raw === null || raw === undefined) {
+          return undefined;
+        }
+        const numeric = Number(raw);
+        if (!Number.isFinite(numeric)) {
+          return undefined;
+        }
+        let value = Math.floor(numeric);
+        if (target === "gemini") {
+          if (value < -1) {
+            value = -1;
+          }
+        } else if (value < 0) {
+          value = 0;
+        }
+        return value;
       }
       if (raw === null || raw === undefined) {
         return undefined;
@@ -1328,18 +1398,18 @@ function ProviderPanel({
 
   const applyProviderDefaults = useCallback(
     (nextProvider: ProviderKey, hintedModel?: string) => {
-      const defaultModel =
-        state.defaultModelByProvider[nextProvider] ??
-        hintedModel ??
-        provider.model;
+      const desiredModel =
+        hintedModel !== undefined
+          ? hintedModel
+          : state.defaultModelByProvider[nextProvider] ?? provider.model;
       const sanitizedMaxTokens = sanitizeMaxOutputTokens(
         state.defaultMaxOutputTokens[nextProvider] ?? provider.maxOutputTokens,
         nextProvider,
-        defaultModel
+        desiredModel
       );
-      const guidance = computeGuidance(nextProvider, defaultModel);
+      const guidance = computeGuidance(nextProvider, desiredModel);
 
-      const availableModes = guidance.availableReasoningModes ?? state.providerReasoningModes[nextProvider] ?? [];
+      const availableModes = guidance.availableReasoningModes ?? [];
       let nextReasoningMode = provider.reasoningMode ?? "none";
       if (!availableModes.includes(nextReasoningMode)) {
         if (availableModes.includes("default")) {
@@ -1355,21 +1425,24 @@ function ProviderPanel({
 
       const tokensSupported = guidance.reasoningTokensSupported;
       const allowToggle = guidance.reasoningToggleAllowed;
+      const providerMatches = provider.provider === nextProvider;
       const nextReasoningEnabled = tokensSupported
         ? allowToggle
-          ? provider.reasoningTokensEnabled !== false
+          ? providerMatches
+            ? provider.reasoningTokensEnabled !== false
+            : true
           : true
         : false;
       let nextReasoningTokens: number | undefined;
       if (tokensSupported) {
         const baseTokens =
-          provider.provider === nextProvider
+          providerMatches
             ? provider.reasoningTokens
             : guidance.reasoningTokensGuidance?.default;
         const sanitized = sanitizeReasoningTokens(
           typeof baseTokens === "number" ? baseTokens : undefined,
           nextProvider,
-          defaultModel
+          desiredModel
         );
         if (sanitized !== undefined) {
           nextReasoningTokens = sanitized;
@@ -1385,7 +1458,7 @@ function ProviderPanel({
         provider: {
           ...state.provider,
           provider: nextProvider,
-          model: defaultModel,
+          model: desiredModel,
           maxOutputTokens: sanitizedMaxTokens,
           reasoningMode: nextReasoningMode,
           reasoningTokens: tokensSupported ? nextReasoningTokens : undefined,
@@ -1406,6 +1479,51 @@ function ProviderPanel({
       sanitizeReasoningTokens,
       computeGuidance,
     ]
+  );
+
+  const customConfigSignature = useMemo(
+    () => JSON.stringify(currentCustomConfig),
+    [currentCustomConfig]
+  );
+  const lastCustomConfigSignatureRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!currentGuidance.isCustomModel) {
+      lastCustomConfigSignatureRef.current = customConfigSignature;
+      return;
+    }
+    if (lastCustomConfigSignatureRef.current === customConfigSignature) {
+      return;
+    }
+    lastCustomConfigSignatureRef.current = customConfigSignature;
+    applyProviderDefaults(currentProvider, state.provider.model);
+  }, [
+    applyProviderDefaults,
+    currentGuidance.isCustomModel,
+    currentProvider,
+    customConfigSignature,
+    state.provider.model,
+  ]);
+
+  const handleCustomConfigChange = useCallback(
+    (next: CustomModelConfig) => {
+      setCustomModelConfigs((prev) => ({
+        ...prev,
+        [currentProvider]: next,
+      }));
+    },
+    [currentProvider]
+  );
+
+  const handleCustomModelIdChange = useCallback(
+    (nextId: string) => {
+      setCustomModelIds((prev) => ({
+        ...prev,
+        [currentProvider]: nextId,
+      }));
+      applyProviderDefaults(currentProvider, nextId);
+    },
+    [applyProviderDefaults, currentProvider]
   );
 
   const handleReasoningToggle = useCallback(
@@ -1513,16 +1631,6 @@ function ProviderPanel({
     }
   };
 
-  const keyStatusEntries = PROVIDER_SORT_ORDER.map((key) => ({
-    key,
-    label: state.providerLabels[key] ?? key,
-    status: state.providerKeyStatuses[key],
-  })).filter((item) => Boolean(item.status)) as Array<{
-    key: string;
-    label: string;
-    status: { hasKey: boolean; verified: boolean };
-  }>;
-
   const isSetup = variant === "setup";
   const heading = "Provider & model";
   const subtitle = isSetup
@@ -1558,35 +1666,6 @@ function ProviderPanel({
         </p>
       )}
 
-      {variant === "admin" && keyStatusEntries.length > 0 && (
-        <div className="provider-status-grid" role="list">
-          {keyStatusEntries.map(({ key, label, status: keyStatus }) => {
-            const variantClass = keyStatus.verified
-              ? "provider-status-chip--verified"
-              : keyStatus.hasKey
-              ? "provider-status-chip--pending"
-              : "provider-status-chip--idle";
-            const descriptor = keyStatus.verified
-              ? "Verified"
-              : keyStatus.hasKey
-              ? "Key stored"
-              : "No key";
-            return (
-              <span
-                key={key}
-                role="listitem"
-                className={`provider-status-chip ${variantClass}`}
-              >
-                <span className="provider-status-chip__label">{label}</span>
-                <span className="provider-status-chip__state">
-                  {descriptor}
-                </span>
-              </span>
-            );
-          })}
-        </div>
-      )}
-
       <form className="admin-form" onSubmit={handleSubmit}>
         <ModelSelector
           provider={provider.provider}
@@ -1612,13 +1691,7 @@ function ProviderPanel({
             applyProviderDefaults(nextProvider as ProviderKey, nextModel);
           }}
           onModelChange={(nextModel) => {
-            onState({
-              ...state,
-              provider: {
-                ...state.provider,
-                model: nextModel,
-              },
-            });
+            applyProviderDefaults(currentProvider, nextModel);
           }}
         />
 

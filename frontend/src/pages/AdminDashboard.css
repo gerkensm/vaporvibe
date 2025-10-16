@@ -964,44 +964,6 @@
   text-align: left;
 }
 
-.provider-status-grid {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.provider-status-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.4);
-  background: rgba(248, 250, 252, 0.9);
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  color: #475569;
-}
-
-.provider-status-chip--verified {
-  background: rgba(15, 118, 110, 0.12);
-  border-color: rgba(15, 118, 110, 0.26);
-  color: #0f766e;
-}
-
-.provider-status-chip--pending {
-  background: rgba(59, 130, 246, 0.14);
-  border-color: rgba(59, 130, 246, 0.28);
-  color: #1d4ed8;
-}
-
-.provider-status-chip--idle {
-  background: rgba(226, 232, 240, 0.6);
-  border-color: rgba(148, 163, 184, 0.35);
-}
-
 .admin-callout {
   margin: 0;
   padding: 14px 16px;
