@@ -1,0 +1,126 @@
+.attachment-uploader {
+  display: grid;
+  gap: 10px;
+}
+
+.attachment-uploader__dropzone {
+  border: 2px dashed rgba(15, 23, 42, 0.18);
+  border-radius: 16px;
+  padding: 20px;
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  background: rgba(255, 255, 255, 0.7);
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+  outline: none;
+}
+
+.attachment-uploader__dropzone:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+.attachment-uploader[data-attachment-active="true"] .attachment-uploader__dropzone {
+  border-color: var(--accent);
+  background: rgba(29, 78, 216, 0.05);
+  box-shadow: 0 16px 32px rgba(29, 78, 216, 0.15);
+}
+
+.attachment-uploader[data-attachment-error="true"] .attachment-uploader__dropzone {
+  border-color: var(--error);
+  background: rgba(185, 28, 28, 0.08);
+}
+
+.attachment-uploader__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 1.2rem;
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--accent);
+}
+
+.attachment-uploader__title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin: 0;
+  color: var(--text);
+}
+
+.attachment-uploader__hint {
+  margin: 0;
+  color: var(--subtle);
+  font-size: 0.85rem;
+}
+
+.attachment-uploader__actions {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.attachment-uploader__browse {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.attachment-uploader__browse:hover,
+.attachment-uploader__browse:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 20px rgba(29, 78, 216, 0.24);
+  outline: none;
+}
+
+.attachment-uploader__status {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.attachment-uploader__status[data-tone="ready"] {
+  color: var(--success);
+}
+
+.attachment-uploader__status[data-tone="error"] {
+  color: var(--error);
+}
+
+.attachment-uploader__clear {
+  justify-self: start;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.attachment-uploader__clear:hover,
+.attachment-uploader__clear:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+:root {
+  --accent: #1d4ed8;
+  --ring: rgba(37, 99, 235, 0.28);
+  --error: #b91c1c;
+  --success: #15803d;
+  --text: #0f172a;
+  --muted: #475569;
+  --subtle: #64748b;
+}

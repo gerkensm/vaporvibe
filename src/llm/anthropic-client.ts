@@ -39,7 +39,7 @@ type AnthropicStreamEvent = {
 };
 
 type AnthropicStream = AsyncIterable<AnthropicStreamEvent> & {
-  finalMessage(): Promise<{ content?: AnthropicContentBlock[] } | null>;
+  finalMessage(): Promise<{ content?: AnthropicContentBlock[]; usage?: unknown } | null>;
   close?(): Promise<void>;
 };
 
@@ -151,7 +151,7 @@ export class AnthropicClient implements LlmClient {
     }
 
     const stream = await this.retryOnOverload(
-      async () => this.client.messages.stream(streamRequest) as unknown as AnthropicStream,
+      async () => this.client.messages.stream(streamRequest) as unknown as AnthropicStream
     );
 
     let accumulated = "";
@@ -168,31 +168,15 @@ export class AnthropicClient implements LlmClient {
       accumulated = this.combineContent(finalMessage?.content).trim();
     }
 
-    const reasoning = this.logAndCollectThinking(finalMessage, thinkingBudget, streamedThinking);
+    const usage = extractUsage(finalMessage);
+    const reasoning = this.logAndCollectThinking(
+      finalMessage,
+      thinkingBudget,
+      streamedThinking,
+      usage?.reasoningTokens
+    );
 
-    return { html: accumulated.trim(), usage: extractUsage(finalMessage), reasoning, raw: finalMessage };
-  }
-
-  private extractStreamDelta(event: AnthropicStreamEvent): string {
-    if (!event) {
-      return "";
-    }
-    const delta = event.delta ?? event.content_block_delta?.delta;
-    if (delta?.type === "text_delta" && typeof delta.text === "string") {
-      return delta.text;
-    }
-    return "";
-  }
-
-  private extractThinkingDelta(event: AnthropicStreamEvent): string {
-    if (!event) {
-      return "";
-    }
-    const delta = event.delta ?? event.content_block_delta?.delta;
-    if (delta?.type === "thinking_delta" && typeof delta.thinking === "string") {
-      return delta.thinking;
-    }
-    return "";
+    return { html: accumulated.trim(), usage, reasoning, raw: finalMessage };
   }
 
   private combineContent(blocks: AnthropicContentBlock[] | undefined): string {
@@ -218,11 +202,16 @@ export class AnthropicClient implements LlmClient {
     finalMessage: { content?: AnthropicContentBlock[] } | null,
     budgetTokens: number,
     streamedThinking: string,
+    tokensUsed?: number
   ): LlmReasoningTrace | undefined {
     const trimmedStream = streamedThinking.trim();
-    const summaries = trimmedStream.length > 0
+    let summaries = trimmedStream.length > 0
       ? [trimmedStream]
       : this.collectThinking(finalMessage?.content);
+
+    if ((!summaries || summaries.length === 0) && typeof tokensUsed === "number" && tokensUsed > 0) {
+      summaries = [`Anthropic generated ${tokensUsed} reasoning tokens (trace not returned by provider).`];
+    }
 
     if (!summaries || summaries.length === 0) {
       return undefined;
@@ -264,6 +253,28 @@ export class AnthropicClient implements LlmClient {
       }
     }
     throw new Error("Anthropic overload retry loop exhausted unexpectedly.");
+  }
+
+  private extractStreamDelta(event: AnthropicStreamEvent): string {
+    if (!event) {
+      return "";
+    }
+    const delta = event.delta ?? event.content_block_delta?.delta;
+    if (delta?.type === "text_delta" && typeof delta.text === "string") {
+      return delta.text;
+    }
+    return "";
+  }
+
+  private extractThinkingDelta(event: AnthropicStreamEvent): string {
+    if (!event) {
+      return "";
+    }
+    const delta = event.delta ?? event.content_block_delta?.delta;
+    if (delta?.type === "thinking_delta" && typeof delta.thinking === "string") {
+      return delta.thinking;
+    }
+    return "";
   }
 }
 

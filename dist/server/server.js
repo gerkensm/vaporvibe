@@ -1,24 +1,190 @@
 import http from "node:http";
 import { Buffer } from "node:buffer";
-import { URL } from "node:url";
 import { randomUUID } from "node:crypto";
-import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD, INSTRUCTIONS_PANEL_ROUTE, SETUP_ROUTE, SETUP_VERIFY_ROUTE, DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL, DEFAULT_GROQ_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, DEFAULT_REASONING_TOKENS, LLM_RESULT_ROUTE_PREFIX, } from "../constants.js";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { dirname, extname, resolve as resolvePath } from "node:path";
+import { URL, fileURLToPath } from "node:url";
+import { ADMIN_ROUTE_PREFIX, AUTO_IGNORED_PATHS, BRIEF_FORM_ROUTE, INSTRUCTIONS_FIELD, SETUP_ROUTE, SETUP_VERIFY_ROUTE, DEFAULT_OPENAI_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_ANTHROPIC_MODEL, DEFAULT_GROK_MODEL, DEFAULT_GROQ_MODEL, DEFAULT_MAX_OUTPUT_TOKENS, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS, LLM_RESULT_ROUTE_PREFIX, } from "../constants.js";
 import { DEFAULT_MAX_TOKENS_BY_PROVIDER, PROVIDER_REASONING_CAPABILITIES, } from "../constants/providers.js";
 import { buildMessages } from "../llm/messages.js";
 import { supportsImageInput } from "../llm/capabilities.js";
 import { parseCookies } from "../utils/cookies.js";
 import { readBody } from "../utils/body.js";
 import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
-import { renderSetupWizardPage } from "../pages/setup-wizard.js";
-import { renderLoadingShell, renderResultHydrationScript, renderLoaderErrorScript, } from "../pages/loading-shell.js";
 import { getNavigationInterceptorScript } from "../utils/navigation-interceptor.js";
 import { getInstructionsPanelScript } from "../utils/instructions-panel.js";
+import { renderLoadingShell, renderResultHydrationScript, renderLoaderErrorScript, } from "../views/loading-shell.js";
 import { logger } from "../logger.js";
 import { AdminController } from "./admin-controller.js";
-import { verifyProviderApiKey } from "../llm/verification.js";
-import { createLlmClient } from "../llm/factory.js";
-import { getCredentialStore } from "../utils/credential-store.js";
-import { processBriefAttachmentFiles } from "./brief-attachments.js";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const FRONTEND_DIST_DIR = resolvePath(__dirname, "../../frontend/dist");
+const FRONTEND_ASSETS_DIR = resolvePath(FRONTEND_DIST_DIR, "assets");
+const SPA_INDEX_PATH = resolvePath(FRONTEND_DIST_DIR, "index.html");
+const frontendAssetCache = new Map();
+let spaShellCache = null;
+function getAssetContentType(filePath) {
+    const extension = extname(filePath).toLowerCase();
+    switch (extension) {
+        case ".js":
+            return "application/javascript; charset=utf-8";
+        case ".css":
+            return "text/css; charset=utf-8";
+        case ".map":
+            return "application/json; charset=utf-8";
+        case ".svg":
+            return "image/svg+xml";
+        case ".json":
+            return "application/json; charset=utf-8";
+        case ".txt":
+            return "text/plain; charset=utf-8";
+        default:
+            return "application/octet-stream";
+    }
+}
+function maybeServeFrontendAsset(context, res, reqLogger) {
+    if (!context.path.startsWith("/__serve-llm/assets/") &&
+        !context.path.startsWith("/assets/")) {
+        return false;
+    }
+    if (context.method !== "GET" && context.method !== "HEAD") {
+        res.statusCode = 405;
+        res.setHeader("Allow", "GET, HEAD");
+        res.end("Method Not Allowed");
+        return true;
+    }
+    const assetPrefix = context.path.startsWith("/__serve-llm/assets/")
+        ? "/__serve-llm/assets/"
+        : "/assets/";
+    const requestedPath = context.path.slice(assetPrefix.length);
+    const segments = requestedPath
+        .split(/[\\/]+/)
+        .filter((segment) => segment && segment !== ".");
+    if (!segments.length || segments.some((segment) => segment === "..")) {
+        res.statusCode = 400;
+        res.end("Bad Request");
+        return true;
+    }
+    const normalized = segments.join("/");
+    const filePath = resolvePath(FRONTEND_ASSETS_DIR, normalized);
+    if (!filePath.startsWith(FRONTEND_ASSETS_DIR)) {
+        res.statusCode = 403;
+        res.end("Forbidden");
+        return true;
+    }
+    if (!existsSync(filePath)) {
+        res.statusCode = 404;
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        res.end("Not Found");
+        return true;
+    }
+    try {
+        const stats = statSync(filePath);
+        const lastModified = stats.mtime.toUTCString();
+        const ifModifiedSince = context.req.headers["if-modified-since"];
+        if (ifModifiedSince && new Date(ifModifiedSince).getTime() >= stats.mtimeMs) {
+            res.statusCode = 304;
+            res.setHeader("Last-Modified", lastModified);
+            res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+            res.end();
+            return true;
+        }
+        let cached = frontendAssetCache.get(filePath);
+        if (!cached || cached.mtimeMs !== stats.mtimeMs) {
+            const content = readFileSync(filePath);
+            cached = {
+                content,
+                contentType: getAssetContentType(filePath),
+                mtimeMs: stats.mtimeMs,
+            };
+            frontendAssetCache.set(filePath, cached);
+        }
+        res.statusCode = 200;
+        res.setHeader("Content-Type", cached.contentType);
+        res.setHeader("Last-Modified", lastModified);
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        res.setHeader("Content-Length", String(cached.content.length));
+        if (context.method === "HEAD") {
+            res.end();
+        }
+        else {
+            res.end(cached.content);
+        }
+        reqLogger.debug(`Served frontend asset ${context.path}`);
+        return true;
+    }
+    catch (error) {
+        reqLogger.error({ err: error }, "Failed to serve frontend asset");
+        res.statusCode = 500;
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        res.end("Internal Server Error");
+        return true;
+    }
+}
+function loadSpaShell() {
+    if (!existsSync(SPA_INDEX_PATH)) {
+        throw new Error("SPA_INDEX_MISSING");
+    }
+    const stats = statSync(SPA_INDEX_PATH);
+    if (!spaShellCache || spaShellCache.mtimeMs !== stats.mtimeMs) {
+        const html = readFileSync(SPA_INDEX_PATH, "utf8");
+        spaShellCache = { html, mtimeMs: stats.mtimeMs };
+    }
+    return spaShellCache.html;
+}
+async function serveSpaShell(context, reqLogger) {
+    const { method, res, path } = context;
+    if (method === "POST") {
+        res.statusCode = 303;
+        res.setHeader("Location", ADMIN_ROUTE_PREFIX);
+        res.end();
+        reqLogger.debug({ path }, "Redirected legacy POST to admin route");
+        return;
+    }
+    if (method !== "GET" && method !== "HEAD") {
+        res.statusCode = 405;
+        res.setHeader("Allow", "GET, HEAD, POST");
+        res.end("Method Not Allowed");
+        return;
+    }
+    try {
+        const html = loadSpaShell();
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.setHeader("Cache-Control", "no-store");
+        if (method === "HEAD") {
+            res.end();
+        }
+        else {
+            res.end(html);
+        }
+        reqLogger.debug({ path }, "Served admin SPA shell");
+    }
+    catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message === "SPA_INDEX_MISSING") {
+            const devUrl = process.env.SERVE_LLM_DEV_SERVER_URL?.replace(/\/$/, "") ||
+                "http://localhost:5173";
+            const fallbackHtml = `<!doctype html>\n<html lang="en">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>serve-llm Admin (dev)</title>\n    <style>body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;margin:0;background:#f8fafc;color:#0f172a;}\n    .fallback{max-width:720px;margin:10vh auto;padding:32px;border-radius:24px;background:#fff;box-shadow:0 20px 50px rgba(15,23,42,0.08);}\n    h1{margin-top:0;font-size:1.6rem;}\n    p{line-height:1.5;}\n    code{background:#e2e8f0;padding:2px 6px;border-radius:6px;}\n    a{color:#2563eb;}\n    </style>\n  </head>\n  <body>\n    <div class=\"fallback\">\n      <h1>serve-llm Admin (dev)</h1>\n      <p>The compiled admin UI is not available. The Vite dev server is expected at <strong>${devUrl}</strong>.</p>\n      <p>If you are developing the frontend, open <a href=\"${devUrl}\" target=\"_blank\">${devUrl}</a> in a new tab.</p>\n      <p>To build the production assets instead, run <code>npm run build:fe</code>.</p>\n    </div>\n    <script type=\"module\" src=\"${devUrl}/src/main.tsx\"></script>\n  </body>\n</html>`;
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "text/html; charset=utf-8");
+            res.setHeader("Cache-Control", "no-store");
+            if (method === "HEAD") {
+                res.end();
+            }
+            else {
+                res.end(fallbackHtml);
+            }
+            reqLogger.warn({ path, devUrl }, "SPA assets missing; served dev fallback");
+        }
+        else {
+            reqLogger.error({ err: error }, "Failed to load admin SPA shell");
+            res.statusCode = 500;
+            res.setHeader("Content-Type", "text/plain; charset=utf-8");
+            res.end("Admin UI assets missing. Run `npm run build:fe` before starting the server.");
+        }
+    }
+}
 const PENDING_HTML_TTL_MS = 3 * 60 * 1000;
 export function createServer(options) {
     const { runtime, provider, providerLocked, providerSelectionRequired, providersWithKeys, llmClient, sessionStore, } = options;
@@ -60,40 +226,36 @@ export function createServer(options) {
             res.end("Not Found");
             return;
         }
+        if (maybeServeFrontendAsset(context, res, reqLogger)) {
+            return;
+        }
+        if (context.path.startsWith(SETUP_ROUTE) ||
+            context.path === SETUP_VERIFY_ROUTE ||
+            context.path === BRIEF_FORM_ROUTE) {
+            await serveSpaShell(context, reqLogger);
+            return;
+        }
         try {
-            // Serve the interceptor client as a static asset to avoid inline parsing issues
-            if (context.path === "/__serve-llm/interceptor.js") {
-                res.statusCode = 200;
-                res.setHeader("Content-Type", "application/javascript; charset=utf-8");
-                res.end(getNavigationInterceptorScript());
-                reqLogger.info(`Served interceptor client in ${Date.now() - requestStart} ms`);
-                return;
-            }
-            if (context.path === INSTRUCTIONS_PANEL_ROUTE) {
-                res.statusCode = 200;
-                res.setHeader("Content-Type", "application/javascript; charset=utf-8");
-                res.end(getInstructionsPanelScript());
-                reqLogger.info(`Served instructions panel client in ${Date.now() - requestStart} ms`);
-                return;
-            }
             if (handlePendingHtmlRequest(context, state, reqLogger)) {
                 reqLogger.info(`Pending render delivered with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
                 return;
             }
+            const handledByAdmin = await adminController.handle(context, requestStart, reqLogger);
+            if (handledByAdmin) {
+                reqLogger.info(`Admin handler completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
+                return;
+            }
             if (!state.providerReady ||
                 state.providerSelectionRequired ||
-                !state.brief ||
-                isSetupRequest(context.path)) {
-                await handleSetupFlow(context, state, reqLogger);
-                reqLogger.info(`Setup flow completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
+                !state.brief) {
+                await serveSpaShell(context, reqLogger);
+                reqLogger.info(`SPA shell served with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
                 return;
             }
             if (context.path.startsWith(ADMIN_ROUTE_PREFIX)) {
-                const handled = await adminController.handle(context, requestStart, reqLogger);
-                if (handled) {
-                    reqLogger.info(`Admin route completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
-                    return;
-                }
+                await serveSpaShell(context, reqLogger);
+                reqLogger.info(`SPA shell served with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
+                return;
             }
             await handleLlmRequest(context, state, sessionStore, reqLogger, requestStart);
             reqLogger.info(`Completed with status ${res.statusCode} in ${Date.now() - requestStart} ms`);
@@ -136,531 +298,6 @@ function shouldEarly404(context) {
     if (path.endsWith(".webmanifest"))
         return true;
     return false;
-}
-function isSetupRequest(path) {
-    if (path.startsWith(SETUP_ROUTE)) {
-        return true;
-    }
-    if (path === SETUP_VERIFY_ROUTE) {
-        return true;
-    }
-    if (path === BRIEF_FORM_ROUTE) {
-        return true;
-    }
-    return false;
-}
-async function handleSetupFlow(context, state, reqLogger) {
-    const { method, path, req, res, url } = context;
-    let providerLabel = getProviderLabel(state.provider.provider);
-    let providerName = providerLabel;
-    const verifyAction = SETUP_VERIFY_ROUTE;
-    const briefAction = BRIEF_FORM_ROUTE;
-    const canSelectProvider = !state.providerLocked;
-    let selectedProvider = state.provider.provider;
-    if (method === "POST" && path === SETUP_VERIFY_ROUTE) {
-        const body = await readBody(req);
-        const apiKeyInput = typeof body.data.apiKey === "string" ? body.data.apiKey.trim() : "";
-        let submittedModel = typeof body.data.model === "string" ? body.data.model.trim() : "";
-        if (canSelectProvider) {
-            const submittedProvider = parseProviderValue(body.data.provider);
-            if (!submittedProvider) {
-                const html = renderSetupWizardPage({
-                    step: "provider",
-                    providerLabel,
-                    providerName,
-                    verifyAction,
-                    briefAction,
-                    setupPath: SETUP_ROUTE,
-                    adminPath: ADMIN_ROUTE_PREFIX,
-                    providerReady: state.providerReady,
-                    canSelectProvider,
-                    selectedProvider,
-                    selectedModel: submittedModel || state.provider.model || "",
-                    providerSelectionRequired: state.providerSelectionRequired,
-                    providerKeyStatuses: buildProviderKeyStatuses(state),
-                    maxOutputTokens: state.provider.maxOutputTokens,
-                    reasoningMode: state.provider.reasoningMode ?? "none",
-                    reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
-                    reasoningTokens: getEffectiveReasoningTokens(state.provider),
-                    errorMessage: "Choose a provider before adding an API key.",
-                });
-                res.statusCode = 400;
-                res.setHeader("Content-Type", "text/html; charset=utf-8");
-                res.end(html);
-                return;
-            }
-            if (submittedProvider !== state.provider.provider) {
-                await updateProviderSelection(state, submittedProvider, reqLogger);
-                providerLabel = getProviderLabel(state.provider.provider);
-                providerName = providerLabel;
-                selectedProvider = state.provider.provider;
-            }
-            else {
-                selectedProvider = submittedProvider;
-            }
-        }
-        if (!submittedModel) {
-            submittedModel = state.provider.model || "";
-        }
-        let submittedMaxTokens;
-        try {
-            submittedMaxTokens = parsePositiveInt(body.data.maxOutputTokens, state.provider.maxOutputTokens);
-        }
-        catch (error) {
-            const message = error instanceof Error
-                ? error.message
-                : "Max output tokens must be a positive integer.";
-            const html = renderSetupWizardPage({
-                step: "provider",
-                providerLabel,
-                providerName,
-                verifyAction,
-                briefAction,
-                setupPath: SETUP_ROUTE,
-                adminPath: ADMIN_ROUTE_PREFIX,
-                providerReady: state.providerReady,
-                canSelectProvider,
-                selectedProvider,
-                selectedModel: submittedModel,
-                providerSelectionRequired: state.providerSelectionRequired,
-                providerKeyStatuses: buildProviderKeyStatuses(state),
-                maxOutputTokens: state.provider.maxOutputTokens,
-                reasoningMode: state.provider.reasoningMode ?? "none",
-                reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
-                reasoningTokens: getEffectiveReasoningTokens(state.provider),
-                errorMessage: message,
-            });
-            res.statusCode = 400;
-            res.setHeader("Content-Type", "text/html; charset=utf-8");
-            res.end(html);
-            return;
-        }
-        const supportsMode = providerSupportsReasoningMode(state.provider.provider);
-        const supportsTokens = providerSupportsReasoningTokens(state.provider.provider);
-        let submittedReasoningMode = supportsMode
-            ? sanitizeReasoningModeValue(body.data.reasoningMode, state.provider.reasoningMode ?? "none")
-            : "none";
-        const toggleRaw = typeof body.data.reasoningTokensEnabled === "string"
-            ? body.data.reasoningTokensEnabled.trim().toLowerCase()
-            : "";
-        const reasoningTokensEnabled = supportsTokens && !["", "off", "false", "0"].includes(toggleRaw);
-        let submittedReasoningTokens;
-        if (supportsTokens && reasoningTokensEnabled) {
-            try {
-                submittedReasoningTokens = parseReasoningTokensInput(body.data.reasoningTokens, state.provider.provider);
-            }
-            catch (error) {
-                const message = error instanceof Error
-                    ? error.message
-                    : "Reasoning tokens must be valid for the selected provider.";
-                const html = renderSetupWizardPage({
-                    step: "provider",
-                    providerLabel,
-                    providerName,
-                    verifyAction,
-                    briefAction,
-                    setupPath: SETUP_ROUTE,
-                    adminPath: ADMIN_ROUTE_PREFIX,
-                    providerReady: state.providerReady,
-                    canSelectProvider,
-                    selectedProvider,
-                    selectedModel: submittedModel,
-                    providerSelectionRequired: state.providerSelectionRequired,
-                    providerKeyStatuses: buildProviderKeyStatuses(state),
-                    maxOutputTokens: state.provider.maxOutputTokens,
-                    reasoningMode: state.provider.reasoningMode ?? "none",
-                    reasoningTokensEnabled,
-                    reasoningTokens: getEffectiveReasoningTokens(state.provider),
-                    errorMessage: message,
-                });
-                res.statusCode = 400;
-                res.setHeader("Content-Type", "text/html; charset=utf-8");
-                res.end(html);
-                return;
-            }
-        }
-        let adjustedReasoningTokens = supportsTokens && reasoningTokensEnabled
-            ? submittedReasoningTokens
-            : undefined;
-        if (state.provider.provider === "anthropic") {
-            if (typeof adjustedReasoningTokens === "number") {
-                adjustedReasoningTokens = Math.min(adjustedReasoningTokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS);
-            }
-            else {
-                adjustedReasoningTokens = DEFAULT_REASONING_TOKENS.anthropic;
-            }
-        }
-        else if (state.provider.provider === "gemini") {
-            if (typeof adjustedReasoningTokens !== "number") {
-                adjustedReasoningTokens = DEFAULT_REASONING_TOKENS.gemini;
-            }
-        }
-        state.provider.maxOutputTokens = submittedMaxTokens;
-        state.provider.reasoningMode = submittedReasoningMode;
-        state.provider.reasoningTokens = adjustedReasoningTokens;
-        state.provider.reasoningTokensEnabled = supportsTokens
-            ? reasoningTokensEnabled
-            : undefined;
-        state.provider.model = submittedModel;
-        // Try to get stored credential if no input provided
-        const existingKey = state.provider.apiKey?.trim() ?? "";
-        let finalApiKey = apiKeyInput || existingKey;
-        const isUIEntry = Boolean(apiKeyInput); // Track if this came from UI input
-        // If no key yet, try to load from secure storage
-        if (!finalApiKey) {
-            const stored = await getCredentialStore().getApiKey(state.provider.provider);
-            if (stored) {
-                finalApiKey = stored;
-            }
-        }
-        if (!finalApiKey) {
-            const html = renderSetupWizardPage({
-                step: "provider",
-                providerLabel,
-                providerName,
-                verifyAction,
-                briefAction,
-                setupPath: SETUP_ROUTE,
-                adminPath: ADMIN_ROUTE_PREFIX,
-                providerReady: state.providerReady,
-                canSelectProvider,
-                selectedProvider,
-                selectedModel: state.provider.model || "",
-                providerSelectionRequired: state.providerSelectionRequired,
-                providerKeyStatuses: buildProviderKeyStatuses(state),
-                maxOutputTokens: state.provider.maxOutputTokens,
-                reasoningMode: state.provider.reasoningMode ?? "none",
-                reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
-                reasoningTokens: getEffectiveReasoningTokens(state.provider),
-                errorMessage: "Add an API key or leave the field blank to reuse the stored key.",
-            });
-            res.statusCode = 400;
-            res.setHeader("Content-Type", "text/html; charset=utf-8");
-            res.end(html);
-            return;
-        }
-        const reusingStoredKey = !apiKeyInput && state.providerReady && existingKey === finalApiKey;
-        let verificationOk = false;
-        let verificationMessage;
-        if (reusingStoredKey) {
-            verificationOk = true;
-            reqLogger.debug({ provider: state.provider.provider }, "Reusing previously verified API key");
-        }
-        else {
-            reqLogger.debug({ provider: state.provider.provider }, "Setup wizard verifying API key");
-            const verification = await verifyProviderApiKey(state.provider.provider, finalApiKey);
-            verificationOk = verification.ok;
-            verificationMessage = verification.message;
-        }
-        if (verificationOk) {
-            try {
-                state.provider.apiKey = finalApiKey;
-                applyProviderEnv(state.provider);
-                // Store UI-entered credentials securely
-                // Always save when user enters via UI, even if env vars exist (allows override)
-                if (isUIEntry && finalApiKey) {
-                    reqLogger.debug({ provider: state.provider.provider }, "Saving UI-entered API key to credential store");
-                    await getCredentialStore()
-                        .saveApiKey(state.provider.provider, finalApiKey)
-                        .catch((err) => {
-                        reqLogger.error({ err }, "Failed to save credential - will use memory storage");
-                    });
-                }
-                if (!state.llmClient ||
-                    !reusingStoredKey ||
-                    state.llmClient.settings.provider !== state.provider.provider) {
-                    state.llmClient = createLlmClient(state.provider);
-                }
-                state.providerReady = true;
-                state.providerSelectionRequired = false;
-                state.providersWithKeys.add(state.provider.provider);
-                state.verifiedProviders[state.provider.provider] = true;
-                reqLogger.info({ provider: state.provider.provider }, reusingStoredKey
-                    ? "Using stored API key"
-                    : "API key verified via setup wizard");
-                res.statusCode = 303;
-                const statusMessage = reusingStoredKey
-                    ? "Provider selected"
-                    : "API key verified";
-                const redirectTarget = state.brief
-                    ? `${ADMIN_ROUTE_PREFIX}?status=Setup%20complete`
-                    : `${SETUP_ROUTE}?step=brief&status=${encodeURIComponent(statusMessage)}`;
-                res.setHeader("Location", redirectTarget);
-                res.end();
-                return;
-            }
-            catch (error) {
-                reqLogger.error({ err: error }, "Failed to instantiate LLM client after verification");
-                state.providerReady = false;
-                state.llmClient = null;
-                state.verifiedProviders[state.provider.provider] = false;
-                const message = error instanceof Error ? error.message : String(error);
-                const html = renderSetupWizardPage({
-                    step: "provider",
-                    providerLabel,
-                    providerName,
-                    verifyAction,
-                    briefAction,
-                    setupPath: SETUP_ROUTE,
-                    adminPath: ADMIN_ROUTE_PREFIX,
-                    providerReady: false,
-                    canSelectProvider,
-                    selectedProvider,
-                    selectedModel: state.provider.model || "",
-                    providerSelectionRequired: state.providerSelectionRequired,
-                    providerKeyStatuses: buildProviderKeyStatuses(state),
-                    maxOutputTokens: state.provider.maxOutputTokens,
-                    reasoningMode: state.provider.reasoningMode ?? "none",
-                    reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
-                    reasoningTokens: getEffectiveReasoningTokens(state.provider),
-                    errorMessage: `Unable to configure provider: ${message}`,
-                });
-                res.statusCode = 500;
-                res.setHeader("Content-Type", "text/html; charset=utf-8");
-                res.end(html);
-                return;
-            }
-        }
-        reqLogger.warn({ provider: state.provider.provider }, `API key verification failed: ${verificationMessage ?? "unknown error"}`);
-        state.providerReady = false;
-        state.llmClient = null;
-        state.providerSelectionRequired = true;
-        state.verifiedProviders[state.provider.provider] = false;
-        const html = renderSetupWizardPage({
-            step: "provider",
-            providerLabel,
-            providerName,
-            verifyAction,
-            briefAction,
-            setupPath: SETUP_ROUTE,
-            adminPath: ADMIN_ROUTE_PREFIX,
-            providerReady: state.providerReady,
-            canSelectProvider,
-            selectedProvider,
-            selectedModel: state.provider.model || "",
-            providerSelectionRequired: state.providerSelectionRequired,
-            providerKeyStatuses: buildProviderKeyStatuses(state),
-            maxOutputTokens: state.provider.maxOutputTokens,
-            reasoningMode: state.provider.reasoningMode ?? "none",
-            reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
-            reasoningTokens: getEffectiveReasoningTokens(state.provider),
-            errorMessage: verificationMessage ??
-                "We could not verify that key. Please try again.",
-        });
-        res.statusCode = 400;
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(html);
-        return;
-    }
-    if (method === "POST" && path === BRIEF_FORM_ROUTE) {
-        const body = await readBody(req);
-        const briefValue = typeof body.data.brief === "string" ? body.data.brief.trim() : "";
-        reqLogger.debug(formatJsonForLog(body.data, "Brief submission"));
-        if (!state.providerReady || state.providerSelectionRequired) {
-            res.statusCode = 303;
-            res.setHeader("Location", `${SETUP_ROUTE}?step=provider`);
-            res.end();
-            return;
-        }
-        if (!briefValue) {
-            const html = renderSetupWizardPage({
-                step: "brief",
-                providerLabel,
-                providerName,
-                verifyAction,
-                briefAction,
-                setupPath: SETUP_ROUTE,
-                adminPath: ADMIN_ROUTE_PREFIX,
-                providerReady: state.providerReady,
-                canSelectProvider,
-                selectedProvider,
-                selectedModel: state.provider.model || "",
-                providerSelectionRequired: state.providerSelectionRequired,
-                providerKeyStatuses: buildProviderKeyStatuses(state),
-                maxOutputTokens: state.provider.maxOutputTokens,
-                reasoningMode: state.provider.reasoningMode ?? "none",
-                reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
-                reasoningTokens: getEffectiveReasoningTokens(state.provider),
-                errorMessage: "Add a short brief so we know where to begin.",
-                briefValue: "",
-            });
-            res.statusCode = 400;
-            res.setHeader("Content-Type", "text/html; charset=utf-8");
-            res.end(html);
-            reqLogger.warn({ status: res.statusCode }, "Rejected brief submission due to empty brief");
-            return;
-        }
-        state.brief = briefValue;
-        state.runtime.brief = briefValue;
-        const fileInputs = (body.files ?? []).filter((file) => file.fieldName === "briefAttachments" &&
-            typeof file.filename === "string" &&
-            file.filename.trim().length > 0 &&
-            file.size > 0);
-        const processed = processBriefAttachmentFiles(fileInputs);
-        for (const rejected of processed.rejected) {
-            reqLogger.warn({ file: rejected.filename, mimeType: rejected.mimeType }, "Rejected unsupported brief attachment during setup");
-        }
-        if (processed.accepted.length > 0) {
-            state.briefAttachments = [
-                ...(state.briefAttachments ?? []),
-                ...processed.accepted,
-            ];
-        }
-        reqLogger.info({
-            hasBrief: Boolean(state.brief),
-            attachments: state.briefAttachments.length,
-            addedAttachments: processed.accepted.length,
-        }, "Stored new application brief from prompt page");
-        const adminUrl = escapeHtml(ADMIN_ROUTE_PREFIX);
-        const appUrl = escapeHtml("/");
-        const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Redirecting…</title>
-  <style>
-    :root {
-      color-scheme: light;
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f6f8fb;
-      color: #0f172a;
-    }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 48px 24px;
-    }
-    main {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 18px;
-      padding: 32px;
-      max-width: 420px;
-      box-shadow: 0 24px 48px rgba(15, 23, 42, 0.12);
-      text-align: center;
-    }
-    h1 {
-      margin: 0 0 16px;
-      font-size: 1.4rem;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-    }
-    p {
-      margin: 12px 0 0;
-      line-height: 1.6;
-      color: #475569;
-    }
-    .actions {
-      margin-top: 24px;
-      display: grid;
-      gap: 12px;
-    }
-    a {
-      color: #1d4ed8;
-      text-decoration: none;
-    }
-    a:hover {
-      text-decoration: underline;
-    }
-    .primary {
-      display: inline-block;
-      padding: 10px 18px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #1d4ed8, #1e3a8a);
-      color: #f8fafc;
-      font-weight: 600;
-      box-shadow: 0 16px 28px rgba(29, 78, 216, 0.18);
-    }
-    .secondary {
-      display: inline-block;
-      padding: 10px 18px;
-      border-radius: 12px;
-      border: 1px solid #e2e8f0;
-      background: #f8fafc;
-      color: #1d4ed8;
-      font-weight: 600;
-      box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
-    }
-    .secondary:hover {
-      background: #eff6ff;
-    }
-  </style>
-</head>
-<body>
-  <main>
-    <h1>Studio is ready</h1>
-    <p>Your brief is live. Open the live canvas to see it in action, or head to the admin console to tune the experience.</p>
-    <p>The canvas opens in a new tab so you can keep this page handy for controls.</p>
-    <div class="actions">
-      <a class="primary" href="${appUrl}" target="_blank" rel="noopener">Open the live canvas</a>
-      <a class="secondary" href="${adminUrl}">Go to admin console</a>
-    </div>
-    <p>You can return to the console at any time via <a href="${adminUrl}">${adminUrl}</a>. Consider bookmarking it for later tweaks.</p>
-  </main>
-</body>
-</html>`;
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(html);
-        return;
-    }
-    if (state.providerReady &&
-        !state.providerSelectionRequired &&
-        state.brief &&
-        path.startsWith(SETUP_ROUTE)) {
-        res.statusCode = 303;
-        res.setHeader("Location", ADMIN_ROUTE_PREFIX);
-        res.end();
-        return;
-    }
-    const requestedStep = url.searchParams.get("step");
-    let step;
-    if (!state.providerReady || state.providerSelectionRequired) {
-        step = "provider";
-    }
-    else if (!state.brief) {
-        step = requestedStep === "provider" ? "provider" : "brief";
-    }
-    else {
-        step = requestedStep === "provider" ? "provider" : "brief";
-    }
-    if (state.providerReady &&
-        !state.providerSelectionRequired &&
-        state.brief &&
-        !requestedStep &&
-        path === SETUP_ROUTE) {
-        res.statusCode = 303;
-        res.setHeader("Location", ADMIN_ROUTE_PREFIX);
-        res.end();
-        return;
-    }
-    const html = renderSetupWizardPage({
-        step,
-        providerLabel,
-        providerName,
-        verifyAction,
-        briefAction,
-        setupPath: SETUP_ROUTE,
-        adminPath: ADMIN_ROUTE_PREFIX,
-        providerReady: state.providerReady,
-        canSelectProvider,
-        selectedProvider,
-        selectedModel: state.provider.model || "",
-        providerSelectionRequired: state.providerSelectionRequired,
-        providerKeyStatuses: buildProviderKeyStatuses(state),
-        maxOutputTokens: state.provider.maxOutputTokens,
-        reasoningMode: state.provider.reasoningMode ?? "none",
-        reasoningTokensEnabled: state.provider.reasoningTokensEnabled !== false,
-        reasoningTokens: getEffectiveReasoningTokens(state.provider),
-        statusMessage: url.searchParams.get("status") ?? undefined,
-    });
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.end(html);
-    reqLogger.debug({ step }, "Served setup wizard page");
 }
 function cleanupPendingHtml(state) {
     const now = Date.now();
@@ -777,15 +414,21 @@ async function handleLlmRequest(context, state, sessionStore, reqLogger, request
         const durationMs = Date.now() - requestStart;
         reqLogger.debug(`LLM response preview [${llmClient.settings.provider}]:\n${truncate(result.html, 500)}`);
         const rawHtml = ensureHtmlDocument(result.html, { method, path });
-        // Inject navigation interceptor script before </body> to enable smooth client-side navigation
-        let safeHtml = rawHtml.replace(/(<\/body\s*>)/i, `<script id="serve-llm-interceptor-script" src="/__serve-llm/interceptor.js"></script>$1`);
+        let safeHtml = rawHtml;
+        const interceptorScriptTag = getNavigationInterceptorScript();
+        if (/<\/body\s*>/i.test(safeHtml)) {
+            safeHtml = safeHtml.replace(/(<\/body\s*>)/i, `${interceptorScriptTag}$1`);
+        }
+        else {
+            safeHtml = `${safeHtml}${interceptorScriptTag}`;
+        }
         if (state.runtime.includeInstructionPanel) {
-            const instructionsScriptTag = `<script id="serve-llm-instructions-panel-script" src="${INSTRUCTIONS_PANEL_ROUTE}"></script>`;
+            const instructionsScripts = getInstructionsPanelScript();
             if (/<\/body\s*>/i.test(safeHtml)) {
-                safeHtml = safeHtml.replace(/(<\/body\s*>)/i, `${instructionsScriptTag}$1`);
+                safeHtml = safeHtml.replace(/(<\/body\s*>)/i, `${instructionsScripts}$1`);
             }
             else {
-                safeHtml = `${safeHtml}${instructionsScriptTag}`;
+                safeHtml = `${safeHtml}${instructionsScripts}`;
             }
         }
         sessionStore.setPrevHtml(sid, safeHtml);
@@ -970,95 +613,21 @@ function providerSupportsReasoningMode(provider) {
 function providerSupportsReasoningTokens(provider) {
     return Boolean(PROVIDER_REASONING_CAPABILITIES[provider]?.tokens);
 }
-async function updateProviderSelection(state, provider, reqLogger) {
-    if (state.provider.provider === provider) {
-        return;
-    }
-    const previous = state.provider.provider;
-    state.verifiedProviders[previous] =
-        state.providerReady && Boolean(state.provider.apiKey?.trim());
-    let reasoningMode = "none";
-    let reasoningTokens;
-    if (provider === "openai") {
-        reasoningMode =
-            state.provider.provider === "openai"
-                ? state.provider.reasoningMode ?? "low"
-                : "low";
-    }
-    else if (provider === "anthropic") {
-        reasoningMode = "none";
-        if (state.provider.provider === "anthropic" &&
-            typeof state.provider.reasoningTokens === "number") {
-            reasoningTokens = Math.min(state.provider.reasoningTokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS);
-        }
-        else {
-            reasoningTokens = DEFAULT_REASONING_TOKENS.anthropic;
-        }
-    }
-    else if (provider === "gemini") {
-        if (state.provider.provider === "gemini" &&
-            typeof state.provider.reasoningTokens === "number") {
-            reasoningTokens = state.provider.reasoningTokens;
-        }
-        else {
-            reasoningTokens = DEFAULT_REASONING_TOKENS.gemini;
-        }
-    }
-    else if (provider === "grok") {
-        reasoningMode = "none";
-    }
-    else if (provider === "groq") {
-        reasoningMode = "none";
-    }
-    const envKey = getEnvApiKeyForProvider(provider)?.trim() ?? "";
-    // Try to get stored credential if no env key
-    let providerKey = envKey;
-    if (!providerKey) {
-        try {
-            const stored = await getCredentialStore().getApiKey(provider);
-            if (stored) {
-                providerKey = stored;
-            }
-        }
-        catch {
-            // Ignore credential retrieval errors
-        }
-    }
-    const verified = Boolean(state.verifiedProviders[provider]) && providerKey.length > 0;
-    state.provider = {
-        provider,
-        apiKey: providerKey,
-        model: getDefaultModelForProvider(provider),
-        maxOutputTokens: getDefaultMaxTokensForProvider(provider),
-        reasoningMode,
-        reasoningTokens,
-    };
-    if (providerKey) {
-        state.providersWithKeys.add(provider);
-    }
-    else {
-        state.providersWithKeys.delete(provider);
-    }
-    state.providerReady = verified;
-    state.verifiedProviders[provider] = verified;
-    state.providerSelectionRequired = true;
-    state.llmClient = null;
-    reqLogger.info({ from: previous, to: provider }, "Wizard switched provider selection");
-}
 function getDefaultModelForProvider(provider) {
-    if (provider === "openai") {
-        return DEFAULT_OPENAI_MODEL;
+    switch (provider) {
+        case "openai":
+            return DEFAULT_OPENAI_MODEL;
+        case "gemini":
+            return DEFAULT_GEMINI_MODEL;
+        case "anthropic":
+            return DEFAULT_ANTHROPIC_MODEL;
+        case "grok":
+            return DEFAULT_GROK_MODEL;
+        case "groq":
+            return DEFAULT_GROQ_MODEL;
+        default:
+            return DEFAULT_OPENAI_MODEL;
     }
-    if (provider === "gemini") {
-        return DEFAULT_GEMINI_MODEL;
-    }
-    if (provider === "grok") {
-        return DEFAULT_GROK_MODEL;
-    }
-    if (provider === "groq") {
-        return DEFAULT_GROQ_MODEL;
-    }
-    return DEFAULT_ANTHROPIC_MODEL;
 }
 function getDefaultMaxTokensForProvider(provider) {
     const mappedDefault = DEFAULT_MAX_TOKENS_BY_PROVIDER[provider];
@@ -1069,64 +638,6 @@ function getDefaultMaxTokensForProvider(provider) {
         return DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS;
     }
     return DEFAULT_MAX_OUTPUT_TOKENS;
-}
-function getEffectiveReasoningTokens(provider) {
-    const tokensEnabled = provider.reasoningTokensEnabled ?? true;
-    if (!tokensEnabled) {
-        return undefined;
-    }
-    const tokens = provider.reasoningTokens;
-    if (typeof tokens === "number") {
-        return tokens;
-    }
-    if (!tokensEnabled) {
-        return undefined;
-    }
-    return DEFAULT_REASONING_TOKENS[provider.provider];
-}
-function buildProviderKeyStatuses(state) {
-    const providers = [
-        "openai",
-        "gemini",
-        "anthropic",
-        "grok",
-        "groq",
-    ];
-    return providers.reduce((acc, provider) => {
-        const isCurrent = state.provider.provider === provider;
-        const hasKeyInState = isCurrent
-            ? Boolean(state.provider.apiKey?.trim())
-            : state.providersWithKeys.has(provider);
-        const hasKey = hasKeyInState;
-        const verifiedFlag = Boolean(state.verifiedProviders[provider]);
-        const verified = hasKey &&
-            (isCurrent ? state.providerReady && verifiedFlag : verifiedFlag);
-        acc[provider] = { hasKey, verified };
-        return acc;
-    }, {
-        openai: { hasKey: false, verified: false },
-        gemini: { hasKey: false, verified: false },
-        anthropic: { hasKey: false, verified: false },
-        grok: { hasKey: false, verified: false },
-        groq: { hasKey: false, verified: false },
-    });
-}
-function parseProviderValue(value) {
-    if (!value || typeof value !== "string") {
-        return undefined;
-    }
-    const normalized = value.trim().toLowerCase();
-    if (normalized === "openai")
-        return "openai";
-    if (normalized === "gemini")
-        return "gemini";
-    if (normalized === "anthropic")
-        return "anthropic";
-    if (normalized === "grok" || normalized === "xai" || normalized === "x.ai")
-        return "grok";
-    if (normalized === "groq")
-        return "groq";
-    return undefined;
 }
 function sanitizeReasoningModeValue(value, fallback) {
     if (typeof value === "string") {

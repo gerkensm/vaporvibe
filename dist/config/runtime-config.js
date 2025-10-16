@@ -100,12 +100,17 @@ async function resolveProviderSettings(provider, options, env) {
                 ? reasoning.tokens
                 : DEFAULT_REASONING_TOKENS.gemini;
         }
+        const reasoningMode = reasoning.modeExplicit
+            ? reasoning.mode
+            : reasoningTokensEnabled
+                ? "low"
+                : "none";
         return {
             provider,
             apiKey,
             model,
             maxOutputTokens,
-            reasoningMode: reasoning.mode,
+            reasoningMode,
             reasoningTokensEnabled,
             reasoningTokens,
         };
@@ -163,12 +168,17 @@ async function resolveProviderSettings(provider, options, env) {
             ? Math.min(reasoning.tokens, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
             : DEFAULT_REASONING_TOKENS.anthropic;
     }
+    const reasoningMode = reasoning.modeExplicit
+        ? reasoning.mode
+        : reasoningTokensEnabled
+            ? "low"
+            : "none";
     return {
         provider,
         apiKey,
         model,
         maxOutputTokens,
-        reasoningMode: "none",
+        reasoningMode,
         reasoningTokensEnabled,
         reasoningTokens,
     };

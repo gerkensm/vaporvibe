@@ -22,6 +22,7 @@ export interface ProviderChoice {
     description: string;
     placeholder: string;
 }
+export declare const CUSTOM_MODEL_DESCRIPTION = "Provide a custom model identifier supported by the provider. You can adjust token budgets below.";
 export declare const PROVIDER_CHOICES: ProviderChoice[];
 export declare const PROVIDER_LABELS: Record<ModelProvider, string>;
 export declare const PROVIDER_PLACEHOLDERS: Record<ModelProvider, string>;

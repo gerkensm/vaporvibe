@@ -35,6 +35,9 @@ export interface ProviderChoice {
   placeholder: string;
 }
 
+export const CUSTOM_MODEL_DESCRIPTION =
+  "Provide a custom model identifier supported by the provider. You can adjust token budgets below.";
+
 function providerChoiceFromMetadata(metadata: ProviderMetadata): ProviderChoice {
   return {
     value: metadata.provider,

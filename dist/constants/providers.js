@@ -1,5 +1,6 @@
 import { PROVIDER_METADATA, getModelOptions, getModelMetadata, getFeaturedModels, } from "../llm/model-catalog.js";
 import { DEFAULT_REASONING_TOKENS } from "../constants.js";
+export const CUSTOM_MODEL_DESCRIPTION = "Provide a custom model identifier supported by the provider. You can adjust token budgets below.";
 function providerChoiceFromMetadata(metadata) {
     return {
         value: metadata.provider,

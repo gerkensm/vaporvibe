@@ -6,11 +6,11 @@ export declare class AnthropicClient implements LlmClient {
     constructor(settings: ProviderSettings);
     generateHtml(messages: ChatMessage[]): Promise<LlmResult>;
     private generateWithThinking;
-    private extractStreamDelta;
-    private extractThinkingDelta;
     private combineContent;
     private collectThinking;
     private logAndCollectThinking;
     private retryOnOverload;
+    private extractStreamDelta;
+    private extractThinkingDelta;
 }
 export declare function verifyAnthropicApiKey(apiKey: string): Promise<VerificationResult>;

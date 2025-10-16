@@ -1,34 +1,56 @@
 import type { ServerResponse } from "node:http";
 import type { Logger } from "pino";
 import { ADMIN_ROUTE_PREFIX } from "../constants.js";
-import { PROVIDER_REASONING_CAPABILITIES } from "../constants/providers.js";
+import {
+  PROVIDER_CHOICES,
+  PROVIDER_LABELS,
+  PROVIDER_PLACEHOLDERS,
+  PROVIDER_REASONING_CAPABILITIES,
+  PROVIDER_TOKEN_GUIDANCE,
+  DEFAULT_MODEL_BY_PROVIDER,
+  DEFAULT_MAX_TOKENS_BY_PROVIDER,
+  REASONING_MODE_CHOICES,
+  getModelOptions,
+  getModelMetadata,
+  getFeaturedModels,
+  PROVIDER_MODEL_METADATA,
+  CUSTOM_MODEL_DESCRIPTION,
+} from "../constants/providers.js";
+import {
+  HISTORY_LIMIT_MIN,
+  HISTORY_LIMIT_MAX,
+  HISTORY_MAX_BYTES_MIN,
+  HISTORY_MAX_BYTES_MAX,
+} from "../constants.js";
 import type {
   BriefAttachment,
   HistoryEntry,
   ProviderSettings,
   ReasoningMode,
+  ModelProvider,
 } from "../types.js";
 import { createLlmClient } from "../llm/factory.js";
+import { verifyProviderApiKey } from "../llm/verification.js";
 import { readBody } from "../utils/body.js";
+import type { ParsedFile } from "../utils/body.js";
 import { maskSensitive } from "../utils/sensitive.js";
 import {
   createHistorySnapshot,
   createPromptMarkdown,
 } from "../utils/history-export.js";
-import {
-  renderAdminDashboard,
-  renderHistory,
-} from "../pages/admin-dashboard.js";
-import type {
-  AdminBriefAttachment,
-  AdminHistoryItem,
-  AdminProviderInfo,
-  AdminRuntimeInfo,
-} from "../pages/admin-dashboard.js";
 import type { MutableServerState, RequestContext } from "./server.js";
 import { SessionStore } from "./session-store.js";
 import { getCredentialStore } from "../utils/credential-store.js";
 import { processBriefAttachmentFiles } from "./brief-attachments.js";
+import type {
+  AdminBriefAttachment,
+  AdminHistoryItem,
+  AdminHistoryResponse,
+  AdminProviderInfo,
+  AdminRuntimeInfo,
+  AdminStateResponse,
+  AdminUpdateResponse,
+} from "../types/admin-api.js";
 
 const JSON_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.json`;
 const MARKDOWN_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history/prompt.md`;
@@ -67,14 +89,16 @@ export class AdminController {
   ): Promise<boolean> {
     const { method, path } = context;
     if (!path.startsWith(ADMIN_ROUTE_PREFIX)) {
+      if (path.startsWith("/api/admin")) {
+        return this.handleApi(context, reqLogger);
+      }
       return false;
     }
 
     const subPath = path.slice(ADMIN_ROUTE_PREFIX.length) || "/";
 
     if (method === "GET" && (subPath === "/" || subPath === "")) {
-      await this.renderDashboard(context, reqLogger);
-      return true;
+      return false;
     }
 
     if (method === "GET" && subPath === "/history.json") {
@@ -120,65 +144,143 @@ export class AdminController {
     return false;
   }
 
-  private async renderDashboard(
+  private async handleApi(
     context: RequestContext,
     reqLogger: Logger
-  ): Promise<void> {
-    const { res, url } = context;
-    const sortedHistory = this.getSortedHistoryEntries();
-    const sessionCount = new Set(sortedHistory.map((entry) => entry.sessionId))
-      .size;
+  ): Promise<boolean> {
+    const { method, path, req, res } = context;
+    if (!path.startsWith("/api/admin")) {
+      return false;
+    }
 
-    const historyItems = sortedHistory.map((entry) =>
-      this.toAdminHistoryItem(entry)
-    );
-    const briefAttachments = this.state.briefAttachments.map((attachment) =>
-      this.toAdminBriefAttachment(attachment)
-    );
+    const subPath = path.slice("/api/admin".length) || "/";
 
-    const providerInfo: AdminProviderInfo = {
-      provider: this.state.provider.provider,
-      model: this.state.provider.model,
-      maxOutputTokens: this.state.provider.maxOutputTokens,
-      reasoningMode: this.state.provider.reasoningMode,
-      reasoningTokensEnabled: this.state.provider.reasoningTokensEnabled,
-      reasoningTokens: this.state.provider.reasoningTokens,
-      apiKeyMask: maskSensitive(this.state.provider.apiKey),
-    };
+    if (method === "GET" && (subPath === "/" || subPath === "/state")) {
+      const state = await this.buildAdminStateResponse();
+      this.respondJson(res, state);
+      return true;
+    }
 
-    const runtimeInfo: AdminRuntimeInfo = {
-      historyLimit: this.state.runtime.historyLimit,
-      historyMaxBytes: this.state.runtime.historyMaxBytes,
-      includeInstructionPanel: this.state.runtime.includeInstructionPanel,
-    };
+    if (method === "POST" && subPath === "/provider") {
+      const body = await readBody(req);
+      try {
+        const { message } = await this.applyProviderUpdate(
+          body.data ?? {},
+          reqLogger
+        );
+        const state = await this.buildAdminStateResponse();
+        const payload: AdminUpdateResponse = {
+          success: true,
+          message,
+          state,
+        };
+        this.respondJson(res, payload);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        reqLogger.error({ err: error }, "Failed to update provider via API");
+        const payload: AdminUpdateResponse = {
+          success: false,
+          message,
+        };
+        this.respondJson(res, payload, 400);
+      }
+      return true;
+    }
 
-    const statusMessage = url.searchParams.get("status") ?? undefined;
-    const errorMessage = url.searchParams.get("error") ?? undefined;
+    if (method === "POST" && subPath === "/runtime") {
+      const body = await readBody(req);
+      try {
+        const { message } = this.applyRuntimeUpdate(body.data ?? {}, reqLogger);
+        const state = await this.buildAdminStateResponse();
+        const payload: AdminUpdateResponse = {
+          success: true,
+          message,
+          state,
+        };
+        this.respondJson(res, payload);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        reqLogger.error({ err: error }, "Failed to update runtime via API");
+        const payload: AdminUpdateResponse = {
+          success: false,
+          message,
+        };
+        this.respondJson(res, payload, 400);
+      }
+      return true;
+    }
 
-    const providerKeyStatuses = await this.computeProviderKeyStatuses();
-    const html = renderAdminDashboard({
-      brief: this.state.brief,
-      attachments: briefAttachments,
-      provider: providerInfo,
-      runtime: runtimeInfo,
-      history: historyItems,
-      totalHistoryCount: sortedHistory.length,
-      sessionCount,
-      statusMessage,
-      errorMessage,
-      exportJsonUrl: JSON_EXPORT_PATH,
-      exportMarkdownUrl: MARKDOWN_EXPORT_PATH,
-      historyEndpoint: `${ADMIN_ROUTE_PREFIX}/history/latest`,
-      providerKeyStatuses,
-    });
+    if (method === "POST" && subPath === "/brief") {
+      const body = await readBody(req);
+      try {
+        const { message } = this.applyBriefUpdate(
+          body.data ?? {},
+          body.files ?? [],
+          reqLogger
+        );
+        const state = await this.buildAdminStateResponse();
+        const payload: AdminUpdateResponse = {
+          success: true,
+          message,
+          state,
+        };
+        this.respondJson(res, payload);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        reqLogger.error({ err: error }, "Failed to update brief via API");
+        const payload: AdminUpdateResponse = {
+          success: false,
+          message,
+        };
+        this.respondJson(res, payload, 400);
+      }
+      return true;
+    }
 
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.end(html);
-    reqLogger.debug(
-      { historyCount: sortedHistory.length },
-      "Served admin dashboard"
-    );
+    if (method === "GET" && subPath === "/history") {
+      const params = context.url.searchParams;
+      const limitParam = params.get("limit");
+      const offsetParam = params.get("offset");
+
+      let limit = 20;
+      try {
+        if (limitParam !== null) {
+          limit = Math.min(parsePositiveInt(limitParam, 20), 100);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.respondJson(
+          res,
+          { success: false, message: `Invalid limit: ${message}` },
+          400
+        );
+        return true;
+      }
+
+      let offset = 0;
+      if (offsetParam !== null && offsetParam !== "") {
+        const parsedOffset = Number(offsetParam);
+        if (!Number.isFinite(parsedOffset) || parsedOffset < 0) {
+          this.respondJson(
+            res,
+            {
+              success: false,
+              message: `Invalid offset: ${String(offsetParam)}`,
+            },
+            400
+          );
+          return true;
+        }
+        offset = Math.floor(parsedOffset);
+      }
+
+      const payload = this.buildAdminHistoryResponse(limit, offset);
+      this.respondJson(res, payload);
+      return true;
+    }
+
+    this.respondJson(res, { success: false, message: "Not Found" }, 404);
+    return true;
   }
 
   private async computeProviderKeyStatuses(): Promise<
@@ -228,6 +330,106 @@ export class AdminController {
     return result;
   }
 
+  private async buildAdminStateResponse(): Promise<AdminStateResponse> {
+    const sortedHistory = this.getSortedHistoryEntries();
+    const sessionCount = new Set(sortedHistory.map((entry) => entry.sessionId))
+      .size;
+    const attachments = (this.state.briefAttachments ?? []).map((attachment) =>
+      this.toAdminBriefAttachment(attachment)
+    );
+
+    const providerInfo: AdminProviderInfo = {
+      provider: this.state.provider.provider,
+      model: this.state.provider.model,
+      maxOutputTokens: this.state.provider.maxOutputTokens,
+      reasoningMode: this.state.provider.reasoningMode,
+      reasoningTokensEnabled: this.state.provider.reasoningTokensEnabled,
+      reasoningTokens: this.state.provider.reasoningTokens,
+      apiKeyMask: maskSensitive(this.state.provider.apiKey),
+    };
+
+    const runtimeInfo: AdminRuntimeInfo = {
+      historyLimit: this.state.runtime.historyLimit,
+      historyMaxBytes: this.state.runtime.historyMaxBytes,
+      includeInstructionPanel: this.state.runtime.includeInstructionPanel,
+    };
+
+    const providerKeyStatuses = await this.computeProviderKeyStatuses();
+    const providers = Object.keys(PROVIDER_LABELS) as ModelProvider[];
+    const modelOptions = Object.fromEntries(
+      providers.map((provider) => [provider, getModelOptions(provider)])
+    ) as Record<
+      ModelProvider,
+      Array<{ value: string; label: string; tagline?: string }>
+    >;
+    const featuredModels = Object.fromEntries(
+      providers.map((provider) => [
+        provider,
+        getFeaturedModels(provider).map((model) => ({
+          value: model.value,
+          label: model.label,
+          tagline: model.tagline,
+        })),
+      ])
+    ) as Record<
+      ModelProvider,
+      Array<{ value: string; label: string; tagline?: string }>
+    >;
+
+    return {
+      brief: this.state.brief,
+      attachments,
+      provider: providerInfo,
+      runtime: runtimeInfo,
+      providerReady: this.state.providerReady,
+      providerSelectionRequired: this.state.providerSelectionRequired,
+      providerLocked: this.state.providerLocked,
+      totalHistoryCount: sortedHistory.length,
+      sessionCount,
+      exportJsonUrl: JSON_EXPORT_PATH,
+      exportMarkdownUrl: MARKDOWN_EXPORT_PATH,
+      providerKeyStatuses: providerKeyStatuses as Record<
+        ModelProvider,
+        { hasKey: boolean; verified: boolean }
+      >,
+      providerChoices: PROVIDER_CHOICES,
+      providerLabels: PROVIDER_LABELS,
+      providerPlaceholders: PROVIDER_PLACEHOLDERS,
+      defaultModelByProvider: DEFAULT_MODEL_BY_PROVIDER,
+      defaultMaxOutputTokens: DEFAULT_MAX_TOKENS_BY_PROVIDER,
+      providerTokenGuidance: PROVIDER_TOKEN_GUIDANCE,
+      reasoningModeChoices: REASONING_MODE_CHOICES,
+      customModelDescription: CUSTOM_MODEL_DESCRIPTION,
+      modelCatalog: PROVIDER_MODEL_METADATA,
+      modelOptions,
+      featuredModels,
+      providerReasoningCapabilities: PROVIDER_REASONING_CAPABILITIES,
+    };
+  }
+
+  private buildAdminHistoryResponse(
+    limit: number,
+    offset: number
+  ): AdminHistoryResponse {
+    const entries = this.getSortedHistoryEntries();
+    const totalCount = entries.length;
+    const slice = entries.slice(offset, offset + limit);
+    const items = slice.map((entry) => this.toAdminHistoryItem(entry));
+    const sessionCount = new Set(entries.map((entry) => entry.sessionId)).size;
+    const nextOffset = offset + slice.length < totalCount ? offset + slice.length : null;
+
+    return {
+      items,
+      totalCount,
+      sessionCount,
+      pagination: {
+        limit,
+        offset,
+        nextOffset,
+      },
+    };
+  }
+
   private handleHistoryJson(context: RequestContext): void {
     const { res } = context;
     const history = this.sessionStore.exportHistory();
@@ -259,6 +461,17 @@ export class AdminController {
     res.setHeader("Content-Type", "text/markdown; charset=utf-8");
     res.setHeader("Content-Disposition", "attachment; filename=prompt.md");
     res.end(markdown);
+  }
+
+  private respondJson(
+    res: ServerResponse,
+    payload: unknown,
+    statusCode = 200
+  ): void {
+    res.statusCode = statusCode;
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+    res.end(JSON.stringify(payload));
   }
 
   private async handleHistoryResource(
@@ -301,22 +514,26 @@ export class AdminController {
     reqLogger.debug({ entryId, action }, "Served history entry");
   }
 
-  private async handleProviderUpdate(
-    context: RequestContext,
+  private async applyProviderUpdate(
+    data: Record<string, unknown>,
     reqLogger: Logger
-  ): Promise<void> {
-    const { req, res } = context;
-    const body = await readBody(req);
-    const data = body.data;
-
+  ): Promise<{ message: string }> {
     const provider = sanitizeProvider(
       String(data.provider ?? this.state.provider.provider)
     );
+    if (
+      this.state.providerLocked &&
+      provider !== this.state.provider.provider
+    ) {
+      throw new Error(
+        "Provider selection is locked by configuration and cannot be changed."
+      );
+    }
     const model =
       typeof data.model === "string" && data.model.trim().length > 0
         ? data.model.trim()
         : this.state.provider.model;
-    const maxOutputTokens = parsePositiveInt(
+    const rawMaxOutputTokens = parsePositiveInt(
       data.maxOutputTokens,
       this.state.provider.maxOutputTokens
     );
@@ -324,30 +541,101 @@ export class AdminController {
       String(data.reasoningMode ?? this.state.provider.reasoningMode)
     );
     const reasoningCapability =
-      PROVIDER_REASONING_CAPABILITIES[provider] || { tokens: false };
-    const toggleRaw =
-      typeof data.reasoningTokensEnabled === "string"
-        ? data.reasoningTokensEnabled.trim().toLowerCase()
-        : "";
-    const reasoningTokensEnabled = reasoningCapability.tokens
-      ? !["", "off", "false", "0"].includes(toggleRaw)
-      : undefined;
-    const reasoningTokens =
-      reasoningTokensEnabled === false
-        ? undefined
-        : parseReasoningTokensValue(
+      PROVIDER_REASONING_CAPABILITIES[provider] || { tokens: false, mode: false };
+    const providerGuidance = PROVIDER_TOKEN_GUIDANCE[provider]?.reasoningTokens;
+    const modelMetadata = getModelMetadata(provider, model);
+    const modelReasoningTokens = modelMetadata?.reasoningTokens;
+    const maxOutputTokens = clampMaxOutputTokensForModel(
+      rawMaxOutputTokens,
+      provider,
+      model
+    );
+    const tokensSupported =
+      Boolean(reasoningCapability.tokens) &&
+      (modelMetadata ? Boolean(modelReasoningTokens?.supported) : true);
+    const tokenGuidance =
+      tokensSupported && modelMetadata && modelReasoningTokens?.supported
+        ? modelReasoningTokens
+        : tokensSupported
+        ? providerGuidance
+        : undefined;
+    const toggleAllowed =
+      Boolean(tokenGuidance?.allowDisable !== false) && tokensSupported;
+
+    const previousTokensEnabled =
+      this.state.provider.reasoningTokensEnabled !== false;
+    let requestedTokensEnabled: boolean | undefined;
+    if (toggleAllowed) {
+      if (typeof data.reasoningTokensEnabled === "boolean") {
+        requestedTokensEnabled = data.reasoningTokensEnabled;
+      } else if (typeof data.reasoningTokensEnabled === "string") {
+        const toggleRaw = data.reasoningTokensEnabled.trim().toLowerCase();
+        requestedTokensEnabled = !["", "off", "false", "0"].includes(toggleRaw);
+      }
+    }
+
+    const nextReasoningTokensEnabled = tokensSupported
+      ? toggleAllowed
+        ? requestedTokensEnabled ?? previousTokensEnabled
+        : true
+      : false;
+
+    const fallbackTokens =
+      this.state.provider.provider === provider &&
+      typeof this.state.provider.reasoningTokens === "number"
+        ? this.state.provider.reasoningTokens
+        : tokenGuidance?.default;
+
+    const parsedReasoningTokens =
+      tokensSupported && nextReasoningTokensEnabled
+        ? parseReasoningTokensValue(
             data.reasoningTokens,
             provider,
-            this.state.provider.reasoningTokens
-          );
+            fallbackTokens,
+            tokenGuidance
+          )
+        : undefined;
+
+    const sanitizedReasoningTokens =
+      tokensSupported && nextReasoningTokensEnabled
+        ? clampReasoningTokens(
+            parsedReasoningTokens,
+            provider,
+            tokenGuidance
+          )
+        : undefined;
+    let normalizedReasoningMode = reasoningCapability.mode
+      ? reasoningMode
+      : "none";
+    if (
+      reasoningCapability.mode &&
+      tokensSupported &&
+      nextReasoningTokensEnabled &&
+      normalizedReasoningMode === "none"
+    ) {
+      normalizedReasoningMode = "low";
+    }
+    const storedReasoningTokensEnabled = tokensSupported
+      ? toggleAllowed
+        ? nextReasoningTokensEnabled
+        : true
+      : undefined;
+    const finalReasoningTokens =
+      normalizedReasoningMode === "none" || !storedReasoningTokensEnabled
+        ? undefined
+        : sanitizedReasoningTokens;
+
+    if (storedReasoningTokensEnabled === false) {
+      normalizedReasoningMode = "none";
+    }
+
     const newApiKey = typeof data.apiKey === "string" ? data.apiKey.trim() : "";
     const previousProvider = this.state.provider.provider;
 
     let apiKeyCandidate = newApiKey;
-    let keySourceIsUI = Boolean(newApiKey); // Track if this key came from UI input
+    let keySourceIsUI = Boolean(newApiKey);
 
     if (!apiKeyCandidate) {
-      // Try current key if same provider
       if (
         provider === previousProvider &&
         typeof this.state.provider.apiKey === "string" &&
@@ -356,13 +644,11 @@ export class AdminController {
         apiKeyCandidate = this.state.provider.apiKey;
         keySourceIsUI = !this.isKeyFromEnvironment(provider);
       } else {
-        // Try stored credential (from previous UI input)
         const storedKey = await this.credentialStore.getApiKey(provider);
         if (storedKey && storedKey.trim().length > 0) {
           apiKeyCandidate = storedKey;
           keySourceIsUI = true;
         } else {
-          // Fall back to environment variable
           const envKey = lookupEnvApiKey(provider);
           if (envKey) {
             apiKeyCandidate = envKey;
@@ -376,57 +662,123 @@ export class AdminController {
       provider,
       model,
       maxOutputTokens,
-      reasoningMode,
-      reasoningTokensEnabled,
-      reasoningTokens:
-        reasoningMode === "none" || reasoningTokensEnabled === false
-          ? undefined
-          : reasoningTokens,
+      reasoningMode: normalizedReasoningMode,
+      reasoningTokensEnabled: storedReasoningTokensEnabled,
+      reasoningTokens: finalReasoningTokens,
       apiKey: apiKeyCandidate,
     };
 
     if (!updatedSettings.apiKey || updatedSettings.apiKey.trim().length === 0) {
-      this.redirectWithMessage(res, "Missing API key for provider", true);
-      return;
+      throw new Error("Missing API key for provider");
     }
 
-    try {
-      const newClient = createLlmClient(updatedSettings);
-      this.state.llmClient = newClient;
-      this.state.provider = { ...updatedSettings };
-      this.state.providerReady = true;
+    const trimmedKey = updatedSettings.apiKey.trim();
+    const existingKey = this.state.provider.apiKey?.trim() ?? "";
+    const isSameProvider = this.state.provider.provider === provider;
+    const keyUnchanged = isSameProvider && trimmedKey === existingKey;
 
-      // Store UI-entered credentials securely (always save UI input, even if env vars exist)
-      if (
-        keySourceIsUI &&
-        updatedSettings.apiKey &&
-        updatedSettings.apiKey.trim().length > 0
-      ) {
-        reqLogger.debug(
-          { provider: updatedSettings.provider },
-          "Saving UI-entered API key to credential store"
+    if (!keyUnchanged) {
+      const verification = await verifyProviderApiKey(provider, trimmedKey);
+      if (!verification.ok) {
+        throw new Error(
+          verification.message || "Unable to verify provider credentials"
         );
-        await this.credentialStore
-          .saveApiKey(updatedSettings.provider, updatedSettings.apiKey)
-          .catch((err) => {
-            reqLogger.error(
-              { err },
-              "Failed to save credential - will use memory storage"
-            );
-          });
       }
+      reqLogger.info({ provider }, "Verified provider API key");
+    } else {
+      reqLogger.debug({ provider }, "Reusing previously verified API key");
+    }
 
-      this.applyProviderEnv(updatedSettings);
-      reqLogger.info(
-        { provider },
-        "Updated LLM provider settings via admin console"
+    const newClient = createLlmClient(updatedSettings);
+    this.state.llmClient = newClient;
+    this.state.provider = { ...updatedSettings };
+    this.state.providerReady = true;
+    this.state.providerSelectionRequired = false;
+    this.state.providersWithKeys.add(provider);
+    this.state.verifiedProviders[provider] = true;
+
+    if (
+      keySourceIsUI &&
+      updatedSettings.apiKey &&
+      updatedSettings.apiKey.trim().length > 0
+    ) {
+      reqLogger.debug(
+        { provider: updatedSettings.provider },
+        "Saving UI-entered API key to credential store"
       );
-      this.redirectWithMessage(res, "Provider configuration updated", false);
+      await this.credentialStore
+        .saveApiKey(updatedSettings.provider, updatedSettings.apiKey)
+        .catch((err) => {
+          reqLogger.error(
+            { err },
+            "Failed to save credential - will use memory storage"
+          );
+        });
+    }
+
+    this.applyProviderEnv(updatedSettings);
+    reqLogger.info(
+      { provider },
+      "Updated LLM provider settings via admin interface"
+    );
+
+    return { message: "Provider configuration updated" };
+  }
+
+  private async handleProviderUpdate(
+    context: RequestContext,
+    reqLogger: Logger
+  ): Promise<void> {
+    const { req, res } = context;
+    const body = await readBody(req);
+    try {
+      const { message } = await this.applyProviderUpdate(
+        body.data ?? {},
+        reqLogger
+      );
+      this.redirectWithMessage(res, message, false);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       reqLogger.error({ err: error }, "Failed to update provider settings");
       this.redirectWithMessage(res, `Provider update failed: ${message}`, true);
     }
+  }
+
+  private applyRuntimeUpdate(
+    data: Record<string, unknown>,
+    reqLogger: Logger
+  ): { message: string } {
+    const historyLimit = clampInt(
+      parsePositiveInt(data.historyLimit, this.state.runtime.historyLimit),
+      HISTORY_LIMIT_MIN,
+      HISTORY_LIMIT_MAX
+    );
+    const historyMaxBytes = clampInt(
+      parsePositiveInt(data.historyMaxBytes, this.state.runtime.historyMaxBytes),
+      HISTORY_MAX_BYTES_MIN,
+      HISTORY_MAX_BYTES_MAX
+    );
+    const instructionToggle = data.instructionPanel;
+    let includeInstructionPanel: boolean;
+    if (typeof instructionToggle === "string") {
+      const normalized = instructionToggle.toLowerCase();
+      includeInstructionPanel = normalized === "on" || normalized === "true";
+    } else if (typeof instructionToggle === "boolean") {
+      includeInstructionPanel = instructionToggle;
+    } else {
+      includeInstructionPanel = false;
+    }
+
+    this.state.runtime.historyLimit = historyLimit;
+    this.state.runtime.historyMaxBytes = historyMaxBytes;
+    this.state.runtime.includeInstructionPanel = includeInstructionPanel;
+
+    reqLogger.info(
+      { historyLimit, historyMaxBytes, includeInstructionPanel },
+      "Updated runtime settings via admin interface"
+    );
+
+    return { message: "Runtime settings saved" };
   }
 
   private async handleRuntimeUpdate(
@@ -435,45 +787,21 @@ export class AdminController {
   ): Promise<void> {
     const { req, res } = context;
     const body = await readBody(req);
-    const data = body.data;
 
     try {
-      const historyLimit = parsePositiveInt(
-        data.historyLimit,
-        this.state.runtime.historyLimit
-      );
-      const historyMaxBytes = parsePositiveInt(
-        data.historyMaxBytes,
-        this.state.runtime.historyMaxBytes
-      );
-      const instructionPanelValue =
-        typeof data.instructionPanel === "string"
-          ? data.instructionPanel.toLowerCase()
-          : "";
-      const includeInstructionPanel =
-        instructionPanelValue === "on" || instructionPanelValue === "true";
-
-      this.state.runtime.historyLimit = historyLimit;
-      this.state.runtime.historyMaxBytes = historyMaxBytes;
-      this.state.runtime.includeInstructionPanel = includeInstructionPanel;
-      reqLogger.info(
-        { historyLimit, historyMaxBytes, includeInstructionPanel },
-        "Updated runtime settings via admin console"
-      );
-      this.redirectWithMessage(res, "Runtime settings saved", false);
+      const { message } = this.applyRuntimeUpdate(body.data ?? {}, reqLogger);
+      this.redirectWithMessage(res, message, false);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.redirectWithMessage(res, `Runtime update failed: ${message}`, true);
     }
   }
 
-  private async handleBriefUpdate(
-    context: RequestContext,
+  private applyBriefUpdate(
+    data: Record<string, unknown>,
+    files: ParsedFile[],
     reqLogger: Logger
-  ): Promise<void> {
-    const { req, res } = context;
-    const body = await readBody(req);
-    const data = body.data ?? {};
+  ): { message: string } {
     const rawBrief =
       typeof data.brief === "string" ? data.brief.trim() : "";
     this.state.brief = rawBrief.length > 0 ? rawBrief : null;
@@ -491,7 +819,7 @@ export class AdminController {
       currentAttachments = filtered;
     }
 
-    const fileInputs = (body.files ?? []).filter(
+    const fileInputs = files.filter(
       (file) =>
         file.fieldName === "briefAttachments" &&
         typeof file.filename === "string" &&
@@ -503,7 +831,7 @@ export class AdminController {
     for (const rejected of processed.rejected) {
       reqLogger.warn(
         { file: rejected.filename, mimeType: rejected.mimeType },
-        "Rejected unsupported brief attachment",
+        "Rejected unsupported brief attachment"
       );
     }
 
@@ -521,7 +849,7 @@ export class AdminController {
         addedAttachments: addedCount,
         removedAttachments: removedCount,
       },
-      "Updated brief via admin console"
+      "Updated brief via admin interface"
     );
 
     const statusParts: string[] = [];
@@ -536,7 +864,26 @@ export class AdminController {
     }
     const statusMessage = statusParts.join(" · ");
 
-    this.redirectWithMessage(res, statusMessage, false);
+    return { message: statusMessage };
+  }
+
+  private async handleBriefUpdate(
+    context: RequestContext,
+    reqLogger: Logger
+  ): Promise<void> {
+    const { req, res } = context;
+    const body = await readBody(req);
+    try {
+      const { message } = this.applyBriefUpdate(
+        body.data ?? {},
+        body.files ?? [],
+        reqLogger
+      );
+      this.redirectWithMessage(res, message, false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.redirectWithMessage(res, `Brief update failed: ${message}`, true);
+    }
   }
 
   private async handleHistoryImport(
@@ -668,14 +1015,19 @@ export class AdminController {
   private handleHistoryLatest(context: RequestContext): void {
     const { res } = context;
     const entries = this.getSortedHistoryEntries();
-    const historyItems = entries.map((entry) => this.toAdminHistoryItem(entry));
     const sessionCount = new Set(entries.map((entry) => entry.sessionId)).size;
     const providerLabel = `${this.state.provider.provider} · ${this.state.provider.model}`;
 
+    const history = this.buildAdminHistoryResponse(
+      Math.min(this.state.runtime.historyLimit, 100),
+      0,
+    );
+
     const payload = {
-      historyHtml: renderHistory(historyItems),
+      historyHtml: "",
+      history,
       brief: this.state.brief ?? "",
-      totalHistoryCount: entries.length,
+      totalHistoryCount: history.totalCount,
       sessionCount,
       provider: {
         provider: this.state.provider.provider,
@@ -688,10 +1040,7 @@ export class AdminController {
       },
     };
 
-    res.statusCode = 200;
-    res.setHeader("Content-Type", "application/json; charset=utf-8");
-    res.setHeader("Cache-Control", "no-store");
-    res.end(JSON.stringify(payload));
+    this.respondJson(res, payload);
   }
 
   private getSortedHistoryEntries(): HistoryEntry[] {
@@ -852,6 +1201,53 @@ function cloneAttachments(
   return attachments.map((attachment) => ({ ...attachment }));
 }
 
+function clampMaxOutputTokensForModel(
+  requested: number,
+  provider: ModelProvider,
+  model: string
+): number {
+  const providerGuidance = PROVIDER_TOKEN_GUIDANCE[provider]?.maxOutputTokens;
+  const modelMetadata = getModelMetadata(provider, model);
+  const modelGuidance = modelMetadata?.maxOutputTokens;
+
+  const defaultValue =
+    modelGuidance?.default ??
+    providerGuidance?.default ??
+    DEFAULT_MAX_TOKENS_BY_PROVIDER[provider] ??
+    requested ??
+    1024;
+
+  let value = Number.isFinite(requested)
+    ? Math.floor(requested)
+    : Math.floor(defaultValue);
+
+  const minCandidates = [
+    providerGuidance?.min,
+    modelGuidance?.min,
+  ].filter((candidate): candidate is number =>
+    typeof candidate === "number" && Number.isFinite(candidate)
+  );
+  if (minCandidates.length > 0) {
+    value = Math.max(value, Math.max(...minCandidates));
+  }
+
+  const maxCandidates = [
+    providerGuidance?.max,
+    modelGuidance?.max,
+  ].filter((candidate): candidate is number =>
+    typeof candidate === "number" && Number.isFinite(candidate)
+  );
+  if (maxCandidates.length > 0) {
+    value = Math.min(value, Math.min(...maxCandidates));
+  }
+
+  if (!Number.isFinite(value) || value <= 0) {
+    value = Math.max(1, Math.floor(defaultValue));
+  }
+
+  return value;
+}
+
 function parsePositiveInt(value: unknown, fallback: number): number {
   if (typeof value === "string" && value.trim() === "") {
     return fallback;
@@ -863,13 +1259,28 @@ function parsePositiveInt(value: unknown, fallback: number): number {
   return Math.floor(parsed);
 }
 
+function clampInt(value: number, min: number, max: number): number {
+  let next = value;
+  if (Number.isFinite(min)) {
+    next = Math.max(next, min);
+  }
+  if (Number.isFinite(max)) {
+    next = Math.min(next, max);
+  }
+  return next;
+}
+
 function parseReasoningTokensValue(
   value: unknown,
   provider: ProviderSettings["provider"],
-  fallback?: number
+  fallback?: number,
+  _guidance?: { min?: number; max?: number }
 ): number | undefined {
   if (value === undefined || value === null || value === "") {
-    return fallback;
+    if (typeof fallback === "number" && Number.isFinite(fallback)) {
+      return Math.floor(fallback);
+    }
+    return undefined;
   }
 
   const parsed = Number(value);
@@ -894,6 +1305,30 @@ function parseReasoningTokensValue(
   }
 
   return rounded;
+}
+
+function clampReasoningTokens(
+  value: number | undefined,
+  provider: ProviderSettings["provider"],
+  guidance?: { min?: number; max?: number }
+): number | undefined {
+  if (value === undefined || !Number.isFinite(value)) {
+    return undefined;
+  }
+
+  if (provider === "gemini" && value === -1) {
+    return -1;
+  }
+
+  let next = Math.floor(value);
+  if (guidance?.min != null) {
+    next = Math.max(next, guidance.min);
+  }
+  if (guidance?.max != null) {
+    next = Math.min(next, guidance.max);
+  }
+
+  return next;
 }
 
 function lookupEnvApiKey(

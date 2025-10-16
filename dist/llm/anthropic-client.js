@@ -102,28 +102,9 @@ export class AnthropicClient {
         if (!accumulated) {
             accumulated = this.combineContent(finalMessage?.content).trim();
         }
-        const reasoning = this.logAndCollectThinking(finalMessage, thinkingBudget, streamedThinking);
-        return { html: accumulated.trim(), usage: extractUsage(finalMessage), reasoning, raw: finalMessage };
-    }
-    extractStreamDelta(event) {
-        if (!event) {
-            return "";
-        }
-        const delta = event.delta ?? event.content_block_delta?.delta;
-        if (delta?.type === "text_delta" && typeof delta.text === "string") {
-            return delta.text;
-        }
-        return "";
-    }
-    extractThinkingDelta(event) {
-        if (!event) {
-            return "";
-        }
-        const delta = event.delta ?? event.content_block_delta?.delta;
-        if (delta?.type === "thinking_delta" && typeof delta.thinking === "string") {
-            return delta.thinking;
-        }
-        return "";
+        const usage = extractUsage(finalMessage);
+        const reasoning = this.logAndCollectThinking(finalMessage, thinkingBudget, streamedThinking, usage?.reasoningTokens);
+        return { html: accumulated.trim(), usage, reasoning, raw: finalMessage };
     }
     combineContent(blocks) {
         if (!blocks || blocks.length === 0) {
@@ -142,11 +123,14 @@ export class AnthropicClient {
             .map((block) => block?.thinking ?? block?.text ?? "")
             .filter((value) => Boolean(value && value.trim().length > 0));
     }
-    logAndCollectThinking(finalMessage, budgetTokens, streamedThinking) {
+    logAndCollectThinking(finalMessage, budgetTokens, streamedThinking, tokensUsed) {
         const trimmedStream = streamedThinking.trim();
-        const summaries = trimmedStream.length > 0
+        let summaries = trimmedStream.length > 0
             ? [trimmedStream]
             : this.collectThinking(finalMessage?.content);
+        if ((!summaries || summaries.length === 0) && typeof tokensUsed === "number" && tokensUsed > 0) {
+            summaries = [`Anthropic generated ${tokensUsed} reasoning tokens (trace not returned by provider).`];
+        }
         if (!summaries || summaries.length === 0) {
             return undefined;
         }
@@ -188,6 +172,26 @@ export class AnthropicClient {
             }
         }
         throw new Error("Anthropic overload retry loop exhausted unexpectedly.");
+    }
+    extractStreamDelta(event) {
+        if (!event) {
+            return "";
+        }
+        const delta = event.delta ?? event.content_block_delta?.delta;
+        if (delta?.type === "text_delta" && typeof delta.text === "string") {
+            return delta.text;
+        }
+        return "";
+    }
+    extractThinkingDelta(event) {
+        if (!event) {
+            return "";
+        }
+        const delta = event.delta ?? event.content_block_delta?.delta;
+        if (delta?.type === "thinking_delta" && typeof delta.thinking === "string") {
+            return delta.thinking;
+        }
+        return "";
     }
 }
 export async function verifyAnthropicApiKey(apiKey) {
