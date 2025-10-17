@@ -4,60 +4,96 @@ import type {
   AdminUpdateResponse,
 } from "./types";
 
-async function parseJson<T>(response: Response): Promise<T> {
-  const text = await response.text();
-  if (!text) {
-    throw new Error(`Empty response (status ${response.status})`);
+export class AdminApiError extends Error {
+  readonly status: number;
+  readonly details?: unknown;
+
+  constructor(status: number, message: string, details?: unknown) {
+    super(message);
+    this.name = "AdminApiError";
+    this.status = status;
+    this.details = details;
   }
+}
+
+function parseErrorPayload(
+  text: string,
+  fallback: string
+): { message: string; details?: unknown } {
+  if (!text) {
+    return { message: fallback };
+  }
+  try {
+    const parsed = JSON.parse(text) as { message?: string };
+    if (parsed && typeof parsed.message === "string" && parsed.message.trim()) {
+      return { message: parsed.message, details: parsed };
+    }
+    return { message: fallback, details: parsed };
+  } catch {
+    return { message: text };
+  }
+}
+
+async function requestJson<T>(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  errorFallback: string
+): Promise<T> {
+  const response = await fetch(input, init);
+  const text = await response.text();
+
+  if (!response.ok) {
+    const { message, details } = parseErrorPayload(
+      text,
+      `${errorFallback} (status ${response.status})`
+    );
+    throw new AdminApiError(response.status, message, details);
+  }
+
+  if (!text) {
+    throw new AdminApiError(
+      response.status,
+      `Empty response (status ${response.status})`
+    );
+  }
+
   try {
     return JSON.parse(text) as T;
   } catch (error) {
-    throw new Error(`Failed to parse JSON response: ${String(error)}`);
+    throw new AdminApiError(
+      response.status,
+      `Failed to parse JSON response: ${String(error)}`,
+      text
+    );
   }
 }
 
 export async function fetchAdminState(): Promise<AdminStateResponse> {
-  const response = await fetch("/api/admin/state", {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
+  return requestJson<AdminStateResponse>(
+    "/api/admin/state",
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+      credentials: "same-origin",
     },
-    credentials: "same-origin",
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to load admin state (status ${response.status})`);
-  }
-
-  return parseJson<AdminStateResponse>(response);
+    "Failed to load admin state"
+  );
 }
 
 export async function submitBriefUpdate(
   formData: FormData
 ): Promise<AdminUpdateResponse> {
-  const response = await fetch("/api/admin/brief", {
-    method: "POST",
-    body: formData,
-    credentials: "same-origin",
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    let message = `Brief update failed (status ${response.status})`;
-    try {
-      const parsed = JSON.parse(text) as AdminUpdateResponse;
-      if (parsed?.message) {
-        message = parsed.message;
-      }
-    } catch {
-      if (text) {
-        message = text;
-      }
-    }
-    throw new Error(message);
-  }
-
-  return parseJson<AdminUpdateResponse>(response);
+  return requestJson<AdminUpdateResponse>(
+    "/api/admin/brief",
+    {
+      method: "POST",
+      body: formData,
+      credentials: "same-origin",
+    },
+    "Brief update failed"
+  );
 }
 
 export interface ProviderUpdatePayload {
@@ -73,33 +109,19 @@ export interface ProviderUpdatePayload {
 export async function submitProviderUpdate(
   payload: ProviderUpdatePayload
 ): Promise<AdminUpdateResponse> {
-  const response = await fetch("/api/admin/provider", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
+  return requestJson<AdminUpdateResponse>(
+    "/api/admin/provider",
+    {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
     },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    let message = `Provider update failed (status ${response.status})`;
-    try {
-      const parsed = JSON.parse(text) as AdminUpdateResponse;
-      if (parsed?.message) {
-        message = parsed.message;
-      }
-    } catch {
-      if (text) {
-        message = text;
-      }
-    }
-    throw new Error(message);
-  }
-
-  return parseJson<AdminUpdateResponse>(response);
+    "Provider update failed"
+  );
 }
 
 export interface RuntimeUpdatePayload {
@@ -111,65 +133,37 @@ export interface RuntimeUpdatePayload {
 export async function submitRuntimeUpdate(
   payload: RuntimeUpdatePayload
 ): Promise<AdminUpdateResponse> {
-  const response = await fetch("/api/admin/runtime", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
+  return requestJson<AdminUpdateResponse>(
+    "/api/admin/runtime",
+    {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
     },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    let message = `Runtime update failed (status ${response.status})`;
-    try {
-      const parsed = JSON.parse(text) as AdminUpdateResponse;
-      if (parsed?.message) {
-        message = parsed.message;
-      }
-    } catch {
-      if (text) {
-        message = text;
-      }
-    }
-    throw new Error(message);
-  }
-
-  return parseJson<AdminUpdateResponse>(response);
+    "Runtime update failed"
+  );
 }
 
 export async function submitHistoryImport(
   snapshot: unknown
 ): Promise<AdminUpdateResponse> {
-  const response = await fetch("/api/admin/history/import", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
+  return requestJson<AdminUpdateResponse>(
+    "/api/admin/history/import",
+    {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({ snapshot }),
     },
-    body: JSON.stringify({ snapshot }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    let message = `History import failed (status ${response.status})`;
-    try {
-      const parsed = JSON.parse(text) as AdminUpdateResponse;
-      if (parsed?.message) {
-        message = parsed.message;
-      }
-    } catch {
-      if (text) {
-        message = text;
-      }
-    }
-    throw new Error(message);
-  }
-
-  return parseJson<AdminUpdateResponse>(response);
+    "History import failed"
+  );
 }
 
 export async function fetchAdminHistory(params?: {
@@ -188,29 +182,15 @@ export async function fetchAdminHistory(params?: {
     ? `/api/admin/history?${query.toString()}`
     : "/api/admin/history";
 
-  const response = await fetch(endpoint, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
+  return requestJson<AdminHistoryResponse>(
+    endpoint,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+      credentials: "same-origin",
     },
-    credentials: "same-origin",
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    let message = `Failed to load history (status ${response.status})`;
-    try {
-      const parsed = JSON.parse(text) as { message?: string };
-      if (parsed?.message) {
-        message = parsed.message;
-      }
-    } catch {
-      if (text) {
-        message = text;
-      }
-    }
-    throw new Error(message);
-  }
-
-  return parseJson<AdminHistoryResponse>(response);
+    "Failed to load history"
+  );
 }

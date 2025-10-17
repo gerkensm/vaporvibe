@@ -34,9 +34,13 @@ Full verbatim request recorded in [`docs/original-request.md`](original-request.
    - `/api/admin/*` endpoints short-circuit before the SPA shell so fetches receive JSON instead of HTML.
    - Provider updates validate credentials via `verifyProviderApiKey`, persist verified status, and mark the provider ready for immediate use.
    - Legacy string-template wizard paths POST back to the SPA for compatibility while the old renderers have been deleted.
+7. **Frontend routing & UX polish (Step 3 remainder)**
+   - Added React Router with dedicated Setup Wizard (`/` and `/__setup`) and Admin Dashboard (`/serve-llm`) routes.
+   - Introduced a global notification system for API errors and surfaced loading states across brief, provider, runtime, and history flows.
+   - Split the loading shell into maintainable CSS/JS assets that the server injects at runtime, keeping the UI identical while removing the monolithic template string.
 
 ## Plan Deviations / Notes
-- The React migration landed in phases; all admin components (AttachmentUploader, ModelSelector, ModelInspector, TokenBudgetControl, HistoryExplorer) now live in React, with only the loading shell still server-rendered.
+- The React migration landed in phases; all admin components (AttachmentUploader, ModelSelector, ModelInspector, TokenBudgetControl, HistoryExplorer) now live in React, and the loading shell now reads modular CSS/JS assets from `src/views/loading-shell/assets` so styling/scripts can be edited without wading through inline strings.
 - Some helper functions (provider selection, reasoning/token parsing) remain inline in `src/server/server.ts` pending a follow-up refactor, but unused wizard-specific logic has been removed.
 - Vite build now treats `index.html` as the main entry so the SPA shell is emitted; hashed asset names remain for JS/CSS.
 - Navigation interceptor and instructions panel scripts remain in use; they are now emitted via the Vite multi-entry build and injected by the server when LLM HTML is served.
@@ -79,6 +83,13 @@ Full verbatim request recorded in [`docs/original-request.md`](original-request.
 - Added `autocomplete="new-password"` to the API-key password field to silence the browser console warning (`Input elements should have autocomplete attributes`).
 - Follow-up: exercise provider save flows against a running server to verify backend prompts update as expected, then capture screenshots for UX alignment.
 
+## Progress Log (2025-10-16)
+- Wired the admin UI through React Router with explicit Setup Wizard (`/`, `/__setup`) and Admin Dashboard (`/serve-llm`) routes, redirecting onboarding flows once a provider and brief are confirmed.
+- Added a reusable notifications provider so API failures surface as toast messages alongside existing inline status banners.
+- Tightened loading-state handling across brief/provider/runtime/history/import flows to reflect the new async notifications.
+- Refactored the loading shell into discrete CSS/JS asset files that are stitched together by the server renderer, centralizing status copy and runtime scripts while preserving the rendered experience.
+- Updated README/AGENTS docs to describe the Vite + backend dev workflow and the SPA-first admin architecture.
+
 ## Immediate Next Steps (updated 2025-10-16)
 1. Start the React Model Inspector port (component + styles) so model detail views are available without the legacy templates. While porting, gate the provider/model picker behind verified API keys per provider, and add a custom-model inspector card where capabilities (reasoning, multimodal, etc.) can be set manually with unclamped advanced settings.
 2. Draft README and Admin guide updates covering the new `/api/admin/history/import` workflow, drag/drop UI, and API key preservation notes.
@@ -90,11 +101,10 @@ Full verbatim request recorded in [`docs/original-request.md`](original-request.
 - Refine provider key status reporting so JSON responses distinguish stored vs. env credentials and expose verification timestamps.
 - Add automated coverage (component tests + integration smoke) for the React admin app.
 - Update the main README with the new build/dev flow (`npm run build:fe`, `npm run dev` orchestrator, dual build requirement).
-- Finish the React setup wizard (`frontend/src/pages/SetupWizard.tsx`) so onboarding no longer bounces through legacy templates.
 - Collapse server routing so `/`, `/__setup`, and `/serve-llm` all serve the SPA shell once the wizard is complete.
 - Schedule a design polish pass (hero, tabs, history cards) once Anthropic traces are fully validated.
 
-- ✅ React SPA serves all admin/setup flows; legacy string-rendered templates were removed, leaving only the loading shell in `src/views`.
+- ✅ React SPA serves all admin/setup flows; legacy string-rendered templates were removed aside from the loading-shell renderer in `src/views`, which now sources its styles/scripts from dedicated asset files.
 - ✅ `/api/admin/history` drives the React history explorer with manual and auto-refresh, Markdown reasoning traces, downloads, and status pills.
 - ✅ Instructions panel + navigation interceptor are bundled via Vite and render correctly in generated app pages.
 - ✅ Import panel now ships a drag/drop uploader backed by `POST /api/admin/history/import`, with inline preview + history refresh on success.
@@ -149,6 +159,9 @@ Full verbatim request recorded in [`docs/original-request.md`](original-request.
   - Stripped unused imports (`renderSetupWizardPage`, `renderAdminDashboard`, etc.).
 - Retained navigation interceptor / instructions panel injection for LLM responses but now served from compiled assets.
 - Documented migration context/status in `docs/migration-notes.md`.
+- React router now coordinates Setup Wizard and Admin Dashboard routes with redirects once the provider/brief are configured.
+- Added toast notifications and consistent loading states for all SPA-driven API mutations.
+- Refactored `src/views/loading-shell.ts` to share constants and helper builders while preserving the rendered markup/script behavior.
 
 ### Design / implementation decisions
 - Kept the navigation interceptor and instructions panel as dedicated bundles so existing DOM expectations (script IDs, overlay behavior) remain unchanged while eliminating inline string concatenation.

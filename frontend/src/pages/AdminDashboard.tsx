@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   AttachmentUploader,
@@ -29,6 +30,7 @@ import {
   HISTORY_MAX_BYTES_MIN,
   HISTORY_MAX_BYTES_MAX,
 } from "../constants/runtime";
+import { useNotifications } from "../components/Notifications";
 
 type AsyncStatus = "idle" | "loading" | "success" | "error";
 type StatusMessage = { tone: "info" | "error"; message: string };
@@ -87,7 +89,14 @@ const TAB_LABELS: Record<TabKey, string> = {
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
-export function AdminDashboard() {
+interface AdminDashboardProps {
+  mode?: "auto" | "setup" | "admin";
+}
+
+export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { notify } = useNotifications();
   const [state, setState] = useState<AdminStateResponse | null>(null);
   const [briefDraft, setBriefDraft] = useState("");
   const [pendingFiles, setPendingFiles] = useState<FileList | null>(null);
@@ -125,7 +134,8 @@ export function AdminDashboard() {
     ? !state.providerReady || state.providerSelectionRequired
     : false;
   const needsBriefSetup = state ? !needsProviderSetup && !state.brief : false;
-  const showSetupShell = needsProviderSetup || needsBriefSetup;
+  const enforceSetup = mode === "setup";
+  const showSetupShell = needsProviderSetup || needsBriefSetup || enforceSetup;
   const attachments = state?.attachments ?? [];
 
   const previousShowSetupShellRef = useRef(showSetupShell);
@@ -179,6 +189,7 @@ export function AdminDashboard() {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         setHistoryStatusMessage(message);
+        notify("error", message);
       } finally {
         if (append) {
           setHistoryLoadingMore(false);
@@ -187,7 +198,7 @@ export function AdminDashboard() {
         }
       }
     },
-    []
+    [notify]
   );
 
   useEffect(() => {
@@ -205,10 +216,12 @@ export function AdminDashboard() {
       } catch (error) {
         if (!isMounted) return;
         setLoadState("error");
+        const message = error instanceof Error ? error.message : String(error);
         setStatus({
           tone: "error",
-          message: error instanceof Error ? error.message : String(error),
+          message,
         });
+        notify("error", message);
       }
     };
 
@@ -216,7 +229,17 @@ export function AdminDashboard() {
     return () => {
       isMounted = false;
     };
-  }, [handleStateUpdate, showLaunchPad]);
+  }, [handleStateUpdate, notify, showLaunchPad]);
+
+  useEffect(() => {
+    if (!state) return;
+    if (mode !== "setup") return;
+    if (!state.providerReady || !state.brief) return;
+    if (location.pathname.startsWith("/serve-llm")) {
+      return;
+    }
+    navigate("/serve-llm", { replace: true });
+  }, [state, mode, navigate, location.pathname]);
 
   useEffect(() => {
     if (!state) return;
@@ -288,14 +311,23 @@ export function AdminDashboard() {
         setStatus({ tone: "info", message: response.message });
         setSubmitState("success");
       } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
         setStatus({
           tone: "error",
-          message: error instanceof Error ? error.message : String(error),
+          message,
         });
+        notify("error", message);
         setSubmitState("error");
       }
     },
-    [attachmentsToRemove, briefDraft, handleStateUpdate, pendingFiles, state]
+    [
+      attachmentsToRemove,
+      briefDraft,
+      handleStateUpdate,
+      notify,
+      pendingFiles,
+      state,
+    ]
   );
 
   const pendingFilesList = useMemo<PendingPreview[]>(() => {
@@ -942,6 +974,7 @@ function ProviderPanel({
   providerLocked,
   stepNumber,
 }: ProviderPanelProps) {
+  const { notify } = useNotifications();
   const provider = state.provider;
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [customModelConfigs, setCustomModelConfigs] = useState<
@@ -1623,10 +1656,12 @@ function ProviderPanel({
       onStatus({ tone: "info", message: response.message });
       onSaving("success");
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       onStatus({
         tone: "error",
-        message: error instanceof Error ? error.message : String(error),
+        message,
       });
+      notify("error", message);
       onSaving("error");
     }
   };
@@ -2070,6 +2105,7 @@ function RuntimePanel({
   onSaving,
   onState,
 }: RuntimePanelProps) {
+  const { notify } = useNotifications();
   const runtime = state.runtime;
   const [historyLimitValue, setHistoryLimitValue] = useState<string>(
     String(runtime.historyLimit)
@@ -2164,10 +2200,12 @@ function RuntimePanel({
       onStatus({ tone: "info", message: statusMessage });
       onSaving("success");
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
       onStatus({
         tone: "error",
-        message: error instanceof Error ? error.message : String(error),
+        message,
       });
+      notify("error", message);
       onSaving("error");
     }
   };
@@ -2300,6 +2338,7 @@ interface SnapshotPreview {
 }
 
 function ImportPanel({ onState, onHistoryRefresh }: ImportPanelProps) {
+  const { notify } = useNotifications();
   const [inputText, setInputText] = useState("");
   const [selectedFile, setSelectedFile] = useState<PendingPreview | null>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -2385,15 +2424,16 @@ function ImportPanel({ onState, onHistoryRefresh }: ImportPanelProps) {
           tone: "info",
           message: `Loaded snapshot from ${file.name}`,
         });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        setPreview(null);
-        setParseError(message);
-        setStatus({ tone: "error", message });
-      }
-    },
-    [validateSnapshot]
-  );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setPreview(null);
+      setParseError(message);
+      setStatus({ tone: "error", message });
+      notify("error", message);
+    }
+  },
+  [notify, validateSnapshot]
+);
 
   const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -2452,8 +2492,9 @@ function ImportPanel({ onState, onHistoryRefresh }: ImportPanelProps) {
       setPreview(null);
       setParseError(message);
       setStatus({ tone: "error", message });
+      notify("error", message);
     }
-  }, [inputText, resetStatus, validateSnapshot]);
+  }, [inputText, notify, resetStatus, validateSnapshot]);
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -2479,10 +2520,11 @@ function ImportPanel({ onState, onHistoryRefresh }: ImportPanelProps) {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         setStatus({ tone: "error", message });
+        notify("error", message);
         setSaving("error");
       }
     },
-    [inputText, onHistoryRefresh, onState, validateSnapshot]
+    [inputText, notify, onHistoryRefresh, onState, validateSnapshot]
   );
 
   return (
