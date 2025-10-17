@@ -124,6 +124,29 @@ export async function submitProviderUpdate(
   );
 }
 
+export interface ProviderVerifyPayload {
+  provider: string;
+  apiKey: string;
+}
+
+export async function verifyProviderKey(
+  payload: ProviderVerifyPayload
+): Promise<AdminUpdateResponse> {
+  return requestJson<AdminUpdateResponse>(
+    "/api/admin/provider/verify",
+    {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    "Provider key verification failed"
+  );
+}
+
 export interface RuntimeUpdatePayload {
   historyLimit: number;
   historyMaxBytes: number;

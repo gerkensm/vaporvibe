@@ -15,6 +15,7 @@ import {
   submitProviderUpdate,
   submitRuntimeUpdate,
   submitHistoryImport,
+  verifyProviderKey,
   type ProviderUpdatePayload,
 } from "../api/admin";
 import type {
@@ -85,6 +86,10 @@ const TAB_LABELS: Record<TabKey, string> = {
   export: "Exports",
   history: "History",
 };
+
+type AdminLocationState = {
+  showLaunchPad?: boolean;
+} | null;
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
@@ -238,7 +243,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     if (location.pathname.startsWith("/serve-llm")) {
       return;
     }
-    navigate("/serve-llm", { replace: true });
+    navigate("/serve-llm", { replace: true, state: { showLaunchPad: true } });
   }, [state, mode, navigate, location.pathname]);
 
   useEffect(() => {
@@ -329,6 +334,15 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       state,
     ]
   );
+
+  useEffect(() => {
+    const locationState = location.state as AdminLocationState;
+    if (!locationState?.showLaunchPad) {
+      return;
+    }
+    setShowLaunchPad(true);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location, navigate]);
 
   const pendingFilesList = useMemo<PendingPreview[]>(() => {
     if (!pendingFiles || pendingFiles.length === 0) {
@@ -1308,6 +1322,7 @@ function ProviderPanel({
     [computeGuidance, currentProvider, state.provider.model]
   );
   const [apiKey, setApiKey] = useState<string>("");
+  const [verifying, setVerifying] = useState<AsyncStatus>("idle");
   const [reasoningTokensEnabled, setReasoningTokensEnabled] = useState<boolean>(
     provider.reasoningTokensEnabled !== false
   );
@@ -1325,12 +1340,15 @@ function ProviderPanel({
       : false;
     setReasoningTokensEnabled(defaultEnabled);
     setApiKey("");
+    setVerifying("idle");
   }, [
     provider.provider,
     provider.reasoningTokensEnabled,
     currentGuidance.reasoningTokensSupported,
     currentGuidance.reasoningToggleAllowed,
   ]);
+
+  const providerUnlocked = providerUnlockedMap[currentProvider] ?? false;
 
   const reasoningGuidance = currentGuidance.reasoningTokensGuidance;
   const reasoningDescription = currentGuidance.reasoningTokensSupported
@@ -1486,6 +1504,8 @@ function ProviderPanel({
         }
       }
 
+      const providerChanged = provider.provider !== nextProvider;
+
       const updated: AdminStateResponse = {
         ...state,
         provider: {
@@ -1500,6 +1520,17 @@ function ProviderPanel({
             : false,
         },
       };
+
+      if (providerChanged) {
+        const keyStatus = state.providerKeyStatuses[nextProvider];
+        let nextMask = "not set";
+        if (keyStatus?.verified) {
+          nextMask = "verified key on file";
+        } else if (keyStatus?.hasKey) {
+          nextMask = "key stored securely";
+        }
+        updated.provider.apiKeyMask = nextMask;
+      }
 
       onState(updated);
       setReasoningTokensEnabled(nextReasoningEnabled);
@@ -1599,10 +1630,58 @@ function ProviderPanel({
     ]
   );
 
+  const handleVerify = async () => {
+    if (verifying === "loading") {
+      return;
+    }
+
+    const trimmedKey = apiKey.trim();
+    if (!trimmedKey) {
+      const message = "Enter an API key to verify.";
+      onStatus({ tone: "error", message });
+      notify("error", message);
+      setVerifying("error");
+      return;
+    }
+
+    setVerifying("loading");
+    onStatus(null);
+    try {
+      const response = await verifyProviderKey({
+        provider: provider.provider,
+        apiKey: trimmedKey,
+      });
+      if (!response.success) {
+        throw new Error(
+          response.message || "Provider key verification failed"
+        );
+      }
+      if (response.state) {
+        onState(response.state);
+      }
+      setApiKey("");
+      onStatus({ tone: "info", message: response.message });
+      setVerifying("success");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      onStatus({ tone: "error", message });
+      notify("error", message);
+      setVerifying("error");
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     onSaving("loading");
     onStatus(null);
+
+    if (apiKey.trim()) {
+      const message = "Verify the API key before saving.";
+      onStatus({ tone: "error", message });
+      notify("error", message);
+      onSaving("error");
+      return;
+    }
 
     const sanitizedMaxTokens = sanitizeMaxOutputTokens(
       provider.maxOutputTokens,
@@ -1905,13 +1984,36 @@ function ProviderPanel({
         </details>
 
         <div className="admin-actions">
-          <button
-            type="submit"
-            className="admin-primary"
-            disabled={saving === "loading"}
-          >
-            {saving === "loading" ? "Saving…" : "Save provider"}
-          </button>
+          {providerUnlocked ? (
+            <>
+              {apiKey.trim() ? (
+                <button
+                  type="button"
+                  className="admin-secondary"
+                  onClick={handleVerify}
+                  disabled={verifying === "loading"}
+                >
+                  {verifying === "loading" ? "Verifying…" : "Verify key"}
+                </button>
+              ) : null}
+              <button
+                type="submit"
+                className="admin-primary"
+                disabled={saving === "loading" || verifying === "loading"}
+              >
+                {saving === "loading" ? "Saving…" : "Save provider"}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="admin-primary"
+              onClick={handleVerify}
+              disabled={verifying === "loading" || !apiKey.trim()}
+            >
+              {verifying === "loading" ? "Verifying…" : "Verify key"}
+            </button>
+          )}
         </div>
       </form>
     </section>

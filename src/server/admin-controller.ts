@@ -140,6 +140,11 @@ export class AdminController {
       return true;
     }
 
+    if (method === "POST" && subPath === "/verify-provider") {
+      await this.handleProviderVerification(context, reqLogger);
+      return true;
+    }
+
     if (method === "POST" && subPath === "/update-runtime") {
       await this.handleRuntimeUpdate(context, reqLogger);
       return true;
@@ -192,6 +197,32 @@ export class AdminController {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         reqLogger.error({ err: error }, "Failed to update provider via API");
+        const payload: AdminUpdateResponse = {
+          success: false,
+          message,
+        };
+        this.respondJson(res, payload, 400);
+      }
+      return true;
+    }
+
+    if (method === "POST" && subPath === "/provider/verify") {
+      const body = await readBody(req);
+      try {
+        const { message } = await this.applyProviderVerification(
+          body.data ?? {},
+          reqLogger
+        );
+        const state = await this.buildAdminStateResponse();
+        const payload: AdminUpdateResponse = {
+          success: true,
+          message,
+          state,
+        };
+        this.respondJson(res, payload);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        reqLogger.error({ err: error }, "Failed to verify provider key via API");
         const payload: AdminUpdateResponse = {
           success: false,
           message,
@@ -822,6 +853,51 @@ export class AdminController {
     return { message: "Provider configuration updated" };
   }
 
+  private async applyProviderVerification(
+    data: Record<string, unknown>,
+    reqLogger: Logger
+  ): Promise<{ message: string }> {
+    const provider = sanitizeProvider(
+      String(data.provider ?? this.state.provider.provider)
+    );
+    const apiKey =
+      typeof data.apiKey === "string" ? data.apiKey.trim() : "";
+
+    if (!apiKey) {
+      throw new Error("Provide an API key to verify");
+    }
+
+    const verification = await verifyProviderApiKey(provider, apiKey);
+    if (!verification.ok) {
+      throw new Error(
+        verification.message || "Unable to verify provider credentials"
+      );
+    }
+
+    reqLogger.info({ provider }, "Verified provider API key");
+
+    if (this.state.provider.provider === provider && !this.state.providerReady) {
+      this.state.provider.apiKey = apiKey;
+    }
+
+    this.state.providersWithKeys.add(provider);
+    this.state.verifiedProviders[provider] = true;
+
+    if (!this.isKeyFromEnvironment(provider)) {
+      await this.credentialStore
+        .saveApiKey(provider, apiKey)
+        .catch((err) => {
+          reqLogger.error(
+            { err },
+            "Failed to save credential - will use memory storage"
+          );
+        });
+    }
+
+    const providerLabel = PROVIDER_LABELS[provider] ?? provider;
+    return { message: `${providerLabel} key verified` };
+  }
+
   private async handleProviderUpdate(
     context: RequestContext,
     reqLogger: Logger
@@ -838,6 +914,29 @@ export class AdminController {
       const message = error instanceof Error ? error.message : String(error);
       reqLogger.error({ err: error }, "Failed to update provider settings");
       this.redirectWithMessage(res, `Provider update failed: ${message}`, true);
+    }
+  }
+
+  private async handleProviderVerification(
+    context: RequestContext,
+    reqLogger: Logger
+  ): Promise<void> {
+    const { req, res } = context;
+    const body = await readBody(req);
+    try {
+      const { message } = await this.applyProviderVerification(
+        body.data ?? {},
+        reqLogger
+      );
+      this.redirectWithMessage(res, message, false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      reqLogger.error({ err: error }, "Failed to verify provider key");
+      this.redirectWithMessage(
+        res,
+        `Provider key verification failed: ${message}`,
+        true
+      );
     }
   }
 

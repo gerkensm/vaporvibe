@@ -20,7 +20,9 @@ export declare class AdminController {
     private respondJson;
     private handleHistoryResource;
     private applyProviderUpdate;
+    private applyProviderVerification;
     private handleProviderUpdate;
+    private handleProviderVerification;
     private applyRuntimeUpdate;
     private handleRuntimeUpdate;
     private applyBriefUpdate;
