@@ -1,7 +1,31 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const FRONTEND_ASSETS_DIR = resolve(process.cwd(), "frontend/dist/assets");
+const moduleDir = dirname(fileURLToPath(import.meta.url));
+let cachedAssetsDir: string | undefined;
+
+function findFrontendAssetsDir(): string | null {
+  if (cachedAssetsDir && existsSync(cachedAssetsDir)) {
+    return cachedAssetsDir;
+  }
+
+  const candidates = [
+    resolve(moduleDir, "..", "..", "frontend", "dist", "assets"),
+    resolve(process.cwd(), "frontend", "dist", "assets"),
+  ];
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      cachedAssetsDir = candidate;
+      return candidate;
+    }
+  }
+
+  cachedAssetsDir = undefined;
+  return null;
+}
+
 const DEFAULT_DEV_SERVER_URL = "http://localhost:5173";
 
 function getDevServerBaseUrl(): string {
@@ -14,9 +38,13 @@ export function resolveScriptSource(
   assetFile: string,
   devEntry: string
 ): { url: string; mode: "asset" | "dev" } {
-  const assetPath = resolve(FRONTEND_ASSETS_DIR, assetFile);
-  if (existsSync(assetPath)) {
-    return { url: `/assets/${assetFile}`, mode: "asset" };
+  const assetsDir = findFrontendAssetsDir();
+
+  if (assetsDir) {
+    const assetPath = resolve(assetsDir, assetFile);
+    if (existsSync(assetPath)) {
+      return { url: `/assets/${assetFile}`, mode: "asset" };
+    }
   }
 
   const baseUrl = getDevServerBaseUrl();
