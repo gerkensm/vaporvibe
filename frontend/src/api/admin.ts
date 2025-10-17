@@ -217,3 +217,19 @@ export async function fetchAdminHistory(params?: {
     "Failed to load history"
   );
 }
+
+export async function deleteHistoryEntry(
+  id: string
+): Promise<AdminUpdateResponse> {
+  return requestJson<AdminUpdateResponse>(
+    `/api/admin/history/${encodeURIComponent(id)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
+      credentials: "same-origin",
+    },
+    "History deletion failed"
+  );
+}

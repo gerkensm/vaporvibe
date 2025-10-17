@@ -10,6 +10,7 @@ export declare class SessionStore {
     setPrevHtml(sid: string, html: string): void;
     getHistory(sid: string, limit?: number): HistoryEntry[];
     appendHistoryEntry(sid: string, entry: HistoryEntry): void;
+    removeHistoryEntry(entryId: string): boolean;
     exportHistory(): HistoryEntry[];
     replaceHistory(entries: HistoryEntry[]): void;
     private touchSession;

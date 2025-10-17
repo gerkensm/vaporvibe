@@ -399,23 +399,16 @@
   outline-offset: 3px;
 }
 
-.admin-attachment-preview {
-  margin: 12px 0 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.85rem;
-  color: #475569;
-}
-
-.admin-attachment-preview li + li {
-  margin-top: 4px;
-}
-
 .admin-attachment-grid {
   margin-top: 16px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 12px;
+}
+
+.admin-attachment-grid--pending {
+  margin-top: 20px;
+  margin-bottom: 12px;
 }
 
 .admin-attachment-card {
@@ -441,6 +434,18 @@
 .admin-attachment-card--marked {
   border-color: #b91c1c;
   box-shadow: 0 16px 32px rgba(185, 28, 28, 0.18);
+}
+
+.admin-attachment-card--pending {
+  cursor: default;
+  border-style: dashed;
+}
+
+.admin-attachment-card--pending:hover,
+.admin-attachment-card--pending:focus-visible {
+  transform: none;
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 12px 26px rgba(59, 130, 246, 0.12);
 }
 
 .admin-attachment-card__preview {
@@ -491,6 +496,11 @@
 .admin-attachment-card--marked .admin-attachment-card__badge {
   background: rgba(220, 38, 38, 0.12);
   color: #b91c1c;
+}
+
+.admin-attachment-card--pending .admin-attachment-card__badge {
+  background: rgba(34, 197, 94, 0.12);
+  color: #047857;
 }
 
 .admin-actions {
@@ -733,6 +743,8 @@
   font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 0.85rem;
   color: #0f172a;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .history-item__section {
@@ -838,6 +850,26 @@
   color: #1d4ed8;
   font-weight: 600;
   font-size: 0.85rem;
+}
+
+.history-item__actions button {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.history-item__delete-button:hover:not(:disabled),
+.history-item__delete-button:focus-visible {
+  text-decoration: underline;
+}
+
+.history-item__delete-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .history-load-more {
@@ -1075,34 +1107,20 @@
   background: rgba(248, 250, 253, 0.9);
 }
 
-.admin-import__dropzone {
-  border: 2px dashed rgba(148, 163, 184, 0.6);
-  border-radius: 18px;
-  padding: clamp(24px, 4vw, 36px);
-  text-align: center;
-  background: rgba(248, 250, 252, 0.85);
-  color: #475569;
-  transition: border-color 0.2s ease, background 0.2s ease;
-  display: grid;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-
-.admin-import__dropzone--active {
-  border-color: rgba(59, 130, 246, 0.8);
-  background: rgba(219, 234, 254, 0.75);
-}
-
-.admin-import__prompt {
-  margin: 0;
-  font-size: 0.95rem;
-  letter-spacing: -0.01em;
+.admin-import__uploader {
+  margin-bottom: 16px;
 }
 
 .admin-import__file {
-  margin: 0;
+  margin: 0 0 16px;
   font-size: 0.9rem;
   color: #1e3a8a;
+}
+
+.admin-import__helper {
+  margin: 0 0 16px;
+  font-size: 0.85rem;
+  color: #64748b;
 }
 
 .admin-import__actions {

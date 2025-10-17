@@ -46,6 +46,7 @@ export interface AdminHistoryItem {
   attachments?: AdminBriefAttachment[];
   viewUrl: string;
   downloadUrl: string;
+  deleteUrl: string;
 }
 
 export interface AdminStateResponse {

@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
+import type { MouseEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -17,6 +18,7 @@ interface HistoryExplorerProps {
   onToggleAutoRefresh: () => void;
   onLoadMore?: () => void;
   hasMore: boolean;
+  onDeleteEntry?: (id: string) => Promise<void> | void;
 }
 
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
@@ -45,10 +47,30 @@ export function HistoryExplorer({
   onToggleAutoRefresh,
   onLoadMore,
   hasMore,
+  onDeleteEntry,
 }: HistoryExplorerProps) {
-  const emptyState = useMemo(() =>{
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const emptyState = useMemo(() => {
     return items.length === 0 && !loading;
   }, [items, loading]);
+
+  const handleDelete = useCallback(
+    async (entryId: string, event: MouseEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!onDeleteEntry) return;
+      setDeletingId(entryId);
+      try {
+        await onDeleteEntry(entryId);
+      } catch (error) {
+        console.error("Failed to delete history entry", error);
+      } finally {
+        setDeletingId((current) => (current === entryId ? null : current));
+      }
+    },
+    [onDeleteEntry]
+  );
 
   return (
     <section className="admin-card">
@@ -182,6 +204,16 @@ export function HistoryExplorer({
                   <a href={item.downloadUrl} download>
                     Download HTML
                   </a>
+                  {onDeleteEntry ? (
+                    <button
+                      type="button"
+                      className="history-item__delete-button"
+                      onClick={(event) => handleDelete(item.id, event)}
+                      disabled={deletingId === item.id}
+                    >
+                      {deletingId === item.id ? "Deleting…" : "Delete entry"}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </details>

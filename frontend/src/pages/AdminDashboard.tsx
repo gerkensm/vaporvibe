@@ -11,6 +11,7 @@ import HistoryExplorer from "../components/HistoryExplorer";
 import {
   fetchAdminState,
   fetchAdminHistory,
+  deleteHistoryEntry,
   submitBriefUpdate,
   submitProviderUpdate,
   submitRuntimeUpdate,
@@ -37,7 +38,17 @@ type AsyncStatus = "idle" | "loading" | "success" | "error";
 type StatusMessage = { tone: "info" | "error"; message: string };
 type NullableStatus = StatusMessage | null;
 
-type PendingPreview = { name: string; size: number };
+type FileInfo = { name: string; size: number };
+
+type QueuedAttachment = {
+  id: string;
+  file: File;
+  name: string;
+  size: number;
+  mimeType: string;
+  isImage: boolean;
+  previewUrl: string | null;
+};
 
 const HISTORY_PAGE_SIZE = 20;
 const HISTORY_REFRESH_INTERVAL_MS = 8000;
@@ -104,7 +115,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   const { notify } = useNotifications();
   const [state, setState] = useState<AdminStateResponse | null>(null);
   const [briefDraft, setBriefDraft] = useState("");
-  const [pendingFiles, setPendingFiles] = useState<FileList | null>(null);
+  const [pendingUploads, setPendingUploads] = useState<QueuedAttachment[]>([]);
   const [attachmentsToRemove, setAttachmentsToRemove] = useState<Set<string>>(
     () => new Set()
   );
@@ -295,9 +306,9 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
         formData.append("removeAttachment", id);
       });
 
-      if (pendingFiles) {
-        Array.from(pendingFiles).forEach((file) => {
-          formData.append("briefAttachments", file);
+      if (pendingUploads.length > 0) {
+        pendingUploads.forEach((upload) => {
+          formData.append("briefAttachments", upload.file);
         });
       }
 
@@ -311,7 +322,14 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
           setBriefDraft(response.state.brief ?? "");
         }
         setAttachmentsToRemove(new Set());
-        setPendingFiles(null);
+        setPendingUploads((prev) => {
+          prev.forEach((upload) => {
+            if (upload.previewUrl) {
+              URL.revokeObjectURL(upload.previewUrl);
+            }
+          });
+          return [];
+        });
         setUploaderKey((value) => value + 1);
         setStatus({ tone: "info", message: response.message });
         setSubmitState("success");
@@ -330,7 +348,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       briefDraft,
       handleStateUpdate,
       notify,
-      pendingFiles,
+      pendingUploads,
       state,
     ]
   );
@@ -344,15 +362,60 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     navigate(location.pathname, { replace: true, state: null });
   }, [location, navigate]);
 
-  const pendingFilesList = useMemo<PendingPreview[]>(() => {
-    if (!pendingFiles || pendingFiles.length === 0) {
-      return [];
-    }
-    return Array.from(pendingFiles).map((file) => ({
-      name: file.name,
-      size: file.size,
-    }));
-  }, [pendingFiles]);
+  const handleQueuedFilesChange = useCallback((files: File[]) => {
+    setPendingUploads((previous) => {
+      const previousById = new Map(previous.map((item) => [item.id, item]));
+      const counts = new Map<string, number>();
+
+      const next = files.map((file) => {
+        const baseId = `${file.name}-${file.size}-${file.lastModified}`;
+        const index = counts.get(baseId) ?? 0;
+        counts.set(baseId, index + 1);
+        const id = `${baseId}-${index}`;
+        const rawType = file.type || "application/octet-stream";
+        const normalizedType = rawType.toLowerCase();
+        const isImage = normalizedType.startsWith("image/");
+        const existing = previousById.get(id);
+        const previewUrl = isImage
+          ? existing?.previewUrl ?? URL.createObjectURL(file)
+          : null;
+
+        return {
+          id,
+          file,
+          name: file.name,
+          size: file.size,
+          mimeType: rawType,
+          isImage,
+          previewUrl,
+        } satisfies QueuedAttachment;
+      });
+
+      previousById.forEach((item, id) => {
+        if (!next.some((candidate) => candidate.id === id) && item.previewUrl) {
+          URL.revokeObjectURL(item.previewUrl);
+        }
+      });
+
+      return next;
+    });
+  }, []);
+
+  const pendingUploadsRef = useRef<QueuedAttachment[]>(pendingUploads);
+
+  useEffect(() => {
+    pendingUploadsRef.current = pendingUploads;
+  }, [pendingUploads]);
+
+  useEffect(() => {
+    return () => {
+      pendingUploadsRef.current.forEach((upload) => {
+        if (upload.previewUrl) {
+          URL.revokeObjectURL(upload.previewUrl);
+        }
+      });
+    };
+  }, []);
 
   const handleHistoryRefresh = useCallback(() => {
     void loadHistory({ offset: 0, append: false, showMessage: true });
@@ -366,6 +429,25 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       showMessage: false,
     });
   }, [historyNextOffset, loadHistory]);
+
+  const handleHistoryDelete = useCallback(
+    async (entryId: string) => {
+      try {
+        const response = await deleteHistoryEntry(entryId);
+        const message = response.message || "History entry deleted";
+        if (!response.success) {
+          throw new Error(message);
+        }
+        await loadHistory({ offset: 0, append: false, showMessage: false });
+        setHistoryStatusMessage(message);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setHistoryStatusMessage(message);
+        notify("error", message);
+      }
+    },
+    [loadHistory, notify]
+  );
 
   useEffect(() => {
     if (showSetupShell) {
@@ -507,9 +589,9 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
               onBriefChange={setBriefDraft}
               attachments={attachments}
               attachmentsToRemove={attachmentsToRemove}
-              pendingFilesList={pendingFilesList}
+              pendingUploads={pendingUploads}
               onToggleAttachment={handleToggleAttachment}
-              onFilesChange={setPendingFiles}
+              onFilesChange={handleQueuedFilesChange}
               uploaderKey={uploaderKey}
               onSubmit={handleBriefSubmit}
             />
@@ -561,6 +643,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
               onLoadMore={
                 historyNextOffset != null ? handleHistoryLoadMore : undefined
               }
+              onDeleteEntry={handleHistoryDelete}
               hasMore={historyNextOffset != null}
             />
           );
@@ -597,12 +680,13 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       historySessionCount,
       historyStatusMessage,
       historyTotalCount,
-      pendingFilesList,
+      handleHistoryDelete,
+      handleQueuedFilesChange,
+      pendingUploads,
       providerSaving,
       providerStatus,
       runtimeSaving,
       runtimeStatus,
-      setPendingFiles,
       setProviderSaving,
       setProviderStatus,
       setRuntimeSaving,
@@ -829,9 +913,9 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
                 onBriefChange={setBriefDraft}
                 attachments={attachments}
                 attachmentsToRemove={attachmentsToRemove}
-                pendingFilesList={pendingFilesList}
+                pendingUploads={pendingUploads}
                 onToggleAttachment={handleToggleAttachment}
-                onFilesChange={setPendingFiles}
+                onFilesChange={handleQueuedFilesChange}
                 uploaderKey={uploaderKey}
                 onSubmit={handleBriefSubmit}
               />
@@ -2030,9 +2114,9 @@ interface BriefSectionProps {
   onBriefChange: (value: string) => void;
   attachments: AdminBriefAttachment[];
   attachmentsToRemove: Set<string>;
-  pendingFilesList: PendingPreview[];
+  pendingUploads: QueuedAttachment[];
   onToggleAttachment: (id: string) => void;
-  onFilesChange: (files: FileList | null) => void;
+  onFilesChange: (files: File[]) => void;
   uploaderKey: number;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
 }
@@ -2047,7 +2131,7 @@ function BriefSection({
   onBriefChange,
   attachments,
   attachmentsToRemove,
-  pendingFilesList,
+  pendingUploads,
   onToggleAttachment,
   onFilesChange,
   uploaderKey,
@@ -2088,26 +2172,27 @@ function BriefSection({
         <div className="admin-field">
           <span className="admin-field__label">Attachments</span>
           <p className="admin-field__helper">
-            Drop reference assets (images, PDFs) to guide styling, copy, or
-            content.
+            Bring the vibe to life with visual cues—wireframes, napkin sketches,
+            mood boards, brand palettes, flow diagrams, or product photos.
           </p>
 
           <AttachmentUploader
             key={uploaderKey}
             name="briefAttachments"
-            label="Drop reference files"
-            hint="Images and PDFs are supported. Paste from clipboard or browse."
+            label="Drop visual references"
+            hint="Paste or upload sketches, storyboards, flow diagrams, or brand shots to steer the improvisation."
+            variant="creative"
+            captureDocumentPaste
+            examples={["Wireframes", "Mood boards", "Style guides", "Product photos"]}
             onFilesChange={onFilesChange}
           />
 
-          {pendingFilesList.length > 0 && (
-            <ul className="admin-attachment-preview">
-              {pendingFilesList.map((file) => (
-                <li key={`${file.name}-${file.size}`}>
-                  {file.name} ({Math.round(file.size / 1024)} KB)
-                </li>
+          {pendingUploads.length > 0 && (
+            <div className="admin-attachment-grid admin-attachment-grid--pending">
+              {pendingUploads.map((upload) => (
+                <PendingAttachmentCard key={upload.id} upload={upload} />
               ))}
-            </ul>
+            </div>
           )}
 
           {attachments.length > 0 && (
@@ -2155,6 +2240,33 @@ interface AttachmentCardProps {
   attachment: AdminBriefAttachment;
   markedForRemoval: boolean;
   onToggle: () => void;
+}
+
+interface PendingAttachmentCardProps {
+  upload: QueuedAttachment;
+}
+
+function PendingAttachmentCard({ upload }: PendingAttachmentCardProps) {
+  const sizeInKb = Math.max(1, Math.round(upload.size / 1024));
+
+  return (
+    <div className="admin-attachment-card admin-attachment-card--pending">
+      <div className="admin-attachment-card__preview" aria-hidden="true">
+        {upload.isImage && upload.previewUrl ? (
+          <img src={upload.previewUrl} alt={upload.name} loading="lazy" />
+        ) : (
+          <span className="admin-attachment-card__icon">📄</span>
+        )}
+      </div>
+      <div className="admin-attachment-card__meta">
+        <span className="admin-attachment-card__name">{upload.name}</span>
+        <span className="admin-attachment-card__details">
+          {upload.mimeType} · {sizeInKb} KB
+        </span>
+      </div>
+      <div className="admin-attachment-card__badge">Queued upload</div>
+    </div>
+  );
 }
 
 function AttachmentCard({
@@ -2442,13 +2554,11 @@ interface SnapshotPreview {
 function ImportPanel({ onState, onHistoryRefresh }: ImportPanelProps) {
   const { notify } = useNotifications();
   const [inputText, setInputText] = useState("");
-  const [selectedFile, setSelectedFile] = useState<PendingPreview | null>(null);
-  const [dragActive, setDragActive] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null);
   const [preview, setPreview] = useState<SnapshotPreview | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
   const [status, setStatus] = useState<NullableStatus>(null);
   const [saving, setSaving] = useState<AsyncStatus>("idle");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const resetStatus = useCallback(() => {
     setStatus(null);
@@ -2537,46 +2647,21 @@ function ImportPanel({ onState, onHistoryRefresh }: ImportPanelProps) {
   [notify, validateSnapshot]
 );
 
-  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setDragActive(true);
-  }, []);
-
-  const handleDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setDragActive(false);
-  }, []);
-
-  const handleDrop = useCallback(
-    (event: React.DragEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-      setDragActive(false);
-      const file = event.dataTransfer.files?.[0];
-      if (!file) {
+  const handleUploadChange = useCallback(
+    (files: File[]) => {
+      if (files.length === 0) {
+        setSelectedFile(null);
+        setPreview(null);
+        setParseError(null);
+        resetStatus();
         return;
       }
+
+      const [file] = files;
+      resetStatus();
       void handleFileSelect(file);
     },
-    [handleFileSelect]
-  );
-
-  const handleBrowseClick = useCallback(() => {
-    fileInputRef.current?.click();
-  }, []);
-
-  const handleFileInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) {
-        return;
-      }
-      void handleFileSelect(file);
-      event.target.value = "";
-    },
-    [handleFileSelect]
+    [handleFileSelect, resetStatus]
   );
 
   const handlePreview = useCallback(() => {
@@ -2650,38 +2735,26 @@ function ImportPanel({ onState, onHistoryRefresh }: ImportPanelProps) {
       </div>
 
       <form className="admin-form" onSubmit={handleSubmit}>
-        <div
-          className={`admin-import__dropzone${
-            dragActive ? " admin-import__dropzone--active" : ""
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json,.json"
-            onChange={handleFileInputChange}
-            hidden
-          />
-          <p className="admin-import__prompt">
-            Drag & drop a previously exported `history.json` file here
+        <AttachmentUploader
+          className="admin-import__uploader"
+          name="snapshotUpload"
+          accept="application/json,.json"
+          multiple={false}
+          label="Drop or paste a history snapshot"
+          hint="Drop a saved history.json, paste it from the clipboard, or browse to upload."
+          emptyStatus="No snapshot file selected yet."
+          onFilesChange={handleUploadChange}
+        />
+
+        {selectedFile ? (
+          <p className="admin-import__file" aria-live="polite">
+            Loaded snapshot: {selectedFile.name} · {selectedFile.size.toLocaleString()} bytes
           </p>
-          <p className="admin-import__prompt">or</p>
-          <button
-            type="button"
-            className="admin-secondary"
-            onClick={handleBrowseClick}
-          >
-            Browse files
-          </button>
-          {selectedFile ? (
-            <p className="admin-import__file" aria-live="polite">
-              Selected: {selectedFile.name} · {selectedFile.size.toLocaleString()} bytes
-            </p>
-          ) : null}
-        </div>
+        ) : (
+          <p className="admin-import__helper">
+            You can also paste the snapshot JSON into the editor below.
+          </p>
+        )}
 
         <label className="admin-field">
           <span className="admin-field__label">Snapshot JSON</span>

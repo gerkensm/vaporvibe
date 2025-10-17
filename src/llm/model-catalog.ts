@@ -1401,7 +1401,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         release: "2025",
         contextWindow: 200_000,
         contextWindowUnit: "tokens",
-        featured: true,
+        featured: false,
         isMultimodal: true,
         supportsImageInput: true,
         supportsPDFInput: true,

@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type ClipboardEvent as ReactClipboardEvent,
   type DragEvent,
   type KeyboardEvent,
   type MutableRefObject,
@@ -31,7 +32,10 @@ export interface AttachmentUploaderProps {
   emptyStatus?: string;
   className?: string;
   prefixActions?: ReactNode;
-  onFilesChange?: (files: FileList | null) => void;
+  onFilesChange?: (files: File[]) => void;
+  variant?: "default" | "creative";
+  examples?: string[];
+  captureDocumentPaste?: boolean;
 }
 
 function toTokens(accept: string | undefined): string[] {
@@ -93,9 +97,13 @@ export function AttachmentUploader({
   className,
   prefixActions,
   onFilesChange,
+  variant = "default",
+  examples,
+  captureDocumentPaste = false,
 }: AttachmentUploaderProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [isActive, setIsActive] = useState(false);
   const [isError, setIsError] = useState(false);
   const [status, setStatus] = useState<StatusState>({
@@ -104,7 +112,16 @@ export function AttachmentUploader({
   });
   const [showClear, setShowClear] = useState(false);
   const errorTimeoutRef = useRef<number | null>(null);
+  const pasteHighlightTimeoutRef = useRef<number | null>(null);
   const tokens = useMemo(() => toTokens(accept), [accept]);
+  const isCreative = variant === "creative";
+  const creativeExamples = useMemo(() => {
+    if (examples && examples.length > 0) {
+      return examples;
+    }
+    if (!isCreative) return null;
+    return ["Wireframes", "Mood boards", "Flow charts", "Screenshots"];
+  }, [examples, isCreative]);
   const latestOnFilesChange = useLatest(onFilesChange);
 
   const resetError = useCallback(() => {
@@ -129,28 +146,15 @@ export function AttachmentUploader({
     [emptyStatus, resetError]
   );
 
-  const syncFromInput = useCallback(() => {
-    const input = inputRef.current;
-    if (!input) return;
-    const files = input.files ? Array.from(input.files) : [];
-    if (!files.length) {
-      setStatus({ message: emptyStatus, tone: "idle" });
-      setShowClear(false);
-      latestOnFilesChange.current?.(null);
-      return;
-    }
-    const summary = files
-      .map((file) => `${file.name} (${formatBytes(file.size)})`)
-      .join(", ");
-    setStatus({ message: `Queued: ${summary}` , tone: "ready" });
-    setShowClear(true);
-    latestOnFilesChange.current?.(input.files);
-  }, [emptyStatus, latestOnFilesChange]);
-
-  const setFilesOnInput = useCallback(
+  const syncInputFromQueue = useCallback(
     (files: File[]) => {
       const input = inputRef.current;
       if (!input) return;
+
+      if (files.length === 0) {
+        input.value = "";
+        return;
+      }
 
       let transfer: DataTransfer | null = null;
       try {
@@ -160,24 +164,8 @@ export function AttachmentUploader({
       }
 
       if (!transfer) {
-        // Fallback: replace files if DataTransfer is unavailable
-        if (files.length === 0) {
-          input.value = "";
-          syncFromInput();
-        } else if (!multiple && files[0]) {
-          applyError("Your browser does not support multi-file clipboard uploads.");
-        }
+        // Fallback: leave existing selection in place
         return;
-      }
-
-      if (multiple && input.files?.length) {
-        Array.from(input.files).forEach((existing) => {
-          try {
-            transfer!.items.add(existing);
-          } catch (error) {
-            console.warn("Failed to retain existing file", error);
-          }
-        });
       }
 
       files.forEach((file) => {
@@ -189,10 +177,27 @@ export function AttachmentUploader({
       });
 
       input.files = transfer.files;
-      input.dispatchEvent(new Event("change", { bubbles: true }));
-      syncFromInput();
     },
-    [applyError, multiple, syncFromInput]
+    []
+  );
+
+  const updateQueue = useCallback(
+    (nextFiles: File[]) => {
+      setQueuedFiles(nextFiles);
+      if (!nextFiles.length) {
+        setStatus({ message: emptyStatus, tone: "idle" });
+        setShowClear(false);
+      } else {
+        const summary = nextFiles
+          .map((file) => `${file.name} (${formatBytes(file.size)})`)
+          .join(", ");
+        setStatus({ message: `Queued: ${summary}`, tone: "ready" });
+        setShowClear(true);
+      }
+      latestOnFilesChange.current?.(nextFiles);
+      syncInputFromQueue(nextFiles);
+    },
+    [emptyStatus, latestOnFilesChange, syncInputFromQueue]
   );
 
   const handleFiles = useCallback(
@@ -200,14 +205,19 @@ export function AttachmentUploader({
       if (!fileList) return;
       const files = Array.from(fileList);
       if (!files.length) return;
+      resetError();
       const accepted = files.filter((file) => acceptsFile(file, tokens));
       if (!accepted.length) {
-        applyError("Those files are not supported. Use images or PDFs.");
+        applyError("Those files are not supported for this uploader.");
         return;
       }
-      setFilesOnInput(accepted);
+      if (multiple) {
+        updateQueue([...queuedFiles, ...accepted]);
+      } else {
+        updateQueue([accepted[0]]);
+      }
     },
-    [applyError, setFilesOnInput, tokens]
+    [applyError, multiple, queuedFiles, resetError, tokens, updateQueue]
   );
 
   const handleBrowse = useCallback(() => {
@@ -218,9 +228,17 @@ export function AttachmentUploader({
     (event: ChangeEvent<HTMLInputElement>) => {
       if (!event.target) return;
       resetError();
-      syncFromInput();
+      const selected = event.target.files
+        ? Array.from(event.target.files)
+        : [];
+      event.target.value = "";
+      if (!selected.length) {
+        updateQueue([]);
+        return;
+      }
+      handleFiles(selected);
     },
-    [resetError, syncFromInput]
+    [handleFiles, resetError, updateQueue]
   );
 
   const handleClear = useCallback(() => {
@@ -228,8 +246,8 @@ export function AttachmentUploader({
     if (!input) return;
     resetError();
     input.value = "";
-    syncFromInput();
-  }, [resetError, syncFromInput]);
+    updateQueue([]);
+  }, [resetError, updateQueue]);
 
   const handleDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -261,38 +279,74 @@ export function AttachmentUploader({
 
   useEffect(() => resetError, [resetError]);
 
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root) return;
-
-    const handlePaste = (event: ClipboardEvent) => {
-      if (!event || typeof event !== "object") return;
+  const handlePaste = useCallback(
+    (event: ReactClipboardEvent<HTMLDivElement>) => {
       const clipboard = event.clipboardData;
-      if (!clipboard || !clipboard.files || clipboard.files.length === 0) {
+      if (!clipboard) return;
+      if (clipboard.files && clipboard.files.length > 0) {
+        event.preventDefault();
+        handleFiles(clipboard.files);
+      }
+    },
+    [handleFiles]
+  );
+
+  const rootClassName = useMemo(
+    () =>
+      [
+        "attachment-uploader",
+        isCreative ? "attachment-uploader--creative" : null,
+        className,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    [className, isCreative]
+  );
+
+  useEffect(() => {
+    if (!captureDocumentPaste) return;
+    if (typeof document === "undefined") return;
+
+    const handleDocumentPaste = (event: ClipboardEvent) => {
+      const clipboard = event.clipboardData;
+      if (!clipboard) return;
+      if (!clipboard.files || clipboard.files.length === 0) {
         return;
       }
-      const target = event.target as Element | null;
-      if (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        (target && target.getAttribute && target.getAttribute("contenteditable") === "true")
-      ) {
+
+      const files = Array.from(clipboard.files).filter((file) =>
+        acceptsFile(file, tokens)
+      );
+      if (!files.length) {
         return;
       }
+
       event.preventDefault();
-      handleFiles(clipboard.files);
+      handleFiles(files);
+      setIsActive(true);
+      if (pasteHighlightTimeoutRef.current) {
+        window.clearTimeout(pasteHighlightTimeoutRef.current);
+      }
+      pasteHighlightTimeoutRef.current = window.setTimeout(() => {
+        setIsActive(false);
+        pasteHighlightTimeoutRef.current = null;
+      }, 500);
     };
 
-    root.addEventListener("paste", handlePaste);
+    document.addEventListener("paste", handleDocumentPaste);
     return () => {
-      root.removeEventListener("paste", handlePaste);
+      document.removeEventListener("paste", handleDocumentPaste);
+      if (pasteHighlightTimeoutRef.current) {
+        window.clearTimeout(pasteHighlightTimeoutRef.current);
+        pasteHighlightTimeoutRef.current = null;
+      }
     };
-  }, [handleFiles]);
+  }, [captureDocumentPaste, handleFiles, tokens]);
 
   return (
     <div
       ref={rootRef}
-      className={["attachment-uploader", className].filter(Boolean).join(" ")}
+      className={rootClassName}
       data-attachment-active={isActive ? "true" : undefined}
       data-attachment-error={isError ? "true" : undefined}
     >
@@ -312,6 +366,10 @@ export function AttachmentUploader({
         tabIndex={0}
         aria-label={label}
         onClick={(event) => {
+          const target = event.target as HTMLElement | null;
+          if (target && target.closest("button")) {
+            return;
+          }
           event.preventDefault();
           handleBrowse();
         }}
@@ -320,18 +378,37 @@ export function AttachmentUploader({
         onDragLeave={handleDragLeave}
         onDragEnd={handleDragLeave}
         onDrop={handleDrop}
+        onPaste={handlePaste}
       >
-        <div className="attachment-uploader__icon" aria-hidden="true">
-          📎
+        {isCreative ? (
+          <div className="attachment-uploader__art" aria-hidden="true">
+            <span className="attachment-uploader__shape attachment-uploader__shape--canvas" />
+            <span className="attachment-uploader__shape attachment-uploader__shape--photo" />
+            <span className="attachment-uploader__shape attachment-uploader__shape--spark" />
+          </div>
+        ) : (
+          <div className="attachment-uploader__icon" aria-hidden="true">
+            📎
+          </div>
+        )}
+        <div className="attachment-uploader__copy">
+          <p className="attachment-uploader__title">{label}</p>
+          <p className="attachment-uploader__hint">{hint}</p>
+          {creativeExamples ? (
+            <ul className="attachment-uploader__examples" aria-label="Suggested uploads">
+              {creativeExamples.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          ) : null}
         </div>
-        <p className="attachment-uploader__title">{label}</p>
-        <p className="attachment-uploader__hint">{hint}</p>
         <div className="attachment-uploader__actions">
           <button
             type="button"
             className="attachment-uploader__browse"
             onClick={(event) => {
               event.preventDefault();
+              event.stopPropagation();
               handleBrowse();
             }}
           >

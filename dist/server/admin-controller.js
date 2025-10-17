@@ -215,6 +215,25 @@ export class AdminController {
             }
             return true;
         }
+        if (method === "DELETE" && subPath.startsWith("/history/")) {
+            const entryIdSegment = subPath.slice("/history/".length);
+            if (!entryIdSegment) {
+                this.respondJson(res, { success: false, message: "History deletion failed: missing entry id" }, 400);
+                return true;
+            }
+            const entryId = decodeURIComponent(entryIdSegment);
+            const removed = this.sessionStore.removeHistoryEntry(entryId);
+            if (!removed) {
+                this.respondJson(res, { success: false, message: `History entry not found: ${entryId}` }, 404);
+                return true;
+            }
+            reqLogger.info({ entryId }, "Deleted history entry via admin API");
+            this.respondJson(res, {
+                success: true,
+                message: "History entry deleted",
+            });
+            return true;
+        }
         if (method === "GET" && subPath === "/history") {
             const params = context.url.searchParams;
             const limitParam = params.get("limit");
@@ -997,6 +1016,7 @@ export class AdminController {
             attachments,
             viewUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(entry.id)}/view`,
             downloadUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(entry.id)}/download`,
+            deleteUrl: `/api/admin/history/${encodeURIComponent(entry.id)}`,
         };
     }
 }

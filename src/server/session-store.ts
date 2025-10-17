@@ -65,6 +65,29 @@ export class SessionStore {
     this.persistRecord(sid, record);
   }
 
+  removeHistoryEntry(entryId: string): boolean {
+    let removed = false;
+    for (const [sid, record] of this.sessions.entries()) {
+      const history = record.history ?? [];
+      if (!history.length) continue;
+      const nextHistory = history.filter((entry) => entry.id !== entryId);
+      if (nextHistory.length === history.length) {
+        continue;
+      }
+
+      const nextRecord: SessionData = {
+        ...record,
+        history: nextHistory,
+        prevHtml: nextHistory.at(-1)?.response.html ?? "",
+      };
+
+      this.persistRecord(sid, nextRecord);
+      removed = true;
+      break;
+    }
+    return removed;
+  }
+
   exportHistory(): HistoryEntry[] {
     const now = Date.now();
     return Array.from(this.sessions.entries())
