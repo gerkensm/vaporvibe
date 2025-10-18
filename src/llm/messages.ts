@@ -118,8 +118,6 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     history,
     historyTotal,
     historyLimit,
-    historyMaxBytes,
-    historyBytesUsed,
     historyLimitOmitted,
     historyByteOmitted,
   });
@@ -127,8 +125,6 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     history,
     historyTotal,
     historyLimit,
-    historyMaxBytes,
-    historyBytesUsed,
     historyLimitOmitted,
     historyByteOmitted,
   });
@@ -234,8 +230,6 @@ interface HistoryMessagesOptions {
   history: HistoryEntry[];
   historyTotal: number;
   historyLimit: number;
-  historyMaxBytes: number;
-  historyBytesUsed: number;
   historyLimitOmitted: number;
   historyByteOmitted: number;
 }

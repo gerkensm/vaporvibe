@@ -10,7 +10,8 @@
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "frontend"
   ],
   "scripts": {
     "build": "npm run build:fe && tsc && node scripts/copy-loading-shell-assets.mjs",
