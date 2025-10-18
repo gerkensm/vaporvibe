@@ -25,6 +25,11 @@ export interface ModelCompositeScores {
   readonly valueForMoney: number;
 }
 
+export interface ModelReasoningTokens extends NumericRange {
+  readonly supported: boolean;
+  readonly helper?: string;
+}
+
 export interface ModelMetadata {
   readonly value: string;
   readonly label: string;
@@ -40,12 +45,24 @@ export interface ModelMetadata {
   readonly supportsImageInput?: boolean;
   readonly supportsPDFInput?: boolean;
   readonly maxOutputTokens?: NumericRange;
-  readonly reasoningTokens?: NumericRange | null;
+  readonly reasoningTokens: ModelReasoningTokens;
   readonly reasoningModeNotes?: string;
   readonly documentationUrl?: string;
   readonly cost?: ModelCostInfo;
   readonly compositeScores?: ModelCompositeScores;
   readonly supportsReasoningMode?: boolean;
+  readonly reasoningModes?: ReasoningMode[];
+}
+
+type RawModelReasoningTokens =
+  | (NumericRange & {
+      readonly helper?: string;
+    })
+  | null
+  | undefined;
+
+interface RawModelMetadata extends Omit<ModelMetadata, "reasoningTokens"> {
+  readonly reasoningTokens?: RawModelReasoningTokens;
 }
 
 export interface ProviderMetadata {
@@ -66,6 +83,10 @@ export interface ProviderMetadata {
     readonly helper?: string;
   };
   readonly models: ModelMetadata[];
+}
+
+interface RawProviderMetadata extends Omit<ProviderMetadata, "models"> {
+  readonly models: RawModelMetadata[];
 }
 
 const USD_PER_K = "USD";
@@ -227,11 +248,58 @@ const MODEL_COMPOSITE_SCORES: Record<string, ModelCompositeScores> = {
   },
 };
 
+function normalizeModelReasoningTokens(
+  raw: RawModelReasoningTokens
+): ModelReasoningTokens {
+  if (raw && typeof raw === "object") {
+    const helper = (raw as { helper?: string }).helper;
+    const range = raw as NumericRange;
+    const budgetKeys: Array<keyof NumericRange> = [
+      "min",
+      "max",
+      "default",
+      "description",
+      "step",
+      "allowDisable",
+    ];
+    const hasBudgetValue = budgetKeys.some((key) => range[key] !== undefined);
+    if (hasBudgetValue) {
+      return {
+        supported: true,
+        ...range,
+        helper,
+      };
+    }
+    return {
+      supported: false,
+      helper,
+    };
+  }
+  return { supported: false };
+}
+
+function normalizeModelMetadata(model: RawModelMetadata): ModelMetadata {
+  const { reasoningTokens: rawReasoningTokens, ...rest } = model;
+  return {
+    ...rest,
+    reasoningTokens: normalizeModelReasoningTokens(rawReasoningTokens),
+  };
+}
+
+function normalizeProviderMetadata(
+  metadata: RawProviderMetadata
+): ProviderMetadata {
+  return {
+    ...metadata,
+    models: metadata.models.map((model) => normalizeModelMetadata(model)),
+  };
+}
+
 function compositeScoresFor(key: string): ModelCompositeScores | undefined {
   return MODEL_COMPOSITE_SCORES[key];
 }
 
-export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
+const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
   openai: {
     provider: "openai",
     name: "OpenAI",
@@ -304,7 +372,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 128_000,
           description: "OpenAI advertises up to 128K output tokens on GPT-5.",
         },
-        supportsReasoningMode: true,
+        supportsReasoningMode: false,
         cost: usdCost({ input: 1.25, output: 10 }),
       },
       {
@@ -333,7 +401,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description:
             "Matches GPT-5’s 128K output ceiling in a smaller footprint.",
         },
-        supportsReasoningMode: true,
+        supportsReasoningMode: false,
         cost: usdCost({ input: 0.25, output: 2 }),
         compositeScores: compositeScoresFor("openai:gpt-5-mini"),
       },
@@ -362,7 +430,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description:
             "Matches GPT-5’s 128K output ceiling in a smaller footprint.",
         },
-        supportsReasoningMode: true,
+        supportsReasoningMode: false,
         cost: usdCost({ input: 0.25, output: 2 }),
       },
       {
@@ -449,8 +517,13 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description: "OpenAI caps output at 16,384 tokens on this preview.",
         },
         cost: usdCost({ input: 75, output: 150 }),
+        supportsReasoningMode: false,
         reasoningModeNotes:
           "Reasoning modes are not supported on this preview release.",
+        reasoningTokens: {
+          helper:
+            "GPT-4.5 preview builds do not expose structured reasoning or thinking budgets.",
+        },
       },
       {
         value: "gpt-4.5-preview-2025-02-27",
@@ -477,8 +550,13 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description: "OpenAI caps output at 16,384 tokens on this preview.",
         },
         cost: usdCost({ input: 75, output: 150 }),
+        supportsReasoningMode: false,
         reasoningModeNotes:
           "Reasoning modes are not supported on this preview release.",
+        reasoningTokens: {
+          helper:
+            "GPT-4.5 preview builds do not expose structured reasoning or thinking budgets.",
+        },
       },
       {
         value: "gpt-4o",
@@ -501,6 +579,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 16_384,
           description: "Outputs top out at roughly 16K tokens for GPT-4o.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 2.5, output: 10 }),
         reasoningModeNotes: "Reasoning modes are not available for GPT-4o.",
       },
@@ -529,6 +608,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description:
             "Mirrors the ChatGPT front-end cap of 4,096 output tokens.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 2.5, output: 10 }),
         reasoningModeNotes:
           "Reasoning modes are not available for ChatGPT-4o Latest.",
@@ -554,6 +634,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 16_384,
           description: "Outputs top out around 16K tokens for GPT-4o Mini.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 0.15, output: 0.6 }),
         reasoningModeNotes:
           "Reasoning modes are not available for GPT-4o Mini.",
@@ -578,6 +659,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 32_768,
           description: "Outputs cap at 32,768 tokens on GPT-4.1.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 2, output: 8 }),
       },
       {
@@ -599,6 +681,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 32_768,
           description: "Outputs cap at 32,768 tokens on GPT-4.1 Mini.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 0.4, output: 1.6 }),
       },
       {
@@ -621,6 +704,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 32_768,
           description: "Outputs cap at 32,768 tokens on GPT-4.1 Nano.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 0.1, output: 0.4 }),
       },
       {
@@ -643,6 +727,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 4_096,
           description: "Outputs are capped at roughly 4K tokens on GPT-4.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 30, output: 60 }),
       },
       {
@@ -666,6 +751,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description:
             "Despite the 32K context, outputs land around 4K tokens.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 60, output: 120 }),
       },
       {
@@ -687,6 +773,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 4_096,
           description: "Preview builds cap output around 4K tokens.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 8, output: 24 }),
       },
       {
@@ -708,6 +795,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 4_096,
           description: "Preview builds cap output around 4K tokens.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 8, output: 24 }),
       },
       {
@@ -731,6 +819,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 4_096,
           description: "Turbo responses cap around 4K tokens.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 10, output: 30 }),
       },
       {
@@ -757,6 +846,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 4_096,
           description: "Turbo responses cap around 4K tokens.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 10, output: 30 }),
       },
       {
@@ -780,6 +870,17 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         supportsImageInput: false,
         supportsPDFInput: false,
         cost: usdCost({ input: 0.5, output: 1.5 }),
+        supportsReasoningMode: false,
+        reasoningTokens: {
+          helper:
+            "Reasoning modes and thinking budgets are not available for GPT-3.5 Turbo.",
+        },
+        maxOutputTokens: {
+          default: 4_096,
+          max: 4_096,
+          description:
+            "Completions cap out near 4,096 tokens on GPT-3.5 Turbo.",
+        },
       },
       {
         value: "gpt-3.5-turbo-16k",
@@ -797,6 +898,17 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         supportsImageInput: false,
         supportsPDFInput: false,
         cost: usdCost({ input: 1, output: 2 }),
+        supportsReasoningMode: false,
+        reasoningTokens: {
+          helper:
+            "Reasoning modes and token budgets are not supported on GPT-3.5 Turbo 16K.",
+        },
+        maxOutputTokens: {
+          default: 16_384,
+          max: 16_384,
+          description:
+            "The extended GPT-3.5 variant tops out around 16K output tokens.",
+        },
       },
       {
         value: "o1",
@@ -873,6 +985,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 32_768,
           description: "Preview runs share the 32,768 output token limit.",
         },
+        supportsReasoningMode: true,
         reasoningModeNotes:
           "Reasoning modes are available, but token limits are lower than o1.",
       },
@@ -896,6 +1009,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 65_536,
           description: "o1 Mini caps output around 65K tokens.",
         },
+        supportsReasoningMode: false,
         reasoningModeNotes: "Reasoning modes are not exposed for o1 Mini.",
       },
       {
@@ -944,6 +1058,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description:
             "o3 Mini shares the 100K output ceiling with the full model.",
         },
+        supportsReasoningMode: true,
         reasoningModeNotes:
           "Reasoning modes mirror the o3 defaults while keeping spend approachable.",
       },
@@ -972,6 +1087,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description:
             "Early o4 Mini builds align with o3’s output ceiling while pricing continues to evolve.",
         },
+        supportsReasoningMode: true,
         reasoningModeNotes:
           "Pricing is still stabilizing as o4 rolls out—confirm latest rates with OpenAI.",
       },
@@ -1032,6 +1148,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 65_536,
           description: "Google documents a 65,536 token output cap on Flash.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 0.3, output: 2.5, reasoning: 2.5 }),
         reasoningModeNotes:
           "Output pricing already includes deliberate “thinking” tokens. Audio inputs are billed at $1.00 per 1M tokens.",
@@ -1066,6 +1183,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 65_536,
           description: "Flash Lite shares the 65,536 token output cap.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 0.1, output: 0.4, reasoning: 0.4 }),
         reasoningModeNotes:
           "Output pricing includes thinking tokens. Audio inputs are billed at $0.30 per 1M tokens.",
@@ -1101,6 +1219,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description:
             "Pro runs share the 65,535 token output cap for standard calls.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 1.25, output: 10 }),
         reasoningModeNotes:
           "Pricing shown is for prompts up to 200K tokens; requests above that tier increase to $2.50 input / $15 output per 1M tokens.",
@@ -1135,6 +1254,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description:
             "Experimental Pro builds follow the 65,535 output token limit.",
         },
+        supportsReasoningMode: false,
         reasoningModeNotes:
           "Experimental pricing fluctuates; confirm current rates in Google AI Studio before launching.",
       },
@@ -1158,6 +1278,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 8_192,
           description: "Flash 2.0 caps output at 8,192 tokens.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 0.1, output: 0.4 }),
       },
     ],
@@ -1172,7 +1293,7 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
     placeholder: "sk-ant-...",
     defaultModel: "claude-sonnet-4-5-20250929",
     defaultReasoningMode: "none",
-    reasoningModes: ["none"],
+    reasoningModes: ["none", "low", "medium", "high"],
     maxOutputTokens: {
       default: 64_000,
       max: 64_000,
@@ -1217,6 +1338,17 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description:
             "The latest Sonnet tier can emit up to roughly 128K tokens when needed.",
         },
+        supportsReasoningMode: false,
+        reasoningTokens: {
+          min: 0,
+          max: 64_000,
+          default: 10_000,
+          allowDisable: true,
+          description:
+            "Allocate up to 64K thinking tokens. Leave blank to lean on the default Claude pacing.",
+          helper:
+            "Claude Sonnet balances cost and depth—trim the budget for speed or boost it for complex flows.",
+        },
         cost: usdCost({ input: 3, output: 15 }),
         compositeScores: compositeScoresFor(
           "anthropic:claude-sonnet-4-5-20250929"
@@ -1237,7 +1369,22 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         isMultimodal: true,
         supportsImageInput: true,
         supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 64_000,
+          max: 64_000,
+        },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 3, output: 15 }),
+        reasoningTokens: {
+          min: 0,
+          max: 64_000,
+          default: 8_000,
+          allowDisable: true,
+          description:
+            "Sonnet 4 lets you reserve up to 64K thinking tokens. Use 0 to disable deliberate reasoning.",
+          helper:
+            "Dial the budget down when iterating quickly; raise it for heavy research syntheses.",
+        },
         compositeScores: compositeScoresFor(
           "anthropic:claude-sonnet-4-20250514"
         ),
@@ -1254,11 +1401,26 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         release: "2025",
         contextWindow: 200_000,
         contextWindowUnit: "tokens",
-        featured: true,
+        featured: false,
         isMultimodal: true,
         supportsImageInput: true,
         supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 64_000,
+          max: 64_000,
+        },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 3, output: 15 }),
+        reasoningTokens: {
+          min: 0,
+          max: 64_000,
+          default: 8_000,
+          allowDisable: true,
+          description:
+            "Reserve a Claude 3.7 thinking budget up to 64K tokens for especially tricky prompts.",
+          helper:
+            "Keep a modest allowance for day-to-day runs; boost it when you need richer step-by-step plans.",
+        },
       },
       {
         value: "claude-opus-4-1-20250805",
@@ -1276,7 +1438,22 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         isMultimodal: true,
         supportsImageInput: true,
         supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 64_000,
+          max: 64_000,
+        },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 15, output: 75 }),
+        reasoningTokens: {
+          min: 0,
+          max: 64_000,
+          default: 15_000,
+          allowDisable: false,
+          description:
+            "Opus thrives with a healthy thinking budget. Adjust the ceiling up to 64K tokens.",
+          helper:
+            "Opus favours deeper reasoning—leave the default for premium briefs or push higher for flagship demos.",
+        },
         compositeScores: compositeScoresFor(
           "anthropic:claude-opus-4-1-20250805"
         ),
@@ -1296,14 +1473,64 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         isMultimodal: true,
         supportsImageInput: true,
         supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 64_000,
+          max: 64_000,
+        },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 15, output: 75 }),
+        reasoningTokens: {
+          min: 0,
+          max: 64_000,
+          default: 12_000,
+          allowDisable: false,
+          description:
+            "Cap Claude Opus 4’s deliberate reasoning between 0 and 64K tokens to match your latency budget.",
+          helper:
+            "Opus is happiest with deliberate thinking enabled—drop to 0 only when you absolutely need speed over depth.",
+        },
+      },
+      {
+        value: "claude-haiku-4-5",
+        label: "Claude Haiku 4.5",
+        tagline: "Lightning-fast extended thinking",
+        description:
+          "Anthropic’s most capable Haiku release—keeps the near-instant feel while unlocking extended thinking for tougher briefs.",
+        recommendedFor:
+          "Responsive agents, support automation, and product flows that still need credible reasoning.",
+        highlights: ["Extended thinking", "Ultra fast", "Great value"],
+        release: "Jul 2025",
+        contextWindow: 200_000,
+        contextWindowUnit: "tokens",
+        featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 64_000,
+          max: 64_000,
+          description:
+            "Haiku 4.5 supports outputs up to roughly 64K tokens while keeping latency low.",
+        },
+        supportsReasoningMode: false,
+        reasoningTokens: {
+          min: 0,
+          max: 64_000,
+          default: 6_000,
+          allowDisable: true,
+          description:
+            "Allocate up to 64K thinking tokens when you need Haiku 4.5 to reason more deeply.",
+          helper:
+            "Leave the default for balanced latency; dial it up for heavier troubleshooting or synthesis tasks.",
+        },
+        cost: usdCost({ input: 1, output: 5 }),
       },
       {
         value: "claude-3-5-haiku-latest",
         label: "Claude 3.5 Haiku",
         tagline: "Playful productivity",
         description:
-          "Haiku is Claude’s zippy sidekick—quick responses, charming tone, and very friendly pricing.",
+          "Haiku 3.5 keeps the quippy tone and cost efficiency for everyday flows.",
         recommendedFor:
           "Support flows, onboarding assistants, and content edits.",
         highlights: ["Charming", "Fast", "Affordable"],
@@ -1319,31 +1546,8 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           max: 8_192,
           description: "Haiku 3.5 caps output around 8K tokens.",
         },
+        supportsReasoningMode: false,
         cost: usdCost({ input: 0.8, output: 4 }),
-      },
-      {
-        value: "claude-3-haiku-20240307",
-        label: "Claude 3 Haiku",
-        tagline: "Starter Haiku",
-        description:
-          "The original Haiku cut—still delightful for copy refreshes and casual customer support experiences.",
-        recommendedFor:
-          "Quick copy reviews, FAQ flows, and conversational UI tests.",
-        highlights: ["Friendly", "Reliable", "Tiny cost"],
-        release: "Mar 2024",
-        contextWindow: 200_000,
-        contextWindowUnit: "tokens",
-        isMultimodal: true,
-        supportsImageInput: true,
-        supportsPDFInput: true,
-        cost: usdCost({ input: 0.25, output: 1.25 }),
-        reasoningModeNotes:
-          "Haiku 3 focuses on speed and does not expose explicit reasoning budgets.",
-        maxOutputTokens: {
-          default: 4_096,
-          max: 4_096,
-          description: "Outputs are capped at roughly 4K tokens for Haiku 3.",
-        },
       },
     ],
   },
@@ -1364,6 +1568,11 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
       min: 1_024,
       description:
         "Most Grok tiers sit around 128K outputs, while the latest fast reasoning builds can stretch toward 2M tokens.",
+    },
+    reasoningTokens: {
+      supported: false,
+      helper:
+        "xAI manages Grok's deliberate thinking budget automatically; the slider stays disabled.",
     },
     models: [
       {
@@ -1389,7 +1598,10 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
             "Fast reasoning runs can stretch toward two million output tokens.",
         },
         cost: usdCost({ input: 0.2, output: 0.5 }),
+        supportsReasoningMode: true,
         compositeScores: compositeScoresFor("grok:grok-4-fast-reasoning"),
+        reasoningModeNotes:
+          "xAI exposes Grok's deliberate reasoning modes but auto-manages the thinking token budget—no manual slider is available.",
       },
       {
         value: "grok-4-fast-non-reasoning",
@@ -1412,7 +1624,8 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
             "Shares the fast reasoning tier’s two million output ceiling, but without deliberate traces.",
         },
         reasoningModeNotes:
-          "Deliberate reasoning is disabled to favor latency.",
+          "Deliberate reasoning is disabled to favor latency, so the reasoning tokens control remains unavailable.",
+        supportsReasoningMode: false,
       },
       {
         value: "grok-4-0709",
@@ -1435,7 +1648,8 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description: "This summer build emits up to ~256K tokens.",
         },
         reasoningModeNotes:
-          "Pricing varies by deployment tier; confirm in the xAI console.",
+          "Deliberate modes stay available, but xAI still manages the reasoning token budget for you.",
+        supportsReasoningMode: true,
       },
       {
         value: "grok-3",
@@ -1460,6 +1674,9 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
             "Outputs land around 131,072 tokens for the Grok 3 family.",
         },
         cost: usdCost({ input: 3, output: 15 }),
+        supportsReasoningMode: true,
+        reasoningModeNotes:
+          "Grok 3 offers optional deliberate traces, but the tokens budget stays provider-managed with no manual knob.",
       },
       {
         value: "grok-3-mini",
@@ -1481,6 +1698,9 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
           description: "Mini shares the 131,072 token output limit.",
         },
         cost: usdCost({ input: 0.3, output: 0.5 }),
+        supportsReasoningMode: true,
+        reasoningModeNotes:
+          "Mini inherits Grok's deliberate reasoning options, but xAI still keeps the thinking budget automatic.",
       },
       {
         value: "grok-code-fast-1",
@@ -1505,7 +1725,8 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
             "Code Fast mirrors the 256K output limit of other Grok code tiers.",
         },
         reasoningModeNotes:
-          "Pricing for the code-tuned tier varies; check the latest xAI announcements.",
+          "Developer-focused reasoning traces are available, but xAI still handles the token allotment automatically.",
+        supportsReasoningMode: true,
         compositeScores: compositeScoresFor("grok:grok-code-fast-1"),
       },
     ],
@@ -1528,6 +1749,11 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
       description:
         "Max output tokens vary by model, with many supporting at least 8K.",
     },
+    reasoningTokens: {
+      supported: false,
+      helper:
+        "Groq's hosted open weights don't expose a manual reasoning-token budget—modes only.",
+    },
     models: [
       {
         value: "llama-3.3-70b-versatile",
@@ -1549,6 +1775,13 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         },
         cost: usdCost({ input: 0.59, output: 0.79 }),
         compositeScores: compositeScoresFor("groq:llama-3.3-70b-versatile"),
+        supportsReasoningMode: false,
+        reasoningModeNotes:
+          "Groq has not enabled deliberate reasoning efforts on the Llama 3.3 lineup yet.",
+        reasoningTokens: {
+          helper:
+            "Groq auto-manages reasoning for Llama 3.3 models—no explicit modes or thinking budgets are exposed.",
+        },
       },
       {
         value: "meta-llama/llama-4-maverick-17b-128e-instruct",
@@ -1575,6 +1808,13 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         compositeScores: compositeScoresFor(
           "groq:meta-llama/llama-4-maverick-17b-128e-instruct"
         ),
+        supportsReasoningMode: false,
+        reasoningModeNotes:
+          "Groq has not rolled out deliberate reasoning efforts on Maverick yet.",
+        reasoningTokens: {
+          helper:
+            "Groq handles thinking internally for Maverick—no reasoning sliders or toggles are available.",
+        },
       },
       {
         value: "meta-llama/llama-4-scout-17b-16e-instruct",
@@ -1601,6 +1841,13 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         compositeScores: compositeScoresFor(
           "groq:meta-llama/llama-4-scout-17b-16e-instruct"
         ),
+        supportsReasoningMode: false,
+        reasoningModeNotes:
+          "Groq has not exposed deliberate reasoning controls on Scout yet.",
+        reasoningTokens: {
+          helper:
+            "Groq auto-manages reasoning for Scout—no manual modes or token budgets at this time.",
+        },
       },
       {
         value: "moonshotai/kimi-k2-instruct-0905",
@@ -1624,6 +1871,13 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         compositeScores: compositeScoresFor(
           "groq:moonshotai/kimi-k2-instruct-0905"
         ),
+        supportsReasoningMode: false,
+        reasoningModeNotes:
+          "Kimi K2 runs without Groq's deliberate reasoning switch—traces are not available yet.",
+        reasoningTokens: {
+          helper:
+            "Groq does not expose reasoning controls for Kimi K2 at this time.",
+        },
       },
       {
         value: "openai/gpt-oss-120b",
@@ -1647,7 +1901,12 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         compositeScores: compositeScoresFor("groq:openai/gpt-oss-120b"),
         supportsReasoningMode: true,
         reasoningModeNotes:
-          "Supports Groq reasoning efforts (low, medium, high) with detailed traces via the Responses API.",
+          "Supports Groq reasoning efforts (low, medium, high) with detailed traces, but the thinking budget is provider-managed.",
+        reasoningModes: ["none", "low", "medium", "high"],
+        reasoningTokens: {
+          helper:
+            "Groq handles the GPT-OSS thinking budget automatically—reasoning sliders stay hidden while modes remain available.",
+        },
       },
       {
         value: "openai/gpt-oss-20b",
@@ -1671,11 +1930,59 @@ export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> = {
         compositeScores: compositeScoresFor("groq:openai/gpt-oss-20b"),
         supportsReasoningMode: true,
         reasoningModeNotes:
-          "Enable Groq reasoning efforts (low, medium, high) to request chain-of-thought output and tool use planning.",
+          "Enable Groq reasoning efforts (low, medium, high) to request traces—reasoning tokens remain auto-managed.",
+        reasoningModes: ["none", "low", "medium", "high"],
+        reasoningTokens: {
+          helper:
+            "Groq manages GPT-OSS thinking tokens internally, so only the reasoning mode toggle appears.",
+        },
+      },
+      {
+        value: "qwen/qwen3-32b",
+        label: "Qwen 3 32B",
+        tagline: "A powerful 32B model from Alibaba's Qwen family.",
+        description:
+          "The Qwen 3 32B model is a powerful and efficient open-source model from Alibaba, offering strong performance in multilingual and general-purpose tasks.",
+        recommendedFor:
+          "Multilingual applications, content generation, and balanced workloads where performance and cost are key.",
+        release: "2024",
+        contextWindow: 131_072,
+        contextWindowUnit: "tokens",
+        featured: true,
+        isMultimodal: false,
+        supportsImageInput: false,
+        supportsPDFInput: false,
+        maxOutputTokens: {
+          default: 16_384,
+          max: 16_384,
+          description:
+            "Groq supports up to 16,384 output tokens for Qwen 3 32B.",
+        },
+        cost: usdCost({ input: 0.25, output: 0.25 }),
+        supportsReasoningMode: true,
+        reasoningModeNotes:
+          "Supports 'default' and 'none' reasoning effort via the API, but does not expose qualitative low/medium/high modes.",
+        reasoningModes: ["default", "none"],
+        reasoningTokens: {
+          helper:
+            "Groq does not expose a manual thinking budget for Qwen models.",
+        },
       },
     ],
   },
 };
+
+const PROVIDER_METADATA_ENTRIES = Object.entries(
+  RAW_PROVIDER_METADATA
+) as Array<[ModelProvider, RawProviderMetadata]>;
+
+export const PROVIDER_METADATA: Record<ModelProvider, ProviderMetadata> =
+  Object.fromEntries(
+    PROVIDER_METADATA_ENTRIES.map(([provider, metadata]) => [
+      provider,
+      normalizeProviderMetadata(metadata),
+    ])
+  ) as Record<ModelProvider, ProviderMetadata>;
 
 export type ProviderCatalog = typeof PROVIDER_METADATA;
 

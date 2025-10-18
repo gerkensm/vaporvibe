@@ -41,21 +41,28 @@ export async function resolveAppConfig(
   runtime.brief = options.brief || env.BRIEF?.trim();
 
   const hasApiKey = providerSettings.apiKey.trim().length > 0;
-  if (hasApiKey) {
+  const providerConfiguredViaCli = Boolean(
+    options.provider && options.provider.trim().length > 0
+  );
+  const modelConfiguredViaCli = Boolean(
+    options.model && options.model.trim().length > 0
+  );
+
+  if (hasApiKey && providerConfiguredViaCli && modelConfiguredViaCli) {
     applyProviderEnv(providerSettings);
   }
 
   const providersWithKeys = providerResolution.providersWithKeys;
-  const providerSelectionRequired =
-    !providerResolution.locked &&
-    providersWithKeys.filter(
-      (value, index) => providersWithKeys.indexOf(value) === index
-    ).length > 1;
+  const providerSelectionRequired = !(
+    providerConfiguredViaCli && modelConfiguredViaCli
+  );
+  const providerReady =
+    hasApiKey && providerConfiguredViaCli && modelConfiguredViaCli;
 
   return {
     provider: providerSettings,
     runtime,
-    providerReady: hasApiKey,
+    providerReady,
     providerLocked: providerResolution.locked,
     providerSelectionRequired,
     providersWithKeys,
@@ -156,12 +163,17 @@ async function resolveProviderSettings(
         ? reasoning.tokens
         : DEFAULT_REASONING_TOKENS.gemini;
     }
+    const reasoningMode = reasoning.modeExplicit
+      ? reasoning.mode
+      : reasoningTokensEnabled
+      ? "low"
+      : "none";
     return {
       provider,
       apiKey,
       model,
       maxOutputTokens,
-      reasoningMode: reasoning.mode,
+      reasoningMode,
       reasoningTokensEnabled,
       reasoningTokens,
     };
@@ -232,12 +244,17 @@ async function resolveProviderSettings(
       ? Math.min(reasoning.tokens!, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
       : DEFAULT_REASONING_TOKENS.anthropic;
   }
+  const reasoningMode = reasoning.modeExplicit
+    ? reasoning.mode
+    : reasoningTokensEnabled
+    ? "low"
+    : "none";
   return {
     provider,
     apiKey,
     model,
     maxOutputTokens,
-    reasoningMode: "none",
+    reasoningMode,
     reasoningTokensEnabled,
     reasoningTokens,
   };

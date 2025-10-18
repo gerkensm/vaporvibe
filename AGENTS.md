@@ -58,11 +58,11 @@ When first launched, the server guides the user through a browser-based setup wi
 2.  The wizard prompts the user to select a provider and enter an API key.
 3.  The server verifies the key against the provider's API.
 4.  The user then enters the initial application **brief**.
-5.  Once submitted, the app opens in a new tab, and the original tab becomes the Admin Console.
+5.  Once submitted, the app opens in a new tab, and the original tab becomes the React-powered admin console served from the same SPA shell.
 
 ### The Admin Console Flow 🕹️
 
-The admin console at `/serve-llm` is the control center for the live application.
+The admin console at `/serve-llm` is a React SPA (built in `frontend/`) that serves as the control center for the live application.
 
 - **Live Controls**: You can tweak the global brief, adjust history limits, and manage providers without restarting the server.
 - **History Explorer**: It allows you to inspect every generated page, including token usage stats, raw HTML, and model reasoning traces.
@@ -107,10 +107,10 @@ This is not a traditional software project; it's a creative tool. The "vibe" is 
 
 ### Special Server Routes
 
-- `/__setup`: Main route for the setup wizard UI.
+- `/__setup`: Main route for the setup wizard UI (served by the SPA shell).
 - `/__setup/verify-key`: `POST` endpoint for verifying a new API key.
 - `/__set-brief`: `POST` endpoint for submitting the initial app brief.
-- `/serve-llm/*`: Prefix for the Admin Console, handled by the `AdminController`.
+- `/serve-llm/*`: Prefix for the Admin Console, handled by the `AdminController` and rendered by the SPA.
 - `/__serve-llm/interceptor.js`: Serves the navigation interception script.
 - `/__serve-llm/result/{token}`: A temporary, single-use route for fetching generated HTML asynchronously.
 
@@ -120,12 +120,13 @@ This is not a traditional software project; it's a creative tool. The "vibe" is 
 
 - `src/index.ts`: The main CLI entry point that starts the server.
 - `src/server/server.ts`: The core HTTP server logic, request routing, and state management.
-- `src/server/admin-controller.ts`: Handles all logic for the `/serve-llm` admin dashboard.
+- `src/server/admin-controller.ts`: Handles all logic for the `/serve-llm` admin dashboard API.
 - `src/config/runtime-config.ts`: Central logic for resolving configuration from all sources.
 - `src/llm/messages.ts`: **Crucial file**. Contains the `buildMessages` function for core prompt engineering.
 - `src/llm/factory.ts`: A factory that creates the appropriate LLM client based on configuration.
 - `src/utils/credential-store.ts`: Implements secure API key storage using the OS keychain.
 - `src/utils/navigation-interceptor.ts`: Generates the client-side JavaScript for the navigation overlay.
+- `frontend/`: React + Vite admin/setup SPA. `frontend/src/pages/SetupWizard.tsx` and `frontend/src/pages/AdminDashboard.tsx` define the main routes; `frontend/dist/` is served by the backend in production.
 
 ---
 
@@ -134,8 +135,8 @@ This is not a traditional software project; it's a creative tool. The "vibe" is 
 ### Operational Details
 
 - **Environment**: Requires **Node.js v24+**.
-- **Development**: Run `npm run dev` for a live-reloading development server.
-- **Building**: The compiled `dist/` directory is committed to the repository. **You must run `npm run build` before committing changes.**
+- **Development**: Run `npm run dev` to launch both the backend watcher (`tsx --watch`) and the Vite dev server for the React admin SPA. Use `npm run dev:be` and `npm run dev:fe` to focus on one side.
+- **Building**: The compiled `dist/` directory is committed to the repository. **You must run `npm run build` before committing changes.** The build step also invokes `npm run build:fe` so `frontend/dist/` stays current.
 - **Error Handling**: The application uses graceful degradation. For instance, if the OS keychain is unavailable, it falls back to in-memory credential storage for the session without crashing.
 - **Security & Logging**: The server binds to `127.0.0.1` by default for security. Set the `LOG_LEVEL=debug` environment variable to see detailed prompts, reasoning traces, and token counts.
 

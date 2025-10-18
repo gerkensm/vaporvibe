@@ -21,6 +21,10 @@ export interface ModelCompositeScores {
     readonly responsiveness: number;
     readonly valueForMoney: number;
 }
+export interface ModelReasoningTokens extends NumericRange {
+    readonly supported: boolean;
+    readonly helper?: string;
+}
 export interface ModelMetadata {
     readonly value: string;
     readonly label: string;
@@ -36,12 +40,13 @@ export interface ModelMetadata {
     readonly supportsImageInput?: boolean;
     readonly supportsPDFInput?: boolean;
     readonly maxOutputTokens?: NumericRange;
-    readonly reasoningTokens?: NumericRange | null;
+    readonly reasoningTokens: ModelReasoningTokens;
     readonly reasoningModeNotes?: string;
     readonly documentationUrl?: string;
     readonly cost?: ModelCostInfo;
     readonly compositeScores?: ModelCompositeScores;
     readonly supportsReasoningMode?: boolean;
+    readonly reasoningModes?: ReasoningMode[];
 }
 export interface ProviderMetadata {
     readonly provider: ModelProvider;

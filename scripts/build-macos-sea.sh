@@ -86,7 +86,11 @@ async function runFromFilesystem(distRoot) {
 
     const keys = typeof sea.getAssetKeys === "function" ? sea.getAssetKeys() : [];
     for (const key of keys) {
-      if (!key.startsWith("dist/") && !key.startsWith("node_modules/")) {
+      if (
+        !key.startsWith("dist/") &&
+        !key.startsWith("node_modules/") &&
+        !key.startsWith("frontend/")
+      ) {
         continue;
       }
       const asset = sea.getAsset(key);
@@ -113,6 +117,7 @@ const [rootDir, configPath, entryScriptPath] = process.argv.slice(2);
 const blobOutputPath = path.join(rootDir, "out", "sea", "serve-llm.blob");
 const distDir = path.join(rootDir, "dist");
 const nodeModulesDir = path.join(rootDir, "node_modules");
+const frontendDistDir = path.join(rootDir, "frontend", "dist");
 const pkgJsonPath = path.join(rootDir, "package.json");
 
 if (!fs.existsSync(distDir)) {
@@ -146,6 +151,14 @@ const visit = dir => {
 };
 
 visit(distDir);
+
+if (fs.existsSync(frontendDistDir)) {
+  visit(frontendDistDir);
+} else {
+  console.warn(
+    "Warning: frontend/dist directory missing. Run \"npm run build:fe\" before building SEA."
+  );
+}
 
 if (fs.existsSync(pkgJsonPath) && fs.existsSync(nodeModulesDir)) {
   const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, "utf8"));

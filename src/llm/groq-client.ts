@@ -5,6 +5,7 @@ import type {
   LlmUsageMetrics,
   ProviderSettings,
   VerificationResult,
+  ReasoningMode,
 } from "../types.js";
 import type { LlmClient, LlmResult } from "./client.js";
 import { logger } from "../logger.js";
@@ -23,10 +24,11 @@ const GROQ_REASONING_SUPPORTED_MODELS = new Set<string>([
 ]);
 
 /** GPT-OSS supports explicit effort low|medium|high on Chat */
-const GROQ_GPT_OSS_MODELS = new Set<string>([
-  "openai/gpt-oss-20b",
-  "openai/gpt-oss-120b",
-]);
+const GROQ_MODEL_REASONING_EFFORT: Record<string, ReasoningMode[]> = {
+  "openai/gpt-oss-20b": ["none", "low", "medium", "high"],
+  "openai/gpt-oss-120b": ["none", "low", "medium", "high"],
+  "qwen/qwen3-32b": ["none", "default"],
+};
 
 type ImageAttachment = {
   mimeType: string;
@@ -415,23 +417,27 @@ function applyReasoningOptionsForChat(
 
   const normalizedModel = normalizeModelId(settings.model);
   if (!GROQ_REASONING_SUPPORTED_MODELS.has(normalizedModel)) return;
+  const supportedModes = GROQ_MODEL_REASONING_EFFORT[normalizedModel] ?? ["none"];
+  const effectiveMode = supportedModes.includes(mode)
+    ? mode
+    : supportedModes.find((item) => item !== "none") ?? "none";
 
-  const isGptOss = GROQ_GPT_OSS_MODELS.has(normalizedModel);
-
-  // Decide effort
-  const ossEffort: "low" | "medium" | "high" =
-    mode === "low" || mode === "medium" || mode === "high" ? mode : "medium";
-
-  if (isGptOss) {
-    // GPT-OSS: include_reasoning + low/medium/high
-    (request as any).reasoning_effort = ossEffort;
-    (request as any).include_reasoning = true;
-  } else {
-    // Qwen: prefer parsed reasoning format; effort mainly "default" or "none"
-    (request as any).reasoning_effort =
-      (mode as any) === "none" ? "none" : "default";
-    (request as any).reasoning_format = "parsed";
+  if (effectiveMode === "none") {
+    return;
   }
+
+  if (normalizedModel === "qwen/qwen3-32b") {
+    (request as any).reasoning_effort = effectiveMode === "default" ? "default" : "none";
+    (request as any).reasoning_format = "parsed";
+    if (effectiveMode !== "default") {
+      delete (request as any).reasoning_effort;
+      delete (request as any).reasoning_format;
+    }
+    return;
+  }
+
+  (request as any).reasoning_effort = effectiveMode;
+  (request as any).include_reasoning = true;
 }
 
 /* -------------------- util -------------------- */

@@ -1,5 +1,6 @@
 import { PROVIDER_METADATA, getModelOptions, getModelMetadata, getFeaturedModels, } from "../llm/model-catalog.js";
 import { DEFAULT_REASONING_TOKENS } from "../constants.js";
+export const CUSTOM_MODEL_DESCRIPTION = "Provide a custom model identifier supported by the provider. You can adjust token budgets below.";
 function providerChoiceFromMetadata(metadata) {
     return {
         value: metadata.provider,
@@ -28,6 +29,7 @@ export const DEFAULT_MAX_TOKENS_BY_PROVIDER = {
 };
 export const REASONING_MODE_CHOICES = [
     { value: "none", label: "None", description: "Disable the provider’s structured reasoning traces." },
+    { value: "default", label: "Default", description: "Use the provider’s default reasoning effort." },
     { value: "low", label: "Low", description: "Allow short reasoning bursts for tricky prompts." },
     { value: "medium", label: "Medium", description: "Balance latency and introspection for complex flows." },
     { value: "high", label: "High", description: "Maximize deliberate reasoning when quality is critical." },
@@ -38,6 +40,10 @@ export const PROVIDER_REASONING_CAPABILITIES = Object.fromEntries(Object.keys(PR
     const supportsTokens = metadata.reasoningTokens?.supported ?? false;
     return [provider, { mode: supportsModes, tokens: supportsTokens }];
 }));
+export const PROVIDER_REASONING_MODES = Object.fromEntries(Object.keys(PROVIDER_METADATA).map((provider) => [
+    provider,
+    PROVIDER_METADATA[provider].reasoningModes,
+]));
 export const PROVIDER_TOKEN_GUIDANCE = Object.fromEntries(Object.keys(PROVIDER_METADATA).map((provider) => {
     const metadata = PROVIDER_METADATA[provider];
     const reasoning = metadata.reasoningTokens;

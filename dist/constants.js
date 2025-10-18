@@ -30,6 +30,10 @@ export const DEFAULT_GROK_MODEL = GROK_METADATA.defaultModel;
 export const DEFAULT_GROQ_MODEL = GROQ_METADATA.defaultModel;
 export const DEFAULT_HISTORY_LIMIT = 30;
 export const DEFAULT_HISTORY_MAX_BYTES = 200_000;
+export const HISTORY_LIMIT_MIN = 1;
+export const HISTORY_LIMIT_MAX = 100;
+export const HISTORY_MAX_BYTES_MIN = 10_240;
+export const HISTORY_MAX_BYTES_MAX = 1_000_000;
 export const LOOPBACK_HOST = "127.0.0.1";
 export const DEFAULT_REASONING_TOKENS = {
     openai: OPENAI_METADATA.reasoningTokens?.default,

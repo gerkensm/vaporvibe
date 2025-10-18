@@ -39,7 +39,7 @@ declare module "@anthropic-ai/sdk" {
         max_tokens: number;
         system?: string;
         messages: AnthropicMessage[];
-        thinking?: { type: "thinking"; budget_tokens: number };
+        thinking?: { type: "enabled"; budget_tokens: number };
       }): Promise<AnthropicStream>;
     };
   }

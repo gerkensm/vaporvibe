@@ -43,7 +43,7 @@ export class GeminiClient {
                 parts: [{ text: systemMessages.map((message) => message.content).join("\n\n") }],
             };
         }
-        const includeThoughts = shouldEnableGeminiThoughts(this.settings.reasoningMode, this.settings.reasoningTokens);
+        const includeThoughts = shouldEnableGeminiThoughts(this.settings);
         if (includeThoughts) {
             config.thinkingConfig = {
                 includeThoughts: true,
@@ -55,7 +55,9 @@ export class GeminiClient {
             contents,
             config,
         });
-        const reasoning = extractGeminiThinking(response, this.settings.reasoningMode, this.settings.reasoningTokens);
+        const reasoning = includeThoughts
+            ? extractGeminiThinking(response, this.settings)
+            : undefined;
         const text = response.text?.trim();
         if (text) {
             return { html: text, usage: extractUsage(response), reasoning, raw: response };
@@ -151,10 +153,7 @@ function extractUsage(response) {
     }
     return metrics;
 }
-function extractGeminiThinking(response, mode, requestedTokens) {
-    if (!shouldEnableGeminiThoughts(mode, requestedTokens)) {
-        return undefined;
-    }
+function extractGeminiThinking(response, settings) {
     try {
         const firstCandidate = response?.candidates?.[0];
         const parts = firstCandidate?.content?.parts ?? [];
@@ -163,13 +162,25 @@ function extractGeminiThinking(response, mode, requestedTokens) {
             .map((part) => part.text);
         const usage = response?.usageMetadata ?? response?.usage_metadata;
         const thoughtsTokenCount = usage?.thoughtsTokenCount ?? usage?.thoughts_token_count;
-        const budgetLabel = requestedTokens ?? "auto";
-        const header = `Gemini thinking (mode=${mode}, budget=${budgetLabel}, thoughtTokens=${thoughtsTokenCount ?? "n/a"})`;
+        const budgetLabel = typeof settings.reasoningTokens === "number"
+            ? settings.reasoningTokens
+            : settings.reasoningTokensEnabled === false
+                ? "disabled"
+                : "auto";
+        const header = `Gemini thinking (mode=${settings.reasoningMode}, budget=${budgetLabel}, thoughtTokens=${thoughtsTokenCount ?? "n/a"})`;
         if (thoughtSummaries.length > 0) {
             logger.debug(`${header}\n${thoughtSummaries.join("\n\n")}`);
             return {
                 summaries: thoughtSummaries,
                 raw: thoughtSummaries,
+            };
+        }
+        if (typeof thoughtsTokenCount === "number" && thoughtsTokenCount > 0) {
+            const fallback = `Gemini generated ${thoughtsTokenCount} reasoning tokens (thought text unavailable).`;
+            logger.debug(`${header} — ${fallback}`);
+            return {
+                summaries: [fallback],
+                raw: [fallback],
             };
         }
         logger.debug(`${header} — no thought summaries returned.`);
@@ -180,14 +191,17 @@ function extractGeminiThinking(response, mode, requestedTokens) {
         return undefined;
     }
 }
-function shouldEnableGeminiThoughts(mode, requestedTokens) {
-    if (mode && mode !== "none") {
+function shouldEnableGeminiThoughts(settings) {
+    if (settings.reasoningTokensEnabled === false) {
+        return false;
+    }
+    if (settings.reasoningMode && settings.reasoningMode !== "none") {
         return true;
     }
-    if (typeof requestedTokens === "number") {
-        return requestedTokens !== 0;
+    if (typeof settings.reasoningTokens === "number") {
+        return settings.reasoningTokens !== 0;
     }
-    return false;
+    return true;
 }
 function getGeminiThinkingLimits(model) {
     const normalized = model.trim().toLowerCase();

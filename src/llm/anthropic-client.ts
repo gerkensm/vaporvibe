@@ -39,7 +39,7 @@ type AnthropicStreamEvent = {
 };
 
 type AnthropicStream = AsyncIterable<AnthropicStreamEvent> & {
-  finalMessage(): Promise<{ content?: AnthropicContentBlock[] } | null>;
+  finalMessage(): Promise<{ content?: AnthropicContentBlock[]; usage?: unknown } | null>;
   close?(): Promise<void>;
 };
 
@@ -151,48 +151,69 @@ export class AnthropicClient implements LlmClient {
     }
 
     const stream = await this.retryOnOverload(
-      async () => this.client.messages.stream(streamRequest) as unknown as AnthropicStream,
+      async () => this.client.messages.stream(streamRequest) as unknown as AnthropicStream
     );
 
+    const captureDiagnostics = shouldCaptureStreamDiagnostics();
+    const diagnostics: StreamEventSnapshot[] = [];
     let accumulated = "";
     let streamedThinking = "";
     for await (const event of stream) {
       accumulated += this.extractStreamDelta(event);
-      streamedThinking += this.extractThinkingDelta(event);
+      const thinkingDelta = this.extractThinkingDelta(event);
+      if (thinkingDelta) {
+        streamedThinking += thinkingDelta;
+      }
+      if (captureDiagnostics) {
+        diagnostics.push(summarizeStreamEvent(event));
+        if (diagnostics.length > STREAM_DIAGNOSTIC_EVENT_LIMIT) {
+          diagnostics.shift();
+        }
+      }
     }
 
     const finalMessage = await stream.finalMessage();
-    await stream.close?.();
+    try {
+      await stream.close?.();
+    } catch (error) {
+      logger.debug(
+        { message: (error as Error)?.message ?? String(error) },
+        "Failed to close Anthropic message stream gracefully",
+      );
+    }
 
     if (!accumulated) {
       accumulated = this.combineContent(finalMessage?.content).trim();
     }
 
-    const reasoning = this.logAndCollectThinking(finalMessage, thinkingBudget, streamedThinking);
+    const usage = extractUsage(finalMessage);
+    let reasoning = this.logAndCollectThinking(
+      finalMessage,
+      thinkingBudget,
+      streamedThinking,
+      usage?.reasoningTokens
+    );
+    const rawPayload = buildReasoningRawPayload(
+      finalMessage,
+      streamedThinking,
+      captureDiagnostics ? diagnostics : undefined,
+    );
+    if (reasoning) {
+      reasoning.raw = rawPayload;
+    } else if (rawPayload) {
+      reasoning = { raw: rawPayload };
+    }
 
-    return { html: accumulated.trim(), usage: extractUsage(finalMessage), reasoning, raw: finalMessage };
-  }
+    if (captureDiagnostics && diagnostics.length > 0) {
+      logger.debug({ events: diagnostics }, "Anthropic stream trace captured");
+    }
 
-  private extractStreamDelta(event: AnthropicStreamEvent): string {
-    if (!event) {
-      return "";
-    }
-    const delta = event.delta ?? event.content_block_delta?.delta;
-    if (delta?.type === "text_delta" && typeof delta.text === "string") {
-      return delta.text;
-    }
-    return "";
-  }
-
-  private extractThinkingDelta(event: AnthropicStreamEvent): string {
-    if (!event) {
-      return "";
-    }
-    const delta = event.delta ?? event.content_block_delta?.delta;
-    if (delta?.type === "thinking_delta" && typeof delta.thinking === "string") {
-      return delta.thinking;
-    }
-    return "";
+    return {
+      html: accumulated.trim(),
+      usage,
+      reasoning,
+      raw: rawPayload ?? finalMessage,
+    };
   }
 
   private combineContent(blocks: AnthropicContentBlock[] | undefined): string {
@@ -209,8 +230,17 @@ export class AnthropicClient implements LlmClient {
       return [];
     }
     return blocks
-      .filter((block) => block?.type === "thinking")
-      .map((block) => block?.thinking ?? block?.text ?? "")
+      .map((block) => {
+        const normalizedType = typeof block?.type === "string" ? block.type.toLowerCase() : "";
+        const isThinkingType = normalizedType.includes("thinking");
+        if (isThinkingType) {
+          return block?.thinking ?? block?.text ?? "";
+        }
+        if (typeof block?.thinking === "string" && block.thinking.trim().length > 0) {
+          return block.thinking;
+        }
+        return undefined;
+      })
       .filter((value): value is string => Boolean(value && value.trim().length > 0));
   }
 
@@ -218,11 +248,16 @@ export class AnthropicClient implements LlmClient {
     finalMessage: { content?: AnthropicContentBlock[] } | null,
     budgetTokens: number,
     streamedThinking: string,
+    tokensUsed?: number
   ): LlmReasoningTrace | undefined {
     const trimmedStream = streamedThinking.trim();
-    const summaries = trimmedStream.length > 0
+    let summaries = trimmedStream.length > 0
       ? [trimmedStream]
       : this.collectThinking(finalMessage?.content);
+
+    if ((!summaries || summaries.length === 0) && typeof tokensUsed === "number" && tokensUsed > 0) {
+      summaries = [`Anthropic generated ${tokensUsed} reasoning tokens (trace not returned by provider).`];
+    }
 
     if (!summaries || summaries.length === 0) {
       return undefined;
@@ -265,6 +300,109 @@ export class AnthropicClient implements LlmClient {
     }
     throw new Error("Anthropic overload retry loop exhausted unexpectedly.");
   }
+
+  private extractStreamDelta(event: AnthropicStreamEvent): string {
+    if (!event) {
+      return "";
+    }
+    const delta = event.delta ?? event.content_block_delta?.delta;
+    if (delta?.type === "text_delta" && typeof delta.text === "string") {
+      return delta.text;
+    }
+    return "";
+  }
+
+  private extractThinkingDelta(event: AnthropicStreamEvent): string {
+    if (!event) {
+      return "";
+    }
+    const delta = event.delta ?? event.content_block_delta?.delta;
+    const eventType = typeof event.type === "string" ? event.type.toLowerCase() : "";
+    const deltaType = typeof delta?.type === "string" ? delta.type.toLowerCase() : "";
+    if (delta && typeof delta.thinking === "string" && delta.thinking.length > 0) {
+      return delta.thinking;
+    }
+    if (deltaType.includes("thinking") && typeof delta?.text === "string") {
+      return delta.text;
+    }
+    if (eventType.includes("thinking") && typeof delta?.text === "string") {
+      return delta.text;
+    }
+    if (eventType.includes("thinking") && typeof (delta as Record<string, unknown>)?.partial_json === "string") {
+      return (delta as Record<string, string>).partial_json;
+    }
+    return "";
+  }
+}
+
+type StreamEventSnapshot = {
+  type?: string;
+  deltaType?: string;
+  text?: string;
+  thinking?: string;
+};
+
+const STREAM_DIAGNOSTIC_EVENT_LIMIT = 40;
+const STREAM_DIAGNOSTIC_SNIPPET = 160;
+
+function summarizeStreamEvent(event: AnthropicStreamEvent): StreamEventSnapshot {
+  const delta = event?.delta ?? event?.content_block_delta?.delta;
+  const text = typeof delta?.text === "string" ? delta.text : undefined;
+  const thinking = typeof delta?.thinking === "string" ? delta.thinking : undefined;
+  return {
+    type: event?.type,
+    deltaType: delta?.type,
+    text: text ? truncateForDiagnostics(text) : undefined,
+    thinking: thinking ? truncateForDiagnostics(thinking) : undefined,
+  };
+}
+
+function truncateForDiagnostics(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length <= STREAM_DIAGNOSTIC_SNIPPET) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, STREAM_DIAGNOSTIC_SNIPPET)}…`;
+}
+
+function shouldCaptureStreamDiagnostics(): boolean {
+  const flag = process.env.ANTHROPIC_DEBUG_STREAM;
+  if (!flag) {
+    return false;
+  }
+  switch (flag.trim().toLowerCase()) {
+    case "1":
+    case "true":
+    case "yes":
+    case "debug":
+      return true;
+    default:
+      return false;
+  }
+}
+
+function buildReasoningRawPayload(
+  finalMessage: { content?: AnthropicContentBlock[] } | null,
+  streamedThinking: string,
+  diagnostics?: StreamEventSnapshot[]
+):
+  | {
+      finalMessage?: { content?: AnthropicContentBlock[] } | null;
+      streamedThinking?: string;
+      diagnostics?: StreamEventSnapshot[];
+    }
+  | undefined {
+  const hasStreamText = Boolean(streamedThinking && streamedThinking.trim().length > 0);
+  const hasFinalContent = Boolean(finalMessage?.content && finalMessage.content.length > 0);
+  const hasDiagnostics = Boolean(diagnostics && diagnostics.length > 0);
+  if (!hasStreamText && !hasFinalContent && !hasDiagnostics) {
+    return undefined;
+  }
+  return {
+    finalMessage,
+    streamedThinking: hasStreamText ? streamedThinking.trim() : undefined,
+    diagnostics,
+  };
 }
 
 export async function verifyAnthropicApiKey(apiKey: string): Promise<VerificationResult> {
@@ -392,6 +530,19 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
 }
 
 function isAnthropicOverload(error: unknown): boolean {
+  if (typeof error === "string") {
+    const normalized = error.toLowerCase();
+    if (normalized.includes("overload")) {
+      return true;
+    }
+    try {
+      const parsed = JSON.parse(error);
+      return isAnthropicOverload(parsed);
+    } catch {
+      return false;
+    }
+  }
+
   const status = extractStatus(error);
   if (status === 529) {
     return true;
