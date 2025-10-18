@@ -21,6 +21,10 @@ pnpm-debug.log*
 .history/
 out
 out/*
+dist
+dist/*
+frontend/dist
+frontend/dist/*
 
 # Generated macOS packaging artifacts
 scripts/macos-app/icon-build/
