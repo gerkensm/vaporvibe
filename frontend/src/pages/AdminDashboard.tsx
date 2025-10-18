@@ -98,6 +98,38 @@ const TAB_LABELS: Record<TabKey, string> = {
   history: "History",
 };
 
+const ADMIN_ROUTE_PREFIX = "/serve-llm";
+
+const isAdminPath = (pathname: string) =>
+  pathname === ADMIN_ROUTE_PREFIX ||
+  pathname.startsWith(`${ADMIN_ROUTE_PREFIX}/`);
+
+const normalizeAdminPath = (pathname: string) =>
+  pathname.replace(/\/+$/, "") || "/";
+
+const isTabKey = (value: string): value is TabKey =>
+  (TAB_ORDER as readonly string[]).includes(value);
+
+const getTabFromPath = (pathname: string): TabKey | null => {
+  if (!isAdminPath(pathname)) {
+    return null;
+  }
+  const normalized = normalizeAdminPath(pathname);
+  const remainder = normalized.slice(ADMIN_ROUTE_PREFIX.length);
+  if (!remainder || remainder === "") {
+    return "brief";
+  }
+  const segments = remainder.split("/").filter(Boolean);
+  if (segments.length === 0) {
+    return "brief";
+  }
+  const candidate = segments[0];
+  return isTabKey(candidate) ? candidate : "brief";
+};
+
+const createTabPath = (tab: TabKey) =>
+  tab === "brief" ? ADMIN_ROUTE_PREFIX : `${ADMIN_ROUTE_PREFIX}/${tab}`;
+
 type AdminLocationState = {
   showLaunchPad?: boolean;
 } | null;
@@ -138,7 +170,10 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   const [historyStatusMessage, setHistoryStatusMessage] = useState<
     string | null
   >(null);
-  const [activeTab, setActiveTab] = useState<TabKey>("brief");
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    const initial = getTabFromPath(location.pathname);
+    return initial ?? "brief";
+  });
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [historyLastRefreshMs, setHistoryLastRefreshMs] = useState<
     number | null
@@ -274,6 +309,16 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       setSetupStep("provider");
     }
   }, [needsProviderSetup, needsBriefSetup]);
+
+  useEffect(() => {
+    const routeTab = getTabFromPath(location.pathname);
+    if (!routeTab) {
+      return;
+    }
+    if (routeTab !== activeTab) {
+      setActiveTab(routeTab);
+    }
+  }, [location.pathname, activeTab, setActiveTab]);
 
   useEffect(() => {
     if (!state) return;
@@ -452,9 +497,17 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   useEffect(() => {
     if (showSetupShell) {
       setActiveTab("brief");
+      if (isAdminPath(location.pathname)) {
+        const targetPath = createTabPath("brief");
+        const currentPath = normalizeAdminPath(location.pathname);
+        if (currentPath !== targetPath) {
+          const search = location.search || "";
+          navigate(`${targetPath}${search}`, { replace: true });
+        }
+      }
       setShowLaunchPad(false);
     }
-  }, [showSetupShell]);
+  }, [showSetupShell, location.pathname, location.search, navigate]);
 
   useEffect(() => {
     const previouslyShowing = previousShowSetupShellRef.current;
@@ -520,9 +573,30 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     historyLoadingMore,
   ]);
 
-  const handleTabClick = useCallback((key: TabKey) => {
-    setActiveTab(key);
-  }, []);
+  const navigateToTab = useCallback(
+    (tab: TabKey, options?: { replace?: boolean }) => {
+      if (!isAdminPath(location.pathname)) {
+        return;
+      }
+      const nextPath = createTabPath(tab);
+      const currentPath = normalizeAdminPath(location.pathname);
+      if (currentPath !== nextPath) {
+        const search = location.search || "";
+        navigate(`${nextPath}${search}`, { replace: options?.replace });
+      } else if (options?.replace && location.search) {
+        navigate(`${nextPath}${location.search}`, { replace: true });
+      }
+    },
+    [location.pathname, location.search, navigate]
+  );
+
+  const handleTabClick = useCallback(
+    (key: TabKey) => {
+      setActiveTab(key);
+      navigateToTab(key);
+    },
+    [navigateToTab]
+  );
 
   const handleTabKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
@@ -533,6 +607,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
         const nextIndex = (index + delta + TAB_ORDER.length) % TAB_ORDER.length;
         const nextKey = TAB_ORDER[nextIndex];
         setActiveTab(nextKey);
+        navigateToTab(nextKey);
         const buttons =
           currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
             "[data-tab-key]"
@@ -543,7 +618,9 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       }
       if (key === "Home") {
         event.preventDefault();
-        setActiveTab(TAB_ORDER[0]);
+        const firstKey = TAB_ORDER[0];
+        setActiveTab(firstKey);
+        navigateToTab(firstKey);
         const buttons =
           currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
             "[data-tab-key]"
@@ -555,7 +632,9 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       if (key === "End") {
         event.preventDefault();
         const lastIndex = TAB_ORDER.length - 1;
-        setActiveTab(TAB_ORDER[lastIndex]);
+        const lastKey = TAB_ORDER[lastIndex];
+        setActiveTab(lastKey);
+        navigateToTab(lastKey);
         const buttons =
           currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
             "[data-tab-key]"
@@ -564,7 +643,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
         target?.focus();
       }
     },
-    []
+    [navigateToTab]
   );
 
   const handleToggleAutoRefresh = useCallback(() => {
@@ -1714,6 +1793,19 @@ function ProviderPanel({
     ]
   );
 
+  const resolveApiKeyMask = useCallback(
+    (status: { hasKey: boolean; verified: boolean } | undefined) => {
+      if (status?.verified) {
+        return "verified key on file";
+      }
+      if (status?.hasKey) {
+        return "key stored securely";
+      }
+      return "not set";
+    },
+    []
+  );
+
   const handleVerify = async () => {
     if (verifying === "loading") {
       return;
@@ -1741,7 +1833,23 @@ function ProviderPanel({
         );
       }
       if (response.state) {
-        onState(response.state);
+        const serverState = response.state;
+        const serverProvider = serverState.provider.provider;
+        const currentProviderKey = provider.provider as ProviderKey;
+        if (serverProvider === provider.provider) {
+          onState(serverState);
+        } else {
+          const nextMask = resolveApiKeyMask(
+            serverState.providerKeyStatuses[currentProviderKey]
+          );
+          onState({
+            ...serverState,
+            provider: {
+              ...state.provider,
+              apiKeyMask: nextMask,
+            },
+          });
+        }
       }
       setApiKey("");
       onStatus({ tone: "info", message: response.message });
