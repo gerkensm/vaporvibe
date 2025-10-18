@@ -36,7 +36,7 @@ All you need is **Node.js (v20+, ideally 24)** and an API key from OpenAI, Googl
 
 Watch how a single brief turns into an improv UI loop. The model invents a note taking app from scratch, gets feedback via the Iterations panel to add features, and then hallucinates consistent interactions on the fly.
 
-https://github.com/user-attachments/assets/2dc2cc71-811b-477e-b217-3c46606c39bd
+https://github.com/user-attachments/assets/176c463f-4919-44b2-9193-94ccde51610c
 
 ---
 
