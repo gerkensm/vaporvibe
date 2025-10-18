@@ -29,6 +29,8 @@ import type {
   ProviderSettings,
   ReasoningMode,
   ModelProvider,
+  RestMutationRecord,
+  RestQueryRecord,
 } from "../types.js";
 import { createLlmClient } from "../llm/factory.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
@@ -48,6 +50,9 @@ import type {
   AdminHistoryItem,
   AdminHistoryResponse,
   AdminProviderInfo,
+  AdminRestItem,
+  AdminRestMutationItem,
+  AdminRestQueryItem,
   AdminRuntimeInfo,
   AdminStateResponse,
   AdminUpdateResponse,
@@ -1415,7 +1420,7 @@ export class AdminController {
   private toAdminHistoryItem(entry: HistoryEntry): AdminHistoryItem {
     const querySummary = summarizeRecord(entry.request.query);
     const bodySummary = summarizeRecord(entry.request.body);
-    const usageSummary = summarizeUsage(entry);
+    const usageSummary = entry.entryKind === "html" ? summarizeUsage(entry) : undefined;
     const reasoningSummaries = entry.reasoning?.summaries
       ? [...entry.reasoning.summaries]
       : undefined;
@@ -1427,6 +1432,33 @@ export class AdminController {
           this.toAdminBriefAttachment(attachment)
         )
       : undefined;
+    const restMutations =
+      entry.entryKind === "html" && entry.restMutations?.length
+        ? entry.restMutations.map(toAdminRestMutationItem)
+        : undefined;
+    const restQueries =
+      entry.entryKind === "html" && entry.restQueries?.length
+        ? entry.restQueries.map(toAdminRestQueryItem)
+        : undefined;
+
+    let restItem: AdminRestItem | undefined;
+    if (entry.entryKind !== "html" && entry.rest) {
+      let responseSummary: string | undefined;
+      if ("response" in entry.rest) {
+        try {
+          responseSummary = JSON.stringify(entry.rest.response ?? null, null, 2);
+        } catch {
+          responseSummary = String(entry.rest.response ?? "");
+        }
+      }
+      restItem = {
+        type: entry.rest.type,
+        request: entry.rest.request,
+        responseSummary,
+        ok: entry.rest.ok,
+        error: entry.rest.error,
+      };
+    }
 
     return {
       id: entry.id,
@@ -1442,6 +1474,10 @@ export class AdminController {
       reasoningDetails,
       html: entry.response.html,
       attachments,
+      entryKind: entry.entryKind,
+      rest: restItem,
+      restMutations,
+      restQueries,
       viewUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(
         entry.id
       )}/view`,
@@ -1465,6 +1501,22 @@ function summarizeRecord(record: Record<string, unknown> | undefined): string {
   }
 }
 
+function summarizeUnknown(value: unknown): string {
+  if (value == null) {
+    return "null";
+  }
+  if (typeof value === "string") {
+    return value.length > 90 ? `${value.slice(0, 87)}…` : value;
+  }
+  try {
+    const json = JSON.stringify(value);
+    if (!json) return "{}";
+    return json.length > 90 ? `${json.slice(0, 87)}…` : json;
+  } catch {
+    return String(value);
+  }
+}
+
 function summarizeUsage(entry: HistoryEntry): string | undefined {
   const usage = entry.usage;
   if (!usage) return undefined;
@@ -1479,6 +1531,26 @@ function summarizeUsage(entry: HistoryEntry): string | undefined {
     parts.push(`total ${usage.totalTokens}`);
   if (parts.length === 0) return undefined;
   return parts.join(" · ");
+}
+
+function toAdminRestMutationItem(record: RestMutationRecord): AdminRestMutationItem {
+  return {
+    id: record.id,
+    createdAt: record.createdAt,
+    method: record.method,
+    path: record.path,
+    querySummary: summarizeRecord(record.query),
+    bodySummary: summarizeRecord(record.body),
+  };
+}
+
+function toAdminRestQueryItem(record: RestQueryRecord): AdminRestQueryItem {
+  return {
+    ...toAdminRestMutationItem(record),
+    ok: record.ok,
+    responseSummary: summarizeUnknown(record.response),
+    error: record.error,
+  };
 }
 
 function normalizeStringArray(value: unknown): string[] {

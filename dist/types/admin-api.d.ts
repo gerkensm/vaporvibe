@@ -1,4 +1,4 @@
-import type { ModelProvider, ReasoningMode } from "../types.js";
+import type { HistoryEntryKind, ModelProvider, ReasoningMode, RestHistoryMetadata } from "../types.js";
 import type { ProviderChoice, ProviderTokenGuidance } from "../constants/providers.js";
 import type { ModelMetadata } from "../llm/model-catalog.js";
 export interface AdminProviderInfo {
@@ -23,6 +23,26 @@ export interface AdminBriefAttachment {
     dataUrl: string;
     isImage: boolean;
 }
+export interface AdminRestItem {
+    type: "mutation" | "query";
+    request: RestHistoryMetadata["request"];
+    responseSummary?: string;
+    ok?: boolean;
+    error?: string;
+}
+export interface AdminRestMutationItem {
+    id: string;
+    createdAt: string;
+    method: string;
+    path: string;
+    querySummary: string;
+    bodySummary: string;
+}
+export interface AdminRestQueryItem extends AdminRestMutationItem {
+    ok: boolean;
+    responseSummary: string;
+    error?: string;
+}
 export interface AdminHistoryItem {
     id: string;
     createdAt: string;
@@ -37,6 +57,10 @@ export interface AdminHistoryItem {
     reasoningDetails?: string[];
     html: string;
     attachments?: AdminBriefAttachment[];
+    entryKind: HistoryEntryKind;
+    rest?: AdminRestItem;
+    restMutations?: AdminRestMutationItem[];
+    restQueries?: AdminRestQueryItem[];
     viewUrl: string;
     downloadUrl: string;
     deleteUrl: string;

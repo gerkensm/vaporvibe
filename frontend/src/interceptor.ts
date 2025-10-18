@@ -5,6 +5,32 @@ import {
   navigationOverlayMiniGameMarkup,
 } from "./scripts/navigation-overlay-effects";
 
+const REST_MUTATION_PREFIX = "/rest_api/mutation/";
+const REST_QUERY_PREFIX = "/rest_api/query/";
+
+function isRestApiPath(pathname: string): boolean {
+  return (
+    pathname.startsWith(REST_MUTATION_PREFIX) ||
+    pathname.startsWith(REST_QUERY_PREFIX)
+  );
+}
+
+function emitRestApiEvent(
+  target: Element | null,
+  detail: { method: string; url: string }
+): void {
+  if (!target) return;
+  try {
+    const event = new CustomEvent("serve-llm:rest-api-request", {
+      bubbles: true,
+      detail,
+    });
+    target.dispatchEvent(event);
+  } catch {
+    // ignore dispatch failures
+  }
+}
+
 const overlayEffectClassNames = navigationOverlayEffects.map(
   (effect) => `effect-${effect.id}`
 );
@@ -343,8 +369,16 @@ const statusMessages = [
     // ignore URL parsing errors
   }
 
-  function handleRequest(url: URL | string, _options: { method: string }): void {
+  function handleRequest(url: URL | string, options: { method: string }): void {
     const destination = url instanceof URL ? url : new URL(url, window.location.origin);
+    if (isRestApiPath(destination.pathname)) {
+      emitRestApiEvent(document.body ?? null, {
+        method: options.method,
+        url: destination.href,
+      });
+      return;
+    }
+
     if (destination.pathname.startsWith("/serve-llm") || destination.pathname.startsWith("/__setup")) {
       window.location.href = destination.href;
       return;
@@ -398,6 +432,12 @@ const statusMessages = [
           parsed.hash
         )
           return;
+
+        if (isRestApiPath(parsed.pathname)) {
+          event.preventDefault();
+          emitRestApiEvent(anchor, { method: "GET", url: parsed.href });
+          return;
+        }
       } catch {
         // ignore malformed URLs
       }
@@ -408,58 +448,72 @@ const statusMessages = [
     true
   );
 
-  document.addEventListener(
-    "submit",
-    (event) => {
-      let node = event.target as Node | null;
-      while (node && node.nodeType !== Node.ELEMENT_NODE) node = node.parentNode;
-      const form = (node as HTMLElement | null)?.closest<HTMLFormElement>("form") ?? null;
-      if (!form || form.target === "_blank") return;
-      event.preventDefault();
+  document.addEventListener("submit", (event) => {
+    let node = event.target as Node | null;
+    while (node && node.nodeType !== Node.ELEMENT_NODE) node = node.parentNode;
+    const form = (node as HTMLElement | null)?.closest<HTMLFormElement>("form") ?? null;
+    if (!form || form.target === "_blank") return;
 
-      const method = (form.getAttribute("method") || "GET").toUpperCase();
-      if (method === "GET") {
-        const url = new URL(form.action || window.location.href);
+    if (event.defaultPrevented) return;
+
+    const method = (form.getAttribute("method") || "GET").toUpperCase();
+    if (method === "GET") {
+      event.preventDefault();
+      const url = new URL(form.action || window.location.href);
+      try {
+        const submitter = (event as SubmitEvent).submitter as
+          | HTMLButtonElement
+          | HTMLInputElement
+          | null;
+        let formData: FormData;
         try {
-          const submitter = (event as SubmitEvent).submitter as
-            | HTMLButtonElement
-            | HTMLInputElement
-            | null;
-          let formData: FormData;
-          try {
-            formData = submitter
-              ? new FormData(form, submitter)
-              : new FormData(form);
-          } catch {
-            formData = new FormData(form);
-            if (submitter && submitter.name) {
-              formData.append(submitter.name, submitter.value);
-            }
-          }
-          formData.forEach((value, key) => {
-            if (value instanceof File) return;
-            url.searchParams.append(key, String(value));
-          });
-        } catch (error) {
-          console.warn("serve-llm form encoding failed:", error);
-        }
-        handleRequest(url, { method: "GET" });
-      } else {
-        try {
-          const hidden = document.createElement("input");
-          hidden.type = "hidden";
-          hidden.name = "__serve-llm";
-          hidden.value = "interceptor";
-          form.appendChild(hidden);
+          formData = submitter
+            ? new FormData(form, submitter)
+            : new FormData(form);
         } catch {
-          // ignore hidden input creation errors
+          formData = new FormData(form);
+          if (submitter && submitter.name) {
+            formData.append(submitter.name, submitter.value);
+          }
         }
-        showOverlay();
-        form.submit();
+        formData.forEach((value, key) => {
+          if (value instanceof File) return;
+          url.searchParams.append(key, String(value));
+        });
+      } catch (error) {
+        console.warn("serve-llm form encoding failed:", error);
       }
-    },
-    true
-  );
+
+      if (isRestApiPath(url.pathname)) {
+        emitRestApiEvent(form, { method: "GET", url: url.href });
+        return;
+      }
+
+      handleRequest(url, { method: "GET" });
+    } else {
+      event.preventDefault();
+      const destination = new URL(form.action || window.location.href);
+      if (isRestApiPath(destination.pathname)) {
+        emitRestApiEvent(form, {
+          method,
+          url: destination.href,
+        });
+        return;
+      }
+
+      try {
+        const hidden = document.createElement("input");
+        hidden.type = "hidden";
+        hidden.name = "__serve-llm";
+        hidden.value = "interceptor";
+        form.appendChild(hidden);
+      } catch {
+        // ignore hidden input creation errors
+      }
+      showOverlay();
+      form.submit();
+    }
+  });
 
   window.addEventListener("popstate", () => {
     window.location.reload();

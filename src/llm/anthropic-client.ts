@@ -530,6 +530,19 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
 }
 
 function isAnthropicOverload(error: unknown): boolean {
+  if (typeof error === "string") {
+    const normalized = error.toLowerCase();
+    if (normalized.includes("overload")) {
+      return true;
+    }
+    try {
+      const parsed = JSON.parse(error);
+      return isAnthropicOverload(parsed);
+    } catch {
+      return false;
+    }
+  }
+
   const status = extractStatus(error);
   if (status === 529) {
     return true;

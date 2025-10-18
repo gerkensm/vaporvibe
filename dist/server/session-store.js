@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 import { setCookie } from "../utils/cookies.js";
+import { escapeHtml } from "../utils/html.js";
+const REST_RECORD_LIMIT = 25;
 export class SessionStore {
     ttlMs;
     capacity;
@@ -28,8 +30,8 @@ export class SessionStore {
             return "";
         if (record.prevHtml)
             return record.prevHtml;
-        const lastEntry = record.history.at(-1);
-        return lastEntry?.response.html ?? "";
+        const lastHtmlEntry = findLastHtmlEntry(record.history ?? []);
+        return lastHtmlEntry?.response.html ?? "";
     }
     setPrevHtml(sid, html) {
         const record = this.ensureRecord(sid);
@@ -46,11 +48,42 @@ export class SessionStore {
         }
         return history.slice();
     }
-    appendHistoryEntry(sid, entry) {
+    appendHistoryEntry(sid, entry, options = {}) {
         const record = this.ensureRecord(sid);
         record.history = [...(record.history ?? []), entry];
-        record.prevHtml = entry.response.html;
+        if (!options.preservePrevHtml) {
+            record.prevHtml = entry.response.html;
+        }
         this.persistRecord(sid, record);
+    }
+    appendMutationRecord(sid, record) {
+        const session = this.ensureRecord(sid);
+        const mutations = [...session.rest.mutations, record];
+        session.rest.mutations = clampRestRecords(mutations);
+        this.persistRecord(sid, session);
+    }
+    appendQueryRecord(sid, record) {
+        const session = this.ensureRecord(sid);
+        const queries = [...session.rest.queries, record];
+        session.rest.queries = clampRestRecords(queries);
+        this.persistRecord(sid, session);
+    }
+    getRestState(sid, limit) {
+        const record = this.getActiveRecord(sid);
+        if (!record) {
+            return { mutations: [], queries: [] };
+        }
+        const clamp = typeof limit === "number" && limit > 0 ? limit : undefined;
+        const mutations = clamp
+            ? record.rest.mutations.slice(-clamp)
+            : record.rest.mutations.slice();
+        const queries = clamp
+            ? record.rest.queries.slice(-clamp)
+            : record.rest.queries.slice();
+        return {
+            mutations: mutations.map(cloneRestRecord),
+            queries: queries.map(cloneRestRecord),
+        };
     }
     removeHistoryEntry(entryId) {
         let removed = false;
@@ -65,7 +98,7 @@ export class SessionStore {
             const nextRecord = {
                 ...record,
                 history: nextHistory,
-                prevHtml: nextHistory.at(-1)?.response.html ?? "",
+                prevHtml: findLastHtmlEntry(nextHistory)?.response.html ?? "",
             };
             this.persistRecord(sid, nextRecord);
             removed = true;
@@ -88,8 +121,13 @@ export class SessionStore {
             if (!sid)
                 continue;
             const record = this.sessions.get(sid) ?? createSessionData();
-            record.history = [...(record.history ?? []), entry];
-            record.prevHtml = entry.response.html;
+            const normalized = normalizeImportedEntry(entry);
+            record.history = [...(record.history ?? []), normalized];
+            if (normalized.entryKind === "html") {
+                record.prevHtml = normalized.response.html;
+            }
+            record.rest.mutations = [];
+            record.rest.queries = [];
             record.updatedAt = now;
             this.sessions.set(sid, record);
         }
@@ -138,11 +176,114 @@ export class SessionStore {
         this.sessions.set(sid, record);
         this.pruneSessions();
     }
+    appendRestHistoryEntry(sid, options) {
+        const { type, record, response, rawResponse, ok, error, durationMs } = options;
+        const restRequest = {
+            method: record.method,
+            path: record.path,
+            query: record.query,
+            body: record.body,
+        };
+        const formattedJson = formatJsonForHtml(type === "query" && response !== undefined ? response : record.body);
+        const entry = {
+            id: crypto.randomUUID(),
+            sessionId: sid,
+            createdAt: record.createdAt,
+            durationMs: durationMs ?? 0,
+            brief: "",
+            request: restRequest,
+            response: {
+                html: formattedJson,
+            },
+            entryKind: type === "mutation" ? "rest-mutation" : "rest-query",
+            rest: type === "mutation"
+                ? {
+                    type,
+                    request: restRequest,
+                    response,
+                    rawResponse,
+                    ok,
+                    error,
+                }
+                : {
+                    type,
+                    request: restRequest,
+                    response,
+                    rawResponse,
+                    ok,
+                    error,
+                },
+            usage: undefined,
+        };
+        this.appendHistoryEntry(sid, entry, { preservePrevHtml: true });
+    }
 }
 function createSessionData() {
     return {
         updatedAt: Date.now(),
         prevHtml: "",
         history: [],
+        rest: {
+            mutations: [],
+            queries: [],
+        },
     };
+}
+function clampRestRecords(records) {
+    if (records.length <= REST_RECORD_LIMIT) {
+        return records;
+    }
+    return records.slice(-REST_RECORD_LIMIT);
+}
+function cloneRestRecord(record) {
+    return structuredClone(record);
+}
+function findLastHtmlEntry(history) {
+    for (let index = history.length - 1; index >= 0; index -= 1) {
+        const entry = history[index];
+        if (entry.entryKind === "html") {
+            return entry;
+        }
+    }
+    return undefined;
+}
+function formatJsonForHtml(payload) {
+    try {
+        const json = JSON.stringify(payload ?? null, null, 2);
+        return `<pre class="serve-llm-rest-json">${escapeHtml(json)}</pre>`;
+    }
+    catch {
+        return `<pre class="serve-llm-rest-json">${escapeHtml(String(payload ?? ""))}</pre>`;
+    }
+}
+function normalizeImportedEntry(entry) {
+    const entryKind = entry.entryKind ?? "html";
+    const request = {
+        method: entry.request?.method ?? "GET",
+        path: entry.request?.path ?? "/",
+        query: entry.request?.query ?? {},
+        body: entry.request?.body ?? {},
+        instructions: entry.request?.instructions,
+    };
+    const normalized = {
+        ...entry,
+        request,
+        entryKind,
+    };
+    if (entryKind === "html") {
+        normalized.llm = entry.llm;
+        return normalized;
+    }
+    const restType = entryKind === "rest-mutation" ? "mutation" : "query";
+    normalized.llm = undefined;
+    normalized.rest = entry.rest ?? {
+        type: restType,
+        request: {
+            method: request.method,
+            path: request.path,
+            query: request.query,
+            body: request.body,
+        },
+    };
+    return normalized;
 }

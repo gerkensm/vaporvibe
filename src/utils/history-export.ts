@@ -10,6 +10,14 @@ import { maskSensitive } from "./sensitive.js";
 
 const NEWLINE = "\n";
 
+function stringifyForExport(value: unknown): string {
+  try {
+    return JSON.stringify(value ?? null, null, 2);
+  } catch {
+    return JSON.stringify(String(value ?? ""), null, 2);
+  }
+}
+
 export interface HistoryExportContext {
   history: HistoryEntry[];
   brief: string | null;
@@ -90,11 +98,17 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
     lines.push(`- Timestamp: ${entry.createdAt}`);
     lines.push(`- Session: ${entry.sessionId}`);
     lines.push(`- Duration: ${entry.durationMs} ms`);
-    lines.push(`- Reasoning Mode: ${entry.llm.reasoningMode}`);
-    lines.push(`- Reasoning Tokens Budget: ${entry.llm.reasoningTokens ?? "n/a"}`);
+    if (entry.llm) {
+      lines.push(`- Reasoning Mode: ${entry.llm.reasoningMode}`);
+      lines.push(`- Reasoning Tokens Budget: ${entry.llm.reasoningTokens ?? "n/a"}`);
+    } else {
+      lines.push("- Reasoning Mode: n/a");
+      lines.push("- Reasoning Tokens Budget: n/a");
+    }
     if (entry.request.instructions) {
       lines.push(`- Instructions Provided: ${entry.request.instructions}`);
     }
+    lines.push(`- Entry Type: ${entry.entryKind}`);
     lines.push("- Query Parameters:");
     lines.push("```json");
     lines.push(JSON.stringify(entry.request.query ?? {}, null, 2));
@@ -103,6 +117,65 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
     lines.push("```json");
     lines.push(JSON.stringify(entry.request.body ?? {}, null, 2));
     lines.push("```");
+    if (entry.entryKind === "html") {
+      if (entry.restMutations?.length) {
+        lines.push("- REST Mutations:");
+        entry.restMutations.forEach((mutation) => {
+          lines.push(`  - ${mutation.method} ${mutation.path} @ ${mutation.createdAt}`);
+          lines.push("    - Query:");
+          lines.push("    ```json");
+          lines.push(stringifyForExport(mutation.query ?? {}));
+          lines.push("    ```");
+          lines.push("    - Body:");
+          lines.push("    ```json");
+          lines.push(stringifyForExport(mutation.body ?? {}));
+          lines.push("    ```");
+        });
+      }
+      if (entry.restQueries?.length) {
+        lines.push("- REST Queries:");
+        entry.restQueries.forEach((query) => {
+          lines.push(`  - ${query.method} ${query.path} @ ${query.createdAt} (${query.ok ? "ok" : "error"})`);
+          lines.push("    - Query:");
+          lines.push("    ```json");
+          lines.push(stringifyForExport(query.query ?? {}));
+          lines.push("    ```");
+          lines.push("    - Body:");
+          lines.push("    ```json");
+          lines.push(stringifyForExport(query.body ?? {}));
+          lines.push("    ```");
+          const responseLabel = query.ok ? "Response" : "Error Response";
+          lines.push(`    - ${responseLabel}:`);
+          lines.push("    ```json");
+          lines.push(stringifyForExport(query.response ?? null));
+          lines.push("    ```");
+          if (query.error) {
+            lines.push(`    - Error Message: ${query.error}`);
+          }
+        });
+      }
+    } else if (entry.rest) {
+      lines.push("- REST Request:");
+      lines.push("```json");
+      lines.push(
+        stringifyForExport({
+          method: entry.rest.request.method,
+          path: entry.rest.request.path,
+          query: entry.rest.request.query,
+          body: entry.rest.request.body,
+        })
+      );
+      lines.push("```");
+      if ("response" in entry.rest) {
+        lines.push("- REST Response:");
+        lines.push("```json");
+        lines.push(stringifyForExport(entry.rest.response ?? null));
+        lines.push("```");
+      }
+      if (entry.rest.error) {
+        lines.push(`- Error: ${entry.rest.error}`);
+      }
+    }
     if (entry.briefAttachments?.length) {
       entry.briefAttachments.forEach((attachment, attachmentIndex) => {
         lines.push(

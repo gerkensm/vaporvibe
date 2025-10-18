@@ -1,5 +1,5 @@
 import type { ServerResponse } from "node:http";
-import type { HistoryEntry } from "../types.js";
+import type { HistoryEntry, RestMutationRecord, RestQueryRecord } from "../types.js";
 export declare class SessionStore {
     private readonly ttlMs;
     private readonly capacity;
@@ -9,7 +9,15 @@ export declare class SessionStore {
     getPrevHtml(sid: string): string;
     setPrevHtml(sid: string, html: string): void;
     getHistory(sid: string, limit?: number): HistoryEntry[];
-    appendHistoryEntry(sid: string, entry: HistoryEntry): void;
+    appendHistoryEntry(sid: string, entry: HistoryEntry, options?: {
+        preservePrevHtml?: boolean;
+    }): void;
+    appendMutationRecord(sid: string, record: RestMutationRecord): void;
+    appendQueryRecord(sid: string, record: RestQueryRecord): void;
+    getRestState(sid: string, limit?: number): {
+        mutations: RestMutationRecord[];
+        queries: RestQueryRecord[];
+    };
     removeHistoryEntry(entryId: string): boolean;
     exportHistory(): HistoryEntry[];
     replaceHistory(entries: HistoryEntry[]): void;
@@ -19,4 +27,13 @@ export declare class SessionStore {
     private ensureRecord;
     private getActiveRecord;
     private persistRecord;
+    appendRestHistoryEntry(sid: string, options: {
+        type: "mutation" | "query";
+        record: RestMutationRecord | RestQueryRecord;
+        response?: unknown;
+        rawResponse?: string;
+        ok?: boolean;
+        error?: string;
+        durationMs?: number;
+    }): void;
 }

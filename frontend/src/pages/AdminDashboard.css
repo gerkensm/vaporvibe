@@ -703,6 +703,18 @@
   color: #1d4ed8;
 }
 
+.history-chip--error {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.24);
+  color: #b91c1c;
+}
+
+.history-chip--muted {
+  background: rgba(148, 163, 184, 0.16);
+  border-color: rgba(148, 163, 184, 0.28);
+  color: #64748b;
+}
+
 .history-item__content {
   padding: 18px;
   display: grid;
@@ -759,6 +771,80 @@
   gap: 6px;
   color: #475569;
   font-size: 0.9rem;
+}
+
+.history-item__rest {
+  display: grid;
+  gap: 6px;
+}
+
+.history-item__rest-group {
+  display: grid;
+  gap: 16px;
+}
+
+.history-item__rest-collection {
+  display: grid;
+  gap: 12px;
+}
+
+.history-item__rest-heading {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.history-item__rest-list {
+  display: grid;
+  gap: 12px;
+}
+
+.history-item__rest-entry {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(248, 250, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+}
+
+.history-item__rest-header {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.history-item__rest-path {
+  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.78rem;
+  color: #0f172a;
+  word-break: break-all;
+}
+
+.history-item__rest-details {
+  display: grid;
+  gap: 8px;
+}
+
+.history-item__json {
+  margin: 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.05);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.78rem;
+  color: #0f172a;
+  overflow-x: auto;
+}
+
+.history-item__value--error {
+  color: #b91c1c;
+  font-weight: 600;
 }
 
 .history-item__list--markdown li {

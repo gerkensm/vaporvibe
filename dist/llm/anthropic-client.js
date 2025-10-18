@@ -416,6 +416,19 @@ async function fetchWithTimeout(url, init) {
     }
 }
 function isAnthropicOverload(error) {
+    if (typeof error === "string") {
+        const normalized = error.toLowerCase();
+        if (normalized.includes("overload")) {
+            return true;
+        }
+        try {
+            const parsed = JSON.parse(error);
+            return isAnthropicOverload(parsed);
+        }
+        catch {
+            return false;
+        }
+    }
     const status = extractStatus(error);
     if (status === 529) {
         return true;

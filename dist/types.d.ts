@@ -37,6 +37,7 @@ export interface VerificationResult {
     ok: boolean;
     message?: string;
 }
+export type HistoryEntryKind = "html" | "rest-mutation" | "rest-query";
 export interface HistoryEntry {
     id: string;
     sessionId: string;
@@ -54,7 +55,7 @@ export interface HistoryEntry {
     response: {
         html: string;
     };
-    llm: {
+    llm?: {
         provider: ModelProvider;
         model: string;
         maxOutputTokens: number;
@@ -63,6 +64,43 @@ export interface HistoryEntry {
     };
     usage?: LlmUsageMetrics;
     reasoning?: LlmReasoningTrace;
+    restMutations?: RestMutationRecord[];
+    restQueries?: RestQueryRecord[];
+    entryKind: HistoryEntryKind;
+    rest?: RestHistoryMetadata;
+}
+export interface RestHistoryMetadata {
+    type: "mutation" | "query";
+    request: {
+        method: string;
+        path: string;
+        query: Record<string, unknown>;
+        body: Record<string, unknown>;
+    };
+    response?: unknown;
+    rawResponse?: string;
+    ok?: boolean;
+    error?: string;
+}
+export interface RestMutationRecord {
+    id: string;
+    path: string;
+    method: string;
+    query: Record<string, unknown>;
+    body: Record<string, unknown>;
+    createdAt: string;
+}
+export interface RestQueryRecord {
+    id: string;
+    path: string;
+    method: string;
+    query: Record<string, unknown>;
+    body: Record<string, unknown>;
+    createdAt: string;
+    ok: boolean;
+    response: unknown;
+    rawResponse: string;
+    error?: string;
 }
 export interface ProviderSettingsSummary {
     provider: ModelProvider;

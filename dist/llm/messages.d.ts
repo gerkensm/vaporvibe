@@ -1,4 +1,4 @@
-import type { BriefAttachment, ChatMessage, HistoryEntry } from "../types.js";
+import type { BriefAttachment, ChatMessage, HistoryEntry, RestMutationRecord, RestQueryRecord } from "../types.js";
 export interface MessageContext {
     brief: string;
     briefAttachments: BriefAttachment[];
@@ -18,5 +18,8 @@ export interface MessageContext {
     historyLimitOmitted: number;
     historyByteOmitted: number;
     adminPath: string;
+    restMutations: RestMutationRecord[];
+    restQueries: RestQueryRecord[];
+    mode?: "page" | "json-query";
 }
 export declare function buildMessages(context: MessageContext): ChatMessage[];

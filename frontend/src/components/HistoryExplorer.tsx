@@ -127,6 +127,11 @@ export function HistoryExplorer({
                   <span className="history-chip" aria-label="Duration">
                     ⏱ {formatDuration(item.durationMs)}
                   </span>
+                  {item.entryKind !== "html" ? (
+                    <span className="history-chip history-chip--muted">
+                      {item.entryKind === "rest-mutation" ? "REST mutation" : "REST query"}
+                    </span>
+                  ) : null}
                   {item.usageSummary ? (
                     <span className="history-chip history-chip--accent">{item.usageSummary}</span>
                   ) : null}
@@ -145,11 +150,133 @@ export function HistoryExplorer({
                     <div className="history-item__label">Body</div>
                     <div className="history-item__value">{item.bodySummary || "—"}</div>
                   </div>
-                  <div className="history-item__stat">
-                    <div className="history-item__label">Usage</div>
-                    <div className="history-item__value">{item.usageSummary || "—"}</div>
-                  </div>
+                  {item.entryKind === "html" ? (
+                    <div className="history-item__stat">
+                      <div className="history-item__label">Usage</div>
+                      <div className="history-item__value">{item.usageSummary || "—"}</div>
+                    </div>
+                  ) : null}
                 </div>
+                {item.entryKind !== "html" && item.rest ? (
+                  <div className="history-item__section">
+                    <div className="history-item__label">REST payload</div>
+                    <div className="history-item__rest">
+                      <div className="history-item__value">Request:</div>
+                      <pre className="history-item__json">
+                        {JSON.stringify(
+                          {
+                            method: item.rest.request.method,
+                            path: item.rest.request.path,
+                            query: item.rest.request.query,
+                            body: item.rest.request.body,
+                          },
+                          null,
+                          2
+                        )}
+                      </pre>
+                      {item.rest.responseSummary ? (
+                        <>
+                          <div className="history-item__value">Response:</div>
+                          <pre className="history-item__json">{item.rest.responseSummary}</pre>
+                        </>
+                      ) : null}
+                      {item.rest.error ? (
+                        <div className="history-item__value history-item__value--error">
+                          Error: {item.rest.error}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+                {item.entryKind === "html" && (item.restMutations?.length || item.restQueries?.length) ? (
+                  <div className="history-item__section">
+                    <div className="history-item__label">Captured REST activity</div>
+                    <div className="history-item__rest-group">
+                      {item.restMutations?.length ? (
+                        <div className="history-item__rest-collection">
+                          <div className="history-item__rest-heading">
+                            {item.restMutations.length === 1
+                              ? "1 mutation"
+                              : `${item.restMutations.length} mutations`}
+                          </div>
+                          <div className="history-item__rest-list">
+                            {item.restMutations.map((mutation) => (
+                              <div key={mutation.id} className="history-item__rest-entry">
+                                <div className="history-item__rest-header">
+                                  <span className="history-item__method-chip" aria-label={`${mutation.method} request`}>
+                                    {mutation.method}
+                                  </span>
+                                  <span className="history-item__rest-path">{mutation.path}</span>
+                                  <span className="history-chip history-chip--muted">
+                                    {dateTimeFormatter.format(new Date(mutation.createdAt))}
+                                  </span>
+                                </div>
+                                <div className="history-item__rest-details">
+                                  <div>
+                                    <div className="history-item__label">Query</div>
+                                    <div className="history-item__value">{mutation.querySummary || "—"}</div>
+                                  </div>
+                                  <div>
+                                    <div className="history-item__label">Body</div>
+                                    <div className="history-item__value">{mutation.bodySummary || "—"}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                      {item.restQueries?.length ? (
+                        <div className="history-item__rest-collection">
+                          <div className="history-item__rest-heading">
+                            {item.restQueries.length === 1
+                              ? "1 query"
+                              : `${item.restQueries.length} queries`}
+                          </div>
+                          <div className="history-item__rest-list">
+                            {item.restQueries.map((query) => (
+                              <div key={query.id} className="history-item__rest-entry">
+                                <div className="history-item__rest-header">
+                                  <span className="history-item__method-chip" aria-label={`${query.method} request`}>
+                                    {query.method}
+                                  </span>
+                                  <span className="history-item__rest-path">{query.path}</span>
+                                  <span className="history-chip history-chip--muted">
+                                    {dateTimeFormatter.format(new Date(query.createdAt))}
+                                  </span>
+                                  {typeof query.ok === "boolean" ? (
+                                    <span className={`history-chip${query.ok ? "" : " history-chip--error"}`}>
+                                      {query.ok ? "Response OK" : "Response error"}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <div className="history-item__rest-details">
+                                  <div>
+                                    <div className="history-item__label">Query</div>
+                                    <div className="history-item__value">{query.querySummary || "—"}</div>
+                                  </div>
+                                  <div>
+                                    <div className="history-item__label">Body</div>
+                                    <div className="history-item__value">{query.bodySummary || "—"}</div>
+                                  </div>
+                                  <div>
+                                    <div className="history-item__label">Response</div>
+                                    <div className="history-item__value">{query.responseSummary || "—"}</div>
+                                  </div>
+                                  {query.error ? (
+                                    <div className="history-item__value history-item__value--error">
+                                      Error: {query.error}
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
                 {item.reasoningSummaries && item.reasoningSummaries.length > 0 && (
                   <div className="history-item__section">
                     <div className="history-item__label">Reasoning</div>

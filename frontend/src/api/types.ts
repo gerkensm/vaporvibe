@@ -7,6 +7,23 @@ export interface AdminBriefAttachment {
   isImage: boolean;
 }
 
+export interface AdminRestMutationItem {
+  id: string;
+  createdAt: string;
+  method: string;
+  path: string;
+  querySummary: string;
+  bodySummary: string;
+}
+
+export interface AdminRestQueryItem extends AdminRestMutationItem {
+  ok: boolean;
+  responseSummary: string;
+  error?: string;
+}
+
+export type AdminHistoryEntryKind = "html" | "rest-mutation" | "rest-query";
+
 export interface NumericRange {
   min?: number;
   max?: number;
@@ -96,6 +113,21 @@ export interface AdminHistoryItem {
   reasoningDetails?: string[];
   html: string;
   attachments?: AdminBriefAttachment[];
+  entryKind: AdminHistoryEntryKind;
+  rest?: {
+    type: "mutation" | "query";
+    request: {
+      method: string;
+      path: string;
+      query: Record<string, unknown>;
+      body: Record<string, unknown>;
+    };
+    responseSummary?: string;
+    ok?: boolean;
+    error?: string;
+  };
+  restMutations?: AdminRestMutationItem[];
+  restQueries?: AdminRestQueryItem[];
   viewUrl: string;
   downloadUrl: string;
   deleteUrl: string;

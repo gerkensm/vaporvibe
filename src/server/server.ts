@@ -53,6 +53,8 @@ import { logger } from "../logger.js";
 import { AdminController } from "./admin-controller.js";
 import { createLlmClient } from "../llm/factory.js";
 import { getCredentialStore } from "../utils/credential-store.js";
+import { RestApiController } from "./rest-api-controller.js";
+import { selectHistoryForPrompt } from "./history-utils.js";
 
 type RequestLogger = Logger;
 
@@ -68,6 +70,18 @@ const frontendAssetCache = new Map<
 >();
 
 let spaShellCache: { html: string; mtimeMs: number } | null = null;
+
+function stripScriptById(html: string, scriptId: string): string {
+  if (!html.includes(scriptId)) {
+    return html;
+  }
+
+  const pattern = new RegExp(
+    `<script[^>]*id=["']${scriptId}["'][^>]*>[\\s\\S]*?<\\/script>`,
+    "gi"
+  );
+  return html.replace(pattern, "");
+}
 
 function getAssetContentType(filePath: string): string {
   const extension = extname(filePath).toLowerCase();
@@ -297,6 +311,7 @@ interface PendingHtmlEntry {
 }
 
 const PENDING_HTML_TTL_MS = 3 * 60 * 1000;
+const REST_PROMPT_LIMIT = 10;
 
 export function createServer(options: ServerOptions): http.Server {
   const {
@@ -333,6 +348,18 @@ export function createServer(options: ServerOptions): http.Server {
   const adminController = new AdminController({
     state,
     sessionStore,
+  });
+  const restApiController = new RestApiController({
+    sessionStore,
+    adminPath: ADMIN_ROUTE_PREFIX,
+    getEnvironment: () => ({
+      brief: state.brief,
+      briefAttachments: state.briefAttachments,
+      runtime: state.runtime,
+      llmClient: state.llmClient,
+      providerReady: state.providerReady,
+      providerSelectionRequired: state.providerSelectionRequired,
+    }),
   });
 
   return http.createServer(async (req, res) => {
@@ -387,6 +414,19 @@ export function createServer(options: ServerOptions): http.Server {
       if (handledByAdmin) {
         reqLogger.info(
           `Admin handler completed with status ${res.statusCode} in ${
+            Date.now() - requestStart
+          } ms`
+        );
+        return;
+      }
+
+      const handledByRest = await restApiController.handle(
+        context,
+        reqLogger
+      );
+      if (handledByRest) {
+        reqLogger.info(
+          `REST handler completed with status ${res.statusCode} in ${
             Date.now() - requestStart
           } ms`
         );
@@ -548,10 +588,42 @@ async function handleLlmRequest(
   );
   const historyForPrompt = selection.entries;
   const byteOmitted = limitedHistory.length - historyForPrompt.length;
+  const findLastHtml = (
+    source: HistoryEntry[]
+  ): HistoryEntry | undefined =>
+    [...source].reverse().find((entry) => entry.entryKind === "html");
+
+  const prevHtmlEntry =
+    findLastHtml(historyForPrompt) ??
+    findLastHtml(limitedHistory) ??
+    undefined;
+
   const prevHtml =
-    historyForPrompt.at(-1)?.response.html ??
-    limitedHistory.at(-1)?.response.html ??
-    sessionStore.getPrevHtml(sid);
+    prevHtmlEntry?.response.html ?? sessionStore.getPrevHtml(sid);
+
+  const restState = sessionStore.getRestState(sid);
+  const restStateForPrompt = {
+    mutations:
+      REST_PROMPT_LIMIT > 0
+        ? restState.mutations.slice(-REST_PROMPT_LIMIT)
+        : restState.mutations.slice(),
+    queries:
+      REST_PROMPT_LIMIT > 0
+        ? restState.queries.slice(-REST_PROMPT_LIMIT)
+        : restState.queries.slice(),
+  };
+  const previousEntry = findLastHtml(fullHistory);
+  const sinceTimestamp = previousEntry
+    ? new Date(previousEntry.createdAt).getTime()
+    : Number.NEGATIVE_INFINITY;
+  const restMutationsForEntry = restState.mutations.filter((record) => {
+    const createdAt = new Date(record.createdAt).getTime();
+    return createdAt > sinceTimestamp;
+  });
+  const restQueriesForEntry = restState.queries.filter((record) => {
+    const createdAt = new Date(record.createdAt).getTime();
+    return createdAt > sinceTimestamp;
+  });
 
   reqLogger.debug(
     {
@@ -597,6 +669,8 @@ async function handleLlmRequest(
     historyLimitOmitted: limitOmitted,
     historyByteOmitted: byteOmitted,
     adminPath: ADMIN_ROUTE_PREFIX,
+    restMutations: restStateForPrompt.mutations,
+    restQueries: restStateForPrompt.queries,
   });
   reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
 
@@ -635,7 +709,7 @@ async function handleLlmRequest(
     );
     const rawHtml = ensureHtmlDocument(result.html, { method, path });
 
-    let safeHtml = rawHtml;
+    let safeHtml = stripScriptById(rawHtml, "serve-llm-interceptor-script");
 
     const interceptorScriptTag = getNavigationInterceptorScript();
     if (/<\/body\s*>/i.test(safeHtml)) {
@@ -648,6 +722,11 @@ async function handleLlmRequest(
     }
 
     if (state.runtime.includeInstructionPanel) {
+      safeHtml = stripScriptById(
+        safeHtml,
+        "serve-llm-instructions-panel-script"
+      );
+
       const instructionsScripts = getInstructionsPanelScript();
       if (/<\/body\s*>/i.test(safeHtml)) {
         safeHtml = safeHtml.replace(
@@ -671,6 +750,7 @@ async function handleLlmRequest(
       briefAttachments: totalBriefAttachments.map((attachment) => ({
         ...attachment,
       })),
+      entryKind: "html",
       request: {
         method,
         path,
@@ -688,6 +768,10 @@ async function handleLlmRequest(
       },
       usage: result.usage,
       reasoning: result.reasoning,
+      restMutations:
+        restMutationsForEntry.length > 0 ? restMutationsForEntry : undefined,
+      restQueries:
+        restQueriesForEntry.length > 0 ? restQueriesForEntry : undefined,
     };
 
     sessionStore.appendHistoryEntry(sid, historyEntry);
@@ -1007,62 +1091,6 @@ function formatJsonForLog(payload: unknown, label?: string): string {
   }
 }
 
-function selectHistoryForPrompt(
-  history: HistoryEntry[],
-  maxBytes: number
-): { entries: HistoryEntry[]; bytes: number } {
-  if (history.length === 0) {
-    return { entries: [], bytes: 0 };
-  }
-  const budget = maxBytes > 0 ? maxBytes : Number.POSITIVE_INFINITY;
-  const reversed: HistoryEntry[] = [];
-  let bytes = 0;
-  for (let index = history.length - 1; index >= 0; index -= 1) {
-    const entry = history[index];
-    const size = estimateHistoryEntrySize(entry);
-    if (reversed.length > 0 && bytes + size > budget) {
-      break;
-    }
-    reversed.push(entry);
-    bytes += size;
-  }
-  const entries = reversed.reverse();
-  return { entries, bytes };
-}
-
-function estimateHistoryEntrySize(entry: HistoryEntry): number {
-  const fragments: string[] = [
-    entry.brief ?? "",
-    entry.request.method,
-    entry.request.path,
-    JSON.stringify(entry.request.query ?? {}, null, 2),
-    JSON.stringify(entry.request.body ?? {}, null, 2),
-    entry.request.instructions ?? "",
-    entry.response.html ?? "",
-  ];
-  if (entry.usage) {
-    fragments.push(JSON.stringify(entry.usage, null, 2));
-  }
-  if (entry.briefAttachments?.length) {
-    for (const attachment of entry.briefAttachments) {
-      fragments.push(attachment.base64);
-      fragments.push(attachment.name);
-      fragments.push(attachment.mimeType);
-    }
-  }
-  if (entry.reasoning?.summaries?.length) {
-    fragments.push(entry.reasoning.summaries.join("\n"));
-  }
-  if (entry.reasoning?.details?.length) {
-    fragments.push(entry.reasoning.details.join("\n"));
-  }
-  let bytes = 0;
-  for (const fragment of fragments) {
-    bytes += Buffer.byteLength(fragment, "utf8");
-  }
-  // Add a cushion for labels and formatting noise in prompts.
-  return bytes + 1024;
-}
 function handlePendingHtmlRequest(
   context: RequestContext,
   state: MutableServerState,
