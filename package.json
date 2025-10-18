@@ -15,6 +15,7 @@
   "scripts": {
     "build": "npm run build:fe && tsc && node scripts/copy-loading-shell-assets.mjs",
     "prepare": "npm run build",
+    "prepublishOnly": "npm run build",
     "dev": "node scripts/dev.mjs",
     "start": "node dist/index.js",
     "build:fe": "cd frontend && npm install && npm run build",
