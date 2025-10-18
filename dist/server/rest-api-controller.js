@@ -4,7 +4,6 @@ import { buildMessages } from "../llm/messages.js";
 import { parseCookies } from "../utils/cookies.js";
 import { readBody } from "../utils/body.js";
 import { selectHistoryForPrompt } from "./history-utils.js";
-const REST_PROMPT_LIMIT = 10;
 function normalizeJsonResponse(raw) {
     const trimmed = raw.trim();
     if (!trimmed)
@@ -118,7 +117,6 @@ export class RestApiController {
             bodyData = sanitizeBody(parsedBody.data ?? {});
         }
         const promptContext = this.preparePromptContext(sid, env.runtime, env.briefAttachments, env.llmClient);
-        const restState = this.sessionStore.getRestState(sid, REST_PROMPT_LIMIT);
         const messages = buildMessages({
             brief: env.brief ?? "",
             briefAttachments: promptContext.attachments,
@@ -138,8 +136,6 @@ export class RestApiController {
             historyLimitOmitted: promptContext.historyLimitOmitted,
             historyByteOmitted: promptContext.historyByteOmitted,
             adminPath: this.adminPath,
-            restMutations: restState.mutations,
-            restQueries: restState.queries,
             mode: "json-query",
         });
         try {
@@ -181,6 +177,8 @@ export class RestApiController {
                     ok: false,
                     error: error instanceof Error ? error.message : "Invalid JSON from model",
                     durationMs: Date.now() - requestStart,
+                    usage: result.usage,
+                    reasoning: result.reasoning,
                 });
                 return;
             }
@@ -208,6 +206,8 @@ export class RestApiController {
                 rawResponse: raw,
                 ok: true,
                 durationMs: Date.now() - requestStart,
+                usage: result.usage,
+                reasoning: result.reasoning,
             });
         }
         catch (error) {

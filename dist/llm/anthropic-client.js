@@ -16,6 +16,25 @@ function createAnthropicImageContent(attachment) {
         },
     };
 }
+function applyCacheControl(block, cacheControl) {
+    if (!cacheControl) {
+        return block;
+    }
+    block.cache_control = toAnthropicCacheControl(cacheControl);
+    return block;
+}
+function toAnthropicCacheControl(cacheControl) {
+    const transformed = { type: cacheControl.type };
+    if (cacheControl.ttl) {
+        transformed.ttl = cacheControl.ttl;
+    }
+    return transformed;
+}
+function buildSystemBlocks(messages) {
+    return messages
+        .filter((message) => message.role === "system")
+        .map((message) => applyCacheControl({ type: "text", text: message.content }, message.cacheControl));
+}
 export class AnthropicClient {
     settings;
     client;
@@ -24,21 +43,21 @@ export class AnthropicClient {
         this.client = new Anthropic({ apiKey: settings.apiKey });
     }
     async generateHtml(messages) {
-        const systemMessages = messages.filter((message) => message.role === "system").map((message) => message.content);
+        const systemBlocks = buildSystemBlocks(messages);
         const userMessages = messages.filter((message) => message.role === "user");
         const requestMessages = userMessages.map((message) => {
             const content = [
-                { type: "text", text: message.content },
+                applyCacheControl({ type: "text", text: message.content }, message.cacheControl),
             ];
             if (message.attachments?.length) {
                 for (const attachment of message.attachments) {
                     if (attachment.mimeType.startsWith("image/")) {
-                        content.push(createAnthropicImageContent(attachment));
+                        content.push(applyCacheControl(createAnthropicImageContent(attachment), message.cacheControl));
                     }
                     else {
                         const descriptor = `Attachment ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes) encoded in Base64:`;
-                        content.push({ type: "text", text: descriptor });
-                        content.push({ type: "text", text: attachment.base64 });
+                        content.push(applyCacheControl({ type: "text", text: descriptor }, message.cacheControl));
+                        content.push(applyCacheControl({ type: "text", text: attachment.base64 }, message.cacheControl));
                     }
                 }
             }
@@ -53,13 +72,13 @@ export class AnthropicClient {
         const wantsThinking = ((this.settings.reasoningMode && this.settings.reasoningMode !== "none")
             || (typeof this.settings.reasoningTokens === "number" && this.settings.reasoningTokens > 0));
         if (wantsThinking) {
-            return this.generateWithThinking(systemMessages, requestMessages);
+            return this.generateWithThinking(systemBlocks, requestMessages);
         }
         const betas = resolveBetas(this.settings.model);
         const createRequest = {
             model: this.settings.model,
             max_tokens: this.settings.maxOutputTokens,
-            system: systemMessages.length > 0 ? systemMessages.join("\n\n") : undefined,
+            system: systemBlocks.length > 0 ? systemBlocks : undefined,
             messages: requestMessages,
         };
         if (betas) {
@@ -69,7 +88,7 @@ export class AnthropicClient {
         const html = this.combineContent(response.content).trim();
         return { html, usage: extractUsage(response), raw: response };
     }
-    async generateWithThinking(systemMessages, requestMessages) {
+    async generateWithThinking(systemBlocks, requestMessages) {
         const thinkingBudgetCandidate = this.settings.reasoningTokens ?? this.settings.maxOutputTokens;
         const maxTokens = Math.max(1, this.settings.maxOutputTokens);
         const thinkingBudget = Math.max(1, Math.min(thinkingBudgetCandidate, Math.max(1, maxTokens - 1)));
@@ -80,7 +99,7 @@ export class AnthropicClient {
         const streamRequest = {
             model: this.settings.model,
             max_tokens: Math.max(thinkingBudget + 1, maxTokens),
-            system: systemMessages.length > 0 ? systemMessages.join("\n\n") : undefined,
+            system: systemBlocks.length > 0 ? systemBlocks : undefined,
             messages: requestMessages,
             thinking: {
                 type: "enabled",
@@ -372,7 +391,21 @@ function extractUsage(response) {
         && !metrics.providerMetrics) {
         return undefined;
     }
+    logCacheUsageIfPresent(usage);
     return metrics;
+}
+function logCacheUsageIfPresent(usage) {
+    const cacheCreation = usage["cache_creation_input_tokens"];
+    const cacheRead = usage["cache_read_input_tokens"];
+    if (cacheCreation === undefined && cacheRead === undefined) {
+        return;
+    }
+    logger.debug({
+        cacheCreationInputTokens: cacheCreation,
+        cacheReadInputTokens: cacheRead,
+        inputTokens: usage["input_tokens"],
+        outputTokens: usage["output_tokens"],
+    }, "Anthropic usage (prompt cache)");
 }
 const CONTEXT_1M_BETA = "context-1m-2025-08-07";
 function resolveBetas(model) {

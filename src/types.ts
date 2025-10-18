@@ -10,10 +10,16 @@ export interface BriefAttachment {
   base64: string;
 }
 
+export interface CacheControlSettings {
+  type: "ephemeral";
+  ttl?: "5m" | "1h";
+}
+
 export interface ChatMessage {
   role: "system" | "user";
   content: string;
   attachments?: BriefAttachment[];
+  cacheControl?: CacheControlSettings;
 }
 
 export interface ProviderSettings {

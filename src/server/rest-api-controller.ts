@@ -16,8 +16,6 @@ import type { RequestContext } from "./server.js";
 import { selectHistoryForPrompt } from "./history-utils.js";
 import { SessionStore } from "./session-store.js";
 
-const REST_PROMPT_LIMIT = 10;
-
 function normalizeJsonResponse(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) return trimmed;
@@ -180,8 +178,6 @@ export class RestApiController {
       env.llmClient
     );
 
-    const restState = this.sessionStore.getRestState(sid, REST_PROMPT_LIMIT);
-
     const messages = buildMessages({
       brief: env.brief ?? "",
       briefAttachments: promptContext.attachments,
@@ -201,8 +197,6 @@ export class RestApiController {
       historyLimitOmitted: promptContext.historyLimitOmitted,
       historyByteOmitted: promptContext.historyByteOmitted,
       adminPath: this.adminPath,
-      restMutations: restState.mutations,
-      restQueries: restState.queries,
       mode: "json-query",
     });
 
@@ -248,6 +242,8 @@ export class RestApiController {
           error:
             error instanceof Error ? error.message : "Invalid JSON from model",
           durationMs: Date.now() - requestStart,
+          usage: result.usage,
+          reasoning: result.reasoning,
         });
         return;
       }
@@ -278,6 +274,8 @@ export class RestApiController {
         rawResponse: raw,
         ok: true,
         durationMs: Date.now() - requestStart,
+        usage: result.usage,
+        reasoning: result.reasoning,
       });
     } catch (error) {
       const message =

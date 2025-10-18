@@ -1,5 +1,5 @@
 import type { ServerResponse } from "node:http";
-import type { HistoryEntry, RestMutationRecord, RestQueryRecord } from "../types.js";
+import type { HistoryEntry, LlmReasoningTrace, LlmUsageMetrics, RestMutationRecord, RestQueryRecord } from "../types.js";
 export declare class SessionStore {
     private readonly ttlMs;
     private readonly capacity;
@@ -35,5 +35,7 @@ export declare class SessionStore {
         ok?: boolean;
         error?: string;
         durationMs?: number;
+        usage?: LlmUsageMetrics;
+        reasoning?: LlmReasoningTrace;
     }): void;
 }

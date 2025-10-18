@@ -2,7 +2,13 @@ import crypto from "node:crypto";
 import type { ServerResponse } from "node:http";
 import { setCookie } from "../utils/cookies.js";
 import { escapeHtml } from "../utils/html.js";
-import type { HistoryEntry, RestMutationRecord, RestQueryRecord } from "../types.js";
+import type {
+  HistoryEntry,
+  LlmReasoningTrace,
+  LlmUsageMetrics,
+  RestMutationRecord,
+  RestQueryRecord,
+} from "../types.js";
 
 interface SessionData {
   updatedAt: number;
@@ -221,9 +227,21 @@ export class SessionStore {
       ok?: boolean;
       error?: string;
       durationMs?: number;
+      usage?: LlmUsageMetrics;
+      reasoning?: LlmReasoningTrace;
     }
   ): void {
-    const { type, record, response, rawResponse, ok, error, durationMs } = options;
+    const {
+      type,
+      record,
+      response,
+      rawResponse,
+      ok,
+      error,
+      durationMs,
+      usage,
+      reasoning,
+    } = options;
     const restRequest = {
       method: record.method,
       path: record.path,
@@ -264,7 +282,8 @@ export class SessionStore {
               ok,
               error,
             },
-      usage: undefined,
+      usage,
+      reasoning,
     };
 
     this.appendHistoryEntry(sid, entry, { preservePrevHtml: true });

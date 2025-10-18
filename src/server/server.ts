@@ -157,7 +157,10 @@ function maybeServeFrontendAsset(
     const lastModified = stats.mtime.toUTCString();
 
     const ifModifiedSince = context.req.headers["if-modified-since"];
-    if (ifModifiedSince && new Date(ifModifiedSince).getTime() >= stats.mtimeMs) {
+    if (
+      ifModifiedSince &&
+      new Date(ifModifiedSince).getTime() >= stats.mtimeMs
+    ) {
       res.statusCode = 304;
       res.setHeader("Last-Modified", lastModified);
       res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
@@ -311,7 +314,6 @@ interface PendingHtmlEntry {
 }
 
 const PENDING_HTML_TTL_MS = 3 * 60 * 1000;
-const REST_PROMPT_LIMIT = 10;
 
 export function createServer(options: ServerOptions): http.Server {
   const {
@@ -420,10 +422,7 @@ export function createServer(options: ServerOptions): http.Server {
         return;
       }
 
-      const handledByRest = await restApiController.handle(
-        context,
-        reqLogger
-      );
+      const handledByRest = await restApiController.handle(context, reqLogger);
       if (handledByRest) {
         reqLogger.info(
           `REST handler completed with status ${res.statusCode} in ${
@@ -588,30 +587,16 @@ async function handleLlmRequest(
   );
   const historyForPrompt = selection.entries;
   const byteOmitted = limitedHistory.length - historyForPrompt.length;
-  const findLastHtml = (
-    source: HistoryEntry[]
-  ): HistoryEntry | undefined =>
+  const findLastHtml = (source: HistoryEntry[]): HistoryEntry | undefined =>
     [...source].reverse().find((entry) => entry.entryKind === "html");
 
   const prevHtmlEntry =
-    findLastHtml(historyForPrompt) ??
-    findLastHtml(limitedHistory) ??
-    undefined;
+    findLastHtml(historyForPrompt) ?? findLastHtml(limitedHistory) ?? undefined;
 
   const prevHtml =
     prevHtmlEntry?.response.html ?? sessionStore.getPrevHtml(sid);
 
   const restState = sessionStore.getRestState(sid);
-  const restStateForPrompt = {
-    mutations:
-      REST_PROMPT_LIMIT > 0
-        ? restState.mutations.slice(-REST_PROMPT_LIMIT)
-        : restState.mutations.slice(),
-    queries:
-      REST_PROMPT_LIMIT > 0
-        ? restState.queries.slice(-REST_PROMPT_LIMIT)
-        : restState.queries.slice(),
-  };
   const previousEntry = findLastHtml(fullHistory);
   const sinceTimestamp = previousEntry
     ? new Date(previousEntry.createdAt).getTime()
@@ -641,7 +626,7 @@ async function handleLlmRequest(
   const totalBriefAttachments = state.briefAttachments ?? [];
   const includeAttachments = supportsImageInput(
     llmClient.settings.provider,
-    llmClient.settings.model,
+    llmClient.settings.model
   );
   const promptAttachments = includeAttachments
     ? totalBriefAttachments.map((attachment) => ({ ...attachment }))
@@ -669,8 +654,6 @@ async function handleLlmRequest(
     historyLimitOmitted: limitOmitted,
     historyByteOmitted: byteOmitted,
     adminPath: ADMIN_ROUTE_PREFIX,
-    restMutations: restStateForPrompt.mutations,
-    restQueries: restStateForPrompt.queries,
   });
   reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
 
@@ -709,36 +692,37 @@ async function handleLlmRequest(
     );
     const rawHtml = ensureHtmlDocument(result.html, { method, path });
 
-    let safeHtml = stripScriptById(rawHtml, "serve-llm-interceptor-script");
+    const strippedHtml = stripScriptById(
+      stripScriptById(rawHtml, "serve-llm-interceptor-script"),
+      "serve-llm-instructions-panel-script"
+    );
+
+    const promptHtml = strippedHtml;
+    let renderedHtml = promptHtml;
 
     const interceptorScriptTag = getNavigationInterceptorScript();
-    if (/<\/body\s*>/i.test(safeHtml)) {
-      safeHtml = safeHtml.replace(
+    if (/<\/body\s*>/i.test(renderedHtml)) {
+      renderedHtml = renderedHtml.replace(
         /(<\/body\s*>)/i,
         `${interceptorScriptTag}$1`
       );
     } else {
-      safeHtml = `${safeHtml}${interceptorScriptTag}`;
+      renderedHtml = `${renderedHtml}${interceptorScriptTag}`;
     }
 
     if (state.runtime.includeInstructionPanel) {
-      safeHtml = stripScriptById(
-        safeHtml,
-        "serve-llm-instructions-panel-script"
-      );
-
       const instructionsScripts = getInstructionsPanelScript();
-      if (/<\/body\s*>/i.test(safeHtml)) {
-        safeHtml = safeHtml.replace(
+      if (/<\/body\s*>/i.test(renderedHtml)) {
+        renderedHtml = renderedHtml.replace(
           /(<\/body\s*>)/i,
           `${instructionsScripts}$1`
         );
       } else {
-        safeHtml = `${safeHtml}${instructionsScripts}`;
+        renderedHtml = `${renderedHtml}${instructionsScripts}`;
       }
     }
 
-    sessionStore.setPrevHtml(sid, safeHtml);
+    sessionStore.setPrevHtml(sid, promptHtml);
 
     const instructions = extractInstructions(bodyData);
     const historyEntry: HistoryEntry = {
@@ -758,7 +742,7 @@ async function handleLlmRequest(
         body: bodyData,
         instructions,
       },
-      response: { html: safeHtml },
+      response: { html: promptHtml },
       llm: {
         provider: llmClient.settings.provider,
         model: llmClient.settings.model,
@@ -779,14 +763,14 @@ async function handleLlmRequest(
     if (isInterceptorRequest) {
       res.statusCode = 200;
       res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.end(safeHtml);
+      res.end(renderedHtml);
       return;
     }
 
     cleanupPendingHtml(state);
     const token = randomUUID();
     state.pendingHtml.set(token, {
-      html: safeHtml,
+      html: renderedHtml,
       expiresAt: Date.now() + PENDING_HTML_TTL_MS,
     });
     const pendingPath = `${LLM_RESULT_ROUTE_PREFIX}/${token}`;
@@ -979,7 +963,8 @@ function getDefaultModelForProvider(
 function getDefaultMaxTokensForProvider(
   provider: ProviderSettings["provider"]
 ): number {
-  const mappedDefault = DEFAULT_MAX_TOKENS_BY_PROVIDER[provider as ModelProvider];
+  const mappedDefault =
+    DEFAULT_MAX_TOKENS_BY_PROVIDER[provider as ModelProvider];
   if (typeof mappedDefault === "number") {
     return mappedDefault;
   }
@@ -1069,7 +1054,7 @@ function truncate(value: string, maxLength: number): string {
 function formatMessagesForLog(messages: ChatMessage[]): string {
   return messages
     .map((message) => {
-      const preview = truncate(message.content, 1_000);
+      const preview = truncate(message.content, 500_000);
       let attachmentNote = "";
       if (message.attachments?.length) {
         const names = message.attachments

@@ -7,10 +7,15 @@ export interface BriefAttachment {
     size: number;
     base64: string;
 }
+export interface CacheControlSettings {
+    type: "ephemeral";
+    ttl?: "5m" | "1h";
+}
 export interface ChatMessage {
     role: "system" | "user";
     content: string;
     attachments?: BriefAttachment[];
+    cacheControl?: CacheControlSettings;
 }
 export interface ProviderSettings {
     provider: ModelProvider;

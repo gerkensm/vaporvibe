@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type {
   BriefAttachment,
+  CacheControlSettings,
   ChatMessage,
   LlmReasoningTrace,
   LlmUsageMetrics,
@@ -14,10 +15,16 @@ const ANTHROPIC_MODELS_URL = "https://api.anthropic.com/v1/models";
 const ANTHROPIC_VERSION = "2023-06-01";
 const VERIFY_TIMEOUT_MS = 10_000;
 
+type AnthropicCacheControl = {
+  type: "ephemeral";
+  ttl?: "5m" | "1h";
+};
+
 type AnthropicRequestContent =
-  | { type: "text"; text: string }
+  | { type: "text"; text: string; cache_control?: AnthropicCacheControl }
   | {
       type: "image";
+      cache_control?: AnthropicCacheControl;
       source: { type: "base64"; media_type: string; data: string };
     };
 
@@ -59,6 +66,31 @@ function createAnthropicImageContent(
   };
 }
 
+function applyCacheControl<T extends AnthropicRequestContent>(
+  block: T,
+  cacheControl?: CacheControlSettings
+): T {
+  if (!cacheControl) {
+    return block;
+  }
+  block.cache_control = toAnthropicCacheControl(cacheControl);
+  return block;
+}
+
+function toAnthropicCacheControl(cacheControl: CacheControlSettings): AnthropicCacheControl {
+  const transformed: AnthropicCacheControl = { type: cacheControl.type };
+  if (cacheControl.ttl) {
+    transformed.ttl = cacheControl.ttl;
+  }
+  return transformed;
+}
+
+function buildSystemBlocks(messages: ChatMessage[]): AnthropicRequestContent[] {
+  return messages
+    .filter((message) => message.role === "system")
+    .map((message) => applyCacheControl({ type: "text", text: message.content }, message.cacheControl));
+}
+
 export class AnthropicClient implements LlmClient {
   readonly settings: ProviderSettings;
   private readonly client: Anthropic;
@@ -69,22 +101,28 @@ export class AnthropicClient implements LlmClient {
   }
 
   async generateHtml(messages: ChatMessage[]): Promise<LlmResult> {
-    const systemMessages = messages.filter((message) => message.role === "system").map((message) => message.content);
+    const systemBlocks = buildSystemBlocks(messages);
     const userMessages = messages.filter((message) => message.role === "user");
 
     const requestMessages: AnthropicMessage[] = userMessages.map((message) => {
       const content: AnthropicRequestContent[] = [
-        { type: "text", text: message.content },
+        applyCacheControl({ type: "text", text: message.content }, message.cacheControl),
       ];
       if (message.attachments?.length) {
         for (const attachment of message.attachments) {
           if (attachment.mimeType.startsWith("image/")) {
-            content.push(createAnthropicImageContent(attachment));
+            content.push(
+              applyCacheControl(createAnthropicImageContent(attachment), message.cacheControl)
+            );
           } else {
             const descriptor =
               `Attachment ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes) encoded in Base64:`;
-            content.push({ type: "text", text: descriptor });
-            content.push({ type: "text", text: attachment.base64 });
+            content.push(
+              applyCacheControl({ type: "text", text: descriptor }, message.cacheControl)
+            );
+            content.push(
+              applyCacheControl({ type: "text", text: attachment.base64 }, message.cacheControl)
+            );
           }
         }
       }
@@ -104,14 +142,14 @@ export class AnthropicClient implements LlmClient {
     );
 
     if (wantsThinking) {
-      return this.generateWithThinking(systemMessages, requestMessages);
+      return this.generateWithThinking(systemBlocks, requestMessages);
     }
 
     const betas = resolveBetas(this.settings.model);
     const createRequest: any = {
       model: this.settings.model,
       max_tokens: this.settings.maxOutputTokens,
-      system: systemMessages.length > 0 ? systemMessages.join("\n\n") : undefined,
+      system: systemBlocks.length > 0 ? systemBlocks : undefined,
       messages: requestMessages,
     };
     if (betas) {
@@ -124,7 +162,10 @@ export class AnthropicClient implements LlmClient {
     return { html, usage: extractUsage(response), raw: response };
   }
 
-  private async generateWithThinking(systemMessages: string[], requestMessages: AnthropicMessage[]): Promise<LlmResult> {
+  private async generateWithThinking(
+    systemBlocks: AnthropicRequestContent[],
+    requestMessages: AnthropicMessage[]
+  ): Promise<LlmResult> {
     const thinkingBudgetCandidate = this.settings.reasoningTokens ?? this.settings.maxOutputTokens;
     const maxTokens = Math.max(1, this.settings.maxOutputTokens);
     const thinkingBudget = Math.max(1, Math.min(thinkingBudgetCandidate, Math.max(1, maxTokens - 1)));
@@ -139,7 +180,7 @@ export class AnthropicClient implements LlmClient {
     const streamRequest: any = {
       model: this.settings.model,
       max_tokens: Math.max(thinkingBudget + 1, maxTokens),
-      system: systemMessages.length > 0 ? systemMessages.join("\n\n") : undefined,
+      system: systemBlocks.length > 0 ? systemBlocks : undefined,
       messages: requestMessages,
       thinking: {
         type: "enabled",
@@ -483,7 +524,25 @@ function extractUsage(response: any): LlmUsageMetrics | undefined {
   ) {
     return undefined;
   }
+  logCacheUsageIfPresent(usage);
   return metrics;
+}
+
+function logCacheUsageIfPresent(usage: Record<string, unknown>): void {
+  const cacheCreation = usage["cache_creation_input_tokens"];
+  const cacheRead = usage["cache_read_input_tokens"];
+  if (cacheCreation === undefined && cacheRead === undefined) {
+    return;
+  }
+  logger.debug(
+    {
+      cacheCreationInputTokens: cacheCreation,
+      cacheReadInputTokens: cacheRead,
+      inputTokens: usage["input_tokens"],
+      outputTokens: usage["output_tokens"],
+    },
+    "Anthropic usage (prompt cache)"
+  );
 }
 
 const CONTEXT_1M_BETA = "context-1m-2025-08-07";

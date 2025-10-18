@@ -177,7 +177,7 @@ export class SessionStore {
         this.pruneSessions();
     }
     appendRestHistoryEntry(sid, options) {
-        const { type, record, response, rawResponse, ok, error, durationMs } = options;
+        const { type, record, response, rawResponse, ok, error, durationMs, usage, reasoning, } = options;
         const restRequest = {
             method: record.method,
             path: record.path,
@@ -213,7 +213,8 @@ export class SessionStore {
                     ok,
                     error,
                 },
-            usage: undefined,
+            usage,
+            reasoning,
         };
         this.appendHistoryEntry(sid, entry, { preservePrevHtml: true });
     }
