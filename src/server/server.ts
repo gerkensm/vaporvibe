@@ -37,6 +37,7 @@ import type {
 } from "../types.js";
 import type { LlmClient } from "../llm/client.js";
 import { buildMessages } from "../llm/messages.js";
+import { spawnSync } from "node:child_process";
 import { supportsImageInput } from "../llm/capabilities.js";
 import { parseCookies } from "../utils/cookies.js";
 import { readBody } from "../utils/body.js";
@@ -60,7 +61,8 @@ type RequestLogger = Logger;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const FRONTEND_DIST_DIR = resolvePath(__dirname, "../../frontend/dist");
+const PROJECT_ROOT_DIR = resolvePath(__dirname, "../../");
+const FRONTEND_DIST_DIR = resolvePath(PROJECT_ROOT_DIR, "frontend/dist");
 const FRONTEND_ASSETS_DIR = resolvePath(FRONTEND_DIST_DIR, "assets");
 const SPA_INDEX_PATH = resolvePath(FRONTEND_DIST_DIR, "index.html");
 
@@ -70,6 +72,43 @@ const frontendAssetCache = new Map<
 >();
 
 let spaShellCache: { html: string; mtimeMs: number } | null = null;
+let frontendAssetsEnsured = false;
+
+export function ensureFrontendAssetsOnce(): void {
+  if (frontendAssetsEnsured) {
+    return;
+  }
+  if (existsSync(SPA_INDEX_PATH)) {
+    frontendAssetsEnsured = true;
+    return;
+  }
+
+  logger.info(
+    "Compiled admin UI missing — running `npm run build:fe` once to generate assets."
+  );
+
+  const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
+  const result = spawnSync(npmCommand, ["run", "build:fe"], {
+    cwd: PROJECT_ROOT_DIR,
+    stdio: "inherit",
+    env: { ...process.env, NODE_ENV: process.env.NODE_ENV ?? "production" },
+  });
+
+  if (result.status !== 0) {
+    throw new Error(
+      "Failed to build admin SPA assets automatically. Run `npm run build:fe` manually to inspect the error."
+    );
+  }
+
+  if (!existsSync(SPA_INDEX_PATH)) {
+    throw new Error(
+      "Admin SPA build completed but index.html is still missing. Ensure `npm run build:fe` succeeds."
+    );
+  }
+
+  frontendAssetsEnsured = true;
+  logger.info("Admin UI assets generated successfully.");
+}
 
 function stripScriptById(html: string, scriptId: string): string {
   if (!html.includes(scriptId)) {

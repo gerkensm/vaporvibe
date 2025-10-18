@@ -5,7 +5,7 @@ import { parseCliArgs } from "./cli/args.js";
 import { resolveAppConfig } from "./config/runtime-config.js";
 import { createLlmClient } from "./llm/factory.js";
 import { SessionStore } from "./server/session-store.js";
-import { createServer } from "./server/server.js";
+import { createServer, ensureFrontendAssetsOnce } from "./server/server.js";
 import { logger } from "./logger.js";
 
 async function main(): Promise<void> {
@@ -24,6 +24,8 @@ async function main(): Promise<void> {
       appConfig.runtime.sessionTtlMs,
       appConfig.runtime.sessionCap
     );
+
+    ensureFrontendAssetsOnce();
 
     const server = createServer({
       runtime: appConfig.runtime,
