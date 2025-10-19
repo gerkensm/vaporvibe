@@ -90,6 +90,18 @@ graph TD
 
 ---
 
+## How We Keep Token Costs (Relatively) Reasonable
+
+Hallucinating whole apps could get pricey fast, so the runtime pulls a few sleights of hand to keep the model's context lean without ruining the vibe:
+
+- **Virtual REST API (a.k.a. "Sure, Data Exists")** – The generated HTML can call `/rest_api/query/*` or `/rest_api/mutation/*` like a real backend. The brain-twist: the server already knows what structure the UI expects, so it simply replies with JSON in the perfect shape—no schema migrations, no surprises. Mutations get echoed back into the prompt so the model "remembers" state changes, and queries give it rich data without re-synthesizing giant tables every render.
+- **Reusable Component Placeholders** – After each response the server sprinkles `data-id`s onto `<html>`, `<head>`, `<body>`, headers, nav, helper scripts, and `<style>` blocks. On the next pass, the LLM can just write `{{component:sl-gen-12}}` or `{{style:sl-style-3}}` to pull cached markup back in. Chrome, global styles, and static scripts stay consistent while costing almost zero tokens.
+- **History Time Travel** – Because those caches live with each history entry, the model can resurrect an earlier page wholesale when nothing changed—sometimes the entire response is a single `<html>` placeholder. (It still looks like sorcery when it works.)
+
+It’s not bulletproof, but these tricks keep the improvisation fast enough to feel interactive.
+
+---
+
 ## The Admin Console is Your Cockpit
 
 Once your app is running, the admin interface at `/serve-llm` becomes your mission control. It's packed with tools for steering the creative chaos:
