@@ -282,61 +282,61 @@ export const navigationOverlayEffectStyles = String.raw`
     }
   }
 
-  #serve-llm-overlay.effect-wobble-drop .liquidGlass-wrapper {
+  #vaporvibe-overlay.effect-wobble-drop .liquidGlass-wrapper {
     animation: dropMorph 3.6s ease-in-out infinite;
   }
 
-  #serve-llm-overlay.effect-breathe .liquidGlass-wrapper {
+  #vaporvibe-overlay.effect-breathe .liquidGlass-wrapper {
     animation: breathe 3.8s ease-in-out infinite;
   }
 
-  #serve-llm-overlay.effect-spin-cycle .liquidGlass-wrapper {
+  #vaporvibe-overlay.effect-spin-cycle .liquidGlass-wrapper {
     animation: spinCycle 5.2s ease-in-out infinite;
   }
 
-  #serve-llm-overlay.effect-lantern-sway .liquidGlass-wrapper {
+  #vaporvibe-overlay.effect-lantern-sway .liquidGlass-wrapper {
     transform-origin: 50% -320px;
     animation: lanternSway 2.8s ease-in-out infinite;
   }
 
-  #serve-llm-overlay.effect-parallax-tilt .liquidGlass-wrapper {
+  #vaporvibe-overlay.effect-parallax-tilt .liquidGlass-wrapper {
     transform-style: preserve-3d;
     animation: parallaxTilt 6s ease-in-out infinite;
   }
 
-  #serve-llm-overlay.effect-parallax-tilt .liquidGlass-tint {
+  #vaporvibe-overlay.effect-parallax-tilt .liquidGlass-tint {
     animation: parallaxGlow 6s ease-in-out infinite;
   }
 
-  #serve-llm-overlay.effect-parallax-tilt .liquidGlass-shine {
+  #vaporvibe-overlay.effect-parallax-tilt .liquidGlass-shine {
     animation: parallaxShine 6s ease-in-out infinite;
   }
 
-  #serve-llm-overlay.effect-orbiting-sparks .effect-ornament {
+  #vaporvibe-overlay.effect-orbiting-sparks .effect-ornament {
     opacity: 1;
   }
 
-  #serve-llm-overlay.effect-orbiting-sparks .orbiting-sparks {
+  #vaporvibe-overlay.effect-orbiting-sparks .orbiting-sparks {
     display: block;
   }
 
-  #serve-llm-overlay.effect-orbiting-sparks .spark-1 {
+  #vaporvibe-overlay.effect-orbiting-sparks .spark-1 {
     animation: orbitSpark var(--duration) linear infinite;
   }
 
-  #serve-llm-overlay.effect-orbiting-sparks .spark-2 {
+  #vaporvibe-overlay.effect-orbiting-sparks .spark-2 {
     animation: orbitSpark var(--duration) linear infinite reverse;
   }
 
-  #serve-llm-overlay.effect-orbiting-sparks .spark-3 {
+  #vaporvibe-overlay.effect-orbiting-sparks .spark-3 {
     animation: orbitSpark calc(var(--duration) * 1.25) linear infinite;
   }
 
-  #serve-llm-overlay.effect-mini-game .mini-game {
+  #vaporvibe-overlay.effect-mini-game .mini-game {
     display: block;
   }
 
-  #serve-llm-overlay.effect-dvd-bounce .mini-game {
+  #vaporvibe-overlay.effect-dvd-bounce .mini-game {
     display: block;
   }
 `;

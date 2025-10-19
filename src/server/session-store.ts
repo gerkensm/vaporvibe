@@ -326,9 +326,9 @@ function findLastHtmlEntry(history: HistoryEntry[]): HistoryEntry | undefined {
 function formatJsonForHtml(payload: unknown): string {
   try {
     const json = JSON.stringify(payload ?? null, null, 2);
-    return `<pre class="serve-llm-rest-json">${escapeHtml(json)}</pre>`;
+    return `<pre class="vaporvibe-rest-json">${escapeHtml(json)}</pre>`;
   } catch {
-    return `<pre class="serve-llm-rest-json">${escapeHtml(String(payload ?? ""))}</pre>`;
+    return `<pre class="vaporvibe-rest-json">${escapeHtml(String(payload ?? ""))}</pre>`;
   }
 }
 

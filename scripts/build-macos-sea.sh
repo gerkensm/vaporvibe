@@ -37,7 +37,7 @@ mkdir -p "${SEA_OUT}"
 
 PACKAGE_VERSION="$(node -p "require('./package.json').version")"
 
-ENTRY_SCRIPT="${SEA_OUT}/serve-llm-entry.cjs"
+ENTRY_SCRIPT="${SEA_OUT}/vaporvibe-entry.cjs"
 cat > "${ENTRY_SCRIPT}" <<CJS
 const fs = require("node:fs");
 const path = require("node:path");
@@ -80,7 +80,7 @@ async function runFromFilesystem(distRoot) {
       return;
     }
 
-    const extractRoot = fs.mkdtempSync(join(os.tmpdir(), "serve-llm-" + ASSET_VERSION + "-"));
+    const extractRoot = fs.mkdtempSync(join(os.tmpdir(), "vaporvibe-" + ASSET_VERSION + "-"));
     const distRoot = join(extractRoot, "dist");
     fs.mkdirSync(distRoot, { recursive: true });
 
@@ -102,7 +102,7 @@ async function runFromFilesystem(distRoot) {
 
     await runFromFilesystem(distRoot);
   } catch (error) {
-    console.error("Failed to start serve-llm from SEA bundle:", error);
+    console.error("Failed to start vaporvibe from SEA bundle:", error);
     process.exit(1);
   }
 })();
@@ -114,7 +114,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const [rootDir, configPath, entryScriptPath] = process.argv.slice(2);
-const blobOutputPath = path.join(rootDir, "out", "sea", "serve-llm.blob");
+const blobOutputPath = path.join(rootDir, "out", "sea", "vaporvibe.blob");
 const distDir = path.join(rootDir, "dist");
 const nodeModulesDir = path.join(rootDir, "node_modules");
 const frontendDistDir = path.join(rootDir, "frontend", "dist");
@@ -229,7 +229,7 @@ echo "→ Generating SEA blob…"
 NODE_SEA_BUILD=1 node --experimental-sea-config "${SEA_OUT}/sea-config.json"
 
 NODE_BIN="$(command -v node)"
-TARGET_BIN="${SEA_OUT}/serve-llm-macos"
+TARGET_BIN="${SEA_OUT}/vaporvibe-macos"
 cp "${NODE_BIN}" "${TARGET_BIN}"
 chmod +w "${TARGET_BIN}"
 
@@ -239,7 +239,7 @@ if [[ "$(uname)" == "Darwin" ]] && command -v codesign >/dev/null 2>&1; then
 fi
 
 echo "→ Stamping blob into launcher…"
-npx --yes postject@1.0.0-alpha.6 "${TARGET_BIN}" NODE_SEA_BLOB "${SEA_OUT}/serve-llm.blob" \
+npx --yes postject@1.0.0-alpha.6 "${TARGET_BIN}" NODE_SEA_BLOB "${SEA_OUT}/vaporvibe.blob" \
   --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2 \
   --macho-segment-name NODE_SEA
 

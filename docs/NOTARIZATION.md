@@ -1,6 +1,6 @@
 # macOS Notarization Guide
 
-This guide explains how to notarize the serve-llm SEA (Single Executable Application) binary for macOS distribution.
+This guide explains how to notarize the VaporVibe SEA (Single Executable Application) binary for macOS distribution.
 
 ## Prerequisites
 
@@ -29,7 +29,7 @@ Create an app-specific password for notarization:
 2. Sign in with your Apple ID
 3. Under "Sign-In and Security" → "App-Specific Passwords"
 4. Click "Generate an app-specific password"
-5. Label it (e.g., "serve-llm notarization")
+5. Label it (e.g., "VaporVibe notarization")
 6. Save the generated password
 
 ### 4. Team ID
@@ -47,7 +47,7 @@ Find your Team ID:
 Create a secure keychain profile to avoid exposing credentials:
 
 ```bash
-xcrun notarytool store-credentials "serve-llm-notary" \
+xcrun notarytool store-credentials "vaporvibe-notary" \
   --apple-id "your-apple-id@example.com" \
   --team-id "YOUR_TEAM_ID" \
   --password "your-app-specific-password"
@@ -56,7 +56,7 @@ xcrun notarytool store-credentials "serve-llm-notary" \
 Then set only the profile name as an environment variable:
 
 ```bash
-export APPLE_KEYCHAIN_PROFILE="serve-llm-notary"
+export APPLE_KEYCHAIN_PROFILE="vaporvibe-notary"
 export APPLE_TEAM_ID="YOUR_TEAM_ID"
 export APPLE_EMAIL="your-apple-id@example.com"
 # APPLE_APP_PASSWORD is stored securely in the keychain profile
@@ -70,7 +70,7 @@ Set all required environment variables directly:
 export APPLE_EMAIL="your-apple-id@example.com"
 export APPLE_TEAM_ID="YOUR_TEAM_ID"
 export APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx"  # App-specific password
-export APPLE_KEYCHAIN_PROFILE="serve-llm-notary"  # Name of your keychain profile
+export APPLE_KEYCHAIN_PROFILE="vaporvibe-notary"  # Name of your keychain profile
 ```
 
 **Add to your shell profile** (`.zshrc`, `.bashrc`, etc.) to persist across sessions:
@@ -79,7 +79,7 @@ export APPLE_KEYCHAIN_PROFILE="serve-llm-notary"  # Name of your keychain profil
 # Apple Developer Credentials for notarization
 export APPLE_EMAIL="your-apple-id@example.com"
 export APPLE_TEAM_ID="YOUR_TEAM_ID"
-export APPLE_KEYCHAIN_PROFILE="serve-llm-notary"
+export APPLE_KEYCHAIN_PROFILE="vaporvibe-notary"
 ```
 
 ## Build and Notarize Process
@@ -131,7 +131,7 @@ npm run build:sea:submit
 npm run build:sea:verify
 
 # Or test manually
-./out/sea/serve-llm-macos "You are a helpful assistant"
+./out/sea/vaporvibe-macos "You are a helpful assistant"
 ````
 
 The verification script performs 5 checks:
@@ -160,9 +160,9 @@ Once notarized and stapled, the binary can be distributed and will run on any ma
 Users can download and run the binary directly:
 
 ```bash
-curl -L -o serve-llm https://github.com/yourorg/serve-llm/releases/download/v1.0.0/serve-llm-macos
-chmod +x serve-llm
-./serve-llm "You are a helpful assistant"
+curl -L -o vaporvibe https://github.com/yourorg/vaporvibe/releases/download/v1.0.0/vaporvibe-macos
+chmod +x vaporvibe
+./vaporvibe "You are a helpful assistant"
 ```
 
 ## Understanding Stapling for CLI Tools
@@ -173,7 +173,7 @@ Stapling attaches the notarization ticket directly to your binary. However, **st
 
 ### CLI Tools and Notarization
 
-For CLI executables like `serve-llm-macos`:
+For CLI executables like `vaporvibe-macos`:
 
 - ✅ **Full notarization works** (signed, submitted, and accepted by Apple)
 - ✅ **Security is identical** to stapled binaries
@@ -197,7 +197,7 @@ Your notarized CLI tool:
 **This is normal for CLI executables.** The stapling step will show:
 
 ```
-Processing: /path/to/serve-llm-macos
+Processing: /path/to/vaporvibe-macos
 The staple and validate action failed! Error 73.
 ```
 
@@ -231,7 +231,7 @@ Your Developer ID certificate isn't installed. Install it from:
 2. Check your Apple ID and Team ID
 3. Ensure your keychain profile exists:
    ```bash
-   xcrun notarytool list --keychain-profile "serve-llm-notary"
+   xcrun notarytool list --keychain-profile "vaporvibe-notary"
    ```
 
 ### "The binary is not signed"
@@ -247,7 +247,7 @@ The signing step failed. Check that:
 - Normal wait time: 2-5 minutes
 - If longer than 15 minutes, check status:
   ```bash
-  xcrun notarytool history --keychain-profile "serve-llm-notary"
+  xcrun notarytool history --keychain-profile "vaporvibe-notary"
   ```
 
 ### View notarization logs
@@ -256,7 +256,7 @@ If notarization fails, retrieve detailed logs:
 
 ```bash
 # Get submission ID from the error output
-xcrun notarytool log <SUBMISSION_ID> --keychain-profile "serve-llm-notary"
+xcrun notarytool log <SUBMISSION_ID> --keychain-profile "vaporvibe-notary"
 ```
 
 ## Security Notes
@@ -270,7 +270,7 @@ xcrun notarytool log <SUBMISSION_ID> --keychain-profile "serve-llm-notary"
 
 ### Background
 
-serve-llm uses [keytar](https://github.com/atom/node-keytar) for secure credential storage, which includes native `.node` bindings that need special handling during signing and notarization.
+VaporVibe uses [keytar](https://github.com/atom/node-keytar) for secure credential storage, which includes native `.node` bindings that need special handling during signing and notarization.
 
 ### SEA (Single Executable) Builds
 
@@ -327,14 +327,14 @@ After building and signing, verify keytar loads correctly:
 npm run build:sea:signed
 
 # Test - should not show "Secure credential storage unavailable" warning
-./out/sea/serve-llm-macos "Test" --port 9999
+./out/sea/vaporvibe-macos "Test" --port 9999
 ```
 
 If you see the warning, keytar failed to load. Check:
 
 1. Native bindings are in the SEA blob
 2. Extraction permissions are correct
-3. Signature is valid: `codesign -dv ./out/sea/serve-llm-macos`
+3. Signature is valid: `codesign -dv ./out/sea/vaporvibe-macos`
 
 ### Fallback Behavior
 

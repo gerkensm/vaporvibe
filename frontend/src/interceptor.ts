@@ -21,7 +21,7 @@ function emitRestApiEvent(
 ): void {
   if (!target) return;
   try {
-    const event = new CustomEvent("serve-llm:rest-api-request", {
+    const event = new CustomEvent("vaporvibe:rest-api-request", {
       bubbles: true,
       detail,
     });
@@ -38,19 +38,19 @@ const overlayEffectClassNames = navigationOverlayEffects.map(
 const overlayMarkup = [
   "<style>",
   "  :root { --accent:#1d4ed8; --muted:#475569; --subtle:#64748b; }",
-  "  @keyframes serve-llm-spin { to { transform: rotate(360deg); } }",
-  "  @keyframes serve-llm-pulse { 0%,100%{ transform: scale(0.92); opacity: 0.6;} 50%{ transform: scale(1); opacity: 1;} }",
+  "  @keyframes vaporvibe-spin { to { transform: rotate(360deg); } }",
+  "  @keyframes vaporvibe-pulse { 0%,100%{ transform: scale(0.92); opacity: 0.6;} 50%{ transform: scale(1); opacity: 1;} }",
   "  .liquidGlass-wrapper { position: relative; overflow: hidden; box-shadow: 0 6px 6px rgba(0,0,0,0.2), 0 0 20px rgba(0,0,0,0.1); border: 1px solid rgba(148,163,184,0.35); }",
   "  .liquidGlass-wrapper, .liquidGlass-wrapper > div { border-radius: 22px; }",
   "  .liquidGlass-effect { position: absolute; inset: 0; z-index: 0; backdrop-filter: blur(7px); filter: url(#glass-distortion); overflow:hidden; }",
   "  .liquidGlass-tint { position: absolute; inset: 0; z-index: 1; background: rgba(255,255,255,0.50); }",
   "  .liquidGlass-shine { position: absolute; inset: 0; z-index: 2; box-shadow: inset 2px 2px 1px 0 rgba(255,255,255,0.5), inset -1px -1px 1px 1px rgba(255,255,255,0.5); }",
-  "  .serve-llm-stage { position: relative; z-index: 4; display: grid; place-items: center; gap: 12px; text-align: center; max-width: 520px; width: calc(100% - 32px); padding: 18px; }",
-  "  .serve-llm-pulse { width: 96px; height: 96px; border-radius: 50%; background: radial-gradient(circle, rgba(29, 78, 216, 0.28), rgba(29, 78, 216, 0)); display:grid; place-items:center; animation: serve-llm-pulse 2.4s ease-in-out infinite; }",
-  "  .serve-llm-spinner { width: 72px; height: 72px; border-radius: 50%; border: 6px solid rgba(29, 78, 216, 0.2); border-top-color: var(--accent); animation: serve-llm-spin 1.1s linear infinite; }",
-  "  .serve-llm-title { font: 600 1.1rem/1.3 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:#0f172a; }",
-  "  .serve-llm-status { font: 400 0.95rem/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: var(--muted); min-height:1.2em; }",
-  "  .serve-llm-hint { font: 400 0.9rem/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: var(--subtle); }",
+  "  .vaporvibe-stage { position: relative; z-index: 4; display: grid; place-items: center; gap: 12px; text-align: center; max-width: 520px; width: calc(100% - 32px); padding: 18px; }",
+  "  .vaporvibe-pulse { width: 96px; height: 96px; border-radius: 50%; background: radial-gradient(circle, rgba(29, 78, 216, 0.28), rgba(29, 78, 216, 0)); display:grid; place-items:center; animation: vaporvibe-pulse 2.4s ease-in-out infinite; }",
+  "  .vaporvibe-spinner { width: 72px; height: 72px; border-radius: 50%; border: 6px solid rgba(29, 78, 216, 0.2); border-top-color: var(--accent); animation: vaporvibe-spin 1.1s linear infinite; }",
+  "  .vaporvibe-title { font: 600 1.1rem/1.3 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:#0f172a; }",
+  "  .vaporvibe-status { font: 400 0.95rem/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: var(--muted); min-height:1.2em; }",
+  "  .vaporvibe-hint { font: 400 0.9rem/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: var(--subtle); }",
   navigationOverlayEffectStyles
     .split("\n")
     .map((line) => (line ? `  ${line}` : ""))
@@ -61,11 +61,11 @@ const overlayMarkup = [
   '  <div class="liquidGlass-effect"></div>',
   '  <div class="liquidGlass-tint"></div>',
   '  <div class="liquidGlass-shine"></div>',
-  '  <div class="serve-llm-stage">',
-  '    <div class="serve-llm-pulse"><div class="serve-llm-spinner" role="status" aria-live="polite" aria-label="Generating the next view"></div></div>',
-  '    <div class="serve-llm-title">Generating your next view</div>',
-  '    <div class="serve-llm-status" data-serve-llm-status></div>',
-  '    <div class="serve-llm-hint">Hold tight—we ask your configured model to compose a fresh canvas.</div>',
+  '  <div class="vaporvibe-stage">',
+  '    <div class="vaporvibe-pulse"><div class="vaporvibe-spinner" role="status" aria-live="polite" aria-label="Generating the next view"></div></div>',
+  '    <div class="vaporvibe-title">Generating your next view</div>',
+  '    <div class="vaporvibe-status" data-vaporvibe-status></div>',
+  '    <div class="vaporvibe-hint">Hold tight—we ask your configured model to compose a fresh canvas.</div>',
   navigationOverlayMiniGameMarkup,
   "  </div>",
   "</div>",
@@ -96,13 +96,13 @@ const statusMessages = [
 
 (() => {
   const globalScope = window as Window & {
-    serveLlmInterceptorAttached?: boolean;
+    vaporVibeInterceptorAttached?: boolean;
   };
 
-  if (globalScope.serveLlmInterceptorAttached) return;
-  globalScope.serveLlmInterceptorAttached = true;
+  if (globalScope.vaporVibeInterceptorAttached) return;
+  globalScope.vaporVibeInterceptorAttached = true;
 
-  const LOG_PREFIX = "serve-llm interceptor:";
+  const LOG_PREFIX = "vaporvibe interceptor:";
   const logDebug = (...args: unknown[]): void => {
     if (typeof console !== "undefined" && typeof console.debug === "function") {
       console.debug(LOG_PREFIX, ...args);
@@ -111,7 +111,7 @@ const statusMessages = [
 
   const overlayEffectsConfig = navigationOverlayEffects;
 
-  const interceptorScriptId = "serve-llm-interceptor-script";
+  const interceptorScriptId = "vaporvibe-interceptor-script";
   const currentScript = document.currentScript as HTMLScriptElement | null;
   if (currentScript && !currentScript.id) {
     currentScript.id = interceptorScriptId;
@@ -222,7 +222,7 @@ const statusMessages = [
     const motionNode = ensureOverlayMotionNode();
     if (motionNode) motionNode.style.transform = "";
 
-    overlay.removeAttribute("data-serve-llm-effect");
+    overlay.removeAttribute("data-vaporvibe-effect");
 
     stopDvdAnimation();
     currentOverlayEffect = null;
@@ -238,14 +238,14 @@ const statusMessages = [
     if (!effect) return;
 
     overlay.classList.add(`effect-${effect.id}`);
-    overlay.setAttribute("data-serve-llm-effect", effect.id);
+    overlay.setAttribute("data-vaporvibe-effect", effect.id);
     currentOverlayEffect = effect.id;
 
     if (typeof console !== "undefined" && typeof console.debug === "function") {
       try {
-        console.debug("serve-llm overlay effect", effect.id);
+        console.debug("vaporvibe overlay effect", effect.id);
       } catch (error) {
-        console.debug("serve-llm overlay effect", effect.id, error);
+        console.debug("vaporvibe overlay effect", effect.id, error);
       }
     }
 
@@ -272,10 +272,10 @@ const statusMessages = [
   }
 
   function createOverlay(): void {
-    if (document.getElementById("serve-llm-overlay")) return;
+    if (document.getElementById("vaporvibe-overlay")) return;
 
     overlay = document.createElement("div");
-    overlay.id = "serve-llm-overlay";
+    overlay.id = "vaporvibe-overlay";
     Object.assign(overlay.style, {
       position: "fixed",
       top: "0",
@@ -311,7 +311,7 @@ const statusMessages = [
 
   function showOverlay(message?: string): void {
     logDebug("showOverlay", message ?? "<default>");
-    if (!overlay || !document.getElementById("serve-llm-overlay")) {
+    if (!overlay || !document.getElementById("vaporvibe-overlay")) {
       createOverlay();
     }
     if (!overlay) return;
@@ -340,7 +340,7 @@ const statusMessages = [
       }
 
       const target = overlay.querySelector<HTMLElement>(
-        "[data-serve-llm-status]"
+        "[data-vaporvibe-status]"
       );
       let idx = 0;
       if (target) {
@@ -380,7 +380,7 @@ const statusMessages = [
   function addBypassParam(u: string | URL): URL | string {
     try {
       const url = u instanceof URL ? u : new URL(String(u), window.location.origin);
-      url.searchParams.set("__serve-llm", "interceptor");
+      url.searchParams.set("__vaporvibe", "interceptor");
       return url;
     } catch {
       return u;
@@ -389,8 +389,8 @@ const statusMessages = [
 
   try {
     const current = new URL(window.location.href);
-    if (current.searchParams.get("__serve-llm") === "interceptor") {
-      current.searchParams.delete("__serve-llm");
+    if (current.searchParams.get("__vaporvibe") === "interceptor") {
+      current.searchParams.delete("__vaporvibe");
       history.replaceState(null, "", current.toString());
     }
   } catch {
@@ -407,7 +407,7 @@ const statusMessages = [
       return;
     }
 
-    if (destination.pathname.startsWith("/serve-llm") || destination.pathname.startsWith("/__setup")) {
+    if (destination.pathname.startsWith("/vaporvibe") || destination.pathname.startsWith("/__setup")) {
       window.location.href = destination.href;
       return;
     }
@@ -416,11 +416,11 @@ const statusMessages = [
     try {
       const nav = addBypassParam(destination);
       if (typeof console !== "undefined" && typeof console.debug === "function") {
-        console.debug("serve-llm navigation via interceptor", nav.toString());
+        console.debug("vaporvibe navigation via interceptor", nav.toString());
       }
       window.location.assign(nav.toString());
     } catch (error) {
-      console.error("serve-llm navigation failed:", error);
+      console.error("vaporvibe navigation failed:", error);
       window.location.href = destination.href;
     }
   }
@@ -509,7 +509,7 @@ const statusMessages = [
           url.searchParams.append(key, String(value));
         });
       } catch (error) {
-        console.warn("serve-llm form encoding failed:", error);
+        console.warn("vaporvibe form encoding failed:", error);
       }
 
       if (isRestApiPath(url.pathname)) {
@@ -532,7 +532,7 @@ const statusMessages = [
       try {
         const hidden = document.createElement("input");
         hidden.type = "hidden";
-        hidden.name = "__serve-llm";
+        hidden.name = "__vaporvibe";
         hidden.value = "interceptor";
         form.appendChild(hidden);
       } catch {

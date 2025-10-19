@@ -1,7 +1,7 @@
-window.__serveLlmHydrateFromToken = function(token, path) {
+window.__vaporVibeHydrateFromToken = function(token, path) {
   if (!token || typeof token !== "string") return;
-  if (window.__serveLlmHydrateFromTokenBusy) return;
-  window.__serveLlmHydrateFromTokenBusy = true;
+  if (window.__vaporVibeHydrateFromTokenBusy) return;
+  window.__vaporVibeHydrateFromTokenBusy = true;
   var prefix = __RESULT_ROUTE_PREFIX__;
   var originPath = typeof path === "string" && path.trim().length > 0 ? path : __ORIGINAL_PATH__;
   var requestUrl = prefix.replace(/\/$/, "") + "/" + token.replace(/^\/+/, "");
@@ -27,14 +27,14 @@ window.__serveLlmHydrateFromToken = function(token, path) {
     document.write(htmlString);
     document.close();
   }).catch(function(error) {
-    console.error("serve-llm hydrate failed", error);
-    window.__serveLlmHydrateError("We could not load the generated page. Reload and try again.");
+    console.error("vaporvibe hydrate failed", error);
+    window.__vaporVibeHydrateError("We could not load the generated page. Reload and try again.");
   }).finally(function() {
-    window.__serveLlmHydrateFromTokenBusy = false;
+    window.__vaporVibeHydrateFromTokenBusy = false;
   });
 };
 
-window.__serveLlmHydrateError = function(message) {
+window.__vaporVibeHydrateError = function(message) {
   var container = document.querySelector("main");
   if (!container) return;
   container.innerHTML = '<h1>We hit a snag</h1><p>' + message + '</p><p class="hint">Retry the request, or check the server logs for additional detail.</p>';

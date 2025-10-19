@@ -12,8 +12,8 @@ NC='\033[0m' # No Color
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-APP_PATH="${ROOT_DIR}/out/macos-app/ServeLLM.app"
-DMG_PATH="${ROOT_DIR}/out/macos-app/ServeLLM.dmg"
+APP_PATH="${ROOT_DIR}/out/macos-app/VaporVibe.app"
+DMG_PATH="${ROOT_DIR}/out/macos-app/VaporVibe.dmg"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║   macOS App Bundle & DMG Verification             ║${NC}"
@@ -49,7 +49,7 @@ fi
 # Verify App Bundle
 if [[ "$APP_EXISTS" == true ]]; then
   echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${BLUE}  Verifying App Bundle (ServeLLM.app)${NC}"
+  echo -e "${BLUE}  Verifying App Bundle (VaporVibe.app)${NC}"
   echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo ""
   
@@ -95,7 +95,7 @@ if [[ "$APP_EXISTS" == true ]]; then
   
   # Test 5: Check embedded SEA binary
   echo -e "${BLUE}[5/5] Checking embedded SEA binary...${NC}"
-  SEA_BINARY="$APP_PATH/Contents/Resources/serve-llm-macos"
+  SEA_BINARY="$APP_PATH/Contents/Resources/vaporvibe-macos"
   if [[ -f "$SEA_BINARY" ]]; then
     # Note: Nested binaries in --deep signed bundles may not verify independently
     # What matters is the bundle signature, which we already verified
@@ -115,7 +115,7 @@ fi
 # Verify DMG
 if [[ "$DMG_EXISTS" == true ]]; then
   echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${BLUE}  Verifying DMG (ServeLLM.dmg)${NC}"
+  echo -e "${BLUE}  Verifying DMG (VaporVibe.dmg)${NC}"
   echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo ""
   
@@ -151,7 +151,7 @@ if [[ "$DMG_EXISTS" == true ]]; then
   
   MOUNT_POINT=$(mktemp -d)
   if hdiutil attach "$DMG_PATH" -mountpoint "$MOUNT_POINT" -nobrowse -quiet 2>/dev/null; then
-    APP_IN_DMG="$MOUNT_POINT/Serve LLM.app"
+    APP_IN_DMG="$MOUNT_POINT/VaporVibe.app"
     
     if [[ -d "$APP_IN_DMG" ]]; then
       echo -e "${BLUE}Checking app bundle inside DMG...${NC}"

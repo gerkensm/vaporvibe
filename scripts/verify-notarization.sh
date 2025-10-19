@@ -13,19 +13,19 @@ NC='\033[0m' # No Color
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 DEFAULT_PATH=""
-if [[ -f "${REPO_ROOT}/out/macos-app/ServeLLM.dmg" ]]; then
-  DEFAULT_PATH="${REPO_ROOT}/out/macos-app/ServeLLM.dmg"
-elif [[ -d "${REPO_ROOT}/out/macos-app/ServeLLM.app" ]]; then
-  DEFAULT_PATH="${REPO_ROOT}/out/macos-app/ServeLLM.app"
-elif [[ -f "${REPO_ROOT}/out/sea/serve-llm-macos" ]]; then
-  DEFAULT_PATH="${REPO_ROOT}/out/sea/serve-llm-macos"
+if [[ -f "${REPO_ROOT}/out/macos-app/VaporVibe.dmg" ]]; then
+  DEFAULT_PATH="${REPO_ROOT}/out/macos-app/VaporVibe.dmg"
+elif [[ -d "${REPO_ROOT}/out/macos-app/VaporVibe.app" ]]; then
+  DEFAULT_PATH="${REPO_ROOT}/out/macos-app/VaporVibe.app"
+elif [[ -f "${REPO_ROOT}/out/sea/vaporvibe-macos" ]]; then
+  DEFAULT_PATH="${REPO_ROOT}/out/sea/vaporvibe-macos"
 fi
 
 TARGET_PATH="${1:-$DEFAULT_PATH}"
 
 if [[ -z "$TARGET_PATH" ]]; then
   echo -e "${RED}Error: No artifact found. Provide a path explicitly.${NC}" >&2
-  echo -e "${YELLOW}Usage: $0 /path/to/ServeLLM.dmg|ServeLLM.app|serve-llm-macos${NC}" >&2
+  echo -e "${YELLOW}Usage: $0 /path/to/VaporVibe.dmg|VaporVibe.app|vaporvibe-macos${NC}" >&2
   exit 1
 fi
 
@@ -37,7 +37,7 @@ fi
 TARGET_TYPE="binary"
 case "$TARGET_PATH" in
   *.dmg) TARGET_TYPE="dmg" ;;
-  *.app|*/ServeLLM.app) TARGET_TYPE="app" ;;
+  *.app|*/VaporVibe.app) TARGET_TYPE="app" ;;
 esac
 if [[ -d "$TARGET_PATH" ]]; then
   TARGET_TYPE="app"
@@ -119,7 +119,7 @@ if [[ -n "${APPLE_KEYCHAIN_PROFILE:-}" ]]; then
     echo "$HISTORY" | head -10 | sed 's/^/  /'
     
     # Check if our binary's zip is in recent history (rough check)
-    if echo "$HISTORY" | grep -q "serve-llm"; then
+    if echo "$HISTORY" | grep -q "vaporvibe"; then
       echo -e "${GREEN}✓ This binary appears in notarization history${NC}"
       NOTARIZED_ONLINE=true
     fi
@@ -151,14 +151,14 @@ else
 fi
 echo ""
   if [[ "$TARGET_TYPE" == "dmg" ]]; then
-    echo -e "${GREEN}Safe to distribute! Users can mount the DMG and drag Serve LLM into Applications.${NC}"
+    echo -e "${GREEN}Safe to distribute! Users can mount the DMG and drag VaporVibe into Applications.${NC}"
   elif [[ "$TARGET_TYPE" == "app" ]]; then
-    echo -e "${GREEN}Safe to distribute! Ship ServeLLM.app inside a DMG/ZIP for users to drag into Applications.${NC}"
+    echo -e "${GREEN}Safe to distribute! Ship VaporVibe.app inside a DMG/ZIP for users to drag into Applications.${NC}"
   else
     echo -e "${GREEN}Safe to distribute! Users can run it with:${NC}"
-    echo -e "  ${YELLOW}curl -L -o serve-llm <download-url>${NC}"
-    echo -e "  ${YELLOW}chmod +x serve-llm${NC}"
-    echo -e "  ${YELLOW}./serve-llm \"Your brief here\"${NC}"
+    echo -e "  ${YELLOW}curl -L -o vaporvibe <download-url>${NC}"
+    echo -e "  ${YELLOW}chmod +x vaporvibe${NC}"
+    echo -e "  ${YELLOW}./vaporvibe \"Your brief here\"${NC}"
   fi
 else
   echo -e "${RED}✗ Artifact is NOT properly notarized${NC}"

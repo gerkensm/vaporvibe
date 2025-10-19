@@ -1,6 +1,6 @@
-# serve-llm
+# VaporVibe
 
-Serve-llm is a cheeky thought experiment, not a production stack: instead of vibe-coding a frontend and backend, you picture the page you want and let an LLM improvise the entire view—markup, copy, flow—on every request. The CLI (`npx github:gerkensm/serve-llm`) keeps a rolling history per session to feed better prompts and power the admin console, but each navigation is still a fresh act of hallucination with full interactivity. It’s intentionally unserious; half the joy is watching the model make it up as it goes.
+VaporVibe is a cheeky thought experiment, not a production stack: instead of vibe-coding a frontend and backend, you picture the page you want and let an LLM improvise the entire view—markup, copy, flow—on every request. The CLI (`npx github:gerkensm/vaporvibe`) keeps a rolling history per session to feed better prompts and power the admin console, but each navigation is still a fresh act of hallucination with full interactivity. It’s intentionally unserious; half the joy is watching the model make it up as it goes.
 
 It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaway backend and pixel-tweaking a frontend just to sanity-check a UX flow or study a short interaction? Let the model “predict” what the app would render—if it quacks like a duck, that might be enough to validate the idea before investing real build time.
 
@@ -13,7 +13,7 @@ All you need is **Node.js (v20+, ideally 24)** and an API key from OpenAI, Googl
 1.  **Launch the server:**
 
     ```bash
-    npx github:gerkensm/serve-llm
+    npx github:gerkensm/vaporvibe
     ```
 
 2.  **Follow the wizard:**
@@ -22,7 +22,7 @@ All you need is **Node.js (v20+, ideally 24)** and an API key from OpenAI, Googl
 <details>
 <summary><strong>Prefer the command line?</strong></summary>
 
-- **Pass a brief directly:** `npx github:gerkensm/serve-llm "You are a mood journal"`
+- **Pass a brief directly:** `npx github:gerkensm/vaporvibe "You are a mood journal"`
 - **Choose a provider:** Use `--provider <openai|gemini|anthropic|grok>` or set an environment variable (`OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, or `XAI_API_KEY`/`GROK_API_KEY`).
 - **Override the model:** Use `--model <model-identifier>` to pick a specific variant, like `grok-3-mini`.
 - **Tune history:** Use `--history-limit` and `--history-bytes` to control how much context is fed back to the model.
@@ -52,7 +52,7 @@ graph TD
         H[Page Re-renders] --> A;
     end
 
-    subgraph "serve-llm Server"
+    subgraph "vaporvibe Server"
         B(HTTP Request Receives) --> C[Assembles Prompt<br/>- App Brief<br/>- Request Details<br/>- Session History];
         C --> D{LLM Provider API};
         E --> F[Updates Session History];
@@ -104,7 +104,7 @@ It’s not bulletproof, but these tricks keep the improvisation fast enough to f
 
 ## The Admin Console is Your Cockpit
 
-Once your app is running, the admin interface at `/serve-llm` becomes your mission control. It's packed with tools for steering the creative chaos:
+Once your app is running, the admin interface at `/vaporvibe` becomes your mission control. It's packed with tools for steering the creative chaos:
 
 - **Live Controls:** Tweak the global brief, adjust history limits, or toggle the AI Assist panel without restarting the server.
 - **Provider Management:** Switch between OpenAI, Gemini, Anthropic, and xAI Grok. Change models or update API keys with a few clicks.
@@ -126,7 +126,7 @@ Once your app is running, the admin interface at `/serve-llm` becomes your missi
 2.  Run `npm run dev` for a dual-server watch mode:
     - The backend runs via `tsx --watch` from `src/index.ts`.
     - The React admin/Setup SPA (under `frontend/`) is served by Vite on port 5173 and proxied through the Node server.
-3.  Visit `http://localhost:3000/__setup` for the onboarding wizard or `http://localhost:3000/serve-llm` for the admin console.
+3.  Visit `http://localhost:3000/__setup` for the onboarding wizard or `http://localhost:3000/vaporvibe` for the admin console.
 
 Additional scripts:
 

@@ -13,9 +13,9 @@ export function App() {
         <Routes>
           <Route path="/" element={<SetupWizard />} />
           <Route path="/__setup" element={<SetupWizard />} />
-          <Route path="/serve-llm" element={<AdminDashboard mode="admin" />} />
-          <Route path="/serve-llm/*" element={<AdminDashboard mode="admin" />} />
-          <Route path="*" element={<Navigate to="/serve-llm" replace />} />
+          <Route path="/vaporvibe" element={<AdminDashboard mode="admin" />} />
+          <Route path="/vaporvibe/*" element={<AdminDashboard mode="admin" />} />
+          <Route path="*" element={<Navigate to="/vaporvibe" replace />} />
         </Routes>
       </BrowserRouter>
     </NotificationsProvider>

@@ -18,8 +18,8 @@ export function getInstructionsPanelScript(): string {
 
   const loaderTag =
     mode === "asset"
-      ? `<script id="serve-llm-instructions-panel-script" src="${url}" defer></script>`
-      : `<script type="module" id="serve-llm-instructions-panel-script" src="${url}"></script>`;
+      ? `<script id="vaporvibe-instructions-panel-script" src="${url}" defer></script>`
+      : `<script type="module" id="vaporvibe-instructions-panel-script" src="${url}"></script>`;
 
   return [`<script>${configScript}</script>`, loaderTag].join("");
 }

@@ -3,9 +3,9 @@ import Foundation
 
 private let serverURL = URL(string: "http://127.0.0.1:3000/")!
 private let logDirectory = FileManager.default.homeDirectoryForCurrentUser
-  .appendingPathComponent("Library/Logs/ServeLLM", isDirectory: true)
-private let logFileURL = logDirectory.appendingPathComponent("serve-llm.log", isDirectory: false)
-private let adminConsoleURL = serverURL.appendingPathComponent("serve-llm")
+  .appendingPathComponent("Library/Logs/VaporVibe", isDirectory: true)
+private let logFileURL = logDirectory.appendingPathComponent("vaporvibe.log", isDirectory: false)
+private let adminConsoleURL = serverURL.appendingPathComponent("vaporvibe")
 
 @discardableResult
 private func waitForServer(timeout: TimeInterval) -> Bool {
@@ -41,10 +41,10 @@ private func configureLoggingPipe(_ pipe: Pipe, onData: @escaping (Data) -> Void
     logHandle = try FileHandle(forWritingTo: logFileURL)
     try logHandle?.seekToEnd()
   } catch {
-    fputs("ServeLLM: unable to configure logfile: \(error)\n", stderr)
+    fputs("VaporVibe: unable to configure logfile: \(error)\n", stderr)
   }
 
-  let queue = DispatchQueue(label: "serve-llm.log-writer")
+  let queue = DispatchQueue(label: "vaporvibe.log-writer")
   pipe.fileHandleForReading.readabilityHandler = { handle in
     let data = handle.availableData
     guard !data.isEmpty else {
@@ -59,7 +59,7 @@ private func configureLoggingPipe(_ pipe: Pipe, onData: @escaping (Data) -> Void
         do {
           try logHandle.write(contentsOf: data)
         } catch {
-          fputs("ServeLLM: failed to write logs: \(error)\n", stderr)
+          fputs("VaporVibe: failed to write logs: \(error)\n", stderr)
         }
       }
     }
@@ -227,9 +227,9 @@ private final class LogWindowController: NSWindowController, NSWindowDelegate {
       backing: .buffered,
       defer: false
     )
-    window.title = "Serve LLM Logs"
+    window.title = "VaporVibe Logs"
     window.isReleasedWhenClosed = false
-    window.setFrameAutosaveName("ServeLLMLogsWindow")
+    window.setFrameAutosaveName("VaporVibeLogsWindow")
 
     let scrollView = NSScrollView(frame: contentRect)
     scrollView.hasVerticalScroller = true
@@ -289,8 +289,8 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
   func applicationDidFinishLaunching(_ notification: Notification) {
     configureMenu()
 
-    guard let serverBinaryPath = Bundle.main.path(forResource: "serve-llm-macos", ofType: nil) else {
-      presentFatalError(message: "The bundled serve-llm binary is missing.")
+    guard let serverBinaryPath = Bundle.main.path(forResource: "vaporvibe-macos", ofType: nil) else {
+      presentFatalError(message: "The bundled vaporvibe binary is missing.")
       return
     }
 
@@ -367,13 +367,13 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
     logsItem.target = self
     appMenu.addItem(logsItem)
 
-    let restartItem = NSMenuItem(title: "Restart Serve LLM", action: #selector(restartServer(_:)), keyEquivalent: "")
+    let restartItem = NSMenuItem(title: "Restart VaporVibe", action: #selector(restartServer(_:)), keyEquivalent: "")
     restartItem.target = self
     appMenu.addItem(restartItem)
 
     appMenu.addItem(NSMenuItem.separator())
 
-    let quitTitle = "Quit Serve LLM"
+    let quitTitle = "Quit VaporVibe"
     let quitItem = NSMenuItem(title: quitTitle, action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
     quitItem.target = NSApp
     appMenu.addItem(quitItem)
@@ -452,7 +452,7 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
     do {
       try process.run()
     } catch {
-      presentFatalError(message: "Failed to launch serve-llm: \(error.localizedDescription)")
+      presentFatalError(message: "Failed to launch vaporvibe: \(error.localizedDescription)")
       return
     }
 
@@ -473,7 +473,7 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
 
   private func presentFatalError(message: String) {
     let alert = NSAlert()
-    alert.messageText = "Serve LLM"
+    alert.messageText = "VaporVibe"
     alert.informativeText = message
     alert.alertStyle = .critical
     alert.runModal()

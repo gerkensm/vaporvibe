@@ -1,6 +1,6 @@
 # macOS App Packaging
 
-This guide outlines how to wrap the Serve LLM SEA binary inside a macOS app bundle, attach the branded icon, and produce a DMG that you can sign, notarize, and distribute.
+This guide outlines how to wrap the VaporVibe SEA binary inside a macOS app bundle, attach the branded icon, and produce a DMG that you can sign, notarize, and distribute.
 
 ## Prerequisites
 
@@ -16,7 +16,7 @@ nvm use
 npm run build:sea
 ```
 
-The SEA payload will land in `out/sea/serve-llm-macos`.
+The SEA payload will land in `out/sea/vaporvibe-macos`.
 
 ## 2. Generate the icon assets
 
@@ -24,11 +24,11 @@ The SEA payload will land in `out/sea/serve-llm-macos`.
 npm run macos:icon
 ```
 
-The script renders the icon to `scripts/macos-app/icon-build/ServeLLMIcon.iconset` and tries to convert it into `scripts/macos-app/ServeLLMIcon.icns`. If `iconutil` fails because of a sandboxed shell, run the command manually outside the sandbox:
+The script renders the icon to `scripts/macos-app/icon-build/VaporVibeIcon.iconset` and tries to convert it into `scripts/macos-app/VaporVibeIcon.icns`. If `iconutil` fails because of a sandboxed shell, run the command manually outside the sandbox:
 
 ```bash
-iconutil -c icns scripts/macos-app/icon-build/ServeLLMIcon.iconset \
-  -o scripts/macos-app/ServeLLMIcon.icns
+iconutil -c icns scripts/macos-app/icon-build/VaporVibeIcon.iconset \
+  -o scripts/macos-app/VaporVibeIcon.icns
 ```
 
 ## 3. Assemble the `.app` bundle
@@ -37,12 +37,12 @@ iconutil -c icns scripts/macos-app/icon-build/ServeLLMIcon.iconset \
 npm run macos:app
 ```
 
-Outputs `out/macos-app/ServeLLM.app` with:
+Outputs `out/macos-app/VaporVibe.app` with:
 
-- `Contents/MacOS/ServeLLMLauncher`: Swift launcher that forks the SEA binary, streams logs to `~/Library/Logs/ServeLLM/serve-llm.log`, and opens `http://127.0.0.1:3000/` once the server is ready.
-- `Contents/Resources/serve-llm-macos`: unsigned SEA executable.
-- `Contents/Resources/ServeLLMIcon.icns`: generated icon.
-- `Contents/Info.plist`: bundle metadata (`com.gerkensm.serve-llm`).
+- `Contents/MacOS/VaporVibeLauncher`: Swift launcher that forks the SEA binary, streams logs to `~/Library/Logs/VaporVibe/vaporvibe.log`, and opens `http://127.0.0.1:3000/` once the server is ready.
+- `Contents/Resources/vaporvibe-macos`: unsigned SEA executable.
+- `Contents/Resources/VaporVibeIcon.icns`: generated icon.
+- `Contents/Info.plist`: bundle metadata (`com.gerkensm.vaporvibe`).
 
 ## 4. Sign the app bundle
 
@@ -72,22 +72,22 @@ CERT="Developer ID Application: Your Name (TEAMID)"
 codesign --force --options runtime --timestamp \
   --entitlements scripts/entitlements.plist \
   --sign "$CERT" \
-  out/macos-app/ServeLLM.app/Contents/Resources/serve-llm-macos
+  out/macos-app/VaporVibe.app/Contents/Resources/vaporvibe-macos
 
 codesign --force --options runtime --timestamp \
   --entitlements scripts/entitlements.plist \
   --sign "$CERT" \
-  out/macos-app/ServeLLM.app/Contents/MacOS/ServeLLMLauncher
+  out/macos-app/VaporVibe.app/Contents/MacOS/VaporVibeLauncher
 
 # Sign the bundle
 codesign --deep --force --options runtime --timestamp \
   --entitlements scripts/entitlements.plist \
   --sign "$CERT" \
-  out/macos-app/ServeLLM.app
+  out/macos-app/VaporVibe.app
 
 # Verify
-codesign --verify --strict --verbose=4 out/macos-app/ServeLLM.app
-spctl --assess --type execute -vv out/macos-app/ServeLLM.app
+codesign --verify --strict --verbose=4 out/macos-app/VaporVibe.app
+spctl --assess --type execute -vv out/macos-app/VaporVibe.app
 ```
 
 ````
@@ -98,7 +98,7 @@ spctl --assess --type execute -vv out/macos-app/ServeLLM.app
 npm run macos:dmg
 ````
 
-Produces `out/macos-app/ServeLLM.dmg`. If you have `create-dmg` installed, the script uses it for layout; otherwise it falls back to `hdiutil`.
+Produces `out/macos-app/VaporVibe.dmg`. If you have `create-dmg` installed, the script uses it for layout; otherwise it falls back to `hdiutil`.
 
 ## 6. Notarize and staple the DMG
 
@@ -121,7 +121,7 @@ To sanity check the notarized artifact later, run:
 
 ```bash
 npm run verify:notarization          # auto-detects the DMG/app/binary
-npm run verify:notarization -- ./out/macos-app/ServeLLM.app   # explicit path
+npm run verify:notarization -- ./out/macos-app/VaporVibe.app   # explicit path
 ```
 
 ## 7. Complete workflow
@@ -177,11 +177,11 @@ npm run build:macos:dmg
 npm run build:macos:submit
 ```
 
-After successful notarization, the DMG at `out/macos-app/ServeLLM.dmg` will have a stapled notarization ticket and can be distributed.
+After successful notarization, the DMG at `out/macos-app/VaporVibe.dmg` will have a stapled notarization ticket and can be distributed.
 
 ## 8. Distribution tips
 
-- Include a `README` on the DMG explaining that logs stream to `~/Library/Logs/ServeLLM/serve-llm.log`.
+- Include a `README` on the DMG explaining that logs stream to `~/Library/Logs/VaporVibe/vaporvibe.log`.
 - The stapled notarization ticket allows offline verification - users don't need internet to run the app after first download.
 - For automatic updates, consider distributing a signed PKG that installs both the CLI binary under `/usr/local/bin` and the `.app` under `/Applications`.
 - Each new release requires rebuilding the SEA, regenerating the bundle, re-signing, and re-notarizing the DMG.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-serve-llm securely stores API keys entered through the UI using your operating system's native credential storage via [keytar](https://github.com/atom/node-keytar):
+VaporVibe securely stores API keys entered through the UI using your operating system's native credential storage via [keytar](https://github.com/atom/node-keytar):
 
 - **macOS**: Keychain
 - **Windows**: Credential Manager
@@ -50,8 +50,8 @@ The application **always works** regardless of keychain availability—worst cas
 ### macOS Specifics
 
 - Items created by your app are readable by your app without prompts
-- If you codesign/notarize later, keep the same bundle identifier (`com.serve-llm.app`) to avoid ACL issues
-- Keys are stored under service name `com.serve-llm.app`
+- If you codesign/notarize later, keep the same bundle identifier (`com.vaporvibe.app`) to avoid ACL issues
+- Keys are stored under service name `com.vaporvibe.app`
 
 ### Windows Specifics
 
@@ -111,7 +111,7 @@ All credential store methods are defensive:
 
 ### Manual Test (UI Entry)
 
-1. Start serve-llm: `npm run dev "Test app"`
+1. Start vaporvibe: `npm run dev "Test app"`
 2. In the setup wizard, enter an API key (e.g., OpenAI)
 3. Verify it stores successfully (check logs for errors)
 4. Restart the server
@@ -120,7 +120,7 @@ All credential store methods are defensive:
 ### Manual Test (Environment Key)
 
 1. Set env var: `export OPENAI_API_KEY=sk-...`
-2. Start serve-llm: `npm run dev "Test app"`
+2. Start vaporvibe: `npm run dev "Test app"`
 3. The setup wizard shows "key detected from environment"
 4. This key is NOT stored in the keychain
 5. Restart without the env var → key is gone (expected)
@@ -135,11 +135,11 @@ Check the logs on startup. You should see either:
 On macOS, verify stored keys:
 
 ```bash
-# List all serve-llm credentials
-security find-generic-password -s "com.serve-llm.app"
+# List all vaporvibe credentials
+security find-generic-password -s "com.vaporvibe.app"
 
 # View specific key (will prompt for access)
-security find-generic-password -s "com.serve-llm.app" -a "openai" -w
+security find-generic-password -s "com.vaporvibe.app" -a "openai" -w
 ```
 
 ## Building with Keytar
@@ -176,7 +176,7 @@ npm start
 npm run build:sea:signed
 
 # Run - check for keytar warnings
-./out/sea/serve-llm-macos "Test app" --port 9999
+./out/sea/vaporvibe-macos "Test app" --port 9999
 ```
 
 If you see `"Secure credential storage unavailable"`, keytar failed to load. This is non-fatal - credentials will work in-memory only.
@@ -247,5 +247,5 @@ RUN npm install
 
 1. Did you enter the key in the UI, or was it from an env var?
 2. Check logs for keytar warnings
-3. On macOS: `security find-generic-password -s "com.serve-llm.app"`
-4. On Windows: Open Credential Manager and look for "com.serve-llm.app"
+3. On macOS: `security find-generic-password -s "com.vaporvibe.app"`
+4. On Windows: Open Credential Manager and look for "com.vaporvibe.app"

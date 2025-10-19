@@ -5,11 +5,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 OUTPUT_ROOT="${ROOT_DIR}/out/macos-app"
-APP_NAME="ServeLLM"
+APP_NAME="VaporVibe"
 APP_BUNDLE="${OUTPUT_ROOT}/${APP_NAME}.app"
 RESOURCES_DIR="${APP_BUNDLE}/Contents/Resources"
 MACOS_DIR="${APP_BUNDLE}/Contents/MacOS"
-SEA_BINARY="${ROOT_DIR}/out/sea/serve-llm-macos"
+SEA_BINARY="${ROOT_DIR}/out/sea/vaporvibe-macos"
 ICON_SOURCE="${SCRIPT_DIR}/VaporVibeIcon.icns"
 INFO_PLIST="${APP_BUNDLE}/Contents/Info.plist"
 VERSION="$(cd "${ROOT_DIR}" && node -p "require('./package.json').version" 2>/dev/null || echo "0.0.0")"
@@ -37,17 +37,17 @@ cat > "${INFO_PLIST}" <<PLIST
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleDisplayName</key>
-  <string>Serve LLM</string>
+  <string>VaporVibe</string>
   <key>CFBundleExecutable</key>
-  <string>ServeLLMLauncher</string>
+  <string>VaporVibeLauncher</string>
   <key>CFBundleIconFile</key>
   <string>VaporVibeIcon</string>
   <key>CFBundleIdentifier</key>
-  <string>com.gerkensm.serve-llm</string>
+  <string>com.gerkensm.vaporvibe</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>Serve LLM</string>
+  <string>VaporVibe</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
@@ -62,8 +62,8 @@ cat > "${INFO_PLIST}" <<PLIST
 </plist>
 PLIST
 
-cp "${SEA_BINARY}" "${RESOURCES_DIR}/serve-llm-macos"
-chmod +x "${RESOURCES_DIR}/serve-llm-macos"
+cp "${SEA_BINARY}" "${RESOURCES_DIR}/vaporvibe-macos"
+chmod +x "${RESOURCES_DIR}/vaporvibe-macos"
 
 SWIFT_BIN="$(command -v swiftc || true)"
 if [[ -z "${SWIFT_BIN}" ]]; then
@@ -77,15 +77,15 @@ mkdir -p "${MODULE_CACHE}"
 "${SWIFT_BIN}" \
   -module-cache-path "${MODULE_CACHE}" \
   -target arm64-apple-macos11.0 \
-  "${SCRIPT_DIR}/ServeLLMLauncher.swift" \
-  -o "${MACOS_DIR}/ServeLLMLauncher"
+  "${SCRIPT_DIR}/VaporVibeLauncher.swift" \
+  -o "${MACOS_DIR}/VaporVibeLauncher"
 
-chmod +x "${MACOS_DIR}/ServeLLMLauncher"
+chmod +x "${MACOS_DIR}/VaporVibeLauncher"
 
 cat <<'EOF'
-→ macOS app bundle created at out/macos-app/ServeLLM.app
+→ macOS app bundle created at out/macos-app/VaporVibe.app
 
 Next steps:
-  1. codesign --deep --force --options runtime --timestamp --sign "Developer ID Application: …" out/macos-app/ServeLLM.app
+  1. codesign --deep --force --options runtime --timestamp --sign "Developer ID Application: …" out/macos-app/VaporVibe.app
   2. zip or wrap the .app in a DMG/PKG, then notarize and staple the outer artifact
 EOF

@@ -11,7 +11,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}Starting notarization process for serve-llm...${NC}"
+echo -e "${BLUE}Starting notarization process for vaporvibe...${NC}"
 
 # Check if running on macOS
 if [[ "$(uname)" != "Darwin" ]]; then
@@ -53,9 +53,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 # Path to the binary created by build:sea
-BINARY_PATH="out/sea/serve-llm-macos"
+BINARY_PATH="out/sea/vaporvibe-macos"
 NOTARIZE_DIR="out/notarize"
-ZIP_PATH="$NOTARIZE_DIR/serve-llm-macos.zip"
+ZIP_PATH="$NOTARIZE_DIR/vaporvibe-macos.zip"
 ENTITLEMENTS_PATH="scripts/entitlements.plist"
 
 # Check if binary exists
@@ -183,9 +183,9 @@ echo -e "${YELLOW}Users will need internet connection on first run for verificat
 echo -e "${YELLOW}After first run, it will work offline.${NC}"
 echo ""
 echo -e "${BLUE}Distribution:${NC} Users can download and run directly:"
-echo -e "  ${YELLOW}curl -L -o serve-llm <your-download-url>${NC}"
-echo -e "  ${YELLOW}chmod +x serve-llm${NC}"
-echo -e "  ${YELLOW}./serve-llm \"Your brief\"${NC}"
+echo -e "  ${YELLOW}curl -L -o vaporvibe <your-download-url>${NC}"
+echo -e "  ${YELLOW}chmod +x vaporvibe${NC}"
+echo -e "  ${YELLOW}./vaporvibe \"Your brief\"${NC}"
 echo ""
 
 # Clean up zip (optional)

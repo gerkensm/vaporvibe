@@ -1,7 +1,7 @@
 import type { ModelProvider } from "../types.js";
 import { logger } from "../logger.js";
 
-const SERVICE_NAME = "com.serve-llm.app";
+const SERVICE_NAME = "com.vaporvibe.app";
 
 /**
  * Credential store that uses OS keychain when available (via keytar),
