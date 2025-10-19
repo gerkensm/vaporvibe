@@ -102,6 +102,13 @@ const statusMessages = [
   if (globalScope.serveLlmInterceptorAttached) return;
   globalScope.serveLlmInterceptorAttached = true;
 
+  const LOG_PREFIX = "serve-llm interceptor:";
+  const logDebug = (...args: unknown[]): void => {
+    if (typeof console !== "undefined" && typeof console.debug === "function") {
+      console.debug(LOG_PREFIX, ...args);
+    }
+  };
+
   const overlayEffectsConfig = navigationOverlayEffects;
 
   const interceptorScriptId = "serve-llm-interceptor-script";
@@ -302,7 +309,8 @@ const statusMessages = [
     return scrambled;
   }
 
-  function showOverlay(): void {
+  function showOverlay(message?: string): void {
+    logDebug("showOverlay", message ?? "<default>");
     if (!overlay || !document.getElementById("serve-llm-overlay")) {
       createOverlay();
     }
@@ -316,8 +324,11 @@ const statusMessages = [
     }, 10);
 
     try {
-      const base = "Summoning your adaptive canvas…";
+      const base = message && message.trim().length > 0
+        ? message
+        : "Summoning your adaptive canvas…";
       const statuses = shuffleStatuses(statusMessages);
+      statuses.unshift(base);
 
       if (overlayStatusTimeout) {
         clearTimeout(overlayStatusTimeout);
@@ -347,6 +358,23 @@ const statusMessages = [
     } catch {
       // ignore status update failures
     }
+  }
+
+  function hideOverlay(): void {
+    logDebug("hideOverlay");
+    if (!overlay) return;
+
+    overlay.style.pointerEvents = "none";
+    overlay.style.opacity = "0";
+    if (overlayStatusTimeout) {
+      clearTimeout(overlayStatusTimeout);
+      overlayStatusTimeout = null;
+    }
+    if (overlayStatusInterval) {
+      clearInterval(overlayStatusInterval);
+      overlayStatusInterval = null;
+    }
+    stopDvdAnimation();
   }
 
   function addBypassParam(u: string | URL): URL | string {
@@ -516,6 +544,30 @@ const statusMessages = [
   });
 
   window.addEventListener("popstate", () => {
-    window.location.reload();
+    logDebug("popstate triggered", window.location.href);
+    showOverlay("Loading previous view…");
+    window.setTimeout(() => {
+      const target = addBypassParam(window.location.href);
+      const href = typeof target === "string" ? target : target.toString();
+      logDebug("popstate navigation", href);
+      try {
+        window.location.replace(href);
+      } catch {
+        logDebug("popstate replace failed, fallback to href assignment");
+        window.location.href = href;
+      }
+    }, 0);
   });
+
+  window.addEventListener("pageshow", () => {
+    logDebug("pageshow event");
+    hideOverlay();
+  });
+
+  if (document.readyState === "complete") {
+    logDebug("document already complete, hiding overlay immediately");
+    hideOverlay();
+  } else {
+    window.addEventListener("load", hideOverlay, { once: true });
+  }
 })();

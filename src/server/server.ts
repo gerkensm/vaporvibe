@@ -43,6 +43,10 @@ import { parseCookies } from "../utils/cookies.js";
 import { readBody } from "../utils/body.js";
 import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
 import { SessionStore } from "./session-store.js";
+import {
+  applyReusablePlaceholders,
+  prepareReusableCaches,
+} from "./component-cache.js";
 import { getNavigationInterceptorScript } from "../utils/navigation-interceptor.js";
 import { getInstructionsPanelScript } from "../utils/instructions-panel.js";
 import {
@@ -120,6 +124,81 @@ function stripScriptById(html: string, scriptId: string): string {
     "gi"
   );
   return html.replace(pattern, "");
+}
+
+function buildMasterReusableCaches(
+  history: HistoryEntry[]
+): {
+  componentCache: Record<string, string>;
+  styleCache: Record<string, string>;
+} {
+  const componentCache: Record<string, string> = {};
+  const styleCache: Record<string, string> = {};
+
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const entry = history[index];
+    if (entry.entryKind !== "html") {
+      continue;
+    }
+
+    const entryComponentCache = entry.componentCache;
+    if (entryComponentCache) {
+      for (const [componentId, markup] of Object.entries(entryComponentCache)) {
+        if (!(componentId in componentCache)) {
+          componentCache[componentId] = markup;
+        }
+      }
+    }
+
+    const entryStyleCache = entry.styleCache;
+    if (entryStyleCache) {
+      for (const [styleId, markup] of Object.entries(entryStyleCache)) {
+        if (!(styleId in styleCache)) {
+          styleCache[styleId] = markup;
+        }
+      }
+    }
+  }
+
+  return { componentCache, styleCache };
+}
+
+function deriveNextNumericId(
+  cache: Record<string, string>,
+  html: string,
+  attributeName: string,
+  prefix: string
+): number {
+  let maxId = 0;
+
+  const considerId = (value: string | undefined): void => {
+    if (!value || !value.startsWith(prefix)) {
+      return;
+    }
+    const numericPortion = value.slice(prefix.length);
+    const parsed = Number.parseInt(numericPortion, 10);
+    if (!Number.isNaN(parsed) && parsed > maxId) {
+      maxId = parsed;
+    }
+  };
+
+  for (const key of Object.keys(cache)) {
+    considerId(key);
+  }
+
+  const attributePattern = new RegExp(
+    `${attributeName}="${prefix}(\\d+)"`,
+    "gi"
+  );
+  let match: RegExpExecArray | null;
+  while ((match = attributePattern.exec(html)) !== null) {
+    const numericValue = Number.parseInt(match[1], 10);
+    if (!Number.isNaN(numericValue) && numericValue > maxId) {
+      maxId = numericValue;
+    }
+  }
+
+  return maxId + 1;
 }
 
 function getAssetContentType(filePath: string): string {
@@ -729,14 +808,78 @@ async function handleLlmRequest(
         500
       )}`
     );
-    const rawHtml = ensureHtmlDocument(result.html, { method, path });
+    const historyForCache = sessionStore.getHistory(sid);
+    const {
+      componentCache: historicalComponentCache,
+      styleCache: historicalStyleCache,
+    } = buildMasterReusableCaches(historyForCache);
+
+    const placeholderResult = applyReusablePlaceholders(result.html, {
+      componentCache: historicalComponentCache,
+      styleCache: historicalStyleCache,
+    });
+
+    placeholderResult.replacedComponentIds.forEach((componentId) => {
+      reqLogger.info(
+        {
+          placeholderType: "component",
+          placeholderId: componentId,
+        },
+        "Reused cached HTML component"
+      );
+    });
+
+    placeholderResult.replacedStyleIds.forEach((styleId) => {
+      reqLogger.info(
+        {
+          placeholderType: "style",
+          placeholderId: styleId,
+        },
+        "Reused cached <style> block"
+      );
+    });
+
+    if (
+      placeholderResult.missingComponentIds.length > 0 ||
+      placeholderResult.missingStyleIds.length > 0
+    ) {
+      reqLogger.warn(
+        {
+          missingComponentIds: placeholderResult.missingComponentIds,
+          missingStyleIds: placeholderResult.missingStyleIds,
+        },
+        "Reusable placeholders could not be resolved"
+      );
+    }
+
+    const ensuredHtml = ensureHtmlDocument(placeholderResult.html, {
+      method,
+      path,
+    });
 
     const strippedHtml = stripScriptById(
-      stripScriptById(rawHtml, "serve-llm-interceptor-script"),
+      stripScriptById(ensuredHtml, "serve-llm-interceptor-script"),
       "serve-llm-instructions-panel-script"
     );
 
-    const promptHtml = strippedHtml;
+    const nextComponentId = deriveNextNumericId(
+      historicalComponentCache,
+      strippedHtml,
+      "data-id",
+      "sl-gen-"
+    );
+    const nextStyleId = deriveNextNumericId(
+      historicalStyleCache,
+      strippedHtml,
+      "data-style-id",
+      "sl-style-"
+    );
+
+    const cacheResult = prepareReusableCaches(strippedHtml, {
+      nextComponentId,
+      nextStyleId,
+    });
+    const promptHtml = cacheResult.html;
     let renderedHtml = promptHtml;
 
     const interceptorScriptTag = getNavigationInterceptorScript();
@@ -782,6 +925,8 @@ async function handleLlmRequest(
         instructions,
       },
       response: { html: promptHtml },
+      componentCache: cacheResult.componentCache,
+      styleCache: cacheResult.styleCache,
       llm: {
         provider: llmClient.settings.provider,
         model: llmClient.settings.model,
@@ -797,7 +942,9 @@ async function handleLlmRequest(
         restQueriesForEntry.length > 0 ? restQueriesForEntry : undefined,
     };
 
-    sessionStore.appendHistoryEntry(sid, historyEntry);
+    sessionStore.appendHistoryEntry(sid, historyEntry, {
+      preservePrevHtml: true,
+    });
 
     if (isInterceptorRequest) {
       res.statusCode = 200;

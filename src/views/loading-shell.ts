@@ -117,6 +117,7 @@ export function renderLoadingShell(options: LoadingShellOptions = {}): string {
     resolved.originalPath
   );
 
+  // Intentionally omit closing </body>/<html> so later chunks can append hydration scripts before finishing the document.
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -145,9 +146,7 @@ ${styles}
   <script>
 ${statusScript}
 ${hydrationScript}
-  </script>
-</body>
-</html>`;
+  </script>`;
 }
 
 export function renderResultHydrationScript(token: string, path: string): string {
