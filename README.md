@@ -2,9 +2,9 @@
 
 A web server that pretends to be the app you dream up, without building it.
 
-VaporVibe is a cheeky thought experiment, not a production stack: instead of vibe-coding a frontend and backend, you picture the page you want and let an LLM improvise the entire view—markup, copy, flow—on every request. The CLI (`npx github:gerkensm/vaporvibe`) keeps a rolling history per session to feed better prompts and power the admin console, but each navigation is still a fresh act of hallucination with full interactivity. It’s intentionally unserious; half the joy is watching the model make it up as it goes.
+VaporVibe started out as a cheeky thought experiment, not a production stack: instead of vibe-coding a frontend and backend, you picture the page you want and let an LLM improvise the entire view—markup, copy, flow—on every request. The CLI (`npx github:gerkensm/vaporvibe`) keeps a rolling history per session, but each navigation is still a fresh act of hallucination with full interactivity. Hlf the joy is watching the model make it up as it goes.
 
-It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaway backend and pixel-tweaking a frontend just to sanity-check a UX flow or study a short interaction? Let the model “predict” what the app would render—if it quacks like a duck, that might be enough to validate the idea before investing real build time.
+It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaway backend and pixel-tweaking a frontend just to sanity-check a UX flow or study a short interaction? Let the model “predict” what the app would render -- if it quacks like a duck, that might be enough to validate the idea before investing real build time.
 
 <img width="256" height="256" alt="vaporvibe-icon-with-text" src="https://github.com/user-attachments/assets/9ca4c4a6-8ccc-49c1-bb08-efc3475446e2" />
 
