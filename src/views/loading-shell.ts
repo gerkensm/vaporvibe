@@ -19,7 +19,7 @@ interface ResolvedLoadingShellOptions {
 const DEFAULT_STATUS_MESSAGE = "Summoning your adaptive canvas…";
 const DEFAULT_ACCENT = "#1d4ed8";
 const DEFAULT_ORIGINAL_PATH = "/";
-const DEFAULT_RESULT_PREFIX = "/__serve-llm/result";
+const DEFAULT_RESULT_PREFIX = "/__vaporvibe/result";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -123,12 +123,12 @@ export function renderLoadingShell(options: LoadingShellOptions = {}): string {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Loading · serve-llm</title>
+<title>Loading · vaporvibe</title>
 <style>
 ${styles}
 </style>
 </head>
-<body data-serve-llm-loading>
+<body data-vaporvibe-loading>
   <main>
     <div class="stage">
       <div class="pulse">
@@ -139,7 +139,7 @@ ${styles}
     <p class="status" data-status>${resolved.message}</p>
     <p class="hint">Hold tight—we ask your configured model to compose a fresh canvas. This usually lands within a minute.</p>
     <footer>
-      <span>serve-llm keeps the last brief and request context warm.</span>
+      <span>vaporvibe keeps the last brief and request context warm.</span>
       <span>We’ll swap in the live page as soon as it arrives.</span>
     </footer>
   </main>
@@ -152,10 +152,10 @@ ${hydrationScript}
 export function renderResultHydrationScript(token: string, path: string): string {
   const tokenPayload = escapeForInlineScript(token);
   const pathPayload = escapeForInlineScript(path);
-  return `<script>window.__serveLlmHydrateFromToken(${tokenPayload}, ${pathPayload});</script></body></html>`;
+  return `<script>window.__vaporVibeHydrateFromToken(${tokenPayload}, ${pathPayload});</script></body></html>`;
 }
 
 export function renderLoaderErrorScript(message: string): string {
   const payload = escapeForInlineScript(message);
-  return `<script>window.__serveLlmHydrateError(${payload});</script></body></html>`;
+  return `<script>window.__vaporVibeHydrateError(${payload});</script></body></html>`;
 }

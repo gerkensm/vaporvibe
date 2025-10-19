@@ -1,7 +1,7 @@
 import AppKit
 
 let canvasSize = CGSize(width: 1024, height: 1024)
-let outputURL = URL(fileURLWithPath: "ServeLLMIcon.png", relativeTo: URL(fileURLWithPath: FileManager.default.currentDirectoryPath))
+let outputURL = URL(fileURLWithPath: "VaporVibeIcon.png", relativeTo: URL(fileURLWithPath: FileManager.default.currentDirectoryPath))
 
 func cgPath(from bezier: NSBezierPath) -> CGPath {
   let path = CGMutablePath()

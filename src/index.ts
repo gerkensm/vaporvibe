@@ -56,7 +56,7 @@ async function main(): Promise<void> {
       ? `[${appConfig.runtime.host}]`
       : appConfig.runtime.host;
     const localUrl = `http://${host}:${actualPort}/`;
-    const adminUrl = `${localUrl.replace(/\/$/, "")}/serve-llm`;
+    const adminUrl = `${localUrl.replace(/\/$/, "")}/vaporvibe`;
 
     logger.info(
       { port: actualPort, host: appConfig.runtime.host, url: localUrl },
@@ -166,7 +166,7 @@ async function startServerWithPortFallback(
 }
 
 function printHelp(): void {
-  console.log(`Usage: serve-llm [options] "App brief here"
+  console.log(`Usage: vaporvibe [options] "App brief here"
 
 Options:
   --port <number>            Port to bind the HTTP server (default: 3000, will try 3001-3010 if occupied)

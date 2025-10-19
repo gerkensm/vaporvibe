@@ -472,7 +472,7 @@ export async function verifyAnthropicApiKey(apiKey: string): Promise<Verificatio
       headers: {
         "x-api-key": trimmed,
         "anthropic-version": ANTHROPIC_VERSION,
-        "User-Agent": "serve-llm-setup/1.0",
+        "User-Agent": "vaporvibe-setup/1.0",
         Accept: "application/json",
       },
     });

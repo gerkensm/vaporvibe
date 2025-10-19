@@ -5,11 +5,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 OUTPUT_ROOT="${ROOT_DIR}/out/macos-app"
-APP_BUNDLE="${OUTPUT_ROOT}/ServeLLM.app"
-DMG_NAME="ServeLLM.dmg"
+APP_BUNDLE="${OUTPUT_ROOT}/VaporVibe.app"
+DMG_NAME="VaporVibe.dmg"
 DMG_PATH="${OUTPUT_ROOT}/${DMG_NAME}"
 STAGING_DIR="${OUTPUT_ROOT}/dmg-staging"
-VOL_NAME="Serve LLM"
+VOL_NAME="VaporVibe"
 
 if [[ ! -d "${APP_BUNDLE}" ]]; then
   echo "App bundle ${APP_BUNDLE} not found. Run scripts/macos-app/build-app-bundle.sh first." >&2
@@ -22,14 +22,14 @@ rm -f "${DMG_PATH}"
 rm -rf "${STAGING_DIR}"
 mkdir -p "${STAGING_DIR}"
 
-cp -R "${APP_BUNDLE}" "${STAGING_DIR}/Serve LLM.app"
+cp -R "${APP_BUNDLE}" "${STAGING_DIR}/VaporVibe.app"
 ln -s /Applications "${STAGING_DIR}/Applications"
 
 if command -v create-dmg >/dev/null 2>&1; then
   # Remove DMG again before create-dmg (it sometimes creates temp files)
   rm -f "${DMG_PATH}"
   create-dmg --volname "${VOL_NAME}" --window-pos 200 120 --window-size 540 400 \
-    --icon "Serve LLM.app" 140 200 --icon "Applications" 400 200 \
+    --icon "VaporVibe.app" 140 200 --icon "Applications" 400 200 \
     "${DMG_PATH}" "${STAGING_DIR}"
 else
   echo "→ create-dmg not found; using hdiutil fallback"

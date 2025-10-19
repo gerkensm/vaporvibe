@@ -1,12 +1,12 @@
 {
-  "name": "serve-llm",
+  "name": "vaporvibe",
   "version": "1.2.1",
   "description": "Sourcecodeless web app server powered by LLMs.",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "serve-llm": "dist/index.js"
+    "vaporvibe": "dist/index.js"
   },
   "files": [
     "dist",

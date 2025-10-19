@@ -63,7 +63,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
         "7) STATE HANDOFF: If new durable state should be remembered, ensure the UI also records it via a mutation endpoint.",
       ]
     : [
-        "SYSTEM — serve-llm Single-View HTML Generator (Full)",
+        "SYSTEM — vaporvibe Single-View HTML Generator (Full)",
         "",
         "You return ONE complete, self-contained HTML document for this HTTP request.",
         "",

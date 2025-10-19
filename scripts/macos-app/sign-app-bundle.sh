@@ -12,10 +12,10 @@ NC='\033[0m' # No Color
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-APP_BUNDLE="${ROOT_DIR}/out/macos-app/ServeLLM.app"
+APP_BUNDLE="${ROOT_DIR}/out/macos-app/VaporVibe.app"
 ENTITLEMENTS_PATH="${ROOT_DIR}/scripts/entitlements.plist"
 
-echo -e "${BLUE}Starting code signing for ServeLLM.app...${NC}"
+echo -e "${BLUE}Starting code signing for VaporVibe.app...${NC}"
 
 # Check if app bundle exists
 if [[ ! -d "$APP_BUNDLE" ]]; then
@@ -73,7 +73,7 @@ echo ""
 
 # Sign the embedded SEA binary first
 echo -e "${BLUE}Step 1: Signing embedded SEA binary...${NC}"
-SEA_BINARY="${APP_BUNDLE}/Contents/Resources/serve-llm-macos"
+SEA_BINARY="${APP_BUNDLE}/Contents/Resources/vaporvibe-macos"
 
 if [[ -f "$SEA_BINARY" ]]; then
   codesign --force \
@@ -90,7 +90,7 @@ echo ""
 
 # Sign the launcher executable
 echo -e "${BLUE}Step 2: Signing launcher executable...${NC}"
-LAUNCHER="${APP_BUNDLE}/Contents/MacOS/ServeLLMLauncher"
+LAUNCHER="${APP_BUNDLE}/Contents/MacOS/VaporVibeLauncher"
 
 if [[ -f "$LAUNCHER" ]]; then
   codesign --force \

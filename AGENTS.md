@@ -1,12 +1,12 @@
-# Agent Onboarding Guide: serve-llm
+# Agent Onboarding Guide: VaporVibe
 
-Welcome! This guide provides the high-level context, architectural details, and philosophical principles needed to understand and contribute to the `serve-llm` repository. 🤖
+Welcome! This guide provides the high-level context, architectural details, and philosophical principles needed to understand and contribute to the `VaporVibe` repository. 🤖
 
 ---
 
 ## 1. Core Concept & Purpose
 
-`serve-llm` is a "vibe non-coding" experiment where an LLM improvises an entire interactive web application on every request based on a simple, natural language **brief**.
+`VaporVibe` is a "vibe non-coding" experiment where an LLM improvises an entire interactive web application on every request based on a simple, natural language **brief**.
 
 - **Primary Goal**: To function as a "rapid-prototyping cheat code," allowing you to validate a UX flow or interaction idea without writing any frontend or backend code.
 - **Core Philosophy**: It's an "intentionally unserious" and "cheeky thought experiment". The joy is in watching the model "make it up as it goes," embracing the creative chaos of generative AI.
@@ -29,7 +29,7 @@ graph TD
         H[Page Re-renders with LLM HTML] --> A;
     end
 
-    subgraph "serve-llm Server (Node.js)"
+    subgraph "VaporVibe Server (Node.js)"
         B(HTTP Request Receives) --> C[Assembles Prompt<br/>- App Brief<br/>- Request Details<br/>- Session History<br/>- REST API State];
         C --> D{LLM Provider API};
         E --> F[Updates Session History];
@@ -44,7 +44,7 @@ graph TD
     G --> H;
 ```
 
-1.  A user action in the browser sends an HTTP request (`GET` or `POST`) to the `serve-llm` server.
+1.  A user action in the browser sends an HTTP request (`GET` or `POST`) to the `VaporVibe` server.
 2.  The server assembles a detailed prompt (`src/llm/messages.ts`) containing the app brief, request details (method, path, query, body), relevant session history, and recent REST API interaction state.
 3.  This prompt is sent to the configured LLM provider's API.
 4.  The LLM generates a complete, self-contained HTML document for the requested view.
@@ -59,11 +59,11 @@ When first launched, the server guides the user through a browser-based setup wi
 3.  The SPA sends the key to the backend (`POST /api/admin/provider/verify`) for verification against the provider's API.
 4.  Once verified, the SPA prompts for the initial application **brief**.
 5.  The SPA submits the brief to the backend (`POST /api/admin/brief`).
-6.  On success, the SPA automatically opens the application root (`/`) in a **new browser tab** and displays a "launch pad" overlay. The original tab remains on the Admin Console SPA (`/serve-llm`).
+6.  On success, the SPA automatically opens the application root (`/`) in a **new browser tab** and displays a "launch pad" overlay. The original tab remains on the Admin Console SPA (`/vaporvibe`).
 
 ### The Admin Console Flow 🕹️ (React SPA)
 
-The admin console at `/serve-llm` is a **React SPA** (built in `frontend/`) serving as the control center.
+The admin console at `/vaporvibe` is a **React SPA** (built in `frontend/`) serving as the control center.
 
 - **SPA Interaction**: All interactions (viewing state, updating brief/provider/runtime settings, browsing history, importing/exporting) are handled client-side within the React application.
 - **API Driven**: The SPA communicates with the backend exclusively through **JSON API endpoints** under `/api/admin/*`. The backend no longer renders any admin HTML directly.
@@ -104,7 +104,7 @@ This is not a traditional software project; it's a creative tool. The "vibe" is 
 ### Navigation Interception
 
 - **Purpose**: Shows a loading overlay during LLM generation instead of a blank screen.
-- **Mechanism**: The backend injects `<script src="/assets/interceptor.js">` into every LLM-generated HTML response. This script intercepts `<a>` clicks and `<form>` submissions, displays the overlay, and re-initiates the request, adding a marker (`__serve-llm=interceptor`) so the server knows to send back the final HTML directly (or handle API calls).
+- **Mechanism**: The backend injects `<script src="/assets/interceptor.js">` into every LLM-generated HTML response. This script intercepts `<a>` clicks and `<form>` submissions, displays the overlay, and re-initiates the request, adding a marker (`__vaporvibe=interceptor`) so the server knows to send back the final HTML directly (or handle API calls).
 - **Source**: The interceptor logic lives in `frontend/src/interceptor.ts` and is bundled by Vite.
 
 ### Instructions Panel
@@ -127,7 +127,7 @@ This is not a traditional software project; it's a creative tool. The "vibe" is 
 
 ### Special Server Routes & API
 
-- `/` & `/__setup` & `/serve-llm`: Serve the React SPA shell (`frontend/dist/index.html`).
+- `/` & `/__setup` & `/vaporvibe`: Serve the React SPA shell (`frontend/dist/index.html`).
 - `/assets/*`: Serve static assets (JS, CSS, etc.) from `frontend/dist/assets/`. Handled by `maybeServeFrontendAsset` in `src/server/server.ts`.
 - `/api/admin/*`: JSON API endpoints for the Admin SPA. Handled by `AdminController` (`src/server/admin-controller.ts`).
   - `GET /api/admin/state`: Get current app config, provider status, model catalogs.
@@ -140,7 +140,7 @@ This is not a traditional software project; it's a creative tool. The "vibe" is 
   - `DELETE /api/admin/history/:id`: Delete a history entry.
   - `GET /api/admin/history.json` / `history.md`: Export history.
 - `/rest_api/mutation/*` & `/rest_api/query/*`: Endpoints intended to be called via `fetch` from _within the LLM-generated HTML_ for lightweight state persistence or data retrieval without full page reloads. Handled by `RestApiController` (`src/server/rest-api-controller.ts`).
-- `/__serve-llm/result/{token}`: Temporary route used by the loading shell to fetch the asynchronously generated HTML.
+- `/__vaporvibe/result/{token}`: Temporary route used by the loading shell to fetch the asynchronously generated HTML.
 
 ### Token & Latency Tricks
 
@@ -155,7 +155,7 @@ Hallucinating UI on every request is fun, but we still like responses under a lu
 ## 5\. Repository Structure & Key Files
 
 ```
-gerkensm-serve-llm/
+gerkensm-vaporvibe/
 ├── frontend/             # React SPA (Admin/Setup UI)
 │   ├── index.html        # SPA entry point
 │   ├── vite.config.ts    # Vite build config (multi-entry)
@@ -212,8 +212,8 @@ gerkensm-serve-llm/
 - **Dual Server**: `npm run dev`
   - Starts the backend server using `tsx --watch src/index.ts` for automatic restarts on changes in `src/`.
   - Starts the Vite dev server for the frontend (`frontend/`) on port 5173.
-  - The backend proxies requests for `/`, `/__setup`, `/serve-llm`, `/assets/*`, and `/api/admin/*` to the appropriate server (Vite or itself).
-  - Access via `http://localhost:3000/__setup` or `http://localhost:3000/serve-llm`.
+  - The backend proxies requests for `/`, `/__setup`, `/vaporvibe`, `/assets/*`, and `/api/admin/*` to the appropriate server (Vite or itself).
+  - Access via `http://localhost:3000/__setup` or `http://localhost:3000/vaporvibe`.
 - **Backend Only**: `npm run dev:be` (runs `tsx --watch src/index.ts`)
 - **Frontend Only**: `npm run dev:fe` (runs `vite` inside `frontend/`) - useful for focusing on UI changes, access directly via `http://localhost:5173`.
 
@@ -235,7 +235,7 @@ gerkensm-serve-llm/
   - `LOG_LEVEL=debug npm run dev`
 - **Inspect Prompts**: `LOG_LEVEL=debug` shows the full prompts sent to the LLM and raw responses.
 - **Disable Pretty Logs**: For scripting or CI, use `PINO_PRETTY=false npm run ...`.
-- **Admin History Explorer**: Use the `/serve-llm` UI to inspect specific requests, HTML output, and reasoning traces.
+- **Admin History Explorer**: Use the `/vaporvibe` UI to inspect specific requests, HTML output, and reasoning traces.
 
 ### Code Style & Conventions
 

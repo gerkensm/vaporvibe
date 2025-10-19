@@ -5,44 +5,50 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 OUTPUT_DIR="${SCRIPT_DIR}/icon-build"
-BASE_PNG="${OUTPUT_DIR}/ServeLLMIcon.png"
-ICONSET_DIR="${OUTPUT_DIR}/ServeLLMIcon.iconset"
-ICNS_PATH="${SCRIPT_DIR}/ServeLLMIcon.icns"
-MODULE_CACHE="${OUTPUT_DIR}/swift-module-cache"
+BASE_PNG="${OUTPUT_DIR}/VaporVibeIcon.png"
+ICONSET_DIR="${OUTPUT_DIR}/VaporVibeIcon.iconset"
+ICNS_PATH="${SCRIPT_DIR}/VaporVibeIcon.icns"
+GENERATOR_SCRIPT="${ROOT_DIR}/scripts/generate-vaporvibe-icons.sh"
+SOURCE_ICON="${ROOT_DIR}/assets/vaporvibe-icon-mark.png"
+MAGICK_BIN="$(command -v magick || true)"
+SIPS_BIN="$(command -v sips || true)"
+ICONUTIL_BIN="$(command -v iconutil || true)"
+
+if [[ -z "${MAGICK_BIN}" ]]; then
+  echo "ImageMagick 'magick' binary not found. Install ImageMagick to continue." >&2
+  exit 1
+fi
+
+if [[ -z "${SIPS_BIN}" ]]; then
+  echo "sips utility not found. This script requires macOS system tools." >&2
+  exit 1
+fi
+
+if [[ -z "${ICONUTIL_BIN}" ]]; then
+  echo "iconutil not found. Install Xcode command line tools (xcode-select --install)." >&2
+  exit 1
+fi
 
 rm -rf "${OUTPUT_DIR}" "${ICNS_PATH}"
 mkdir -p "${ICONSET_DIR}"
-mkdir -p "${MODULE_CACHE}"
 
-SWIFT_BIN="$(command -v swiftc || true)"
-if [[ -z "${SWIFT_BIN}" ]]; then
-  echo "swiftc not found; install Xcode command line tools." >&2
+if [[ ! -f "${SOURCE_ICON}" ]]; then
+  if [[ ! -x "${GENERATOR_SCRIPT}" ]]; then
+    echo "Icon generator script not found or not executable at ${GENERATOR_SCRIPT}." >&2
+    exit 1
+  fi
+  echo "→ Generating VaporVibe icons…"
+  "${GENERATOR_SCRIPT}"
+fi
+
+if [[ ! -f "${SOURCE_ICON}" ]]; then
+  echo "Source icon ${SOURCE_ICON} not found." >&2
   exit 1
 fi
+
+"${MAGICK_BIN}" "${SOURCE_ICON}" -strip -depth 8 "${BASE_PNG}"
 
 pushd "${SCRIPT_DIR}" >/dev/null
-
-echo "→ Generating base PNG icon…"
-SWIFT_FLAGS=(
-  "generate-icon.swift"
-  "-module-cache-path" "${MODULE_CACHE}"
-  "-o" "${OUTPUT_DIR}/generate-icon"
-)
-
-env \
-  SWIFT_DRIVER_SWIFT_MODULE_CACHE_PATH="${MODULE_CACHE}" \
-  SWIFT_DRIVER_CLANG_MODULE_CACHE_PATH="${MODULE_CACHE}" \
-  "${SWIFT_BIN}" "${SWIFT_FLAGS[@]}"
-"${OUTPUT_DIR}/generate-icon"
-
-if [[ -f "${SCRIPT_DIR}/ServeLLMIcon.png" ]]; then
-  mv "${SCRIPT_DIR}/ServeLLMIcon.png" "${BASE_PNG}"
-fi
-
-if [[ ! -f "${BASE_PNG}" ]]; then
-  echo "Base icon ${BASE_PNG} not produced." >&2
-  exit 1
-fi
 
 declare -a icon_entries=(
   "16:1"
@@ -67,19 +73,16 @@ for entry in "${icon_entries[@]}"; do
     suffix="@2x"
   fi
   output="${ICONSET_DIR}/icon_${size}x${size}${suffix}.png"
-  sips -z "$target_size" "$target_size" "${BASE_PNG}" --out "$output" >/dev/null
+  "${SIPS_BIN}" -z "$target_size" "$target_size" "${BASE_PNG}" --out "$output" >/dev/null
 done
 
-ICONUTIL_BIN="$(command -v iconutil || true)"
-if [[ -z "${ICONUTIL_BIN}" ]]; then
-  echo "⚠️  iconutil not found; skipped .icns generation. Use the iconset at ${ICONSET_DIR}." >&2
+
+echo "→ Converting iconset to .icns via iconutil…"
+if "${ICONUTIL_BIN}" -c icns "${ICONSET_DIR}" -o "${ICNS_PATH}"; then
+  echo "→ Icon ready at ${ICNS_PATH}"
 else
-  echo "→ Converting iconset to .icns…"
-  if "${ICONUTIL_BIN}" -c icns "${ICONSET_DIR}" -o "${ICNS_PATH}"; then
-    echo "→ Icon ready at ${ICNS_PATH}"
-  else
-    echo "⚠️  iconutil failed to produce .icns. The PNG set remains at ${ICONSET_DIR}." >&2
-  fi
+  echo "Error: iconutil failed to build .icns from ${ICONSET_DIR}" >&2
+  exit 1
 fi
 
 popd >/dev/null

@@ -42,10 +42,10 @@ export default defineConfig(() => ({
       "/api": {
         target: "http://localhost:3000",
       },
-      "/__serve-llm": {
+      "/__vaporvibe": {
         target: "http://localhost:3000",
       },
-      "/serve-llm": {
+      "/vaporvibe": {
         target: "http://localhost:3000",
       },
       "/__setup": {

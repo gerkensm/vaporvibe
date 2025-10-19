@@ -98,7 +98,7 @@ const TAB_LABELS: Record<TabKey, string> = {
   history: "History",
 };
 
-const ADMIN_ROUTE_PREFIX = "/serve-llm";
+const ADMIN_ROUTE_PREFIX = "/vaporvibe";
 
 const isAdminPath = (pathname: string) =>
   pathname === ADMIN_ROUTE_PREFIX ||
@@ -286,10 +286,10 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     if (!state) return;
     if (mode !== "setup") return;
     if (!state.providerReady || !state.brief) return;
-    if (location.pathname.startsWith("/serve-llm")) {
+    if (location.pathname.startsWith("/vaporvibe")) {
       return;
     }
-    navigate("/serve-llm", { replace: true, state: { showLaunchPad: true } });
+    navigate("/vaporvibe", { replace: true, state: { showLaunchPad: true } });
   }, [state, mode, navigate, location.pathname]);
 
   useEffect(() => {
@@ -896,7 +896,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
         : "Tell the model what to build";
     const description =
       activeSetupStep === "provider"
-        ? "Serve-llm hosts a living web canvas improvised by your chosen provider. Verify a key so we can start riffing."
+        ? "VaporVibe hosts a living web canvas improvised by your chosen provider. Verify a key so we can start riffing."
         : `Provider ready: ${providerMetric}. Share the tone, moments, and inspirations for the first render.`;
 
     const providerButtonClasses = ["setup-card__step-button"];
@@ -1045,7 +1045,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       {launchPad}
       <header className="admin-header admin-header--hero">
         <div>
-          <h1>serve-llm Admin Console</h1>
+          <h1>vaporvibe Admin Console</h1>
           <p className="admin-subtitle">
             Fine-tune the brief, providers, runtime, and archives without
             restarting the server.

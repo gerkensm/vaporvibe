@@ -29,9 +29,9 @@ case "$TARGET" in
     ;;
 esac
 
-DMG_PATH="${ROOT_DIR}/out/macos-app/ServeLLM.dmg"
-APP_PATH="${ROOT_DIR}/out/macos-app/ServeLLM.app"
-ZIP_PATH="${ROOT_DIR}/out/macos-app/ServeLLM-app.zip"
+DMG_PATH="${ROOT_DIR}/out/macos-app/VaporVibe.dmg"
+APP_PATH="${ROOT_DIR}/out/macos-app/VaporVibe.app"
+ZIP_PATH="${ROOT_DIR}/out/macos-app/VaporVibe-app.zip"
 
 if [[ "$TARGET" == "dmg" && ! -f "$DMG_PATH" ]]; then
   echo "⚠️  DMG not found at $DMG_PATH; falling back to app bundle." >&2
@@ -60,30 +60,30 @@ fi
 
 if [[ "$TARGET" == "app" ]]; then
   ARTIFACT_PATH="$ZIP_PATH"
-  ARTIFACT_LABEL="ServeLLM.app"
+  ARTIFACT_LABEL="VaporVibe.app"
   
   # Notarize and staple the app bundle
-  echo "→ Notarizing and stapling ServeLLM.app…"
+  echo "→ Notarizing and stapling VaporVibe.app…"
   rm -f "$ZIP_PATH"
   /usr/bin/ditto -c -k --keepParent "$APP_PATH" "$ZIP_PATH"
 
-  echo "→ Submitting ServeLLM.app to Apple Notary Service (this may take a few minutes)…"
+  echo "→ Submitting VaporVibe.app to Apple Notary Service (this may take a few minutes)…"
   if ! xcrun notarytool submit "$ZIP_PATH" --keychain-profile "$APPLE_KEYCHAIN_PROFILE" --wait; then
     echo "❌ App bundle notarization failed. Inspect the submission log via:" >&2
     echo "   xcrun notarytool history --keychain-profile $APPLE_KEYCHAIN_PROFILE" >&2
     exit 1
   fi
 
-  echo "→ Stapling notarization ticket to ServeLLM.app…"
+  echo "→ Stapling notarization ticket to VaporVibe.app…"
   xcrun stapler staple "$APP_PATH"
   echo "→ Validating stapled app bundle…"
   xcrun stapler validate "$APP_PATH"
 else
   ARTIFACT_PATH="$DMG_PATH"
-  ARTIFACT_LABEL="ServeLLM.dmg"
+  ARTIFACT_LABEL="VaporVibe.dmg"
   
   # Notarize and staple the DMG (app should already be stapled)
-  echo "→ Notarizing and stapling ServeLLM.dmg…"
+  echo "→ Notarizing and stapling VaporVibe.dmg…"
   echo "ℹ️  Note: The app bundle inside should already be notarized and stapled"
   
   if ! xcrun notarytool submit "$DMG_PATH" --keychain-profile "$APPLE_KEYCHAIN_PROFILE" --wait; then

@@ -369,7 +369,7 @@ export class RestApiController {
 
 function sanitizeQuery(url: URL): Record<string, unknown> {
   const entries = Array.from(url.searchParams.entries());
-  const filtered = entries.filter(([key]) => key !== "__serve-llm");
+  const filtered = entries.filter(([key]) => key !== "__vaporvibe");
   return Object.fromEntries(filtered);
 }
 
@@ -378,7 +378,7 @@ function sanitizeBody(
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(body ?? {})) {
-    if (key === "__serve-llm") {
+    if (key === "__vaporvibe") {
       continue;
     }
     if (Array.isArray(value)) {

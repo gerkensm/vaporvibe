@@ -57,9 +57,9 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
   const { history, brief, briefAttachments, runtime, provider } = context;
   const lines: string[] = [];
 
-  lines.push("# serve-llm Session Export");
+  lines.push("# vaporvibe Session Export");
   lines.push("");
-  lines.push("This document captures a snapshot of a serve-llm development session. It includes the product brief we supplied to the language model, each HTTP request the sourcecodeless server handled, and the full HTML render the LLM produced for that step. Share this file with a vibe coding companion to resume work from the exact same context.");
+  lines.push("This document captures a snapshot of a vaporvibe development session. It includes the product brief we supplied to the language model, each HTTP request the sourcecodeless server handled, and the full HTML render the LLM produced for that step. Share this file with a vibe coding companion to resume work from the exact same context.");
   lines.push("");
   lines.push("The brief explains the fictional web app we are building. Each subsequent step represents a full-page render triggered by a navigation or form submission. Query and body parameters show how the user steered the flow, while HTML blocks contain the exact UI the model returned.");
   lines.push("");

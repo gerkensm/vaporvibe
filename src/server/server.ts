@@ -227,7 +227,7 @@ function maybeServeFrontendAsset(
   reqLogger: RequestLogger
 ): boolean {
   if (
-    !context.path.startsWith("/__serve-llm/assets/") &&
+    !context.path.startsWith("/__vaporvibe/assets/") &&
     !context.path.startsWith("/assets/")
   ) {
     return false;
@@ -240,8 +240,8 @@ function maybeServeFrontendAsset(
     return true;
   }
 
-  const assetPrefix = context.path.startsWith("/__serve-llm/assets/")
-    ? "/__serve-llm/assets/"
+  const assetPrefix = context.path.startsWith("/__vaporvibe/assets/")
+    ? "/__vaporvibe/assets/"
     : "/assets/";
   const requestedPath = context.path.slice(assetPrefix.length);
   const segments = requestedPath
@@ -370,7 +370,7 @@ async function serveSpaShell(
       const devUrl =
         process.env.SERVE_LLM_DEV_SERVER_URL?.replace(/\/$/, "") ||
         "http://localhost:5173";
-      const fallbackHtml = `<!doctype html>\n<html lang="en">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>serve-llm Admin (dev)</title>\n    <style>body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;margin:0;background:#f8fafc;color:#0f172a;}\n    .fallback{max-width:720px;margin:10vh auto;padding:32px;border-radius:24px;background:#fff;box-shadow:0 20px 50px rgba(15,23,42,0.08);}\n    h1{margin-top:0;font-size:1.6rem;}\n    p{line-height:1.5;}\n    code{background:#e2e8f0;padding:2px 6px;border-radius:6px;}\n    a{color:#2563eb;}\n    </style>\n  </head>\n  <body>\n    <div class=\"fallback\">\n      <h1>serve-llm Admin (dev)</h1>\n      <p>The compiled admin UI is not available. The Vite dev server is expected at <strong>${devUrl}</strong>.</p>\n      <p>If you are developing the frontend, open <a href=\"${devUrl}\" target=\"_blank\">${devUrl}</a> in a new tab.</p>\n      <p>To build the production assets instead, run <code>npm run build:fe</code>.</p>\n    </div>\n    <script type=\"module\" src=\"${devUrl}/src/main.tsx\"></script>\n  </body>\n</html>`;
+      const fallbackHtml = `<!doctype html>\n<html lang="en">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>vaporvibe Admin (dev)</title>\n    <style>body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;margin:0;background:#f8fafc;color:#0f172a;}\n    .fallback{max-width:720px;margin:10vh auto;padding:32px;border-radius:24px;background:#fff;box-shadow:0 20px 50px rgba(15,23,42,0.08);}\n    h1{margin-top:0;font-size:1.6rem;}\n    p{line-height:1.5;}\n    code{background:#e2e8f0;padding:2px 6px;border-radius:6px;}\n    a{color:#2563eb;}\n    </style>\n  </head>\n  <body>\n    <div class=\"fallback\">\n      <h1>vaporvibe Admin (dev)</h1>\n      <p>The compiled admin UI is not available. The Vite dev server is expected at <strong>${devUrl}</strong>.</p>\n      <p>If you are developing the frontend, open <a href=\"${devUrl}\" target=\"_blank\">${devUrl}</a> in a new tab.</p>\n      <p>To build the production assets instead, run <code>npm run build:fe</code>.</p>\n    </div>\n    <script type=\"module\" src=\"${devUrl}/src/main.tsx\"></script>\n  </body>\n</html>`;
       res.statusCode = 200;
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("Cache-Control", "no-store");
@@ -664,10 +664,10 @@ async function handleLlmRequest(
 
   const rawQueryEntries = Array.from(url.searchParams.entries());
   const isInterceptorQuery = rawQueryEntries.some(
-    ([key, value]) => key === "__serve-llm" && value === "interceptor"
+    ([key, value]) => key === "__vaporvibe" && value === "interceptor"
   );
   const query = Object.fromEntries(
-    rawQueryEntries.filter(([key]) => key !== "__serve-llm")
+    rawQueryEntries.filter(([key]) => key !== "__vaporvibe")
   );
   if (Object.keys(query).length > 0) {
     reqLogger.debug(formatJsonForLog(query, "Query parameters"));
@@ -678,14 +678,14 @@ async function handleLlmRequest(
   if (method === "POST" || method === "PUT" || method === "PATCH") {
     const parsed = await readBody(req);
     bodyData = parsed.data ?? {};
-    const interceptorMarker = bodyData["__serve-llm"];
+    const interceptorMarker = bodyData["__vaporvibe"];
     const hasInterceptorMarker =
       interceptorMarker === "interceptor" ||
       (Array.isArray(interceptorMarker) &&
         interceptorMarker.includes("interceptor"));
     if (hasInterceptorMarker) {
       isInterceptorBody = true;
-      delete bodyData["__serve-llm"];
+      delete bodyData["__vaporvibe"];
     }
     if (parsed.raw) {
       reqLogger.debug(formatJsonForLog(bodyData, "Request body"));
@@ -775,7 +775,7 @@ async function handleLlmRequest(
   });
   reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
 
-  const interceptorHeader = req.headers["x-serve-llm-request"];
+  const interceptorHeader = req.headers["x-vaporvibe-request"];
   const isInterceptorHeader = Array.isArray(interceptorHeader)
     ? interceptorHeader.includes("interceptor")
     : interceptorHeader === "interceptor";
@@ -858,8 +858,8 @@ async function handleLlmRequest(
     });
 
     const strippedHtml = stripScriptById(
-      stripScriptById(ensuredHtml, "serve-llm-interceptor-script"),
-      "serve-llm-instructions-panel-script"
+      stripScriptById(ensuredHtml, "vaporvibe-interceptor-script"),
+      "vaporvibe-instructions-panel-script"
     );
 
     const nextComponentId = deriveNextNumericId(
