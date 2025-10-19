@@ -22,10 +22,10 @@
     "build:fe": "cd frontend && npm install && npm run build",
     "dev:be": "tsx --watch src/index.ts",
     "dev:fe": "cd frontend && npm run dev",
-    "build:sea": "scripts/build-macos-sea.sh",
-    "build:sea:signed": "NOTARIZE=true scripts/build-macos-sea.sh",
-    "build:sea:submit": "scripts/notarize-macos-sea.sh",
-    "build:sea:verify": "scripts/verify-notarization.sh",
+    "build:macos:sea": "scripts/build-macos-sea.sh",
+    "build:macos:sea:signed": "NOTARIZE=true scripts/build-macos-sea.sh",
+    "build:macos:sea:submit": "scripts/notarize-macos-sea.sh",
+    "build:macos:sea:verify": "scripts/verify-notarization.sh",
     "build:macos:icon": "scripts/macos-app/create-icon-assets.sh",
     "build:macos:app": "scripts/macos-app/build-app-bundle.sh",
     "build:macos:sign": "scripts/macos-app/sign-app-bundle.sh",
@@ -33,7 +33,7 @@
     "build:macos:dmg": "scripts/macos-app/create-dmg.sh",
     "build:macos:notarize-dmg": "scripts/macos-app/notarize-app.sh dmg",
     "build:macos:verify": "scripts/macos-app/verify-app-notarization.sh",
-    "build:macos": "npm run build:sea:signed && npm run build:macos:app && npm run build:macos:sign && npm run build:macos:notarize-app && npm run build:macos:dmg && npm run build:macos:notarize-dmg"
+    "build:macos": "npm run build:macos:sea:signed && npm run build:macos:app && npm run build:macos:sign && npm run build:macos:notarize-app && npm run build:macos:dmg && npm run build:macos:notarize-dmg"
   },
   "keywords": [
     "llm",
