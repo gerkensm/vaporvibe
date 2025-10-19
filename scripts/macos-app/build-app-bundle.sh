@@ -10,7 +10,7 @@ APP_BUNDLE="${OUTPUT_ROOT}/${APP_NAME}.app"
 RESOURCES_DIR="${APP_BUNDLE}/Contents/Resources"
 MACOS_DIR="${APP_BUNDLE}/Contents/MacOS"
 SEA_BINARY="${ROOT_DIR}/out/sea/serve-llm-macos"
-ICON_SOURCE="${SCRIPT_DIR}/ServeLLMIcon.icns"
+ICON_SOURCE="${SCRIPT_DIR}/VaporVibeIcon.icns"
 INFO_PLIST="${APP_BUNDLE}/Contents/Info.plist"
 VERSION="$(cd "${ROOT_DIR}" && node -p "require('./package.json').version" 2>/dev/null || echo "0.0.0")"
 
@@ -26,7 +26,7 @@ mkdir -p "${RESOURCES_DIR}" "${MACOS_DIR}"
 if [[ ! -f "${ICON_SOURCE}" ]]; then
   echo "App icon missing. Generate it via scripts/macos-app/create-icon-assets.sh" >&2
 else
-  cp "${ICON_SOURCE}" "${RESOURCES_DIR}/ServeLLMIcon.icns"
+  cp "${ICON_SOURCE}" "${RESOURCES_DIR}/VaporVibeIcon.icns"
 fi
 
 cat > "${INFO_PLIST}" <<PLIST
@@ -41,7 +41,7 @@ cat > "${INFO_PLIST}" <<PLIST
   <key>CFBundleExecutable</key>
   <string>ServeLLMLauncher</string>
   <key>CFBundleIconFile</key>
-  <string>ServeLLMIcon</string>
+  <string>VaporVibeIcon</string>
   <key>CFBundleIdentifier</key>
   <string>com.gerkensm.serve-llm</string>
   <key>CFBundleInfoDictionaryVersion</key>
