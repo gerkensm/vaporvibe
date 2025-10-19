@@ -11,7 +11,8 @@ It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaw
 All you need is **Node.js (v20+, ideally 24)** and an API key from OpenAI, Google Gemini, Anthropic, or xAI Grok.
 
 1.  **Launch the server:**
-
+   If you are on Mac OS (Apple Silicon), grab the DMG here: https://github.com/gerkensm/vaporvibe/releases/tag/1.2.1
+   For other platforms, there are no binaries yet. Start:
     ```bash
     npx github:gerkensm/vaporvibe
     ```
