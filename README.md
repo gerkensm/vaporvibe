@@ -6,6 +6,8 @@ VaporVibe is a cheeky thought experiment, not a production stack: instead of vib
 
 It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaway backend and pixel-tweaking a frontend just to sanity-check a UX flow or study a short interaction? Let the model “predict” what the app would render—if it quacks like a duck, that might be enough to validate the idea before investing real build time.
 
+<img width="256" height="256" alt="vaporvibe-icon-with-text" src="https://github.com/user-attachments/assets/9ca4c4a6-8ccc-49c1-bb08-efc3475446e2" />
+
 ---
 
 ## Get Started in 60 Seconds 🚀
