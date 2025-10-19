@@ -12,6 +12,7 @@ GENERATOR_SCRIPT="${ROOT_DIR}/scripts/generate-vaporvibe-icons.sh"
 SOURCE_ICON="${ROOT_DIR}/assets/vaporvibe-icon-mark.png"
 MAGICK_BIN="$(command -v magick || true)"
 SIPS_BIN="$(command -v sips || true)"
+ICONUTIL_BIN="$(command -v iconutil || true)"
 
 if [[ -z "${MAGICK_BIN}" ]]; then
   echo "ImageMagick 'magick' binary not found. Install ImageMagick to continue." >&2
@@ -20,6 +21,11 @@ fi
 
 if [[ -z "${SIPS_BIN}" ]]; then
   echo "sips utility not found. This script requires macOS system tools." >&2
+  exit 1
+fi
+
+if [[ -z "${ICONUTIL_BIN}" ]]; then
+  echo "iconutil not found. Install Xcode command line tools (xcode-select --install)." >&2
   exit 1
 fi
 
@@ -49,15 +55,12 @@ declare -a icon_entries=(
   "16:2"
   "32:1"
   "32:2"
-  "64:1"
-  "64:2"
   "128:1"
   "128:2"
   "256:1"
   "256:2"
   "512:1"
   "512:2"
-  "1024:1"
 )
 
 echo "→ Building .iconset variants…"
@@ -74,8 +77,12 @@ for entry in "${icon_entries[@]}"; do
 done
 
 
-echo "→ Exporting .icns via ImageMagick…"
-"${MAGICK_BIN}" "${SOURCE_ICON}" -strip -depth 8 -define icon:auto-resize=16,32,64,128,256,512,1024 "${ICNS_PATH}"
-echo "→ Icon ready at ${ICNS_PATH}"
+echo "→ Converting iconset to .icns via iconutil…"
+if "${ICONUTIL_BIN}" -c icns "${ICONSET_DIR}" -o "${ICNS_PATH}"; then
+  echo "→ Icon ready at ${ICNS_PATH}"
+else
+  echo "Error: iconutil failed to build .icns from ${ICONSET_DIR}" >&2
+  exit 1
+fi
 
 popd >/dev/null
