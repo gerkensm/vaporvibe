@@ -45,6 +45,7 @@
     "@anthropic-ai/sdk": "^0.32.0",
     "@google/genai": "^1.22.0",
     "keytar": "^7.9.0",
+    "node-html-parser": "^7.0.1",
     "open": "^10.2.0",
     "openai": "^6.1.0",
     "pino": "^9.3.0",

@@ -43,6 +43,10 @@ import { parseCookies } from "../utils/cookies.js";
 import { readBody } from "../utils/body.js";
 import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
 import { SessionStore } from "./session-store.js";
+import {
+  applyComponentPlaceholders,
+  prepareComponentCache,
+} from "./component-cache.js";
 import { getNavigationInterceptorScript } from "../utils/navigation-interceptor.js";
 import { getInstructionsPanelScript } from "../utils/instructions-panel.js";
 import {
@@ -736,7 +740,26 @@ async function handleLlmRequest(
       "serve-llm-instructions-panel-script"
     );
 
-    const promptHtml = strippedHtml;
+    const { cache: existingCache, nextComponentId } =
+      sessionStore.getComponentState(sid);
+    const placeholderResult = applyComponentPlaceholders(
+      strippedHtml,
+      existingCache
+    );
+
+    if (placeholderResult.missing.length > 0) {
+      reqLogger.warn(
+        {
+          missingComponentIds: placeholderResult.missing,
+        },
+        "Component placeholders could not be resolved"
+      );
+    }
+
+    const cacheResult = prepareComponentCache(placeholderResult.html, {
+      nextComponentId,
+    });
+    const promptHtml = cacheResult.html;
     let renderedHtml = promptHtml;
 
     const interceptorScriptTag = getNavigationInterceptorScript();
@@ -761,7 +784,10 @@ async function handleLlmRequest(
       }
     }
 
-    sessionStore.setPrevHtml(sid, promptHtml);
+    sessionStore.setPrevHtml(sid, promptHtml, {
+      componentCache: cacheResult.cache,
+      nextComponentId: cacheResult.nextComponentId,
+    });
 
     const instructions = extractInstructions(bodyData);
     const historyEntry: HistoryEntry = {
@@ -797,7 +823,9 @@ async function handleLlmRequest(
         restQueriesForEntry.length > 0 ? restQueriesForEntry : undefined,
     };
 
-    sessionStore.appendHistoryEntry(sid, historyEntry);
+    sessionStore.appendHistoryEntry(sid, historyEntry, {
+      preservePrevHtml: true,
+    });
 
     if (isInterceptorRequest) {
       res.statusCode = 200;

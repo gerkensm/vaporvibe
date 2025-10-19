@@ -13,6 +13,8 @@ import type {
 interface SessionData {
   updatedAt: number;
   prevHtml: string;
+  componentCache: Record<string, string>;
+  nextComponentId: number;
   history: HistoryEntry[];
   rest: {
     mutations: RestMutationRecord[];
@@ -55,10 +57,37 @@ export class SessionStore {
     return lastHtmlEntry?.response.html ?? "";
   }
 
-  setPrevHtml(sid: string, html: string): void {
+  setPrevHtml(
+    sid: string,
+    html: string,
+    options: {
+      componentCache?: Record<string, string>;
+      nextComponentId?: number;
+    } = {}
+  ): void {
     const record = this.ensureRecord(sid);
     record.prevHtml = String(html ?? "");
+    if (options.componentCache) {
+      record.componentCache = { ...options.componentCache };
+    }
+    if (typeof options.nextComponentId === "number") {
+      record.nextComponentId = options.nextComponentId;
+    }
     this.persistRecord(sid, record);
+  }
+
+  getComponentState(sid: string): {
+    cache: Record<string, string>;
+    nextComponentId: number;
+  } {
+    const record = this.getActiveRecord(sid);
+    if (!record) {
+      return { cache: {}, nextComponentId: 1 };
+    }
+    return {
+      cache: { ...record.componentCache },
+      nextComponentId: record.nextComponentId,
+    };
   }
 
   getHistory(sid: string, limit?: number): HistoryEntry[] {
@@ -80,6 +109,8 @@ export class SessionStore {
     record.history = [...(record.history ?? []), entry];
     if (!options.preservePrevHtml) {
       record.prevHtml = entry.response.html;
+      record.componentCache = {};
+      record.nextComponentId = 1;
     }
     this.persistRecord(sid, record);
   }
@@ -133,6 +164,8 @@ export class SessionStore {
         ...record,
         history: nextHistory,
         prevHtml: findLastHtmlEntry(nextHistory)?.response.html ?? "",
+        componentCache: {},
+        nextComponentId: 1,
       };
 
       this.persistRecord(sid, nextRecord);
@@ -161,6 +194,8 @@ export class SessionStore {
       record.history = [...(record.history ?? []), normalized];
       if (normalized.entryKind === "html") {
         record.prevHtml = normalized.response.html;
+        record.componentCache = {};
+        record.nextComponentId = 1;
       }
       record.rest.mutations = [];
       record.rest.queries = [];
@@ -294,6 +329,8 @@ function createSessionData(): SessionData {
   return {
     updatedAt: Date.now(),
     prevHtml: "",
+    componentCache: {},
+    nextComponentId: 1,
     history: [],
     rest: {
       mutations: [],
