@@ -28,7 +28,6 @@ frontend/dist/*
 
 # Generated macOS packaging artifacts
 scripts/macos-app/icon-build/
-scripts/macos-app/ServeLLMIcon.icns
 scripts/macos-app/VaporVibeIcon.icns
 
 # Generated VaporVibe branding assets
