@@ -83,6 +83,8 @@ export interface HistoryEntry {
   restQueries?: RestQueryRecord[];
   entryKind: HistoryEntryKind;
   rest?: RestHistoryMetadata;
+  componentCache?: Record<string, string>;
+  styleCache?: Record<string, string>;
 }
 
 export interface RestHistoryMetadata {
