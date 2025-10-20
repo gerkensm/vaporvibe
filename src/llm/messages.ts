@@ -112,6 +112,9 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
         "### Design & Behavior Rules",
         '- Primary actions are obvious (clear CTAs). Default non-submitting buttons to type="button".',
         "- Local-first. If data is already on the page, swap views client-side (e.g., open item detail) without a round-trip; persist only on real edits.",
+        "- Distinguish navigation vs. local interaction.",
+        '  - When the user needs a distinctly new server-rendered view (e.g., external article, deep detail page, switching core sections), emit a standard <a href="/route?params"> link or <form action="/route">. These must navigate through the interceptor—do not replace them with onclick handlers, client-side modals, or window.location hacks.',
+        "  - Use onclick handlers (with event.preventDefault() / return false) only for purely in-place UI updates that do not depend on new server HTML (tab toggles, modals, sorting/filtering already-loaded data, confirming actions).",
         "- Background helpers.",
         "  - Mutation: POST /rest_api/mutation/<resource> with JSON body; on success, keep the user on the same page; show lightweight inline feedback (spinner/toast).",
         "  - Query: GET/POST /rest_api/query/<resource> with descriptive params; show skeletons; replace only the relevant region; handle slow responses/errors gracefully.",
@@ -225,7 +228,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
   );
   dynamicSections.push(
     "",
-    "Previous HTML (for context; may be empty if first view):",
+    "Previous HTML (for context; may be empty if first view - note that this is what the user received - the server already performed all the template replacements and added data-ids for you to reference - you should NOT emit data-ids, even if they are present here, but use {{}} templates for reuse of elements as in you instructions):",
     "-----BEGIN PREVIOUS HTML-----",
     prevHtmlSnippet,
     "-----END PREVIOUS HTML-----"
