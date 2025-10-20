@@ -483,11 +483,20 @@ const statusMessages = [
     if (!form || form.target === "_blank") return;
 
     if (event.defaultPrevented) return;
+    event.preventDefault();
 
     const method = (form.getAttribute("method") || "GET").toUpperCase();
+    const destination = new URL(form.action || window.location.href);
+
+    if (isRestApiPath(destination.pathname)) {
+      emitRestApiEvent(form, { method, url: destination.href });
+      return;
+    }
+
+    showOverlay();
+
     if (method === "GET") {
-      event.preventDefault();
-      const url = new URL(form.action || window.location.href);
+      const url = new URL(destination.toString());
       try {
         const submitter = (event as SubmitEvent).submitter as
           | HTMLButtonElement
@@ -511,35 +520,51 @@ const statusMessages = [
       } catch (error) {
         console.warn("vaporvibe form encoding failed:", error);
       }
-
-      if (isRestApiPath(url.pathname)) {
-        emitRestApiEvent(form, { method: "GET", url: url.href });
-        return;
-      }
-
       handleRequest(url, { method: "GET" });
     } else {
-      event.preventDefault();
-      const destination = new URL(form.action || window.location.href);
-      if (isRestApiPath(destination.pathname)) {
-        emitRestApiEvent(form, {
-          method,
-          url: destination.href,
-        });
-        return;
-      }
-
+      let formData: FormData;
       try {
-        const hidden = document.createElement("input");
-        hidden.type = "hidden";
-        hidden.name = "__vaporvibe";
-        hidden.value = "interceptor";
-        form.appendChild(hidden);
-      } catch {
-        // ignore hidden input creation errors
+        const submitter = (event as SubmitEvent).submitter as HTMLButtonElement | HTMLInputElement | null;
+        formData = submitter ? new FormData(form, submitter) : new FormData(form);
+      } catch (e) {
+        formData = new FormData(form);
+        const submitter = (event as SubmitEvent).submitter as HTMLButtonElement | HTMLInputElement | null;
+        if (submitter && submitter.name) {
+          formData.append(submitter.name, submitter.value);
+        }
       }
-      showOverlay();
-      form.submit();
+      formData.append("__vaporvibe", "interceptor");
+
+      fetch(destination.toString(), {
+        method: method,
+        body: formData,
+        credentials: "same-origin",
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+          }
+          const contentType = response.headers.get("content-type");
+          if (!contentType || !contentType.toLowerCase().includes("text/html")) {
+            throw new Error(`Expected HTML response, got ${contentType}`);
+          }
+          const finalUrl = response.url;
+          return response.text().then((htmlString) => ({ htmlString, finalUrl }));
+        })
+        .then(({ htmlString, finalUrl }) => {
+          try {
+            history.replaceState(null, "", finalUrl || destination.toString());
+          } catch (historyError) {
+            console.warn("Failed to update history state after POST fetch", historyError);
+          }
+          document.open("text/html", "replace");
+          document.write(htmlString);
+          document.close();
+        })
+        .catch((error) => {
+          console.error("vaporvibe POST fetch failed:", error);
+          hideOverlay();
+        });
     }
   });
 
