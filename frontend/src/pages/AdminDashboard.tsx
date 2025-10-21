@@ -33,6 +33,7 @@ import {
   HISTORY_MAX_BYTES_MAX,
 } from "../constants/runtime";
 import { useNotifications } from "../components/Notifications";
+import vaporvibeLogoUrl from "../assets/vaporvibe-icon-both.svg";
 
 type AsyncStatus = "idle" | "loading" | "success" | "error";
 type StatusMessage = { tone: "info" | "error"; message: string };
@@ -141,6 +142,8 @@ interface AdminDashboardProps {
   mode?: "auto" | "setup" | "admin";
 }
 
+const SETUP_INTRO_STORAGE_KEY = "vaporvibe:setup:intro-seen:v1";
+
 export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -180,6 +183,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   >(null);
   const [setupStep, setSetupStep] = useState<"provider" | "brief">("provider");
   const [showLaunchPad, setShowLaunchPad] = useState(false);
+  const [showIntroStep, setShowIntroStep] = useState(false);
 
   const needsProviderSetup = state
     ? !state.providerReady || state.providerSelectionRequired
@@ -191,11 +195,51 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
 
   const previousShowSetupShellRef = useRef(showSetupShell);
   const launchPadRef = useRef<HTMLDivElement | null>(null);
+  const previousSetupStepRef = useRef<"provider" | "brief" | null>(null);
+  const previousIntroVisibilityRef = useRef(showIntroStep);
+
+  const scrollSetupToTop = useCallback(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+  }, []);
 
   const handleStateUpdate = useCallback((snapshot: AdminStateResponse) => {
     setState(snapshot);
     setHistoryTotalCount(snapshot.totalHistoryCount);
     setHistorySessionCount(snapshot.sessionCount);
+  }, []);
+
+  useEffect(() => {
+    if (!showSetupShell) {
+      setShowIntroStep(false);
+      return;
+    }
+    if (typeof window === "undefined") {
+      setShowIntroStep(false);
+      return;
+    }
+    try {
+      const storedValue = window.localStorage.getItem(
+        SETUP_INTRO_STORAGE_KEY
+      );
+      setShowIntroStep(!storedValue);
+    } catch (error) {
+      console.error("Unable to read intro preference", error);
+      setShowIntroStep(true);
+    }
+  }, [showSetupShell]);
+
+  const handleIntroAcknowledge = useCallback(() => {
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem(SETUP_INTRO_STORAGE_KEY, "seen");
+      } catch (error) {
+        console.error("Unable to persist intro preference", error);
+      }
+    }
+    setShowIntroStep(false);
   }, []);
 
   const loadHistory = useCallback(
@@ -301,6 +345,18 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   }, [state, showLaunchPad]);
 
   useEffect(() => {
+    if (!showSetupShell) {
+      previousIntroVisibilityRef.current = showIntroStep;
+      return;
+    }
+    const wasVisible = previousIntroVisibilityRef.current;
+    if (wasVisible && !showIntroStep) {
+      scrollSetupToTop();
+    }
+    previousIntroVisibilityRef.current = showIntroStep;
+  }, [showIntroStep, showSetupShell, scrollSetupToTop]);
+
+  useEffect(() => {
     if (needsProviderSetup) {
       setSetupStep("provider");
     } else if (needsBriefSetup) {
@@ -309,6 +365,18 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       setSetupStep("provider");
     }
   }, [needsProviderSetup, needsBriefSetup]);
+
+  useEffect(() => {
+    if (!showSetupShell || showIntroStep) {
+      previousSetupStepRef.current = setupStep;
+      return;
+    }
+    const previous = previousSetupStepRef.current;
+    if (previous && previous !== setupStep) {
+      scrollSetupToTop();
+    }
+    previousSetupStepRef.current = setupStep;
+  }, [setupStep, showSetupShell, showIntroStep, scrollSetupToTop]);
 
   useEffect(() => {
     const routeTab = getTabFromPath(location.pathname);
@@ -888,6 +956,89 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   ) : null;
 
   if (showSetupShell) {
+    if (showIntroStep) {
+      return (
+        <div className="admin-shell admin-shell--setup">
+          <div className="setup-card setup-card--intro">
+            <div className="setup-card__logo" aria-hidden="true">
+              <div className="setup-card__logo-plate">
+                <img src={vaporvibeLogoUrl} alt="" />
+              </div>
+            </div>
+            <header className="setup-card__header">
+              <span className="setup-card__step">Start here</span>
+              <h1>Let's Spin Up a New Experience Together</h1>
+              <p className="setup-card__description">
+                VaporVibe spins up convincing web experiences from a short brief so
+                you can pressure-test ideas without opening a code editor. Every
+                run is a fresh take you can direct in real time.
+              </p>
+            </header>
+            <div className="setup-card__intro-grid">
+              <section className="setup-card__intro-panel">
+                <h2>What VaporVibe does</h2>
+                <ul className="setup-card__intro-list">
+                  <li>
+                    Improvises full, clickable prototypes using the model you
+                    choose—perfect for pitching flows or exploring UX riffs.
+                  </li>
+                  <li>
+                    Lets you remix on the fly: adjust the brief, swap models, and
+                    relaunch within seconds to compare interpretations.
+                  </li>
+                  <li>
+                    Keeps the workspace grounded with history, attachments, and
+                    launch tools so you can share or revisit any run.
+                  </li>
+                </ul>
+              </section>
+              <section className="setup-card__intro-panel">
+                <h2>What we need from you</h2>
+                <ul className="setup-card__intro-list">
+                  <li>
+                    <strong>An API key</strong> for your preferred provider so we
+                    can ask it to generate the experience securely.
+                  </li>
+                  <li>
+                    <strong>A model selection</strong>—stick with a featured pick
+                    or point us to a custom model tuned for your workflow.
+                  </li>
+                  <li>
+                    <strong>Your brief and references</strong>: describe the vibe,
+                    drop in a screenshot, napkin sketch, or PDF—anything that sets
+                    the scene.
+                  </li>
+                </ul>
+              </section>
+            </div>
+            <section className="setup-card__intro-panel setup-card__intro-panel--full">
+              <h2>How we’ll use it</h2>
+              <p>
+                We send your brief, chosen model, and optional attachments straight
+                to that provider’s API to produce each page. The responses live in
+                your local history so you can replay, compare, or export them when
+                you’re ready to share.
+              </p>
+              <p className="setup-card__intro-hint">
+                Prefer to keep things lightweight? You can skip attachments and
+                start with a short prompt—the wizard makes it easy to add more
+                context later.
+              </p>
+            </section>
+            <div className="setup-card__intro-actions">
+              <button
+                type="button"
+                className="admin-primary"
+                onClick={handleIntroAcknowledge}
+              >
+                Let’s get set up
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     const providerButtonId = "setup-step-provider";
     const briefButtonId = "setup-step-brief";
     const heading =

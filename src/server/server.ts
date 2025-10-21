@@ -256,6 +256,9 @@ function maybeServeFrontendAsset(
 
   const normalized = segments.join("/");
   const filePath = resolvePath(FRONTEND_ASSETS_DIR, normalized);
+  const lastSegment = segments[segments.length - 1];
+  const isVolatileAsset =
+    lastSegment === "interceptor.js" || lastSegment === "instructions-panel.js";
 
   if (!filePath.startsWith(FRONTEND_ASSETS_DIR)) {
     res.statusCode = 403;
@@ -275,15 +278,15 @@ function maybeServeFrontendAsset(
     const lastModified = stats.mtime.toUTCString();
 
     const ifModifiedSince = context.req.headers["if-modified-since"];
-    if (
-      ifModifiedSince &&
-      new Date(ifModifiedSince).getTime() >= stats.mtimeMs
-    ) {
-      res.statusCode = 304;
-      res.setHeader("Last-Modified", lastModified);
-      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-      res.end();
-      return true;
+    if (!isVolatileAsset && ifModifiedSince) {
+      const headerDate = new Date(ifModifiedSince);
+      if (!Number.isNaN(headerDate.getTime()) && headerDate.getTime() >= stats.mtimeMs) {
+        res.statusCode = 304;
+        res.setHeader("Last-Modified", lastModified);
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        res.end();
+        return true;
+      }
     }
 
     let cached = frontendAssetCache.get(filePath);
@@ -300,7 +303,10 @@ function maybeServeFrontendAsset(
     res.statusCode = 200;
     res.setHeader("Content-Type", cached.contentType);
     res.setHeader("Last-Modified", lastModified);
-    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader(
+      "Cache-Control",
+      isVolatileAsset ? "no-store, no-cache, must-revalidate" : "public, max-age=31536000, immutable"
+    );
     res.setHeader("Content-Length", String(cached.content.length));
 
     if (context.method === "HEAD") {
