@@ -58,5 +58,5 @@ export const BRIEF_FORM_ROUTE = "/__set-brief";
 export const SETUP_VERIFY_ROUTE = "/__setup/verify-key";
 export const SETUP_ROUTE = "/__setup";
 export const ADMIN_ROUTE_PREFIX = "/vaporvibe";
-export const INSTRUCTIONS_PANEL_ROUTE = "/__vaporvibe/instructions-panel.js";
+export const INSTRUCTIONS_PANEL_ROUTE = "/__vaporvibe/vaporvibe-instructions-panel.js";
 export const LLM_RESULT_ROUTE_PREFIX = "/__vaporvibe/result";

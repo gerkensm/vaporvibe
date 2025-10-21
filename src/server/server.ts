@@ -258,7 +258,8 @@ function maybeServeFrontendAsset(
   const filePath = resolvePath(FRONTEND_ASSETS_DIR, normalized);
   const lastSegment = segments[segments.length - 1];
   const isVolatileAsset =
-    lastSegment === "interceptor.js" || lastSegment === "instructions-panel.js";
+    lastSegment === "vaporvibe-interceptor.js" ||
+    lastSegment === "vaporvibe-instructions-panel.js";
 
   if (!filePath.startsWith(FRONTEND_ASSETS_DIR)) {
     res.statusCode = 403;

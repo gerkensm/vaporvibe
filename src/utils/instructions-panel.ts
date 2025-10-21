@@ -12,7 +12,7 @@ export function getInstructionsPanelScript(): string {
   )};`;
 
   const { url, mode } = resolveScriptSource(
-    "instructions-panel.js",
+    "vaporvibe-instructions-panel.js",
     "/src/instructions-panel.ts"
   );
 

@@ -48,7 +48,7 @@ graph TD
 2.  The server assembles a detailed prompt (`src/llm/messages.ts`) containing the app brief, request details (method, path, query, body), relevant session history, and recent REST API interaction state.
 3.  This prompt is sent to the configured LLM provider's API.
 4.  The LLM generates a complete, self-contained HTML document for the requested view.
-5.  The server receives the HTML, updates the session history (`src/server/session-store.ts`), injects helper scripts (`interceptor.js`, `instructions-panel.js`), and sends the final HTML back to the browser.
+5.  The server receives the HTML, updates the session history (`src/server/session-store.ts`), injects helper scripts (`vaporvibe-interceptor.js`, `vaporvibe-instructions-panel.js`), and sends the final HTML back to the browser.
 
 ### The Setup & Configuration Flow ✨ (React SPA)
 
@@ -104,13 +104,13 @@ This is not a traditional software project; it's a creative tool. The "vibe" is 
 ### Navigation Interception
 
 - **Purpose**: Shows a loading overlay during LLM generation instead of a blank screen.
-- **Mechanism**: The backend injects `<script src="/assets/interceptor.js">` into every LLM-generated HTML response. This script intercepts `<a>` clicks and `<form>` submissions, displays the overlay, and re-initiates the request, adding a marker (`__vaporvibe=interceptor`) so the server knows to send back the final HTML directly (or handle API calls).
+- **Mechanism**: The backend injects `<script src="/assets/vaporvibe-interceptor.js">` into every LLM-generated HTML response. This script intercepts `<a>` clicks and `<form>` submissions, displays the overlay, and re-initiates the request, adding a marker (`__vaporvibe=interceptor`) so the server knows to send back the final HTML directly (or handle API calls).
 - **Source**: The interceptor logic lives in `frontend/src/interceptor.ts` and is bundled by Vite.
 
 ### Instructions Panel
 
 - **Purpose**: Allows users to provide quick, iterative feedback ("nudges") to the LLM for the next render without editing the main brief.
-- **Mechanism**: If enabled, the backend injects `<script src="/assets/instructions-panel.js">`. This script adds a floating panel UI. Submitting instructions adds a special field (`LLM_WEB_SERVER_INSTRUCTIONS`) to the next form submission.
+- **Mechanism**: If enabled, the backend injects `<script src="/assets/vaporvibe-instructions-panel.js">`. This script adds a floating panel UI. Submitting instructions adds a special field (`LLM_WEB_SERVER_INSTRUCTIONS`) to the next form submission.
 - **Source**: The panel logic lives in `frontend/src/instructions-panel.ts` and is bundled by Vite.
 
 ### Key Abstractions

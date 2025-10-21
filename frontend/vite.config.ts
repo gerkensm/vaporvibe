@@ -24,10 +24,10 @@ export default defineConfig(() => ({
       output: {
         entryFileNames: (chunkInfo) => {
           if (chunkInfo.name === "interceptor") {
-            return "assets/interceptor.js";
+            return "assets/vaporvibe-interceptor.js";
           }
           if (chunkInfo.name === "instructionsPanel") {
-            return "assets/instructions-panel.js";
+            return "assets/vaporvibe-instructions-panel.js";
           }
           return "assets/[name]-[hash].js";
         },

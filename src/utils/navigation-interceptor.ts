@@ -1,7 +1,10 @@
 import { resolveScriptSource } from "./frontend-assets.js";
 
 export function getNavigationInterceptorScript(): string {
-  const { url, mode } = resolveScriptSource("interceptor.js", "/src/interceptor.ts");
+  const { url, mode } = resolveScriptSource(
+    "vaporvibe-interceptor.js",
+    "/src/interceptor.ts"
+  );
   if (mode === "asset") {
     return `<script id="vaporvibe-interceptor-script" src="${url}" defer></script>`;
   }
