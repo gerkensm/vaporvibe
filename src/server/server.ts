@@ -2,8 +2,10 @@ import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { dirname, extname, resolve as resolvePath } from "node:path";
 import { URL, fileURLToPath } from "node:url";
+import type { Duplex } from "node:stream";
 import type { Logger } from "pino";
 import {
   ADMIN_ROUTE_PREFIX,
@@ -63,12 +65,57 @@ import { selectHistoryForPrompt } from "./history-utils.js";
 
 type RequestLogger = Logger;
 
+export interface DevFrontendServer {
+  middlewares(
+    req: IncomingMessage,
+    res: ServerResponse,
+    next: () => void
+  ): void;
+  transformIndexHtml(url: string, html: string): Promise<string>;
+  close(): Promise<void>;
+  ws: {
+    handleUpgrade(
+      req: IncomingMessage,
+      socket: Duplex,
+      head: Buffer,
+      callback: (ws: unknown) => void
+    ): void;
+    emit(event: string, ...args: unknown[]): void;
+  };
+  ssrFixStacktrace?(error: Error): void;
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PROJECT_ROOT_DIR = resolvePath(__dirname, "../../");
 const FRONTEND_DIST_DIR = resolvePath(PROJECT_ROOT_DIR, "frontend/dist");
 const FRONTEND_ASSETS_DIR = resolvePath(FRONTEND_DIST_DIR, "assets");
 const SPA_INDEX_PATH = resolvePath(FRONTEND_DIST_DIR, "index.html");
+const FRONTEND_SOURCE_DIR = resolvePath(PROJECT_ROOT_DIR, "frontend");
+const SPA_SOURCE_INDEX_PATH = resolvePath(FRONTEND_SOURCE_DIR, "index.html");
+const ADMIN_ASSET_ROUTE_PREFIX = `${ADMIN_ROUTE_PREFIX}/assets`;
+const ADMIN_ASSET_ROUTE_PREFIX_WITH_SLASH = `${ADMIN_ASSET_ROUTE_PREFIX}/`;
+
+const DEV_SERVER_ASSET_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".css",
+  ".scss",
+  ".sass",
+  ".less",
+  ".svg",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".webp",
+  ".ico",
+  ".json",
+]);
 
 const frontendAssetCache = new Map<
   string,
@@ -80,6 +127,13 @@ let frontendAssetsEnsured = false;
 
 export function ensureFrontendAssetsOnce(): void {
   if (frontendAssetsEnsured) {
+    return;
+  }
+  if (process.env.VAPORVIBE_PREFER_DEV_FRONTEND === "1") {
+    frontendAssetsEnsured = true;
+    logger.info(
+      "Development mode: skipping admin UI build and deferring to the Vite dev server."
+    );
     return;
   }
   if (existsSync(SPA_INDEX_PATH)) {
@@ -112,6 +166,99 @@ export function ensureFrontendAssetsOnce(): void {
 
   frontendAssetsEnsured = true;
   logger.info("Admin UI assets generated successfully.");
+}
+
+function getDevFrontendUrl(): string {
+  return (
+    process.env.SERVE_LLM_DEV_SERVER_URL?.replace(/\/$/, "") ||
+    "http://localhost:5173"
+  );
+}
+
+function renderDevSpaFallback(devUrl: string): string {
+  return String.raw`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>vaporvibe Admin (dev)</title>
+    <style>body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;margin:0;background:#f8fafc;color:#0f172a;}
+    #root{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px;}
+    .fallback{max-width:720px;width:100%;padding:32px;border-radius:24px;background:#fff;box-shadow:0 20px 50px rgba(15,23,42,0.08);}
+    h1{margin-top:0;font-size:1.6rem;}
+    p{line-height:1.5;}
+    code{background:#e2e8f0;padding:2px 6px;border-radius:6px;}
+    a{color:#2563eb;}
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div class="fallback">
+        <h1>vaporvibe Admin (dev)</h1>
+        <p>The compiled admin UI is not available. The Vite dev server is expected at <strong>${devUrl}</strong>.</p>
+        <p>If you are developing the frontend, open <a href="${devUrl}" target="_blank">${devUrl}</a> in a new tab.</p>
+        <p>To build the production assets instead, run <code>npm run build:fe</code>.</p>
+      </div>
+    </div>
+    <script type="module" src="${devUrl}/@vite/client"></script>
+    <script type="module" src="${devUrl}/src/main.tsx"></script>
+  </body>
+</html>`;
+}
+
+function stripAdminBasePath(path: string): string {
+  if (path === ADMIN_ROUTE_PREFIX) {
+    return "/";
+  }
+  if (path.startsWith(ADMIN_ROUTE_PREFIX) && path.length > ADMIN_ROUTE_PREFIX.length) {
+    const remainder = path.slice(ADMIN_ROUTE_PREFIX.length);
+    return remainder.startsWith("/") ? remainder : `/${remainder}`;
+  }
+  return path;
+}
+
+function isDevServerAssetPath(path: string): boolean {
+  if (
+    path.startsWith("/@vite") ||
+    path.startsWith("/@react-refresh") ||
+    path.startsWith("/@fs/") ||
+    path.startsWith("/.vite/") ||
+    path.startsWith("/node_modules/") ||
+    path.startsWith("/src/")
+  ) {
+    return true;
+  }
+
+  const extension = extname(path);
+  return DEV_SERVER_ASSET_EXTENSIONS.has(extension);
+}
+
+function shouldDelegateToDevServer(path: string): boolean {
+  if (
+    path.startsWith("/api/") ||
+    path.startsWith("/rest_api/") ||
+    path.startsWith("/__vaporvibe/") ||
+    path.startsWith("/__set-brief")
+  ) {
+    return false;
+  }
+
+  if (path.startsWith(ADMIN_ASSET_ROUTE_PREFIX_WITH_SLASH)) {
+    return true;
+  }
+
+  const normalized = stripAdminBasePath(path);
+  return isDevServerAssetPath(normalized);
+}
+
+function selectAssetPrefix(path: string): string | null {
+  if (path.startsWith("/__vaporvibe/assets/")) {
+    return "/__vaporvibe/assets/";
+  }
+  if (path.startsWith(ADMIN_ASSET_ROUTE_PREFIX_WITH_SLASH)) {
+    return ADMIN_ASSET_ROUTE_PREFIX_WITH_SLASH;
+  }
+  return null;
 }
 
 function stripScriptById(html: string, scriptId: string): string {
@@ -226,10 +373,8 @@ function maybeServeFrontendAsset(
   res: ServerResponse,
   reqLogger: RequestLogger
 ): boolean {
-  if (
-    !context.path.startsWith("/__vaporvibe/assets/") &&
-    !context.path.startsWith("/assets/")
-  ) {
+  const assetPrefix = selectAssetPrefix(context.path);
+  if (!assetPrefix) {
     return false;
   }
 
@@ -240,9 +385,6 @@ function maybeServeFrontendAsset(
     return true;
   }
 
-  const assetPrefix = context.path.startsWith("/__vaporvibe/assets/")
-    ? "/__vaporvibe/assets/"
-    : "/assets/";
   const requestedPath = context.path.slice(assetPrefix.length);
   const segments = requestedPath
     .split(/[\\/]+/)
@@ -341,7 +483,8 @@ function loadSpaShell(): string {
 
 async function serveSpaShell(
   context: RequestContext,
-  reqLogger: RequestLogger
+  reqLogger: RequestLogger,
+  devServer?: DevFrontendServer | null
 ): Promise<void> {
   const { method, res, path } = context;
 
@@ -360,6 +503,56 @@ async function serveSpaShell(
     return;
   }
 
+  if (devServer) {
+    try {
+      const template = await readFile(SPA_SOURCE_INDEX_PATH, "utf8");
+      const requestUrl = `${context.url.pathname}${context.url.search}`;
+      const html = await devServer.transformIndexHtml(requestUrl, template);
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store");
+      if (method === "HEAD") {
+        res.end();
+      } else {
+        res.end(html);
+      }
+      reqLogger.debug({ path }, "Served admin SPA via Vite middleware");
+      return;
+    } catch (error) {
+      devServer.ssrFixStacktrace?.(error as Error);
+      reqLogger.error(
+        { err: error },
+        "Failed to transform admin SPA via Vite middleware"
+      );
+      const devUrl = getDevFrontendUrl();
+      const fallbackHtml = renderDevSpaFallback(devUrl);
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store");
+      if (method === "HEAD") {
+        res.end();
+      } else {
+        res.end(fallbackHtml);
+      }
+      return;
+    }
+  }
+
+  if (process.env.VAPORVIBE_PREFER_DEV_FRONTEND === "1") {
+    const devUrl = getDevFrontendUrl();
+    const fallbackHtml = renderDevSpaFallback(devUrl);
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+    if (method === "HEAD") {
+      res.end();
+    } else {
+      res.end(fallbackHtml);
+    }
+    reqLogger.warn({ path, devUrl }, "Dev frontend not available; served fallback");
+    return;
+  }
+
   try {
     const html = loadSpaShell();
     res.statusCode = 200;
@@ -374,10 +567,8 @@ async function serveSpaShell(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (message === "SPA_INDEX_MISSING") {
-      const devUrl =
-        process.env.SERVE_LLM_DEV_SERVER_URL?.replace(/\/$/, "") ||
-        "http://localhost:5173";
-      const fallbackHtml = `<!doctype html>\n<html lang="en">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>vaporvibe Admin (dev)</title>\n    <style>body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;margin:0;background:#f8fafc;color:#0f172a;}\n    .fallback{max-width:720px;margin:10vh auto;padding:32px;border-radius:24px;background:#fff;box-shadow:0 20px 50px rgba(15,23,42,0.08);}\n    h1{margin-top:0;font-size:1.6rem;}\n    p{line-height:1.5;}\n    code{background:#e2e8f0;padding:2px 6px;border-radius:6px;}\n    a{color:#2563eb;}\n    </style>\n  </head>\n  <body>\n    <div class=\"fallback\">\n      <h1>vaporvibe Admin (dev)</h1>\n      <p>The compiled admin UI is not available. The Vite dev server is expected at <strong>${devUrl}</strong>.</p>\n      <p>If you are developing the frontend, open <a href=\"${devUrl}\" target=\"_blank\">${devUrl}</a> in a new tab.</p>\n      <p>To build the production assets instead, run <code>npm run build:fe</code>.</p>\n    </div>\n    <script type=\"module\" src=\"${devUrl}/src/main.tsx\"></script>\n  </body>\n</html>`;
+      const devUrl = getDevFrontendUrl();
+      const fallbackHtml = renderDevSpaFallback(devUrl);
       res.statusCode = 200;
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.setHeader("Cache-Control", "no-store");
@@ -401,14 +592,27 @@ async function serveSpaShell(
   }
 }
 
-export interface ServerOptions {
+export interface ServerStateConfig {
   runtime: RuntimeConfig;
   provider: ProviderSettings;
   providerLocked: boolean;
   providerSelectionRequired: boolean;
   providersWithKeys: ModelProvider[];
   llmClient: LlmClient | null;
+}
+
+export interface ServerStateSnapshot {
+  brief: string | null;
+  briefAttachments: BriefAttachment[];
+  providersWithKeys: ModelProvider[];
+  verifiedProviders: [ModelProvider, boolean][];
+  pendingHtml: Array<[string, PendingHtmlEntry]>;
+}
+
+export interface ServerOptions {
   sessionStore: SessionStore;
+  state: MutableServerState;
+  devServer?: DevFrontendServer | null;
 }
 
 export interface RequestContext {
@@ -433,45 +637,101 @@ export interface MutableServerState {
   pendingHtml: Map<string, PendingHtmlEntry>;
 }
 
-interface PendingHtmlEntry {
+export interface PendingHtmlEntry {
   html: string;
   expiresAt: number;
 }
 
 const PENDING_HTML_TTL_MS = 3 * 60 * 1000;
 
-export function createServer(options: ServerOptions): http.Server {
-  const {
-    runtime,
-    provider,
-    providerLocked,
-    providerSelectionRequired,
-    providersWithKeys,
-    llmClient,
-    sessionStore,
-  } = options;
-  const runtimeState: RuntimeConfig = { ...runtime };
-  const providerState: ProviderSettings = { ...provider };
-  const state: MutableServerState = {
-    brief: runtimeState.brief?.trim() || null,
-    briefAttachments: [],
+function cloneAttachment(attachment: BriefAttachment): BriefAttachment {
+  return { ...attachment };
+}
+
+function computeProviderReady(
+  llmClient: LlmClient | null,
+  provider: ProviderSettings
+): boolean {
+  return Boolean(
+    llmClient && provider.apiKey && provider.apiKey.trim().length > 0
+  );
+}
+
+export function createServerState(
+  config: ServerStateConfig,
+  snapshot?: ServerStateSnapshot
+): MutableServerState {
+  const runtimeState: RuntimeConfig = { ...config.runtime };
+  const providerState: ProviderSettings = { ...config.provider };
+  const providersWithKeys = new Set<ModelProvider>(
+    config.providersWithKeys
+  );
+  const rawBrief = runtimeState.brief?.trim() ?? "";
+  const initialBrief = rawBrief.length > 0 ? rawBrief : null;
+
+  if (snapshot) {
+    for (const provider of snapshot.providersWithKeys) {
+      providersWithKeys.add(provider);
+    }
+  }
+
+  const verifiedProviders: Partial<Record<ModelProvider, boolean>> = snapshot
+    ? (Object.fromEntries(snapshot.verifiedProviders) as Partial<
+        Record<ModelProvider, boolean>
+      >)
+    : providerState.apiKey && providerState.apiKey.trim().length > 0
+      ? { [providerState.provider]: Boolean(config.llmClient) }
+      : {};
+
+  if (
+    providerState.apiKey &&
+    providerState.apiKey.trim().length > 0
+  ) {
+    verifiedProviders[providerState.provider] = Boolean(config.llmClient);
+  }
+
+  return {
+    brief: snapshot?.brief ?? initialBrief,
+    briefAttachments: snapshot
+      ? snapshot.briefAttachments.map(cloneAttachment)
+      : [],
     runtime: runtimeState,
     provider: providerState,
-    llmClient,
-    providerReady: Boolean(
-      llmClient &&
-        providerState.apiKey &&
-        providerState.apiKey.trim().length > 0
-    ),
-    providerLocked,
-    providerSelectionRequired,
-    providersWithKeys: new Set(providersWithKeys),
-    verifiedProviders:
-      providerState.apiKey && providerState.apiKey.trim().length > 0
-        ? { [providerState.provider]: Boolean(llmClient) }
-        : {},
-    pendingHtml: new Map(),
+    llmClient: config.llmClient,
+    providerReady: computeProviderReady(config.llmClient, providerState),
+    providerLocked: config.providerLocked,
+    providerSelectionRequired: config.providerSelectionRequired,
+    providersWithKeys,
+    verifiedProviders,
+    pendingHtml: snapshot
+      ? new Map(
+          snapshot.pendingHtml.map(([id, entry]) => [
+            id,
+            { html: entry.html, expiresAt: entry.expiresAt },
+          ])
+        )
+      : new Map(),
   };
+}
+
+export function snapshotServerState(
+  state: MutableServerState
+): ServerStateSnapshot {
+  return {
+    brief: state.brief,
+    briefAttachments: state.briefAttachments.map(cloneAttachment),
+    providersWithKeys: Array.from(state.providersWithKeys),
+    verifiedProviders: Object.entries(state.verifiedProviders).map(
+      ([provider, verified]) => [provider as ModelProvider, Boolean(verified)]
+    ),
+    pendingHtml: Array.from(state.pendingHtml.entries()).map(
+      ([id, entry]) => [id, { html: entry.html, expiresAt: entry.expiresAt }]
+    ),
+  };
+}
+
+export function createServer(options: ServerOptions): http.Server {
+  const { sessionStore, state, devServer } = options;
   const adminController = new AdminController({
     state,
     sessionStore,
@@ -489,18 +749,41 @@ export function createServer(options: ServerOptions): http.Server {
     }),
   });
 
-  return http.createServer(async (req, res) => {
+  const server = http.createServer(async (req, res) => {
     const requestStart = Date.now();
     const context = buildContext(req, res);
     const reqLogger = logger.child({
       method: context.method,
       path: context.path,
     });
-    reqLogger.info(
-      `Incoming request ${context.method} ${context.path} from ${
-        req.socket.remoteAddress ?? "unknown"
-      }`
+
+    const routedByDevServer = Boolean(
+      devServer && shouldDelegateToDevServer(context.path)
     );
+    const logMessage = `Incoming request ${context.method} ${context.path} from ${
+      req.socket.remoteAddress ?? "unknown"
+    }`;
+    if (routedByDevServer) {
+      reqLogger.debug(logMessage);
+    } else {
+      reqLogger.info(logMessage);
+    }
+
+    if (
+      devServer &&
+      (context.method === "GET" || context.method === "HEAD") &&
+      shouldDelegateToDevServer(context.path)
+    ) {
+      const handledByVite = await maybeHandleWithDevServer(
+        devServer,
+        req,
+        res
+      );
+      if (handledByVite) {
+        reqLogger.debug({ path: context.path }, "Request served by Vite middleware");
+        return;
+      }
+    }
 
     if (shouldEarly404(context)) {
       reqLogger.warn(`Auto-ignored path ${context.url.href}`);
@@ -510,7 +793,7 @@ export function createServer(options: ServerOptions): http.Server {
       return;
     }
 
-    if (maybeServeFrontendAsset(context, res, reqLogger)) {
+    if (!devServer && maybeServeFrontendAsset(context, res, reqLogger)) {
       return;
     }
 
@@ -519,7 +802,7 @@ export function createServer(options: ServerOptions): http.Server {
       context.path === SETUP_VERIFY_ROUTE ||
       context.path === BRIEF_FORM_ROUTE
     ) {
-      await serveSpaShell(context, reqLogger);
+      await serveSpaShell(context, reqLogger, devServer);
       return;
     }
 
@@ -562,7 +845,7 @@ export function createServer(options: ServerOptions): http.Server {
         state.providerSelectionRequired ||
         !state.brief
       ) {
-        await serveSpaShell(context, reqLogger);
+        await serveSpaShell(context, reqLogger, devServer);
         reqLogger.info(
           `SPA shell served with status ${res.statusCode} in ${
             Date.now() - requestStart
@@ -572,7 +855,7 @@ export function createServer(options: ServerOptions): http.Server {
       }
 
       if (context.path.startsWith(ADMIN_ROUTE_PREFIX)) {
-        await serveSpaShell(context, reqLogger);
+        await serveSpaShell(context, reqLogger, devServer);
         reqLogger.info(
           `SPA shell served with status ${res.statusCode} in ${
             Date.now() - requestStart
@@ -609,6 +892,23 @@ export function createServer(options: ServerOptions): http.Server {
       );
     }
   });
+
+  if (devServer) {
+    server.on("upgrade", (req, socket, head) => {
+      if (req.headers["upgrade"] !== "websocket") {
+        return;
+      }
+      const url = req.url || "";
+      if (!url.startsWith("/@vite")) {
+        return;
+      }
+      devServer.ws.handleUpgrade(req, socket, head, (ws) => {
+        devServer.ws.emit("connection", ws, req);
+      });
+    });
+  }
+
+  return server;
 }
 
 function buildContext(
@@ -641,6 +941,38 @@ function shouldEarly404(context: RequestContext): boolean {
   if (path.endsWith(".png") && path.includes("apple-touch")) return true;
   if (path.endsWith(".webmanifest")) return true;
   return false;
+}
+
+async function maybeHandleWithDevServer(
+  devServer: DevFrontendServer,
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<boolean> {
+  const originalUrl = req.url;
+  let modified = false;
+  if (originalUrl && originalUrl.startsWith(ADMIN_ROUTE_PREFIX)) {
+    req.url = stripAdminBasePath(originalUrl);
+    modified = true;
+  }
+
+  if (res.headersSent || res.writableEnded) {
+    if (modified && originalUrl) {
+      req.url = originalUrl;
+    }
+    return true;
+  }
+
+  await new Promise<void>((resolve) => {
+    devServer.middlewares(req, res, () => {
+      resolve();
+    });
+  });
+
+  if (modified && originalUrl) {
+    req.url = originalUrl;
+  }
+
+  return res.headersSent || res.writableEnded;
 }
 
 function cleanupPendingHtml(state: MutableServerState): void {

@@ -104,13 +104,13 @@ This is not a traditional software project; it's a creative tool. The "vibe" is 
 ### Navigation Interception
 
 - **Purpose**: Shows a loading overlay during LLM generation instead of a blank screen.
-- **Mechanism**: The backend injects `<script src="/assets/vaporvibe-interceptor.js">` into every LLM-generated HTML response. This script intercepts `<a>` clicks and `<form>` submissions, displays the overlay, and re-initiates the request, adding a marker (`__vaporvibe=interceptor`) so the server knows to send back the final HTML directly (or handle API calls).
+- **Mechanism**: The backend injects `<script src="/vaporvibe/assets/vaporvibe-interceptor.js">` into every LLM-generated HTML response. This script intercepts `<a>` clicks and `<form>` submissions, displays the overlay, and re-initiates the request, adding a marker (`__vaporvibe=interceptor`) so the server knows to send back the final HTML directly (or handle API calls).
 - **Source**: The interceptor logic lives in `frontend/src/interceptor.ts` and is bundled by Vite.
 
 ### Instructions Panel
 
 - **Purpose**: Allows users to provide quick, iterative feedback ("nudges") to the LLM for the next render without editing the main brief.
-- **Mechanism**: If enabled, the backend injects `<script src="/assets/vaporvibe-instructions-panel.js">`. This script adds a floating panel UI. Submitting instructions adds a special field (`LLM_WEB_SERVER_INSTRUCTIONS`) to the next form submission.
+- **Mechanism**: If enabled, the backend injects `<script src="/vaporvibe/assets/vaporvibe-instructions-panel.js">`. This script adds a floating panel UI. Submitting instructions adds a special field (`LLM_WEB_SERVER_INSTRUCTIONS`) to the next form submission.
 - **Source**: The panel logic lives in `frontend/src/instructions-panel.ts` and is bundled by Vite.
 
 ### Key Abstractions
@@ -209,13 +209,12 @@ gerkensm-vaporvibe/
 
 ### Running the Development Server
 
-- **Dual Server**: `npm run dev`
-  - Starts the backend server using `tsx --watch src/index.ts` for automatic restarts on changes in `src/`.
-  - Starts the Vite dev server for the frontend (`frontend/`) on port 5173.
-  - The backend proxies requests for `/`, `/__setup`, `/vaporvibe`, `/assets/*`, and `/api/admin/*` to the appropriate server (Vite or itself).
-  - Access via `http://localhost:3000/__setup` or `http://localhost:3000/vaporvibe`.
-- **Backend Only**: `npm run dev:be` (runs `tsx --watch src/index.ts`)
-- **Frontend Only**: `npm run dev:fe` (runs `vite` inside `frontend/`) - useful for focusing on UI changes, access directly via `http://localhost:5173`.
+- **Integrated Dev Harness**: `npm run dev`
+  - Spins up `src/dev/backend-dev-server.ts`, which watches backend files with **chokidar**, restarts on change, and snapshots session/provider state so you keep your brief/history during reloads.
+  - Boots Vite in **middleware mode** (`VAPORVIBE_PREFER_DEV_FRONTEND=1`) so the admin/setup SPA is served through the Node server—with full HMR and no need to rebuild `frontend/dist/` while iterating.
+  - Access everything via `http://localhost:3000/__setup` or `http://localhost:3000/vaporvibe` (no separate Vite port required).
+- **Backend Only**: `npm run dev:be` (runs the same harness directly via `tsx src/dev/backend-dev-server.ts`).
+- **Frontend Only**: `npm run dev:fe` (launches Vite standalone on `http://localhost:5173` if you want to isolate UI work).
 
 ### Building for Production
 

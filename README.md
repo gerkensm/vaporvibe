@@ -128,14 +128,16 @@ Once your app is running, the admin interface at `/vaporvibe` becomes your missi
 ## Developing
 
 1.  `nvm use` (Node 24.x) → `npm install` to grab dependencies.
-2.  Run `npm run dev` for a dual-server watch mode:
-    - The backend runs via `tsx --watch` from `src/index.ts`.
-    - The React admin/Setup SPA (under `frontend/`) is served by Vite on port 5173 and proxied through the Node server.
+2.  Run `npm run dev` to start the integrated dev harness:
+    - `src/dev/backend-dev-server.ts` watches backend files with **chokidar** and restarts on change while snapshotting sessions/briefs/provider state so you never lose context mid-run.
+    - A Vite server boots in **middleware mode** (no separate port) and serves the admin/setup SPA straight through the Node process when `VAPORVIBE_PREFER_DEV_FRONTEND=1`.
+    - Frontend helpers (`interceptor`, instructions panel) load from Vite during dev, so HMR Just Works without rebuilding `frontend/dist/`.
 3.  Visit `http://localhost:3000/__setup` for the onboarding wizard or `http://localhost:3000/vaporvibe` for the admin console.
 
 Additional scripts:
 
-- `npm run dev:fe` / `npm run dev:be` to focus on the frontend or backend individually.
+- `npm run dev:be` to run the backend dev harness directly (same as step 2, just without the wrapper script).
+- `npm run dev:fe` to launch Vite’s standalone dev server if you need to isolate frontend work.
 - `npm run build:fe` to emit the production `frontend/dist/` bundles.
 - `npm run build` to compile both the backend (`dist/`) and the React assets—run this before committing so the checked-in bundles stay fresh.
 
@@ -144,6 +146,7 @@ Tips:
 - Core server logic (prompting, routing, providers) still lives in `src/` with `src/index.ts` as the CLI entry point.
 - The `dist/` output stays committed for the published CLI; `frontend/dist/` is likewise generated and served by the backend.
 - Set `LOG_LEVEL` (`debug`, `info`, `warn`) to adjust logging verbosity while iterating.
+- In production the admin assets live under `/vaporvibe/assets/...`; during `npm run dev` they’re served by Vite middleware so changes hot-reload without touching `frontend/dist/`.
 
 ### Linux Build Requirements
 

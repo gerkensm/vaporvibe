@@ -1,104 +1,161 @@
 #!/usr/bin/env node
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 import open from "open";
 import { parseCliArgs } from "./cli/args.js";
 import { resolveAppConfig } from "./config/runtime-config.js";
 import { createLlmClient } from "./llm/factory.js";
-import { SessionStore } from "./server/session-store.js";
-import { createServer, ensureFrontendAssetsOnce } from "./server/server.js";
+import {
+  SessionStore,
+  type SessionStoreSnapshot,
+} from "./server/session-store.js";
+import {
+  createServer,
+  createServerState,
+  ensureFrontendAssetsOnce,
+  type MutableServerState,
+  type ServerStateConfig,
+  type ServerStateSnapshot,
+} from "./server/server.js";
 import { logger } from "./logger.js";
+import type { AppConfig } from "./types.js";
+import type { DevFrontendServer } from "./server/server.js";
 
-async function main(): Promise<void> {
-  try {
-    const cliOptions = parseCliArgs(process.argv.slice(2));
-    if (cliOptions.showHelp) {
-      printHelp();
-      return;
-    }
+export interface StartOptions {
+  cliArgs?: string[];
+  env?: NodeJS.ProcessEnv;
+  sessionSnapshot?: SessionStoreSnapshot | null;
+  stateSnapshot?: ServerStateSnapshot | null;
+  skipBrowser?: boolean;
+  devServer?: DevFrontendServer | null;
+}
 
-    const appConfig = await resolveAppConfig(cliOptions, process.env);
-    const llmClient = appConfig.providerReady
-      ? createLlmClient(appConfig.provider)
-      : null;
-    const sessionStore = new SessionStore(
-      appConfig.runtime.sessionTtlMs,
-      appConfig.runtime.sessionCap
-    );
+export interface StartResult {
+  server: ReturnType<typeof createServer>;
+  port: number;
+  host: string;
+  state: MutableServerState;
+  sessionStore: SessionStore;
+  appConfig: AppConfig;
+}
 
-    ensureFrontendAssetsOnce();
+export async function startVaporVibe(
+  options: StartOptions = {}
+): Promise<StartResult | null> {
+  const cliArgs = options.cliArgs ?? process.argv.slice(2);
+  const cliOptions = parseCliArgs(cliArgs);
+  if (cliOptions.showHelp) {
+    printHelp();
+    return null;
+  }
 
-    const server = createServer({
-      runtime: appConfig.runtime,
-      provider: appConfig.provider,
-      providerLocked: appConfig.providerLocked,
-      providerSelectionRequired: appConfig.providerSelectionRequired,
-      providersWithKeys: appConfig.providersWithKeys,
-      llmClient,
-      sessionStore,
-    });
+  const env = options.env ?? process.env;
+  const appConfig = await resolveAppConfig(cliOptions, env);
+  const llmClient = appConfig.providerReady
+    ? createLlmClient(appConfig.provider)
+    : null;
 
-    // Only use port fallback if port was not explicitly specified via CLI or environment
-    const portExplicitlySpecified =
-      cliOptions.port !== undefined || process.env.PORT !== undefined;
-    const actualPort = portExplicitlySpecified
-      ? await startServerOnExactPort(
-          server,
-          appConfig.runtime.port,
-          appConfig.runtime.host
-        )
-      : await startServerWithPortFallback(
-          server,
-          appConfig.runtime.port,
-          appConfig.runtime.host
-        );
+  const sessionStore = new SessionStore(
+    appConfig.runtime.sessionTtlMs,
+    appConfig.runtime.sessionCap
+  );
+  if (options.sessionSnapshot) {
+    sessionStore.importSnapshot(options.sessionSnapshot);
+  }
 
-    const host = appConfig.runtime.host.includes(":")
-      ? `[${appConfig.runtime.host}]`
-      : appConfig.runtime.host;
-    const localUrl = `http://${host}:${actualPort}/`;
-    const adminUrl = `${localUrl.replace(/\/$/, "")}/vaporvibe`;
+  ensureFrontendAssetsOnce();
 
+  const stateConfig: ServerStateConfig = {
+    runtime: appConfig.runtime,
+    provider: appConfig.provider,
+    providerLocked: appConfig.providerLocked,
+    providerSelectionRequired: appConfig.providerSelectionRequired,
+    providersWithKeys: appConfig.providersWithKeys,
+    llmClient,
+  };
+
+  const state = createServerState(
+    stateConfig,
+    options.stateSnapshot ?? undefined
+  );
+
+  const server = createServer({
+    sessionStore,
+    state,
+    devServer: options.devServer ?? null,
+  });
+
+  const portExplicitlySpecified =
+    cliOptions.port !== undefined || env.PORT !== undefined;
+
+  const actualPort = portExplicitlySpecified
+    ? await startServerOnExactPort(
+        server,
+        appConfig.runtime.port,
+        appConfig.runtime.host
+      )
+    : await startServerWithPortFallback(
+        server,
+        appConfig.runtime.port,
+        appConfig.runtime.host
+      );
+
+  const host = appConfig.runtime.host.includes(":")
+    ? `[${appConfig.runtime.host}]`
+    : appConfig.runtime.host;
+  const localUrl = `http://${host}:${actualPort}/`;
+  const adminUrl = `${localUrl.replace(/\/$/, "")}/vaporvibe`;
+
+  logger.info(
+    { port: actualPort, host: appConfig.runtime.host, url: localUrl },
+    `Sourcecodeless server ready at ${localUrl}`
+  );
+  if (appConfig.runtime.brief) {
     logger.info(
-      { port: actualPort, host: appConfig.runtime.host, url: localUrl },
-      `Sourcecodeless server ready at ${localUrl}`
+      { brief: appConfig.runtime.brief },
+      "Initial brief configured"
     );
-    if (appConfig.runtime.brief) {
-      logger.info(
-        { brief: appConfig.runtime.brief },
-        "Initial brief configured"
-      );
-    } else {
-      logger.info("Waiting for brief via browser UI…");
-    }
-    if (appConfig.providerReady) {
-      logger.info(
-        {
-          provider: appConfig.provider.provider,
-          model: appConfig.provider.model,
-        },
-        "LLM provider configured"
-      );
-    } else {
-      logger.info(
-        {
-          provider: appConfig.provider.provider,
-          model: appConfig.provider.model,
-        },
-        "LLM provider awaiting API key via setup wizard"
-      );
-    }
-    logger.info({ adminUrl }, `Admin interface available at ${adminUrl}`);
+  } else {
+    logger.info("Waiting for brief via browser UI…");
+  }
+  if (appConfig.providerReady) {
+    logger.info(
+      {
+        provider: appConfig.provider.provider,
+        model: appConfig.provider.model,
+      },
+      "LLM provider configured"
+    );
+  } else {
+    logger.info(
+      {
+        provider: appConfig.provider.provider,
+        model: appConfig.provider.model,
+      },
+      "LLM provider awaiting API key via setup wizard"
+    );
+  }
+  logger.info({ adminUrl }, `Admin interface available at ${adminUrl}`);
 
-    // Auto-launch browser
+  const shouldOpenBrowser =
+    !options.skipBrowser && env.VAPORVIBE_DEV_DISABLE_BROWSER !== "1";
+  if (shouldOpenBrowser) {
     try {
       await open(localUrl);
       logger.info("Browser launched automatically");
     } catch (error) {
       logger.warn({ err: error }, "Failed to auto-launch browser");
     }
-  } catch (error) {
-    handleFatalError(error);
   }
+
+  return {
+    server,
+    port: actualPort,
+    host: appConfig.runtime.host,
+    state,
+    sessionStore,
+    appConfig,
+  };
 }
 
 async function startServerOnExactPort(
@@ -196,8 +253,7 @@ Environment variables:
   HISTORY_LIMIT              Number of historical pages injected into prompts when --history-limit is omitted
   HISTORY_MAX_BYTES          Maximum combined size (bytes) of history context passed to the LLM
 
-Note: The server will automatically open your default web browser and try ports 3000-3010 if the preferred port is occupied.
-`);
+Note: The server will automatically open your default web browser and try ports 3000-3010 if the preferred port is occupied.`);
 }
 
 function handleFatalError(error: unknown): void {
@@ -209,4 +265,17 @@ function handleFatalError(error: unknown): void {
   process.exitCode = 1;
 }
 
-await main();
+const isMain =
+  typeof process.argv[1] === "string" &&
+  fileURLToPath(import.meta.url) === process.argv[1];
+
+if (isMain) {
+  try {
+    const result = await startVaporVibe();
+    if (!result) {
+      process.exit(0);
+    }
+  } catch (error) {
+    handleFatalError(error);
+  }
+}

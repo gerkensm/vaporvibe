@@ -221,9 +221,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       return;
     }
     try {
-      const storedValue = window.localStorage.getItem(
-        SETUP_INTRO_STORAGE_KEY
-      );
+      const storedValue = window.localStorage.getItem(SETUP_INTRO_STORAGE_KEY);
       setShowIntroStep(!storedValue);
     } catch (error) {
       console.error("Unable to read intro preference", error);
@@ -929,7 +927,8 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
         <span className="launch-pad__pill">Setup complete</span>
         <h2>Launch your live canvas</h2>
         <p className="launch-pad__lead">
-          The provider is verified and the brief is ready. Open the improvised app in a new tab or stay here to keep fine-tuning.
+          The provider is verified and the brief is ready. Open the improvised
+          app in a new tab or stay here to keep fine-tuning.
         </p>
         <div className="launch-pad__actions">
           <a
@@ -949,7 +948,8 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
           </button>
         </div>
         <p className="launch-pad__hint">
-          Tips: adjust the brief anytime, swap providers in the tabs, and explore history to replay generated pages.
+          Tips: adjust the brief anytime, swap providers in the tabs, and
+          explore history to replay generated pages.
         </p>
       </div>
     </div>
@@ -969,9 +969,9 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
               <span className="setup-card__step">Start here</span>
               <h1>Let's Spin Up a New Experience Together</h1>
               <p className="setup-card__description">
-                VaporVibe spins up convincing web experiences from a short brief so
-                you can pressure-test ideas without opening a code editor. Every
-                run is a fresh take you can direct in real time.
+                VaporVibe spins up convincing web experiences from a short brief
+                so you can pressure-test ideas without opening a code editor.
+                Every run is a fresh take you can direct in real time.
               </p>
             </header>
             <div className="setup-card__intro-grid">
@@ -983,8 +983,8 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
                     choose—perfect for pitching flows or exploring UX riffs.
                   </li>
                   <li>
-                    Lets you remix on the fly: adjust the brief, swap models, and
-                    relaunch within seconds to compare interpretations.
+                    Lets you remix on the fly: adjust the brief, swap models,
+                    and relaunch within seconds to compare interpretations.
                   </li>
                   <li>
                     Keeps the workspace grounded with history, attachments, and
@@ -996,17 +996,17 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
                 <h2>What we need from you</h2>
                 <ul className="setup-card__intro-list">
                   <li>
-                    <strong>An API key</strong> for your preferred provider so we
-                    can ask it to generate the experience securely.
+                    <strong>An API key</strong> for your preferred provider so
+                    we can ask it to generate the experience securely.
                   </li>
                   <li>
-                    <strong>A model selection</strong>—stick with a featured pick
-                    or point us to a custom model tuned for your workflow.
+                    <strong>A model selection</strong>—stick with a featured
+                    pick or point us to a custom model tuned for your workflow.
                   </li>
                   <li>
-                    <strong>Your brief and references</strong>: describe the vibe,
-                    drop in a screenshot, napkin sketch, or PDF—anything that sets
-                    the scene.
+                    <strong>Your brief and references</strong>: describe the
+                    vibe, drop in a screenshot, napkin sketch, or PDF—anything
+                    that sets the scene.
                   </li>
                 </ul>
               </section>
@@ -1014,10 +1014,10 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
             <section className="setup-card__intro-panel setup-card__intro-panel--full">
               <h2>How we’ll use it</h2>
               <p>
-                We send your brief, chosen model, and optional attachments straight
-                to that provider’s API to produce each page. The responses live in
-                your local history so you can replay, compare, or export them when
-                you’re ready to share.
+                We send your brief, chosen model, and optional attachments
+                straight to that provider’s API to produce each page. The
+                responses live in your local history so you can replay, compare,
+                or export them when you’re ready to share.
               </p>
               <p className="setup-card__intro-hint">
                 Prefer to keep things lightweight? You can skip attachments and
@@ -1308,7 +1308,9 @@ function ProviderPanel({
   const [customModelConfigs, setCustomModelConfigs] = useState<
     Record<ProviderKey, CustomModelConfig>
   >({});
-  const [customModelIds, setCustomModelIds] = useState<Record<ProviderKey, string>>({});
+  const [customModelIds, setCustomModelIds] = useState<
+    Record<ProviderKey, string>
+  >({});
   const currentProvider = provider.provider as ProviderKey;
 
   useEffect(() => {
@@ -1325,7 +1327,9 @@ function ProviderPanel({
 
   useEffect(() => {
     const catalog = state.modelCatalog[currentProvider] ?? [];
-    const isCurated = catalog.some((item) => item.value === state.provider.model);
+    const isCurated = catalog.some(
+      (item) => item.value === state.provider.model
+    );
     const currentValue = state.provider.model ?? "";
 
     setCustomModelIds((prev) => {
@@ -1354,13 +1358,13 @@ function ProviderPanel({
   const currentCustomId = customModelIds[currentProvider] ?? "";
 
   const providerUnlockedMap = useMemo(() => {
-    const entries = (Object.keys(state.providerKeyStatuses) as ProviderKey[]).map(
-      (key) => {
-        const status = state.providerKeyStatuses[key];
-        const unlocked = Boolean(status?.verified || status?.hasKey);
-        return [key, unlocked] as const;
-      }
-    );
+    const entries = (
+      Object.keys(state.providerKeyStatuses) as ProviderKey[]
+    ).map((key) => {
+      const status = state.providerKeyStatuses[key];
+      const unlocked = Boolean(status?.verified || status?.hasKey);
+      return [key, unlocked] as const;
+    });
     return Object.fromEntries(entries) as Record<string, boolean>;
   }, [state.providerKeyStatuses]);
   const computeGuidance = useCallback(
@@ -1474,7 +1478,8 @@ function ProviderPanel({
         }
         if (
           providerSupportsModes &&
-          ((modelSupportsModes && providerReasoningModes.length > 0) || (!selectedModel && providerReasoningModes.length > 0))
+          ((modelSupportsModes && providerReasoningModes.length > 0) ||
+            (!selectedModel && providerReasoningModes.length > 0))
         ) {
           return providerReasoningModes;
         }
@@ -1538,9 +1543,7 @@ function ProviderPanel({
     ) => {
       const guidance = computeGuidance(target, targetModel);
       const fallbackBase =
-        guidance.defaultMax ??
-        state.defaultMaxOutputTokens[target] ??
-        1024;
+        guidance.defaultMax ?? state.defaultMaxOutputTokens[target] ?? 1024;
 
       if (guidance.isCustomModel) {
         if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
@@ -1549,8 +1552,7 @@ function ProviderPanel({
         return Math.max(1, Math.floor(fallbackBase));
       }
 
-      const fallback =
-        guidance.maxTokensGuidance?.default ?? fallbackBase;
+      const fallback = guidance.maxTokensGuidance?.default ?? fallbackBase;
       let value: number;
       if (typeof raw === "number" && Number.isFinite(raw)) {
         value = Math.floor(raw);
@@ -1710,14 +1712,19 @@ function ProviderPanel({
           const currentMode = provider.reasoningMode ?? "none";
           if (
             availableReasoningModes.includes(currentMode) &&
-            !(currentMode === "none" && availableReasoningModes.includes("default"))
+            !(
+              currentMode === "none" &&
+              availableReasoningModes.includes("default")
+            )
           ) {
             return currentMode;
           }
           if (availableReasoningModes.includes("default")) {
             return "default" as const;
           }
-          const firstNonNone = availableReasoningModes.find((mode) => mode !== "none");
+          const firstNonNone = availableReasoningModes.find(
+            (mode) => mode !== "none"
+          );
           if (firstNonNone) {
             return firstNonNone;
           }
@@ -1800,10 +1807,9 @@ function ProviderPanel({
         : false;
       let nextReasoningTokens: number | undefined;
       if (tokensSupported) {
-        const baseTokens =
-          providerMatches
-            ? provider.reasoningTokens
-            : guidance.reasoningTokensGuidance?.default;
+        const baseTokens = providerMatches
+          ? provider.reasoningTokens
+          : guidance.reasoningTokensGuidance?.default;
         const sanitized = sanitizeReasoningTokens(
           typeof baseTokens === "number" ? baseTokens : undefined,
           nextProvider,
@@ -1979,9 +1985,7 @@ function ProviderPanel({
         apiKey: trimmedKey,
       });
       if (!response.success) {
-        throw new Error(
-          response.message || "Provider key verification failed"
-        );
+        throw new Error(response.message || "Provider key verification failed");
       }
       if (response.state) {
         const serverState = response.state;
@@ -2175,8 +2179,12 @@ function ProviderPanel({
           onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
         >
           <summary className="admin-advanced__summary">
-            <span className="admin-advanced__title">Advanced Model Settings</span>
-            <span className="admin-advanced__hint">Tune output limits & reasoning</span>
+            <span className="admin-advanced__title">
+              Advanced Model Settings
+            </span>
+            <span className="admin-advanced__hint">
+              Tune output limits & reasoning
+            </span>
             <span className="admin-advanced__chevron" aria-hidden="true" />
           </summary>
           <div className="admin-advanced__body">
@@ -2263,7 +2271,9 @@ function ProviderPanel({
                       <input
                         type="checkbox"
                         checked={effectiveReasoningEnabled}
-                        onChange={(event) => handleReasoningToggle(event.target.checked)}
+                        onChange={(event) =>
+                          handleReasoningToggle(event.target.checked)
+                        }
                       />
                       <span>
                         {currentGuidance.guidanceSource === "provider"
@@ -2276,7 +2286,8 @@ function ProviderPanel({
                   <div className="admin-field">
                     <span className="admin-field__label">Reasoning tokens</span>
                     <p className="admin-field__helper">
-                      This model always applies a deliberate reasoning budget—adjust the cap below.
+                      This model always applies a deliberate reasoning
+                      budget—adjust the cap below.
                     </p>
                   </div>
                 )}
@@ -2296,7 +2307,9 @@ function ProviderPanel({
                         null
                       : null
                   }
-                  defaultValue={currentGuidance.reasoningTokensGuidance?.default}
+                  defaultValue={
+                    currentGuidance.reasoningTokensGuidance?.default
+                  }
                   min={currentGuidance.reasoningTokensGuidance?.min}
                   max={currentGuidance.reasoningTokensGuidance?.max}
                   disabled={!effectiveReasoningEnabled}
@@ -2442,7 +2455,12 @@ function BriefSection({
             hint="Paste or upload sketches, storyboards, flow diagrams, or brand shots to steer the improvisation."
             variant="creative"
             captureDocumentPaste
-            examples={["Wireframes", "Mood boards", "Style guides", "Product photos"]}
+            examples={[
+              "Wireframes",
+              "Mood boards",
+              "Style guides",
+              "Product photos",
+            ]}
             onFilesChange={onFilesChange}
           />
 
@@ -2895,16 +2913,16 @@ function ImportPanel({ onState, onHistoryRefresh }: ImportPanelProps) {
           tone: "info",
           message: `Loaded snapshot from ${file.name}`,
         });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setPreview(null);
-      setParseError(message);
-      setStatus({ tone: "error", message });
-      notify("error", message);
-    }
-  },
-  [notify, validateSnapshot]
-);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setPreview(null);
+        setParseError(message);
+        setStatus({ tone: "error", message });
+        notify("error", message);
+      }
+    },
+    [notify, validateSnapshot]
+  );
 
   const handleUploadChange = useCallback(
     (files: File[]) => {
@@ -3007,7 +3025,8 @@ function ImportPanel({ onState, onHistoryRefresh }: ImportPanelProps) {
 
         {selectedFile ? (
           <p className="admin-import__file" aria-live="polite">
-            Loaded snapshot: {selectedFile.name} · {selectedFile.size.toLocaleString()} bytes
+            Loaded snapshot: {selectedFile.name} ·{" "}
+            {selectedFile.size.toLocaleString()} bytes
           </p>
         ) : (
           <p className="admin-import__helper">

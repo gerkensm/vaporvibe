@@ -20,6 +20,20 @@ interface SessionData {
   };
 }
 
+export interface SessionDataSnapshot {
+  updatedAt: number;
+  prevHtml: string;
+  history: HistoryEntry[];
+  rest: {
+    mutations: RestMutationRecord[];
+    queries: RestQueryRecord[];
+  };
+}
+
+export interface SessionStoreSnapshot {
+  sessions: Array<[string, SessionDataSnapshot]>;
+}
+
 const REST_RECORD_LIMIT = 25;
 
 export class SessionStore {
@@ -170,6 +184,30 @@ export class SessionStore {
     this.pruneSessions();
   }
 
+  exportSnapshot(): SessionStoreSnapshot {
+    return {
+      sessions: Array.from(this.sessions.entries()).map(([sid, record]) => [
+        sid,
+        cloneSessionData(record),
+      ]),
+    };
+  }
+
+  importSnapshot(snapshot: SessionStoreSnapshot | null | undefined): void {
+    if (!snapshot) {
+      return;
+    }
+    this.sessions.clear();
+    const cutoff = Date.now() - this.ttlMs;
+    for (const [sid, record] of snapshot.sessions) {
+      if (record.updatedAt < cutoff) {
+        continue;
+      }
+      this.sessions.set(sid, cloneSessionData(record));
+    }
+    this.pruneSessions();
+  }
+
   private touchSession(sid: string): void {
     const record = this.ensureRecord(sid);
     record.updatedAt = Date.now();
@@ -311,6 +349,18 @@ function clampRestRecords<T>(records: T[]): T[] {
 
 function cloneRestRecord<T>(record: T): T {
   return structuredClone(record);
+}
+
+function cloneSessionData(record: SessionDataSnapshot): SessionData {
+  return {
+    updatedAt: record.updatedAt,
+    prevHtml: record.prevHtml,
+    history: record.history.map((entry) => structuredClone(entry)),
+    rest: {
+      mutations: record.rest.mutations.map((mutation) => cloneRestRecord(mutation)),
+      queries: record.rest.queries.map((query) => cloneRestRecord(query)),
+    },
+  };
 }
 
 function findLastHtmlEntry(history: HistoryEntry[]): HistoryEntry | undefined {

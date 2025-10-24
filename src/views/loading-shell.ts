@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
+import { getStatusMessages } from "./loading-shell/status-messages.js";
 
 interface LoadingShellOptions {
   message?: string;
@@ -27,7 +28,6 @@ const __dirname = dirname(__filename);
 const COMPILED_ASSET_DIR = resolvePath(__dirname, "loading-shell/assets");
 const SOURCE_ASSET_DIR = resolvePath(__dirname, "../../src/views/loading-shell/assets");
 
-let cachedStatusMessages: readonly string[] | null = null;
 const assetCache = new Map<string, string>();
 
 function readAsset(assetName: string): string {
@@ -47,18 +47,6 @@ function readAsset(assetName: string): string {
   const sourceContent = readFileSync(sourcePath, "utf8");
   assetCache.set(assetName, sourceContent);
   return sourceContent;
-}
-
-function loadStatusMessages(): readonly string[] {
-  if (!cachedStatusMessages) {
-    const raw = readAsset("status-messages.json");
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === "string")) {
-      throw new Error("Invalid status-messages asset");
-    }
-    cachedStatusMessages = parsed;
-  }
-  return cachedStatusMessages;
 }
 
 function resolveOptions(options: LoadingShellOptions = {}): ResolvedLoadingShellOptions {
@@ -94,7 +82,7 @@ function renderStyles(accent: string): string {
 
 function renderStatusScript(message: string): string {
   const script = readAsset("status-rotation.js");
-  const statuses = loadStatusMessages();
+  const statuses = getStatusMessages();
   return script
     .replace("__DEFAULT_MESSAGE__", escapeForInlineScript(DEFAULT_STATUS_MESSAGE))
     .replace("__PROVIDED_MESSAGE__", escapeForInlineScript(message))
