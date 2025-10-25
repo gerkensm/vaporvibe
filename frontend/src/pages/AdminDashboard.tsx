@@ -12,6 +12,7 @@ import {
   fetchAdminState,
   fetchAdminHistory,
   deleteHistoryEntry,
+  deleteAllHistoryEntries,
   submitBriefUpdate,
   submitProviderUpdate,
   submitRuntimeUpdate,
@@ -31,6 +32,7 @@ import {
   HISTORY_LIMIT_MAX,
   HISTORY_MAX_BYTES_MIN,
   HISTORY_MAX_BYTES_MAX,
+  DEFAULT_HISTORY_MAX_BYTES,
 } from "../constants/runtime";
 import { useNotifications } from "../components/Notifications";
 import vaporvibeLogoUrl from "../assets/vaporvibe-icon-both.svg";
@@ -80,8 +82,8 @@ const createDefaultCustomConfig = (): CustomModelConfig => ({
 });
 
 const TAB_ORDER = [
-  "brief",
   "provider",
+  "brief",
   "runtime",
   "import",
   "export",
@@ -118,18 +120,18 @@ const getTabFromPath = (pathname: string): TabKey | null => {
   const normalized = normalizeAdminPath(pathname);
   const remainder = normalized.slice(ADMIN_ROUTE_PREFIX.length);
   if (!remainder || remainder === "") {
-    return "brief";
+    return "provider";
   }
   const segments = remainder.split("/").filter(Boolean);
   if (segments.length === 0) {
-    return "brief";
+    return "provider";
   }
   const candidate = segments[0];
-  return isTabKey(candidate) ? candidate : "brief";
+  return isTabKey(candidate) ? candidate : "provider";
 };
 
 const createTabPath = (tab: TabKey) =>
-  tab === "brief" ? ADMIN_ROUTE_PREFIX : `${ADMIN_ROUTE_PREFIX}/${tab}`;
+  tab === "provider" ? ADMIN_ROUTE_PREFIX : `${ADMIN_ROUTE_PREFIX}/${tab}`;
 
 type AdminLocationState = {
   showLaunchPad?: boolean;
@@ -173,9 +175,10 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   const [historyStatusMessage, setHistoryStatusMessage] = useState<
     string | null
   >(null);
+  const [historyPurgingAll, setHistoryPurgingAll] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>(() => {
     const initial = getTabFromPath(location.pathname);
-    return initial ?? "brief";
+    return initial ?? "provider";
   });
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [historyLastRefreshMs, setHistoryLastRefreshMs] = useState<
@@ -560,6 +563,29 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     [loadHistory, notify]
   );
 
+  const handleHistoryDeleteAll = useCallback(async () => {
+    if (historyPurgingAll) {
+      return;
+    }
+    setHistoryPurgingAll(true);
+    try {
+      const response = await deleteAllHistoryEntries();
+      const message = response.message || "History cleared";
+      if (!response.success) {
+        throw new Error(message);
+      }
+      await loadHistory({ offset: 0, append: false, showMessage: false });
+      setHistoryStatusMessage(message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setHistoryStatusMessage(message);
+      notify("error", message);
+      throw (error instanceof Error ? error : new Error(message));
+    } finally {
+      setHistoryPurgingAll(false);
+    }
+  }, [historyPurgingAll, loadHistory, notify]);
+
   useEffect(() => {
     if (showSetupShell) {
       setActiveTab("brief");
@@ -789,6 +815,8 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
                 historyNextOffset != null ? handleHistoryLoadMore : undefined
               }
               onDeleteEntry={handleHistoryDelete}
+              onDeleteAll={handleHistoryDeleteAll}
+              deletingAll={historyPurgingAll}
               hasMore={historyNextOffset != null}
             />
           );
@@ -2761,7 +2789,6 @@ function RuntimePanel({
             type="number"
             min={HISTORY_MAX_BYTES_MIN}
             max={HISTORY_MAX_BYTES_MAX}
-            step={1024}
             value={historyMaxBytesValue}
             onChange={(event) => {
               setHistoryMaxBytesValue(event.target.value);
@@ -2780,9 +2807,10 @@ function RuntimePanel({
             </p>
           ) : (
             <p className="admin-field__helper">
-              Once this threshold is exceeded, older entries will be trimmed. (
+              Once this threshold is exceeded, older entries will be trimmed{" "}
+              (
               {HISTORY_MAX_BYTES_MIN.toLocaleString()}–
-              {HISTORY_MAX_BYTES_MAX.toLocaleString()} bytes)
+              {HISTORY_MAX_BYTES_MAX.toLocaleString()} bytes, default {DEFAULT_HISTORY_MAX_BYTES.toLocaleString()})
             </p>
           )}
         </label>

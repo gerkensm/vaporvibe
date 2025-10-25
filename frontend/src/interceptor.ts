@@ -2236,7 +2236,9 @@
 
   window.addEventListener("vaporvibe:preview-overlay", (event) => {
     const custom =
-      event instanceof CustomEvent<OverlayDebugPayload> ? event : null;
+      event instanceof CustomEvent
+        ? (event as CustomEvent<OverlayDebugPayload>)
+        : null;
     const detail = custom?.detail;
     const effectId =
       detail && typeof detail.effectId === "string" && detail.effectId

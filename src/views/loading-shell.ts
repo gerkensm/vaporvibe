@@ -82,7 +82,7 @@ function renderStyles(accent: string): string {
 
 function renderStatusScript(message: string): string {
   const script = readAsset("status-rotation.js");
-  const statuses = getStatusMessages();
+  const statuses = getStatusMessages().map((entry) => entry.headline);
   return script
     .replace("__DEFAULT_MESSAGE__", escapeForInlineScript(DEFAULT_STATUS_MESSAGE))
     .replace("__PROVIDED_MESSAGE__", escapeForInlineScript(message))

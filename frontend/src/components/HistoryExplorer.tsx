@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MouseEvent } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -19,6 +19,8 @@ interface HistoryExplorerProps {
   onLoadMore?: () => void;
   hasMore: boolean;
   onDeleteEntry?: (id: string) => Promise<void> | void;
+  onDeleteAll?: () => Promise<void> | void;
+  deletingAll?: boolean;
 }
 
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
@@ -48,8 +50,12 @@ export function HistoryExplorer({
   onLoadMore,
   hasMore,
   onDeleteEntry,
+  onDeleteAll,
+  deletingAll = false,
 }: HistoryExplorerProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [purgeConfirmVisible, setPurgeConfirmVisible] = useState(false);
+  const [purgeError, setPurgeError] = useState<string | null>(null);
 
   const emptyState = useMemo(() => {
     return items.length === 0 && !loading;
@@ -72,39 +78,133 @@ export function HistoryExplorer({
     [onDeleteEntry]
   );
 
+  const handleDeleteAllIntent = useCallback(() => {
+    if (!onDeleteAll || deletingAll || items.length === 0) {
+      return;
+    }
+    setPurgeConfirmVisible(true);
+    setPurgeError(null);
+  }, [deletingAll, items.length, onDeleteAll]);
+
+  const handleCancelPurge = useCallback(() => {
+    if (deletingAll) {
+      return;
+    }
+    setPurgeConfirmVisible(false);
+    setPurgeError(null);
+  }, [deletingAll]);
+
+  const handleConfirmPurge = useCallback(async () => {
+    if (!onDeleteAll || deletingAll) {
+      return;
+    }
+    try {
+      await onDeleteAll();
+      setPurgeConfirmVisible(false);
+      setPurgeError(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setPurgeError(message);
+    }
+  }, [deletingAll, onDeleteAll]);
+
+  useEffect(() => {
+    if (items.length === 0) {
+      setPurgeConfirmVisible(false);
+      setPurgeError(null);
+    }
+  }, [items.length]);
+
+  const purgeDisabled =
+    !onDeleteAll || items.length === 0 || deletingAll || loading;
+  const purgeButtonLabel = deletingAll ? "Purging…" : "Delete all";
+
   return (
     <section className="admin-card">
-      <div className="admin-card__header">
+      <div className="admin-card__header history-header">
         <div>
           <h2>History</h2>
           <p className="admin-card__subtitle">
             {`Tracked ${totalCount} entries across ${sessionCount} session${sessionCount === 1 ? "" : "s"}.`}
           </p>
         </div>
-        <div className="history-status-group">
-          <button
-            type="button"
-            className="admin-secondary"
-            onClick={onRefresh}
-            disabled={loading}
-          >
-            {loading ? "Refreshing…" : "Refresh"}
-          </button>
-          <button
-            type="button"
-            className={`admin-secondary history-auto-toggle${autoRefreshEnabled ? " history-auto-toggle--active" : ""}`}
-            onClick={onToggleAutoRefresh}
-          >
-            {autoRefreshEnabled ? "Auto-refresh: on" : "Auto-refresh: off"}
-          </button>
-          {statusMessage ? (
-            <span className="history-status history-status--info">{statusMessage}</span>
+        <div className="history-toolbar">
+          <div className="history-status-group">
+            <button
+              type="button"
+              className="admin-secondary"
+              onClick={onRefresh}
+              disabled={loading}
+            >
+              {loading ? "Refreshing…" : "Refresh"}
+            </button>
+            <button
+              type="button"
+              className={`admin-secondary history-auto-toggle${autoRefreshEnabled ? " history-auto-toggle--active" : ""}`}
+              onClick={onToggleAutoRefresh}
+            >
+              {autoRefreshEnabled ? "Auto-refresh: on" : "Auto-refresh: off"}
+            </button>
+            {onDeleteAll ? (
+              <button
+                type="button"
+                className="admin-secondary admin-secondary--danger history-delete-all-button"
+                onClick={handleDeleteAllIntent}
+                disabled={purgeDisabled}
+              >
+                {purgeButtonLabel}
+              </button>
+            ) : null}
+          </div>
+          {statusMessage || autoStatus ? (
+            <div className="history-toolbar__meta">
+              {statusMessage ? (
+                <span className="history-status history-status--info">{statusMessage}</span>
+              ) : null}
+              {autoStatus ? (
+                <span className="history-status history-status--muted">{autoStatus}</span>
+              ) : null}
+            </div>
           ) : null}
         </div>
-        {autoStatus ? (
-          <span className="history-status history-status--muted">{autoStatus}</span>
-        ) : null}
       </div>
+      {purgeConfirmVisible ? (
+        <div
+          className="history-purge-banner"
+          role="alert"
+        >
+          <div className="history-purge-banner__body">
+            <strong>Delete all history?</strong>
+            <p>
+              This removes every generated page, REST call, and attachment snapshot. The current session will
+              start fresh.
+            </p>
+            {purgeError ? (
+              <p className="history-purge-banner__error" role="alert">
+                {purgeError}
+              </p>
+            ) : null}
+          </div>
+          <div className="history-purge-banner__actions">
+            <button
+              type="button"
+              className="admin-secondary admin-secondary--link"
+              onClick={handleCancelPurge}
+              disabled={deletingAll}
+            >
+              Keep history
+            </button>
+            <button
+              type="button"
+              className="admin-danger"
+              onClick={handleConfirmPurge}
+              disabled={deletingAll}
+            >
+              {deletingAll ? "Purging…" : "Yes, delete everything"}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {emptyState ? (
         <p className="history-empty">No history yet. Generate an experience to see it documented here.</p>
@@ -121,9 +221,6 @@ export function HistoryExplorer({
                 </span>
                 <span className="history-item__path">{item.path}</span>
                 <div className="history-item__chips">
-                  <span className="history-chip" aria-label="Created at">
-                    {dateTimeFormatter.format(new Date(item.createdAt))}
-                  </span>
                   <span className="history-chip" aria-label="Duration">
                     ⏱ {formatDuration(item.durationMs)}
                   </span>
@@ -135,6 +232,9 @@ export function HistoryExplorer({
                   {item.usageSummary ? (
                     <span className="history-chip history-chip--accent">{item.usageSummary}</span>
                   ) : null}
+                  <span className="history-chip history-chip--muted" aria-label="Created at">
+                    {dateTimeFormatter.format(new Date(item.createdAt))}
+                  </span>
                 </div>
               </summary>
               <div className="history-item__content">
@@ -326,15 +426,30 @@ export function HistoryExplorer({
                     </div>
                   </div>
                 )}
-                <div className="history-item__actions">
-                  <a href={item.viewUrl} target="_blank" rel="noopener">Open page</a>
-                  <a href={item.downloadUrl} download>
+                <div
+                  className="history-item__actions"
+                  role="group"
+                  aria-label="History entry actions"
+                >
+                  <a
+                    href={item.viewUrl}
+                    target="_blank"
+                    rel="noopener"
+                    className="history-item__action admin-secondary admin-secondary--link"
+                  >
+                    Open page
+                  </a>
+                  <a
+                    href={item.downloadUrl}
+                    download
+                    className="history-item__action admin-secondary admin-secondary--link"
+                  >
                     Download HTML
                   </a>
                   {onDeleteEntry ? (
                     <button
                       type="button"
-                      className="history-item__delete-button"
+                      className="history-item__action history-item__action--danger admin-secondary admin-secondary--danger"
                       onClick={(event) => handleDelete(item.id, event)}
                       disabled={deletingId === item.id}
                     >

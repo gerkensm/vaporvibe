@@ -156,6 +156,29 @@ export class SessionStore {
     return removed;
   }
 
+  clearHistory(): number {
+    let removedCount = 0;
+    for (const [sid, record] of this.sessions.entries()) {
+      const history = record.history ?? [];
+      const nextRecord: SessionData = {
+        ...record,
+        history: [],
+        prevHtml: "",
+        rest: {
+          mutations: [],
+          queries: [],
+        },
+      };
+
+      if (history.length > 0) {
+        removedCount += history.length;
+      }
+
+      this.persistRecord(sid, nextRecord);
+    }
+    return removedCount;
+  }
+
   exportHistory(): HistoryEntry[] {
     const now = Date.now();
     return Array.from(this.sessions.entries())
