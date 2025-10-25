@@ -580,7 +580,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       const message = error instanceof Error ? error.message : String(error);
       setHistoryStatusMessage(message);
       notify("error", message);
-      throw (error instanceof Error ? error : new Error(message));
+      throw error instanceof Error ? error : new Error(message);
     } finally {
       setHistoryPurgingAll(false);
     }
@@ -2807,10 +2807,10 @@ function RuntimePanel({
             </p>
           ) : (
             <p className="admin-field__helper">
-              Once this threshold is exceeded, older entries will be trimmed{" "}
-              (
+              Once this threshold is exceeded, older entries will be trimmed (
               {HISTORY_MAX_BYTES_MIN.toLocaleString()}–
-              {HISTORY_MAX_BYTES_MAX.toLocaleString()} bytes, default {DEFAULT_HISTORY_MAX_BYTES.toLocaleString()})
+              {HISTORY_MAX_BYTES_MAX.toLocaleString()} bytes, default{" "}
+              {DEFAULT_HISTORY_MAX_BYTES.toLocaleString()})
             </p>
           )}
         </label>
