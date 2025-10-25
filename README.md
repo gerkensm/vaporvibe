@@ -148,6 +148,13 @@ Tips:
 - Set `LOG_LEVEL` (`debug`, `info`, `warn`) to adjust logging verbosity while iterating.
 - In production the admin assets live under `/vaporvibe/assets/...`; during `npm run dev` they’re served by Vite middleware so changes hot-reload without touching `frontend/dist/`.
 
+### Testing
+
+- `npm test` runs the Vitest suite once; `npm run test:watch` keeps it hot while you iterate.
+- Coverage summaries print to the console and a full HTML report lands in `coverage/`, as configured in `vitest.config.ts`.
+- Specs live under `tests/` (config, LLM prompt builder, session store, and shared utils). Shared helpers sit in `tests/test-utils/`, and `tests/vitest.setup.ts` wires up global logger mocks so output stays quiet.
+- Browser flows and live provider calls still need manual testing, but the suite catches regressions in the pure Node parts of the stack.
+
 ### Linux Build Requirements
 
 For secure credential storage (keytar), Linux systems need `libsecret` for native compilation:

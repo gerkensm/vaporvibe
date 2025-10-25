@@ -228,6 +228,13 @@ gerkensm-vaporvibe/
 
 - `npm run start` executes the compiled backend from `dist/index.js`, serving the production frontend assets from `frontend/dist/`.
 
+### Testing
+
+- `npm test` (or `npm run test`) executes the Vitest suite once; `npm run test:watch` keeps it running while you iterate.
+- Coverage reports live in `coverage/` (text summary + HTML) and are configured via `vitest.config.ts` to focus on `src/**/*.ts`.
+- The suite lives in `tests/`, with targeted coverage for config loading, prompt assembly, the session store, and shared utilities. Reuse helpers in `tests/test-utils/` (HTTP mocks, keytar stubs, factories, logger spies) and the global logger stub defined in `tests/vitest.setup.ts`.
+- Tests intentionally stop at the Node boundary—browser flows and provider integrations still need manual verification.
+
 ### Logging & Debugging
 
 - **Log Level**: Set the `LOG_LEVEL` environment variable (`debug`, `info`, `warn`, `error`) to control backend log verbosity. `debug` is highly recommended during development.
@@ -245,7 +252,7 @@ gerkensm-vaporvibe/
 
 ### Areas for Caution ⚠️
 
-- **No Automated Tests**: Requires careful **manual testing** across providers for all changes.
+- **Focused Test Suite**: A Vitest suite now covers config loading, prompt compilation, the session store, and key utilities. It runs fast but doesn't yet exercise every provider path, so keep testing manually when touching network integrations or the SPA.
 - **macOS-Centric Builds**: `scripts/` contains complex logic for macOS `.app` and DMG creation/notarization.
 - **Inconsistent Reasoning APIs**: OpenAI/Grok use `reasoningMode`, while Anthropic/Gemini use `reasoningTokens`. Backend logic handles normalization.
 - **Embrace the Chaos**: Guide the LLM's creativity, don't force deterministic output. Minor variations are expected.
