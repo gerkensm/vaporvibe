@@ -245,8 +245,8 @@ function shouldDelegateToDevServer(path: string): boolean {
     return false;
   }
 
-  if (path.startsWith(ADMIN_ASSET_ROUTE_PREFIX_WITH_SLASH)) {
-    return true;
+  if (path.startsWith(ADMIN_ROUTE_PREFIX)) {
+    return path.startsWith(ADMIN_ASSET_ROUTE_PREFIX_WITH_SLASH);
   }
 
   const normalized = stripAdminBasePath(path);
@@ -644,7 +644,9 @@ export interface PendingHtmlEntry {
   expiresAt: number;
 }
 
-const PENDING_HTML_TTL_MS = 3 * 60 * 1000;
+// LLM renders can easily exceed 10 minutes, so keep pending HTML around long enough
+// for the loader fetch to succeed even if the client is briefly stalled.
+const PENDING_HTML_TTL_MS = 15 * 60 * 1000;
 
 function cloneAttachment(attachment: BriefAttachment): BriefAttachment {
   return { ...attachment };

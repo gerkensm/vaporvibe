@@ -5,17 +5,10 @@ window.__vaporVibeHydrateFromToken = function(token, path) {
   var prefix = __RESULT_ROUTE_PREFIX__;
   var originPath = typeof path === "string" && path.trim().length > 0 ? path : __ORIGINAL_PATH__;
   var requestUrl = prefix.replace(/\/$/, "") + "/" + token.replace(/^\/+/, "");
-  fetch(requestUrl, {
-    method: "GET",
-    credentials: "same-origin",
-    cache: "no-store",
-    headers: { "Accept": "text/html" }
-  }).then(function(response) {
-    if (!response.ok) {
-      throw new Error("Unexpected status " + response.status);
-    }
-    return response.text();
-  }).then(function(htmlString) {
+  var MAX_ATTEMPTS = 3;
+  var RETRY_DELAY_MS = 3000;
+
+  function onSuccess(htmlString) {
     try {
       if (originPath) {
         history.replaceState(null, "", originPath);
@@ -26,12 +19,39 @@ window.__vaporVibeHydrateFromToken = function(token, path) {
     document.open("text/html", "replace");
     document.write(htmlString);
     document.close();
-  }).catch(function(error) {
-    console.error("vaporvibe hydrate failed", error);
-    window.__vaporVibeHydrateError("We could not load the generated page. Reload and try again.");
-  }).finally(function() {
     window.__vaporVibeHydrateFromTokenBusy = false;
-  });
+  }
+
+  function onFailure(error) {
+    console.error("vaporvibe hydrate failed", error);
+    window.__vaporVibeHydrateFromTokenBusy = false;
+    window.__vaporVibeHydrateError("We could not load the generated page. Reload and try again.");
+  }
+
+  function attemptFetch(attempt) {
+    fetch(requestUrl, {
+      method: "GET",
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: { "Accept": "text/html" }
+    }).then(function(response) {
+      if (!response.ok) {
+        throw new Error("Unexpected status " + response.status);
+      }
+      return response.text();
+    }).then(onSuccess).catch(function(error) {
+      if (attempt < MAX_ATTEMPTS) {
+        console.warn("vaporvibe hydrate attempt " + attempt + " failed:", error);
+        window.setTimeout(function() {
+          attemptFetch(attempt + 1);
+        }, RETRY_DELAY_MS * attempt);
+        return;
+      }
+      onFailure(error);
+    });
+  }
+
+  attemptFetch(1);
 };
 
 window.__vaporVibeHydrateError = function(message) {
