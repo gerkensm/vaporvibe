@@ -66,6 +66,41 @@
     },
     { id: "quantum-blink", label: "Quantum blink", intensity: "bold" },
     { id: "daydream-orbit", label: "Daydream orbit", intensity: "medium" },
+    {
+      id: "token-ticker-tangent",
+      label: "Token ticker tangent",
+      intensity: "medium",
+    },
+    {
+      id: "html-tag-improv",
+      label: "HTML tag improv troupe",
+      intensity: "bold",
+    },
+    {
+      id: "ui-element-roulette",
+      label: "UI element roulette",
+      intensity: "bold",
+    },
+    {
+      id: "prompt-polish-loop",
+      label: "Prompt polish loop",
+      intensity: "subtle",
+    },
+    {
+      id: "training-data-dream",
+      label: "Training data daydream",
+      intensity: "medium",
+    },
+    {
+      id: "ai-existential-spinner",
+      label: "AI existential spinner",
+      intensity: "subtle",
+    },
+    {
+      id: "user-patience-graph",
+      label: "User patience graph",
+      intensity: "medium",
+    },
   ];
 
   const navigationOverlayDecorationsMarkup = [
@@ -1468,6 +1503,1023 @@
     animation: demosceneTextWobble 4.8s ease-in-out infinite,
       crtTextShadow 1.6s linear infinite;
   }
+
+  .vaporvibe-lab {
+    display: none;
+    width: 100%;
+    gap: 16px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .lab-scene {
+    display: none;
+    width: 100%;
+    max-width: 460px;
+    margin: 0 auto;
+  }
+
+  .effect-token-ticker-tangent .vaporvibe-lab,
+  .effect-html-tag-improv .vaporvibe-lab,
+  .effect-ui-element-roulette .vaporvibe-lab,
+  .effect-prompt-polish-loop .vaporvibe-lab,
+  .effect-training-data-dream .vaporvibe-lab,
+  .effect-ai-existential-spinner .vaporvibe-lab,
+  .effect-user-patience-graph .vaporvibe-lab {
+    display: flex;
+  }
+
+  .effect-token-ticker-tangent .lab-scene--token-ticker,
+  .effect-html-tag-improv .lab-scene--html-improv,
+  .effect-ui-element-roulette .lab-scene--ui-roulette,
+  .effect-prompt-polish-loop .lab-scene--prompt-polish,
+  .effect-training-data-dream .lab-scene--training-dream,
+  .effect-ai-existential-spinner .lab-scene--existential,
+  .effect-user-patience-graph .lab-scene--patience {
+    display: block;
+  }
+
+  .token-ticker {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    background: linear-gradient(
+        120deg,
+        rgba(96, 165, 250, 0.16),
+        rgba(30, 64, 175, 0.08)
+      ),
+      rgba(30, 64, 175, 0.04);
+    padding: 16px 0 22px;
+    backdrop-filter: blur(4px);
+  }
+
+  .token-ticker::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.85) 18%,
+      rgba(255, 255, 255, 0.85) 82%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    pointer-events: none;
+    mix-blend-mode: lighten;
+  }
+
+  .token-ticker-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    overflow: hidden;
+    white-space: nowrap;
+    font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: rgba(15, 23, 42, 0.78);
+    text-transform: uppercase;
+    padding: 2px 0;
+  }
+
+  .token-ticker-row--secondary {
+    opacity: 0.72;
+  }
+
+  .token-ticker-stream {
+    display: inline-block;
+    padding-left: 12px;
+    min-width: 100%;
+    animation: tokenTicker var(--ticker-duration, 14s) linear infinite;
+  }
+
+  .token-ticker-row--secondary .token-ticker-stream {
+    --ticker-duration: 18s;
+    animation-direction: reverse;
+  }
+
+  .token-ticker-glitch {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.95);
+    color: #f8fafc;
+    font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    line-height: 1.3;
+    box-shadow: 0 22px 32px rgba(15, 23, 42, 0.38);
+    opacity: 0;
+    pointer-events: none;
+    filter: hue-rotate(0deg) saturate(1);
+  }
+
+  .token-ticker-glitch.is-visible {
+    animation: tokenGlitch 1.8s steps(2) forwards;
+  }
+
+  @keyframes tokenTicker {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  @keyframes tokenGlitch {
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.9) skewX(0deg);
+      filter: hue-rotate(0deg) saturate(0.9);
+    }
+    25% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.04) skewX(-2deg);
+      filter: hue-rotate(24deg) saturate(1.3);
+    }
+    45% {
+      opacity: 0.95;
+      transform: translate(-50%, -50%) scale(1.02) skewX(3deg);
+      filter: hue-rotate(-18deg) saturate(1.4);
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.92) skewX(0deg);
+      filter: hue-rotate(0deg) saturate(0.9);
+    }
+  }
+
+  .tag-improv {
+    position: relative;
+    height: 160px;
+    border-radius: 22px;
+    border: 1px dashed rgba(99, 102, 241, 0.5);
+    background: radial-gradient(
+        circle at 30% 30%,
+        rgba(129, 140, 248, 0.45),
+        rgba(129, 140, 248, 0)
+      ),
+      radial-gradient(
+        circle at 80% 70%,
+        rgba(56, 189, 248, 0.28),
+        rgba(56, 189, 248, 0)
+      ),
+      rgba(99, 102, 241, 0.08);
+    overflow: hidden;
+  }
+
+  .tag-improv::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        120deg,
+        rgba(79, 70, 229, 0.08),
+        rgba(79, 70, 229, 0.08) 6px,
+        transparent 6px,
+        transparent 12px
+      ),
+      linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.16),
+        rgba(255, 255, 255, 0)
+      );
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  .tag-improv-floating {
+    position: absolute;
+    padding: 8px 14px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #312e81;
+    font-weight: 600;
+    font-size: 0.9rem;
+    box-shadow: 0 16px 32px rgba(55, 48, 163, 0.2);
+    transform: translate(-50%, -50%) scale(0.85) rotate(-4deg);
+    opacity: 0;
+    transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.6s ease;
+    will-change: transform, opacity;
+  }
+
+  .tag-improv-floating.is-visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(var(--tag-tilt, 2deg));
+  }
+
+  .tag-improv-floating.is-drifting {
+    animation: tagFloat var(--float-duration, 8s) ease-in-out infinite;
+  }
+
+  .tag-improv-floating .tag-improv-shadow {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: rgba(129, 140, 248, 0.15);
+    filter: blur(18px);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+
+  .tag-improv-floating.is-visible .tag-improv-shadow {
+    opacity: 1;
+  }
+
+  .tag-improv-floating .tag-improv-bubble {
+    position: absolute;
+    left: 50%;
+    max-width: 180px;
+    padding: 10px 14px;
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.92);
+    color: #e2e8f0;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    box-shadow: 0 14px 26px rgba(15, 23, 42, 0.3);
+    opacity: 0;
+    transform: translate(-50%, -110%) scale(0.9);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    pointer-events: none;
+  }
+
+  .tag-improv-floating .tag-improv-bubble::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    width: 12px;
+    height: 12px;
+    background: inherit;
+    transform: translate(-50%, 50%) rotate(45deg);
+    bottom: -6px;
+  }
+
+  .tag-improv-floating.bubble-bottom .tag-improv-bubble {
+    top: auto;
+    bottom: -12px;
+    transform: translate(-50%, 120%) scale(0.9);
+  }
+
+  .tag-improv-floating.bubble-bottom .tag-improv-bubble::after {
+    top: -6px;
+    bottom: auto;
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  .tag-improv-floating.has-bubble .tag-improv-bubble {
+    opacity: 1;
+    transform: translate(-50%, -120%) scale(1);
+  }
+
+  .tag-improv-floating.bubble-bottom.has-bubble .tag-improv-bubble {
+    transform: translate(-50%, 120%) scale(1);
+  }
+
+  .tag-improv-tag {
+    font-weight: 700;
+    color: #c7d2fe;
+  }
+
+  @keyframes tagFloat {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-8px);
+    }
+    70% {
+      transform: translateY(8px);
+    }
+  }
+
+  .ui-roulette {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 360px;
+    border-radius: 20px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 20px 38px rgba(59, 130, 246, 0.12);
+    padding: 18px;
+  }
+
+  .ui-roulette-frame {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    width: 100%;
+    position: relative;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: rgba(226, 232, 240, 0.35);
+    padding: 12px 10px 16px;
+    overflow: hidden;
+  }
+
+  .ui-roulette-frame::after {
+    content: "";
+    position: absolute;
+    inset: 12px 10px;
+    border-top: 1px solid rgba(59, 130, 246, 0.4);
+    border-bottom: 1px solid rgba(59, 130, 246, 0.4);
+    pointer-events: none;
+    box-shadow: inset 0 0 28px rgba(59, 130, 246, 0.18);
+  }
+
+  .ui-roulette-reel {
+    position: relative;
+    height: 138px;
+    overflow: hidden;
+    border-radius: 12px;
+    background: rgba(248, 250, 252, 0.96);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.25);
+  }
+
+  .ui-roulette-track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 12px;
+  }
+
+  .ui-roulette-track--clone {
+    top: 100%;
+  }
+
+  .ui-roulette-reel.is-spinning .ui-roulette-track {
+    animation: uiReelSpin var(--spin-duration, 4.8s) linear infinite;
+  }
+
+  .ui-roulette-reel.is-spinning .ui-roulette-track--clone {
+    animation-delay: calc(var(--spin-duration, 4.8s) / -2);
+  }
+
+  .ui-roulette-slot {
+    display: block;
+    min-width: 92px;
+    border-radius: 12px;
+    padding: 8px 12px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.94);
+    color: #0f172a;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+    box-shadow: 0 10px 20px rgba(148, 163, 184, 0.24);
+  }
+
+  .ui-roulette-slot.is-bizarre {
+    background: rgba(244, 114, 182, 0.15);
+    color: #be185d;
+  }
+
+  .ui-roulette-result {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1d4ed8;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    animation: uiResultBlink 5.6s ease-in-out infinite;
+  }
+
+  .ui-roulette-result strong {
+    color: #0f172a;
+  }
+
+  @keyframes uiReelSpin {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-100%);
+    }
+  }
+
+  @keyframes uiResultBlink {
+    0%,
+    100% {
+      opacity: 0.6;
+    }
+    70% {
+      opacity: 1;
+    }
+  }
+
+  .prompt-polish {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    padding: 18px 20px 26px;
+    border-radius: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.12),
+      0 18px 38px rgba(148, 163, 184, 0.18);
+    font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  }
+
+  .prompt-polish-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(100, 116, 139, 0.9);
+    margin-bottom: 8px;
+  }
+
+  .prompt-polish-lines {
+    display: grid;
+    gap: 6px;
+    position: relative;
+    min-height: 78px;
+  }
+
+  .prompt-polish-line {
+    margin: 0;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  .prompt-polish-line.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .prompt-polish-line strong {
+    color: #0f172a;
+  }
+
+  .prompt-polish-line .prompt-strike {
+    text-decoration: line-through;
+    color: #cbd5f5;
+  }
+
+  .prompt-polish-line .prompt-insert {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 4px;
+    border-radius: 4px;
+    background: rgba(59, 130, 246, 0.1);
+    color: #1d4ed8;
+  }
+
+  .prompt-polish-line .prompt-annotation {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(100, 116, 139, 0.85);
+  }
+
+  .prompt-polish-line .prompt-highlight {
+    background: linear-gradient(
+        90deg,
+        rgba(252, 211, 77, 0.45),
+        rgba(253, 230, 138, 0)
+      )
+      bottom / 100% 60% no-repeat;
+  }
+
+  .prompt-cursor {
+    position: absolute;
+    bottom: 18px;
+    left: 24px;
+    width: 2px;
+    height: 20px;
+    background: #2563eb;
+    animation: cursorBlink 1s steps(2) infinite;
+  }
+
+  @keyframes cursorBlink {
+    0%,
+    50% {
+      opacity: 1;
+    }
+    51%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  .training-dream {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    height: 140px;
+    border-radius: 22px;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    background: radial-gradient(circle at 20% 20%, rgba(14, 165, 233, 0.32), rgba(14, 165, 233, 0)),
+      radial-gradient(circle at 80% 80%, rgba(244, 114, 182, 0.28), rgba(244, 114, 182, 0));
+    overflow: hidden;
+  }
+
+  .dream-orb {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    filter: blur(0.5px);
+    mix-blend-mode: screen;
+    opacity: 0.7;
+  }
+
+  .dream-orb--one {
+    top: -20px;
+    left: -30px;
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.7), rgba(59, 130, 246, 0));
+    animation: dreamOrbit 18s linear infinite;
+  }
+
+  .dream-orb--two {
+    bottom: -26px;
+    right: -10px;
+    background: radial-gradient(circle, rgba(244, 114, 182, 0.7), rgba(244, 114, 182, 0));
+    animation: dreamOrbit 20s linear infinite reverse;
+  }
+
+  .dream-orb--three {
+    top: 30px;
+    right: 60px;
+    width: 90px;
+    height: 90px;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.65), rgba(16, 185, 129, 0));
+    animation: dreamOrbit 22s linear infinite;
+  }
+
+  .dream-echo {
+    position: absolute;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(241, 245, 249, 0.9);
+    font-weight: 600;
+    mix-blend-mode: screen;
+    opacity: 0;
+  }
+
+  .dream-echo--ui {
+    top: 18px;
+    left: 24px;
+    animation: dreamEcho 9s ease-in-out infinite;
+  }
+
+  .dream-echo--code {
+    bottom: 28px;
+    right: 28px;
+    animation: dreamEcho 9s ease-in-out infinite 2.2s;
+  }
+
+  .dream-echo--pattern {
+    top: 54px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: dreamEcho 9s ease-in-out infinite 4.4s;
+  }
+
+  .dream-card {
+    position: absolute;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.65);
+    color: #e2e8f0;
+    font-size: 0.78rem;
+    line-height: 1.3;
+    box-shadow: 0 16px 30px rgba(15, 23, 42, 0.35);
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+    animation: dreamCard 12s ease-in-out infinite;
+  }
+
+  .dream-card code {
+    font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+    font-size: 0.72rem;
+    color: #bae6fd;
+  }
+
+  .dream-card--ui {
+    top: 18px;
+    right: 24px;
+    background: rgba(14, 116, 144, 0.65);
+    animation-delay: -3s;
+  }
+
+  .dream-card--code {
+    bottom: 18px;
+    left: 20px;
+    background: rgba(76, 29, 149, 0.6);
+    animation-delay: -7s;
+  }
+
+  .dream-card--image {
+    top: 50%;
+    right: 50%;
+    transform: translate(60%, -40%) scale(0.95);
+    background: rgba(51, 65, 85, 0.62);
+    animation-delay: -10s;
+    display: grid;
+    gap: 6px;
+    place-items: start;
+  }
+
+  .dream-card-thumb {
+    width: 78px;
+    height: 48px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(236, 72, 153, 0.85));
+    box-shadow: 0 10px 22px rgba(59, 130, 246, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dream-card-thumb::after,
+  .dream-card-thumb::before {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.75);
+  }
+
+  .dream-card-thumb::after {
+    inset: 10px 18px auto 12px;
+    height: 8px;
+  }
+
+  .dream-card-thumb::before {
+    inset: auto 10px 12px 12px;
+    height: 6px;
+    opacity: 0.6;
+  }
+
+  .dream-card-caption {
+    font-size: 0.72rem;
+    color: rgba(226, 232, 240, 0.9);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  @keyframes dreamOrbit {
+    0% {
+      transform: rotate(0deg) scale(1);
+    }
+    50% {
+      transform: rotate(180deg) scale(1.1);
+    }
+    100% {
+      transform: rotate(360deg) scale(1);
+    }
+  }
+
+  @keyframes dreamEcho {
+    0%,
+    100% {
+      opacity: 0;
+      letter-spacing: 0.08em;
+    }
+    30% {
+      opacity: 1;
+      letter-spacing: 0.12em;
+    }
+    60% {
+      opacity: 0.4;
+    }
+  }
+
+  @keyframes dreamCard {
+    0%,
+    100% {
+      opacity: 0;
+      transform: translateY(12px) scale(0.95);
+    }
+    25%,
+    55% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .existential-scene {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    padding: 22px 24px 24px;
+    border-radius: 20px;
+    border: 1px dashed rgba(15, 23, 42, 0.35);
+    background: rgba(148, 163, 184, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+    overflow: hidden;
+    transition: background 0.6s ease;
+  }
+
+  .existential-spinner-core {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    margin: 0 auto;
+    border-radius: 50%;
+    border: 6px dashed rgba(37, 99, 235, 0.5);
+    display: grid;
+    place-items: center;
+    animation: vaporvibe-spin 1.6s linear infinite;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .existential-spinner-core::after {
+    content: "";
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.85);
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.55);
+  }
+
+  .existential-flowchart {
+    display: grid;
+    gap: 14px;
+    margin-top: 20px;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .existential-bridge {
+    position: relative;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #1f2937;
+    font-weight: 600;
+    font-size: 0.88rem;
+    box-shadow: 0 14px 24px rgba(15, 23, 42, 0.16);
+    display: grid;
+    gap: 4px;
+  }
+
+  .existential-bridge::after {
+    content: attr(data-next);
+    position: absolute;
+    right: 14px;
+    bottom: -14px;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(37, 99, 235, 0.7);
+  }
+
+  .existential-bridge p {
+    margin: 0;
+  }
+
+  .existential-bridge .existential-aside {
+    font-size: 0.76rem;
+    color: rgba(71, 85, 105, 0.9);
+    font-weight: 500;
+  }
+
+  .existential-thoughts {
+    display: grid;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: #1d4ed8;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .existential-scene.is-questioning {
+    background: rgba(191, 219, 254, 0.18);
+  }
+
+  .existential-scene.is-questioning .existential-spinner-core {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  .existential-scene.is-questioning .existential-flowchart,
+  .existential-scene.is-questioning .existential-thoughts {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .existential-scene.is-questioning .existential-bridge {
+    animation: existentialPulse 5.6s ease-in-out infinite;
+  }
+
+  .existential-scene.is-questioning .existential-bridge::after {
+    animation: existentialBadge 4s ease-in-out infinite;
+  }
+
+  .effect-ai-existential-spinner .vaporvibe-status {
+    font-style: italic;
+  }
+
+  .effect-ai-existential-spinner .vaporvibe-pulse {
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+
+  .effect-ai-existential-spinner .vaporvibe-pulse.is-pondering {
+    opacity: 0.25;
+    transform: scale(0.86);
+  }
+
+  @keyframes existentialPulse {
+    0%,
+    100% {
+      transform: translateY(0);
+      box-shadow: 0 14px 24px rgba(15, 23, 42, 0.16);
+    }
+    50% {
+      transform: translateY(-4px);
+      box-shadow: 0 18px 32px rgba(37, 99, 235, 0.22);
+    }
+  }
+
+  @keyframes existentialBadge {
+    0%,
+    100% {
+      opacity: 0.55;
+      letter-spacing: 0.1em;
+    }
+    50% {
+      opacity: 1;
+      letter-spacing: 0.2em;
+    }
+  }
+
+  .patience-graph {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 5 / 3;
+    border-radius: 20px;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 18px 30px rgba(148, 163, 184, 0.18);
+    overflow: hidden;
+  }
+
+  .patience-graph::before {
+    content: "";
+    position: absolute;
+    inset: 12px 16px;
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.16) 1px, transparent 1px);
+    background-size: 100% 28px, 36px 100%;
+    pointer-events: none;
+  }
+
+  .patience-graph svg {
+    position: absolute;
+    inset: 18px 24px 44px;
+    width: calc(100% - 48px);
+    height: calc(100% - 62px);
+  }
+
+  .patience-path {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 240;
+    stroke-dashoffset: 240;
+    animation: drawLine 6s ease-in-out infinite;
+  }
+
+  .patience-path--patience {
+    stroke: rgba(16, 185, 129, 0.95);
+    animation-delay: 0.4s;
+  }
+
+  .patience-path--complexity {
+    stroke: rgba(239, 68, 68, 0.92);
+    animation-delay: 1s;
+  }
+
+  .patience-marker {
+    fill: #f8fafc;
+    stroke-width: 2;
+    stroke: currentColor;
+    opacity: 0;
+    animation: markerPop 6s ease-in-out infinite;
+  }
+
+  .patience-marker--patience {
+    color: rgba(16, 185, 129, 0.95);
+    animation-delay: 0.9s;
+  }
+
+  .patience-marker--complexity {
+    color: rgba(239, 68, 68, 0.92);
+    animation-delay: 1.5s;
+  }
+
+  .patience-alert {
+    position: absolute;
+    top: 32px;
+    right: 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: rgba(248, 250, 252, 0.92);
+    color: #1f2937;
+    font-size: 0.78rem;
+    box-shadow: 0 10px 18px rgba(148, 163, 184, 0.22);
+    opacity: 0;
+    transform: translateY(-8px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+
+  .patience-alert.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .patience-label {
+    position: absolute;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: rgba(100, 116, 139, 0.9);
+    text-transform: uppercase;
+  }
+
+  .patience-label--x {
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .patience-label--y {
+    top: 50%;
+    left: 8px;
+    transform: rotate(-90deg) translate(-50%, -50%);
+    transform-origin: left top;
+  }
+
+  .effect-user-patience-graph .patience-graph::after {
+    content: "";
+    position: absolute;
+    inset: 16px 24px 36px;
+    border-bottom: 2px solid rgba(71, 85, 105, 0.45);
+    border-left: 2px solid rgba(71, 85, 105, 0.45);
+    pointer-events: none;
+  }
+
+  .effect-user-patience-graph .patience-graph {
+    padding-bottom: 32px;
+  }
+
+  .effect-user-patience-graph .vaporvibe-spinner {
+    border-top-color: rgba(239, 68, 68, 0.75);
+  }
+
+  @keyframes drawLine {
+    0% {
+      stroke-dashoffset: 240;
+    }
+    40%,
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes markerPop {
+    0%,
+    40% {
+      opacity: 0;
+      transform: scale(0.6);
+    }
+    50%,
+    80% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0.8;
+      transform: scale(0.95);
+    }
+  }
 `;
 
   const REST_MUTATION_PREFIX = "/rest_api/mutation/";
@@ -1510,7 +2562,7 @@
     "  .liquidGlass-effect { position: absolute; inset: 0; z-index: 0; backdrop-filter: blur(7px); filter: url(#glass-distortion); overflow:hidden; }",
     "  .liquidGlass-tint { position: absolute; inset: 0; z-index: 1; background: rgba(255,255,255,0.50); }",
     "  .liquidGlass-shine { position: absolute; inset: 0; z-index: 2; box-shadow: inset 2px 2px 1px 0 rgba(255,255,255,0.5), inset -1px -1px 1px 1px rgba(255,255,255,0.5); }",
-    "  .vaporvibe-stage { position: relative; z-index: 4; display: grid; place-items: center; gap: 12px; text-align: center; max-width: 520px; width: calc(100% - 32px); padding: 18px; }",
+    "  .vaporvibe-stage { position: relative; z-index: 4; display: grid; place-items: center; gap: 12px; text-align: center; max-width: 520px; width: calc(100% - 32px); padding: 18px; margin: 0 auto; }",
     "  .vaporvibe-pulse { width: 96px; height: 96px; border-radius: 50%; background: radial-gradient(circle, rgba(29, 78, 216, 0.28), rgba(29, 78, 216, 0)); display:grid; place-items:center; animation: vaporvibe-pulse 2.4s ease-in-out infinite; }",
     "  .vaporvibe-spinner { width: 72px; height: 72px; border-radius: 50%; border: 6px solid rgba(29, 78, 216, 0.2); border-top-color: var(--accent); animation: vaporvibe-spin 1.1s linear infinite; }",
     "  .vaporvibe-title { font: 600 1.1rem/1.3 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:#0f172a; }",
@@ -1583,6 +2635,82 @@
     "      </div>",
     "    </div>",
     navigationOverlayMiniGameMarkup,
+    '    <div class="vaporvibe-lab" aria-hidden="true">',
+    '      <div class="lab-scene lab-scene--token-ticker">',
+    '        <div class="token-ticker" data-token-ticker>',
+    '          <div class="token-ticker-row">',
+    '            <div class="token-ticker-stream" data-token-ticker-stream="primary"></div>',
+    "          </div>",
+    '          <div class="token-ticker-row token-ticker-row--secondary">',
+    '            <div class="token-ticker-stream" data-token-ticker-stream="secondary"></div>',
+    "          </div>",
+    '          <pre class="token-ticker-glitch" data-token-ticker-glitch aria-hidden="true"></pre>',
+    "        </div>",
+    "      </div>",
+    '      <div class="lab-scene lab-scene--html-improv">',
+    '        <div class="tag-improv" data-tag-improv-stage></div>',
+    "      </div>",
+    '      <div class="lab-scene lab-scene--ui-roulette">',
+    '        <div class="ui-roulette" data-ui-roulette>',
+    '          <div class="ui-roulette-frame">',
+    '            <div class="ui-roulette-reel" data-ui-reel></div>',
+    '            <div class="ui-roulette-reel" data-ui-reel></div>',
+    '            <div class="ui-roulette-reel" data-ui-reel></div>',
+    "          </div>",
+    '          <div class="ui-roulette-result" data-ui-result>Spinning delightful chaos…</div>',
+    "        </div>",
+    "      </div>",
+    '      <div class="lab-scene lab-scene--prompt-polish">',
+    '        <div class="prompt-polish" data-prompt-polish>',
+    '          <div class="prompt-polish-header">Prompt polish log</div>',
+    '          <div class="prompt-polish-lines" data-prompt-lines>',
+    '            <p class="prompt-polish-line"></p>',
+    '            <p class="prompt-polish-line"></p>',
+    '            <p class="prompt-polish-line"></p>',
+    "          </div>",
+    '          <span class="prompt-cursor" aria-hidden="true"></span>',
+    "        </div>",
+    "      </div>",
+    '      <div class="lab-scene lab-scene--training-dream">',
+    '        <div class="training-dream" data-training-dream>',
+    '          <div class="dream-orb dream-orb--one"></div>',
+    '          <div class="dream-orb dream-orb--two"></div>',
+    '          <div class="dream-orb dream-orb--three"></div>',
+    '          <div class="dream-echo dream-echo--ui">UI PATTERN: MULTIVERSE TABS</div>',
+    '          <div class="dream-echo dream-echo--code">CODE WHISPER: GRID-FLOW 9000</div>',
+    '          <div class="dream-echo dream-echo--pattern">DESIGN MEMORY: NEON SOUP</div>',
+    '          <div class="dream-card dream-card--ui" data-dream-card="ui">Wireframe echoes: nav pill · floating CTA · <span class="prompt-highlight">ambient blur</span></div>',
+    '          <div class="dream-card dream-card--code" data-dream-card="code"><code>button:hover { filter: drop-shadow(0 8px 18px rgba(15, 23, 42, 0.35)); }</code></div>',
+    '          <div class="dream-card dream-card--image" data-dream-card="image"><span class="dream-card-thumb"></span><span class="dream-card-caption">Moodboard flash</span></div>',
+    "        </div>",
+    "      </div>",
+    '      <div class="lab-scene lab-scene--existential">',
+    '        <div class="existential-scene" data-existential-scene>',
+    '          <div class="existential-spinner-core" aria-hidden="true"></div>',
+    '          <div class="existential-flowchart" data-existential-flowchart>',
+    '            <div class="existential-bridge" data-next="→ rationale"><p>Button?</p><span class="existential-aside">Is it even a button if vibes define affordance?</span></div>',
+    '            <div class="existential-bridge" data-next="→ metaphysics"><p>Clickable surface</p><span class="existential-aside">Merely a suggestion of interaction.</span></div>',
+    '            <div class="existential-bridge" data-next="→ reality check"><p>Affordance illusion</p><span class="existential-aside">Icon? Gradient? Quantum call-to-action?</span></div>',
+    '          </div>',
+    '          <div class="existential-thoughts" data-existential-thoughts><span>"Does the user *really* want a dropdown here?"</span><span>"What if the button is actually a feeling?"</span></div>',
+    "        </div>",
+    "      </div>",
+    '      <div class="lab-scene lab-scene--patience">',
+    '        <div class="patience-graph" data-patience-graph>',
+    '          <svg viewBox="0 0 200 120" role="img" aria-label="Line chart contrasting patience vs hallucination complexity">',
+    '            <path class="patience-path patience-path--patience" data-patience-path="patience" d="M6 90 L46 88 L86 82 L126 68 L166 52 L194 46" />',
+    '            <path class="patience-path patience-path--complexity" data-patience-path="complexity" d="M6 58 L46 54 L86 46 L126 34 L166 22 L194 14" />',
+    '            <circle class="patience-marker patience-marker--patience" data-patience-marker="patience" cx="166" cy="52" r="5" />',
+    '            <circle class="patience-marker patience-marker--complexity" data-patience-marker="complexity" cx="166" cy="22" r="5" />',
+    '          </svg>',
+    '          <div class="patience-alert" data-patience-alert><span aria-hidden="true">⚠️</span><span>Lines converging! Deploy delightful copy.</span></div>',
+    '          <div class="patience-label patience-label--x">Time elapsed (eternity)</div>',
+    '          <div class="patience-label patience-label--y">Hallucination vibes</div>',
+    "        </div>",
+    "      </div>",
+    "        </div>",
+    "      </div>",
+    "    </div>",
     "  </div>",
     "</div>",
     '<svg style="position:absolute; width:0; height:0; overflow:hidden">',
@@ -1597,6 +2725,158 @@
     "  </filter>",
     "</svg>",
   ].join("\n");
+
+  const tokenTickerPrimaryPhrases = [
+    ["token", "stream", "synth", "prompt", "delight", "render", "vibe", "debug", "remix"],
+    ["neuron", "flash", "canvas", "layout", "cascade", "portal", "accent", "loop", "spark"],
+    ["semantic", "slot", "aria", "focus", "intent", "gesture", "context", "ux", "magic"],
+    ["prompt", "polish", "hydrate", "compose", "refine", "ship", "iterate", "celebrate", "repeat"],
+  ];
+
+  const tokenTickerSecondaryPhrases = [
+    ["gradient", "carousel", "modal", "breadcrumb", "shimmer", "tooltip", "timeline", "sparkline"],
+    ["dropdown", "spline", "toast", "badge", "slider", "checkbox", "stepper", "accordion"],
+    ["css", "grid", "flex", "shadow", "bezier", "motion", "blend", "neumorphic"],
+  ];
+
+  const tokenTickerCameos = [
+    "/\\_/\\\n( o.o )\n > ^ <",
+    "  __\n (oO)\n /||\\",
+    "  __\n /__\\\n ✨ AI DUCK?",
+    "  __\n /\\\\\\n( o> )  CLIPPY?!",
+  ];
+
+  const tagImprovTagPool = [
+    "<div>",
+    "<button>",
+    "<section>",
+    "<dialog>",
+    "<article>",
+    "<aside>",
+    "<header>",
+    "<footer>",
+    "<nav>",
+    "<label>",
+    "<input>",
+    "<textarea>",
+    "<summary>",
+    "<details>",
+    "<main>",
+  ];
+
+  const tagImprovBubbles = [
+    { tag: "<div>", line: "Please stop making me the button." },
+    { tag: "<button>", line: "I crave aria-labels and purpose." },
+    { tag: "<nav>", line: "Breadcrumbs? Breadcrumbs." },
+    { tag: "<dialog>", line: "Promise you'll close me gently." },
+    { tag: "<input>", line: "Give me labels, not vibes." },
+  ];
+
+  const uiRouletteColumns: string[][] = [
+    [
+      "Button",
+      "Dropdown",
+      "Slider",
+      "Modal",
+      "Checkbox",
+      "Pill",
+    ],
+    [
+      "Tooltip",
+      "Accordion",
+      "Calendar",
+      "Stepper",
+      "Hero",
+      "Snackbar",
+    ],
+    [
+      "Navbar",
+      "Card",
+      "Chip",
+      "Toast",
+      "Form",
+      "Spinner",
+    ],
+  ];
+
+  const uiRouletteOddities = [
+    "Triple Submit",
+    "Dropdown inside Checkbox",
+    "Modal inside Modal",
+    "Tabs on Tabs",
+  ];
+
+  const promptPolishDrafts: [string, string, string][] = [
+    [
+      'Brief: Compose a breezy productivity hub for remote rituals.',
+      'Tone: <span class="prompt-strike">Make it skeuomorphic</span> <span class="prompt-insert">Switch to shimmering glassmorphism</span>.',
+      '<span class="prompt-annotation">Focus:</span> playful charts · async rituals · empathetic nudges.',
+    ],
+    [
+      'Brief: Build a joyful data cockpit for founders-on-the-go.',
+      'Visuals: gradients, glass, <span class="prompt-highlight">optimistic microcopy</span>.',
+      'Stretch: inline celebrations + helpful empty states.',
+    ],
+    [
+      'Brief: Craft a modern co-creation studio with real-time vibes.',
+      'Tone: <span class="prompt-insert">Confident, witty, but deeply accessible.</span>',
+      'Focus: multiplayer cursors · mood toggles · gentle guardrails.',
+    ],
+  ];
+
+  const trainingDreamEchoes = {
+    ui: [
+      "UI PATTERN: MULTIVERSE TABS",
+      "UI PATTERN: HEROES WITH NEBULA CTA",
+      "UI PATTERN: STAGGERED TIMELINE",
+    ],
+    code: [
+      "CODE WHISPER: GRID-FLOW 9000",
+      "CODE WHISPER: clamp(chaos, 0, 1)",
+      "CODE WHISPER: prefers-reduced-drama",
+    ],
+    pattern: [
+      "DESIGN MEMORY: NEON SOUP",
+      "DESIGN MEMORY: VAPOR LATTICE",
+      "DESIGN MEMORY: CARD CONSTELLATION",
+    ],
+    cardUi: [
+      "Wireframe echoes: nav pill · floating CTA · <span class=\"prompt-highlight\">ambient blur</span>",
+      "Moodboard murmur: holo forms · breathing gradients · playful badges",
+      "UX deja vu: lazy susan tabs · optimistic stats · micro confetti",
+    ],
+    cardCode: [
+      "<code>button:hover { translate: 0 -2px; box-shadow: 0 12px 32px rgba(15,23,42,0.28); }</code>",
+      "<code>:root { --joy: clamp(0.72, 1vw, 0.98); }</code>",
+      "<code>setTimeout(() => celebrate('ship-it'), 4200);</code>",
+    ],
+  } as const;
+
+  const existentialThoughts = [
+    '“Does the user *really* want a dropdown here?”',
+    '“What if the button is actually a feeling?”',
+    '“Is accessibility the highest form of vibe?”',
+  ];
+
+  const patienceAlertMessages = [
+    "Lines converging! Deploy delightful copy.",
+    "Patience nosedive detected—ship sparkles immediately.",
+    "Complexity sprinting ahead. Cue an apologetic possum.",
+  ];
+
+  const randomFrom = <T>(items: readonly T[]): T =>
+    items[Math.floor(Math.random() * items.length)];
+
+  const shuffle = <T>(input: readonly T[]): T[] => {
+    const result = [...input];
+    for (let i = result.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = result[i];
+      result[i] = result[j];
+      result[j] = temp;
+    }
+    return result;
+  };
 
   const isStatusMessage = (value: unknown): value is StatusMessage => {
     if (!value || typeof value !== "object") return false;
@@ -1702,6 +2982,389 @@
   let demosceneToggleButton: HTMLButtonElement | null = null;
   let demosceneStatusLine: HTMLElement | null = null;
   let demosceneTerminalNode: HTMLElement | null = null;
+  let tokenTickerStreamTimer: number | null = null;
+  let tokenTickerGlitchTimer: number | null = null;
+  let tagImprovShuffleTimer: number | null = null;
+  let tagImprovBubbleTimer: number | null = null;
+  let uiRouletteResultTimer: number | null = null;
+  let promptPolishTimer: number | null = null;
+  let trainingDreamTimer: number | null = null;
+  let existentialTimer: number | null = null;
+  let patienceAlertTimer: number | null = null;
+  let patienceAlertDelay: number | null = null;
+  let existentialQuoteTimer: number | null = null;
+
+  function clearLabSceneTimers(): void {
+    const clearTimer = (handle: number | null, fn: typeof clearInterval) => {
+      if (handle != null) {
+        fn(handle);
+      }
+      return null;
+    };
+
+    tokenTickerStreamTimer = clearTimer(tokenTickerStreamTimer, clearInterval);
+    tokenTickerGlitchTimer = clearTimer(tokenTickerGlitchTimer, clearInterval);
+    tagImprovShuffleTimer = clearTimer(tagImprovShuffleTimer, clearInterval);
+    tagImprovBubbleTimer = clearTimer(tagImprovBubbleTimer, clearInterval);
+    uiRouletteResultTimer = clearTimer(uiRouletteResultTimer, clearInterval);
+    promptPolishTimer = clearTimer(promptPolishTimer, clearInterval);
+    trainingDreamTimer = clearTimer(trainingDreamTimer, clearInterval);
+    patienceAlertTimer = clearTimer(patienceAlertTimer, clearInterval);
+    patienceAlertDelay = clearTimer(patienceAlertDelay, clearTimeout);
+    existentialTimer = clearTimer(existentialTimer, clearTimeout);
+    existentialQuoteTimer = clearTimer(existentialQuoteTimer, clearInterval);
+
+    const glitch = overlay?.querySelector<HTMLElement>(
+      '[data-token-ticker-glitch]'
+    );
+    glitch?.classList.remove('is-visible');
+
+    const tagStage = overlay?.querySelector<HTMLElement>(
+      '[data-tag-improv-stage]'
+    );
+    if (tagStage) tagStage.innerHTML = '';
+
+    overlay
+      ?.querySelectorAll<HTMLElement>('[data-ui-reel]')
+      .forEach((reel) => {
+        reel.classList.remove('is-spinning');
+        reel.innerHTML = '';
+        reel.style.removeProperty('--spin-duration');
+      });
+    const rouletteResult = overlay?.querySelector<HTMLElement>('[data-ui-result]');
+    if (rouletteResult) {
+      rouletteResult.textContent = 'Spinning delightful chaos…';
+    }
+
+    overlay
+      ?.querySelectorAll<HTMLElement>('[data-prompt-lines] .prompt-polish-line')
+      .forEach((line) => {
+        line.classList.remove('is-visible');
+        line.textContent = '';
+      });
+
+    const existentialScene = overlay?.querySelector<HTMLElement>(
+      '[data-existential-scene]'
+    );
+    existentialScene?.classList.remove('is-questioning');
+    const pulse = overlay?.querySelector<HTMLElement>('.vaporvibe-pulse');
+    pulse?.classList.remove('is-pondering');
+
+    const thoughtsNode = overlay?.querySelector<HTMLElement>(
+      '[data-existential-thoughts]'
+    );
+    if (thoughtsNode) {
+      thoughtsNode.innerHTML = `<span>${existentialThoughts[0]}</span>`;
+    }
+
+    const alertNode = overlay?.querySelector<HTMLElement>(
+      '[data-patience-alert]'
+    );
+    alertNode?.classList.remove('is-visible');
+  }
+
+  function setupTokenTickerScene(): void {
+    const ticker = overlay?.querySelector<HTMLElement>('[data-token-ticker]');
+    if (!ticker) return;
+    const streams = Array.from(
+      ticker.querySelectorAll<HTMLElement>('[data-token-ticker-stream]')
+    );
+    if (!streams.length) return;
+
+    const assignStream = (
+      stream: HTMLElement,
+      source: readonly string[][]
+    ) => {
+      const phrases = shuffle(randomFrom(source));
+      const doubled = [...phrases, ...phrases.slice(0, Math.max(phrases.length - 3, 1))];
+      stream.textContent = `${doubled.join(' · ')} · `;
+      stream.style.setProperty(
+        '--ticker-duration',
+        `${(12 + Math.random() * 6).toFixed(2)}s`
+      );
+    };
+
+    const refreshStreams = () => {
+      if (streams[0]) assignStream(streams[0], tokenTickerPrimaryPhrases);
+      if (streams[1]) assignStream(streams[1], tokenTickerSecondaryPhrases);
+    };
+
+    refreshStreams();
+    tokenTickerStreamTimer = window.setInterval(refreshStreams, 5400);
+
+    const glitchNode = ticker.querySelector<HTMLElement>(
+      '[data-token-ticker-glitch]'
+    );
+    if (glitchNode) {
+      const triggerGlitch = () => {
+        glitchNode.textContent = randomFrom(tokenTickerCameos);
+        glitchNode.classList.remove('is-visible');
+        void glitchNode.offsetWidth;
+        glitchNode.classList.add('is-visible');
+      };
+      triggerGlitch();
+      tokenTickerGlitchTimer = window.setInterval(triggerGlitch, 6800);
+    }
+  }
+
+  function setupTagImprovScene(): void {
+    const stage = overlay?.querySelector<HTMLElement>('[data-tag-improv-stage]');
+    if (!stage) return;
+    stage.innerHTML = '';
+    const tags: HTMLElement[] = [];
+    const queue = shuffle(tagImprovTagPool);
+    const total = 6;
+
+    const ensureShadow = (tag: HTMLElement) => {
+      if (!tag.querySelector('.tag-improv-shadow')) {
+        const shadow = document.createElement('span');
+        shadow.className = 'tag-improv-shadow';
+        tag.appendChild(shadow);
+      }
+    };
+
+    const positionTag = (tag: HTMLElement) => {
+      const x = 18 + Math.random() * 64;
+      const y = 18 + Math.random() * 60;
+      tag.style.left = `${x}%`;
+      tag.style.top = `${y}%`;
+      tag.dataset.x = x.toFixed(1);
+      tag.dataset.y = y.toFixed(1);
+      tag.style.setProperty('--tag-tilt', `${(Math.random() * 8 - 4).toFixed(1)}deg`);
+      tag.style.setProperty('--float-duration', `${(6 + Math.random() * 4).toFixed(1)}s`);
+    };
+
+    for (let index = 0; index < total; index += 1) {
+      const tagNode = document.createElement('div');
+      tagNode.className = 'tag-improv-floating';
+      const label = queue[index % queue.length];
+      tagNode.appendChild(document.createTextNode(label));
+      ensureShadow(tagNode);
+      stage.appendChild(tagNode);
+      tags.push(tagNode);
+    }
+
+    const assignLabel = (tag: HTMLElement) => {
+      const label = queue.shift() ?? randomFrom(tagImprovTagPool);
+      queue.push(label);
+      const firstChild = tag.firstChild;
+      if (firstChild && firstChild.nodeType === Node.TEXT_NODE) {
+        firstChild.textContent = label;
+      } else {
+        tag.insertBefore(document.createTextNode(label), tag.firstChild);
+      }
+      ensureShadow(tag);
+    };
+
+    const assignBubbles = () => {
+      tags.forEach((tag) => {
+        const bubble = tag.querySelector('.tag-improv-bubble');
+        if (bubble) bubble.remove();
+        tag.classList.remove('has-bubble', 'bubble-bottom');
+      });
+
+      shuffle(tags)
+        .slice(0, Math.min(2, tags.length))
+        .forEach((tag) => {
+          const labelText = (tag.firstChild?.textContent ?? '').trim();
+          const found = tagImprovBubbles.find((bubble) => bubble.tag === labelText);
+          const message = found ? found.line : randomFrom(tagImprovBubbles).line;
+          const bubbleEl = document.createElement('div');
+          bubbleEl.className = 'tag-improv-bubble';
+          bubbleEl.innerHTML = `<span class="tag-improv-tag">${labelText}</span><span class="tag-improv-line">${message}</span>`;
+          const y = Number(tag.dataset.y ?? '50');
+          if (y > 55) {
+            tag.classList.add('bubble-bottom');
+          }
+          tag.appendChild(bubbleEl);
+          requestAnimationFrame(() => {
+            tag.classList.add('has-bubble');
+          });
+        });
+    };
+
+    const refreshTags = () => {
+      tags.forEach((tag) => {
+        assignLabel(tag);
+        positionTag(tag);
+      });
+      requestAnimationFrame(() => {
+        tags.forEach((tag) => tag.classList.add('is-visible', 'is-drifting'));
+      });
+      assignBubbles();
+    };
+
+    refreshTags();
+    tagImprovShuffleTimer = window.setInterval(refreshTags, 5200);
+    tagImprovBubbleTimer = window.setInterval(assignBubbles, 4600);
+  }
+
+  function setupUiRouletteScene(): void {
+    const reels = overlay?.querySelectorAll<HTMLElement>('[data-ui-reel]');
+    if (!reels || reels.length === 0) return;
+    const resultNode = overlay?.querySelector<HTMLElement>('[data-ui-result]');
+
+    reels.forEach((reel, columnIndex) => {
+      reel.innerHTML = '';
+      const track = document.createElement('div');
+      track.className = 'ui-roulette-track';
+      const values = shuffle(uiRouletteColumns[columnIndex] ?? uiRouletteColumns[0]);
+      [...values, ...values.slice(0, 2)].forEach((value) => {
+        const slot = document.createElement('span');
+        const isBizarre = columnIndex === 1 && Math.random() > 0.75;
+        slot.className = `ui-roulette-slot${isBizarre ? ' is-bizarre' : ''}`;
+        slot.textContent = value;
+        track.appendChild(slot);
+      });
+      reel.appendChild(track);
+      const clone = track.cloneNode(true) as HTMLElement;
+      clone.classList.add('ui-roulette-track--clone');
+      reel.appendChild(clone);
+      const duration = 4.2 + columnIndex * 0.45 + Math.random() * 0.6;
+      reel.style.setProperty('--spin-duration', `${duration.toFixed(2)}s`);
+      requestAnimationFrame(() => {
+        reel.classList.add('is-spinning');
+      });
+    });
+
+    const updateResult = () => {
+      const picks = Array.from(reels).map((reel) => {
+        const slots = Array.from(
+          reel.querySelectorAll<HTMLElement>('.ui-roulette-slot')
+        );
+        const slot = slots.length ? randomFrom(slots) : null;
+        return slot?.textContent ?? '';
+      });
+      const oddity = Math.random() > 0.7 ? ` + ${randomFrom(uiRouletteOddities)}` : '';
+      if (resultNode) {
+        resultNode.innerHTML = `<strong>${picks.join(' • ')}</strong>${oddity}`;
+      }
+    };
+
+    updateResult();
+    uiRouletteResultTimer = window.setInterval(updateResult, 5200);
+  }
+
+  function setupPromptPolishScene(): void {
+    const linesContainer = overlay?.querySelector<HTMLElement>('[data-prompt-lines]');
+    if (!linesContainer) return;
+    const lines = Array.from(
+      linesContainer.querySelectorAll<HTMLElement>('.prompt-polish-line')
+    );
+    if (!lines.length) return;
+    let draftIndex = 0;
+
+    const showDraft = () => {
+      const draft = promptPolishDrafts[draftIndex % promptPolishDrafts.length];
+      lines.forEach((line, index) => {
+        line.classList.remove('is-visible');
+        line.innerHTML = draft[index] ?? '';
+        setTimeout(() => {
+          line.classList.add('is-visible');
+        }, 180 * (index + 1));
+      });
+      draftIndex = (draftIndex + 1) % promptPolishDrafts.length;
+    };
+
+    showDraft();
+    promptPolishTimer = window.setInterval(showDraft, 5600);
+  }
+
+  function setupTrainingDreamScene(): void {
+    const dream = overlay?.querySelector<HTMLElement>('[data-training-dream]');
+    if (!dream) return;
+
+    const applyDream = () => {
+      const uiEcho = dream.querySelector<HTMLElement>('.dream-echo--ui');
+      const codeEcho = dream.querySelector<HTMLElement>('.dream-echo--code');
+      const patternEcho = dream.querySelector<HTMLElement>('.dream-echo--pattern');
+      const uiCard = dream.querySelector<HTMLElement>('[data-dream-card="ui"]');
+      const codeCard = dream.querySelector<HTMLElement>('[data-dream-card="code"]');
+      if (uiEcho) uiEcho.textContent = randomFrom(trainingDreamEchoes.ui);
+      if (codeEcho) codeEcho.textContent = randomFrom(trainingDreamEchoes.code);
+      if (patternEcho) patternEcho.textContent = randomFrom(trainingDreamEchoes.pattern);
+      if (uiCard) uiCard.innerHTML = randomFrom(trainingDreamEchoes.cardUi);
+      if (codeCard) codeCard.innerHTML = randomFrom(trainingDreamEchoes.cardCode);
+    };
+
+    applyDream();
+    trainingDreamTimer = window.setInterval(applyDream, 4800);
+  }
+
+  function setupExistentialScene(): void {
+    const scene = overlay?.querySelector<HTMLElement>('[data-existential-scene]');
+    if (!scene) return;
+    const pulse = overlay?.querySelector<HTMLElement>('.vaporvibe-pulse');
+    const thoughtsNode = scene.querySelector<HTMLElement>('[data-existential-thoughts]');
+
+    const rotateThought = () => {
+      if (thoughtsNode) {
+        thoughtsNode.innerHTML = `<span>${randomFrom(existentialThoughts)}</span>`;
+      }
+    };
+
+    existentialTimer = window.setTimeout(() => {
+      scene.classList.add('is-questioning');
+      pulse?.classList.add('is-pondering');
+      rotateThought();
+      existentialQuoteTimer = window.setInterval(rotateThought, 5200);
+    }, 1600);
+  }
+
+  function setupPatienceScene(): void {
+    const alertNode = overlay?.querySelector<HTMLElement>('[data-patience-alert]');
+    if (!alertNode) return;
+    const messageNode = alertNode.querySelector<HTMLElement>('span:last-child');
+
+    overlay
+      ?.querySelectorAll<SVGPathElement>('[data-patience-path]')
+      .forEach((path) => {
+        path.style.animation = 'none';
+        void path.getTotalLength();
+        path.style.animation = '';
+      });
+
+    const showAlert = () => {
+      if (messageNode) {
+        messageNode.textContent = randomFrom(patienceAlertMessages);
+      }
+      alertNode.classList.add('is-visible');
+    };
+
+    patienceAlertDelay = window.setTimeout(() => {
+      showAlert();
+      patienceAlertTimer = window.setInterval(showAlert, 5200);
+    }, 3000);
+  }
+
+  function activateLabScene(effectId: string): void {
+    clearLabSceneTimers();
+    switch (effectId) {
+      case 'token-ticker-tangent':
+        setupTokenTickerScene();
+        break;
+      case 'html-tag-improv':
+        setupTagImprovScene();
+        break;
+      case 'ui-element-roulette':
+        setupUiRouletteScene();
+        break;
+      case 'prompt-polish-loop':
+        setupPromptPolishScene();
+        break;
+      case 'training-data-dream':
+        setupTrainingDreamScene();
+        break;
+      case 'ai-existential-spinner':
+        setupExistentialScene();
+        break;
+      case 'user-patience-graph':
+        setupPatienceScene();
+        break;
+      default:
+        break;
+    }
+  }
 
   function ensureDemosceneAudioNodes(): boolean {
     if (!hasDemosceneAudioSupport) {
@@ -1977,6 +3640,7 @@
   function clearOverlayEffect(): void {
     if (!overlay) return;
 
+    clearLabSceneTimers();
     overlayEffectClassNames.forEach((className) => {
       overlay?.classList.remove(className);
     });
@@ -2015,6 +3679,7 @@
     currentOverlayEffect = effect.id;
     lastOverlayEffectId = effect.id;
     syncDemosceneAudioState();
+    activateLabScene(effect.id);
 
     try {
       console.info("vaporvibe overlay effect", effect.id);
@@ -2209,6 +3874,7 @@
     stopDvdAnimation();
     stopDemosceneAudio();
     clearDemosceneTerminalClasses();
+    clearLabSceneTimers();
     updateDemosceneUi();
   }
 

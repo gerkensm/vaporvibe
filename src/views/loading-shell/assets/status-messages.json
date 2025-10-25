@@ -1318,5 +1318,90 @@
       "experimentation",
       "craft"
     ]
+  },
+  {
+    "id": "token-ticker-tangent",
+    "headline": "Processing token stream... is that a squirrel?",
+    "hint": "Console aside: The token ticker just hallucinated a mascot before snapping back to parsing.",
+    "mood": "playful",
+    "energy": "high",
+    "category": "prompting",
+    "tags": [
+      "prompting",
+      "latency",
+      "delight"
+    ]
+  },
+  {
+    "id": "html-tag-improv",
+    "headline": "Orchestrating HTML tag improv session",
+    "hint": "Stage cue: &lt;div&gt; and &lt;button&gt; are negotiating semantics before curtain call.",
+    "mood": "cheeky",
+    "energy": "medium",
+    "category": "design",
+    "tags": [
+      "design",
+      "play"
+    ]
+  },
+  {
+    "id": "ui-element-roulette",
+    "headline": "Spinning the wheel of UI elements...",
+    "hint": "House update: Slot machine landed on modal-modal-dropdown—re-rolling for something sensible.",
+    "mood": "upbeat",
+    "energy": "medium",
+    "category": "experimentation",
+    "tags": [
+      "experimentation",
+      "delight"
+    ]
+  },
+  {
+    "id": "prompt-polish-loop",
+    "headline": "Polishing the prompt instructions...",
+    "hint": "Desk note: Editing the brief in cycles until the vibe hits just right.",
+    "mood": "meticulous",
+    "energy": "medium",
+    "category": "story",
+    "tags": [
+      "story",
+      "promptcraft"
+    ]
+  },
+  {
+    "id": "training-data-dream",
+    "headline": "Consulting collective unconscious (aka training data)",
+    "hint": "Dream log: Skimming shimmering fragments of UI memories for your layout.",
+    "mood": "dreamy",
+    "energy": "low",
+    "category": "synthesis",
+    "tags": [
+      "synthesis",
+      "story"
+    ]
+  },
+  {
+    "id": "ai-existential-spinner",
+    "headline": "Contemplating the nature of 'button-ness'...",
+    "hint": "Philosophy break: Diagramming whether affordance is a state of mind or a CSS class.",
+    "mood": "curious",
+    "energy": "low",
+    "category": "alignment",
+    "tags": [
+      "alignment",
+      "insight"
+    ]
+  },
+  {
+    "id": "user-patience-graph",
+    "headline": "Charting user patience vs. hallucination complexity",
+    "hint": "Telemetry ping: Plotting how fast the vibes rise before the patience line dips.",
+    "mood": "analytical",
+    "energy": "medium",
+    "category": "telemetry",
+    "tags": [
+      "telemetry",
+      "latency"
+    ]
   }
 ]
