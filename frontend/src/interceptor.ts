@@ -2044,7 +2044,7 @@
       return;
     }
 
-    const chance = 2.3;
+    const chance = 0.3;
 
     if (Math.random() > chance) {
       applyOverlayEffectById(null);
