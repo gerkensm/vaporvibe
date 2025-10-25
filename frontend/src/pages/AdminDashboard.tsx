@@ -926,6 +926,10 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   const providerMetric = `${providerLabel} · ${state.provider.model}`;
   const historyLimitLabel = state.runtime.historyLimit.toLocaleString();
   const historyBytesLabel = state.runtime.historyMaxBytes.toLocaleString();
+  const canLaunchApp = Boolean(state.providerReady && state.brief);
+  const liveAppCtaTitle = canLaunchApp
+    ? "Open the improvisational canvas in a new tab"
+    : "Finish provider and brief setup to unlock the live app";
 
   const providerReady = !needsProviderSetup;
   const activeSetupStep = providerReady ? setupStep : "provider";
@@ -1223,12 +1227,53 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     <div className="admin-shell">
       {launchPad}
       <header className="admin-header admin-header--hero">
-        <div>
+        <div className="admin-header__intro">
           <h1>vaporvibe Admin Console</h1>
           <p className="admin-subtitle">
             Fine-tune the brief, providers, runtime, and archives without
             restarting the server.
           </p>
+        </div>
+        <div className="admin-header__actions">
+          <a
+            href="/"
+            target="_blank"
+            rel="noreferrer noopener"
+            className={`admin-live-cta${
+              canLaunchApp ? "" : " admin-live-cta--disabled"
+            }`}
+            aria-disabled={canLaunchApp ? undefined : true}
+            tabIndex={canLaunchApp ? 0 : -1}
+            title={liveAppCtaTitle}
+            onClick={(event) => {
+              if (!canLaunchApp) {
+                event.preventDefault();
+              }
+            }}
+          >
+            <span>Open Live App</span>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M5.5 3H13v7.5m0-7.5-7.75 7.75M3 13h4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </a>
+          <span className="admin-live-cta__hint">
+            {canLaunchApp
+              ? "Launches the current improvisation in a new tab."
+              : "Complete setup to unlock the live canvas."}
+          </span>
         </div>
         <div className="status-bar" role="status">
           <span className="status-pill" data-status="historyTotal">
