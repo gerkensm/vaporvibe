@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -8,14 +9,16 @@ import {
 } from "../components";
 import type { CustomModelConfig } from "../components";
 import HistoryExplorer from "../components/HistoryExplorer";
+import HistorySnapshotControls from "../components/HistorySnapshotControls";
+import ResumeSessionCallout from "../components/ResumeSessionCallout";
 import {
   fetchAdminState,
   fetchAdminHistory,
   deleteHistoryEntry,
+  deleteAllHistoryEntries,
   submitBriefUpdate,
   submitProviderUpdate,
   submitRuntimeUpdate,
-  submitHistoryImport,
   verifyProviderKey,
   type ProviderUpdatePayload,
 } from "../api/admin";
@@ -31,6 +34,7 @@ import {
   HISTORY_LIMIT_MAX,
   HISTORY_MAX_BYTES_MIN,
   HISTORY_MAX_BYTES_MAX,
+  DEFAULT_HISTORY_MAX_BYTES,
 } from "../constants/runtime";
 import { useNotifications } from "../components/Notifications";
 import vaporvibeLogoUrl from "../assets/vaporvibe-icon-both.svg";
@@ -38,8 +42,6 @@ import vaporvibeLogoUrl from "../assets/vaporvibe-icon-both.svg";
 type AsyncStatus = "idle" | "loading" | "success" | "error";
 type StatusMessage = { tone: "info" | "error"; message: string };
 type NullableStatus = StatusMessage | null;
-
-type FileInfo = { name: string; size: number };
 
 type QueuedAttachment = {
   id: string;
@@ -79,14 +81,7 @@ const createDefaultCustomConfig = (): CustomModelConfig => ({
   ...DEFAULT_CUSTOM_MODEL_CONFIG,
 });
 
-const TAB_ORDER = [
-  "brief",
-  "provider",
-  "runtime",
-  "import",
-  "export",
-  "history",
-] as const;
+const TAB_ORDER = ["provider", "brief", "runtime", "history"] as const;
 
 type TabKey = (typeof TAB_ORDER)[number];
 
@@ -94,8 +89,6 @@ const TAB_LABELS: Record<TabKey, string> = {
   brief: "Brief",
   provider: "Provider",
   runtime: "Runtime",
-  import: "Import",
-  export: "Exports",
   history: "History",
 };
 
@@ -118,18 +111,18 @@ const getTabFromPath = (pathname: string): TabKey | null => {
   const normalized = normalizeAdminPath(pathname);
   const remainder = normalized.slice(ADMIN_ROUTE_PREFIX.length);
   if (!remainder || remainder === "") {
-    return "brief";
+    return "provider";
   }
   const segments = remainder.split("/").filter(Boolean);
   if (segments.length === 0) {
-    return "brief";
+    return "provider";
   }
   const candidate = segments[0];
-  return isTabKey(candidate) ? candidate : "brief";
+  return isTabKey(candidate) ? candidate : "provider";
 };
 
 const createTabPath = (tab: TabKey) =>
-  tab === "brief" ? ADMIN_ROUTE_PREFIX : `${ADMIN_ROUTE_PREFIX}/${tab}`;
+  tab === "provider" ? ADMIN_ROUTE_PREFIX : `${ADMIN_ROUTE_PREFIX}/${tab}`;
 
 type AdminLocationState = {
   showLaunchPad?: boolean;
@@ -173,9 +166,10 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   const [historyStatusMessage, setHistoryStatusMessage] = useState<
     string | null
   >(null);
+  const [historyPurgingAll, setHistoryPurgingAll] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>(() => {
     const initial = getTabFromPath(location.pathname);
-    return initial ?? "brief";
+    return initial ?? "provider";
   });
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [historyLastRefreshMs, setHistoryLastRefreshMs] = useState<
@@ -211,6 +205,30 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     setHistorySessionCount(snapshot.sessionCount);
   }, []);
 
+  const handleSnapshotHydrate = useCallback(
+    (snapshot: AdminStateResponse) => {
+      handleStateUpdate(snapshot);
+      setBriefDraft(snapshot.brief ?? "");
+      setAttachmentsToRemove(new Set());
+      setPendingUploads((prev) => {
+        prev.forEach((upload) => {
+          if (upload.previewUrl) {
+            URL.revokeObjectURL(upload.previewUrl);
+          }
+        });
+        return [];
+      });
+      setUploaderKey((value) => value + 1);
+    },
+    [
+      handleStateUpdate,
+      setAttachmentsToRemove,
+      setBriefDraft,
+      setPendingUploads,
+      setUploaderKey,
+    ]
+  );
+
   useEffect(() => {
     if (!showSetupShell) {
       setShowIntroStep(false);
@@ -221,9 +239,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       return;
     }
     try {
-      const storedValue = window.localStorage.getItem(
-        SETUP_INTRO_STORAGE_KEY
-      );
+      const storedValue = window.localStorage.getItem(SETUP_INTRO_STORAGE_KEY);
       setShowIntroStep(!storedValue);
     } catch (error) {
       console.error("Unable to read intro preference", error);
@@ -562,6 +578,29 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     [loadHistory, notify]
   );
 
+  const handleHistoryDeleteAll = useCallback(async () => {
+    if (historyPurgingAll) {
+      return;
+    }
+    setHistoryPurgingAll(true);
+    try {
+      const response = await deleteAllHistoryEntries();
+      const message = response.message || "History cleared";
+      if (!response.success) {
+        throw new Error(message);
+      }
+      await loadHistory({ offset: 0, append: false, showMessage: false });
+      setHistoryStatusMessage(message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setHistoryStatusMessage(message);
+      notify("error", message);
+      throw error instanceof Error ? error : new Error(message);
+    } finally {
+      setHistoryPurgingAll(false);
+    }
+  }, [historyPurgingAll, loadHistory, notify]);
+
   useEffect(() => {
     if (showSetupShell) {
       setActiveTab("brief");
@@ -791,21 +830,17 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
                 historyNextOffset != null ? handleHistoryLoadMore : undefined
               }
               onDeleteEntry={handleHistoryDelete}
+              onDeleteAll={handleHistoryDeleteAll}
+              deletingAll={historyPurgingAll}
               hasMore={historyNextOffset != null}
-            />
-          );
-        case "import":
-          return (
-            <ImportPanel
-              onState={handleStateUpdate}
-              onHistoryRefresh={handleHistoryRefresh}
-            />
-          );
-        case "export":
-          return (
-            <ExportPanel
-              exportJsonUrl={state.exportJsonUrl}
-              exportMarkdownUrl={state.exportMarkdownUrl}
+              snapshotControls={
+                <HistorySnapshotControls
+                  exportJsonUrl={state.exportJsonUrl}
+                  exportMarkdownUrl={state.exportMarkdownUrl}
+                  onState={handleSnapshotHydrate}
+                  onHistoryRefresh={handleHistoryRefresh}
+                />
+              }
             />
           );
         default:
@@ -900,6 +935,10 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   const providerMetric = `${providerLabel} · ${state.provider.model}`;
   const historyLimitLabel = state.runtime.historyLimit.toLocaleString();
   const historyBytesLabel = state.runtime.historyMaxBytes.toLocaleString();
+  const canLaunchApp = Boolean(state.providerReady && state.brief);
+  const liveAppCtaTitle = canLaunchApp
+    ? "Open the improvisational canvas in a new tab"
+    : "Finish provider and brief setup to unlock the live app";
 
   const providerReady = !needsProviderSetup;
   const activeSetupStep = providerReady ? setupStep : "provider";
@@ -929,7 +968,8 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
         <span className="launch-pad__pill">Setup complete</span>
         <h2>Launch your live canvas</h2>
         <p className="launch-pad__lead">
-          The provider is verified and the brief is ready. Open the improvised app in a new tab or stay here to keep fine-tuning.
+          The provider is verified and the brief is ready. Open the improvised
+          app in a new tab or stay here to keep fine-tuning.
         </p>
         <div className="launch-pad__actions">
           <a
@@ -949,7 +989,8 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
           </button>
         </div>
         <p className="launch-pad__hint">
-          Tips: adjust the brief anytime, swap providers in the tabs, and explore history to replay generated pages.
+          Tips: adjust the brief anytime, swap providers in the tabs, and
+          explore history to replay generated pages.
         </p>
       </div>
     </div>
@@ -969,9 +1010,9 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
               <span className="setup-card__step">Start here</span>
               <h1>Let's Spin Up a New Experience Together</h1>
               <p className="setup-card__description">
-                VaporVibe spins up convincing web experiences from a short brief so
-                you can pressure-test ideas without opening a code editor. Every
-                run is a fresh take you can direct in real time.
+                VaporVibe spins up convincing web experiences from a short brief
+                so you can pressure-test ideas without opening a code editor.
+                Every run is a fresh take you can direct in real time.
               </p>
             </header>
             <div className="setup-card__intro-grid">
@@ -983,8 +1024,8 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
                     choose—perfect for pitching flows or exploring UX riffs.
                   </li>
                   <li>
-                    Lets you remix on the fly: adjust the brief, swap models, and
-                    relaunch within seconds to compare interpretations.
+                    Lets you remix on the fly: adjust the brief, swap models,
+                    and relaunch within seconds to compare interpretations.
                   </li>
                   <li>
                     Keeps the workspace grounded with history, attachments, and
@@ -996,17 +1037,17 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
                 <h2>What we need from you</h2>
                 <ul className="setup-card__intro-list">
                   <li>
-                    <strong>An API key</strong> for your preferred provider so we
-                    can ask it to generate the experience securely.
+                    <strong>An API key</strong> for your preferred provider so
+                    we can ask it to generate the experience securely.
                   </li>
                   <li>
-                    <strong>A model selection</strong>—stick with a featured pick
-                    or point us to a custom model tuned for your workflow.
+                    <strong>A model selection</strong>—stick with a featured
+                    pick or point us to a custom model tuned for your workflow.
                   </li>
                   <li>
-                    <strong>Your brief and references</strong>: describe the vibe,
-                    drop in a screenshot, napkin sketch, or PDF—anything that sets
-                    the scene.
+                    <strong>Your brief and references</strong>: describe the
+                    vibe, drop in a screenshot, napkin sketch, or PDF—anything
+                    that sets the scene.
                   </li>
                 </ul>
               </section>
@@ -1014,10 +1055,10 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
             <section className="setup-card__intro-panel setup-card__intro-panel--full">
               <h2>How we’ll use it</h2>
               <p>
-                We send your brief, chosen model, and optional attachments straight
-                to that provider’s API to produce each page. The responses live in
-                your local history so you can replay, compare, or export them when
-                you’re ready to share.
+                We send your brief, chosen model, and optional attachments
+                straight to that provider’s API to produce each page. The
+                responses live in your local history so you can replay, compare,
+                or export them when you’re ready to share.
               </p>
               <p className="setup-card__intro-hint">
                 Prefer to keep things lightweight? You can skip attachments and
@@ -1148,6 +1189,12 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
                 onFilesChange={handleQueuedFilesChange}
                 uploaderKey={uploaderKey}
                 onSubmit={handleBriefSubmit}
+                extraContent={
+                  <ResumeSessionCallout
+                    onState={handleSnapshotHydrate}
+                    onHistoryRefresh={handleHistoryRefresh}
+                  />
+                }
               />
             )}
           </div>
@@ -1195,12 +1242,53 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     <div className="admin-shell">
       {launchPad}
       <header className="admin-header admin-header--hero">
-        <div>
+        <div className="admin-header__intro">
           <h1>vaporvibe Admin Console</h1>
           <p className="admin-subtitle">
             Fine-tune the brief, providers, runtime, and archives without
             restarting the server.
           </p>
+        </div>
+        <div className="admin-header__actions">
+          <a
+            href="/"
+            target="_blank"
+            rel="noreferrer noopener"
+            className={`admin-live-cta${
+              canLaunchApp ? "" : " admin-live-cta--disabled"
+            }`}
+            aria-disabled={canLaunchApp ? undefined : true}
+            tabIndex={canLaunchApp ? 0 : -1}
+            title={liveAppCtaTitle}
+            onClick={(event) => {
+              if (!canLaunchApp) {
+                event.preventDefault();
+              }
+            }}
+          >
+            <span>Open Live App</span>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M5.5 3H13v7.5m0-7.5-7.75 7.75M3 13h4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </a>
+          <span className="admin-live-cta__hint">
+            {canLaunchApp
+              ? "Launches the current improvisation in a new tab."
+              : "Complete setup to unlock the live canvas."}
+          </span>
         </div>
         <div className="status-bar" role="status">
           <span className="status-pill" data-status="historyTotal">
@@ -1308,7 +1396,9 @@ function ProviderPanel({
   const [customModelConfigs, setCustomModelConfigs] = useState<
     Record<ProviderKey, CustomModelConfig>
   >({});
-  const [customModelIds, setCustomModelIds] = useState<Record<ProviderKey, string>>({});
+  const [customModelIds, setCustomModelIds] = useState<
+    Record<ProviderKey, string>
+  >({});
   const currentProvider = provider.provider as ProviderKey;
 
   useEffect(() => {
@@ -1325,7 +1415,9 @@ function ProviderPanel({
 
   useEffect(() => {
     const catalog = state.modelCatalog[currentProvider] ?? [];
-    const isCurated = catalog.some((item) => item.value === state.provider.model);
+    const isCurated = catalog.some(
+      (item) => item.value === state.provider.model
+    );
     const currentValue = state.provider.model ?? "";
 
     setCustomModelIds((prev) => {
@@ -1354,13 +1446,13 @@ function ProviderPanel({
   const currentCustomId = customModelIds[currentProvider] ?? "";
 
   const providerUnlockedMap = useMemo(() => {
-    const entries = (Object.keys(state.providerKeyStatuses) as ProviderKey[]).map(
-      (key) => {
-        const status = state.providerKeyStatuses[key];
-        const unlocked = Boolean(status?.verified || status?.hasKey);
-        return [key, unlocked] as const;
-      }
-    );
+    const entries = (
+      Object.keys(state.providerKeyStatuses) as ProviderKey[]
+    ).map((key) => {
+      const status = state.providerKeyStatuses[key];
+      const unlocked = Boolean(status?.verified || status?.hasKey);
+      return [key, unlocked] as const;
+    });
     return Object.fromEntries(entries) as Record<string, boolean>;
   }, [state.providerKeyStatuses]);
   const computeGuidance = useCallback(
@@ -1474,7 +1566,8 @@ function ProviderPanel({
         }
         if (
           providerSupportsModes &&
-          ((modelSupportsModes && providerReasoningModes.length > 0) || (!selectedModel && providerReasoningModes.length > 0))
+          ((modelSupportsModes && providerReasoningModes.length > 0) ||
+            (!selectedModel && providerReasoningModes.length > 0))
         ) {
           return providerReasoningModes;
         }
@@ -1538,9 +1631,7 @@ function ProviderPanel({
     ) => {
       const guidance = computeGuidance(target, targetModel);
       const fallbackBase =
-        guidance.defaultMax ??
-        state.defaultMaxOutputTokens[target] ??
-        1024;
+        guidance.defaultMax ?? state.defaultMaxOutputTokens[target] ?? 1024;
 
       if (guidance.isCustomModel) {
         if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
@@ -1549,8 +1640,7 @@ function ProviderPanel({
         return Math.max(1, Math.floor(fallbackBase));
       }
 
-      const fallback =
-        guidance.maxTokensGuidance?.default ?? fallbackBase;
+      const fallback = guidance.maxTokensGuidance?.default ?? fallbackBase;
       let value: number;
       if (typeof raw === "number" && Number.isFinite(raw)) {
         value = Math.floor(raw);
@@ -1710,14 +1800,19 @@ function ProviderPanel({
           const currentMode = provider.reasoningMode ?? "none";
           if (
             availableReasoningModes.includes(currentMode) &&
-            !(currentMode === "none" && availableReasoningModes.includes("default"))
+            !(
+              currentMode === "none" &&
+              availableReasoningModes.includes("default")
+            )
           ) {
             return currentMode;
           }
           if (availableReasoningModes.includes("default")) {
             return "default" as const;
           }
-          const firstNonNone = availableReasoningModes.find((mode) => mode !== "none");
+          const firstNonNone = availableReasoningModes.find(
+            (mode) => mode !== "none"
+          );
           if (firstNonNone) {
             return firstNonNone;
           }
@@ -1800,10 +1895,9 @@ function ProviderPanel({
         : false;
       let nextReasoningTokens: number | undefined;
       if (tokensSupported) {
-        const baseTokens =
-          providerMatches
-            ? provider.reasoningTokens
-            : guidance.reasoningTokensGuidance?.default;
+        const baseTokens = providerMatches
+          ? provider.reasoningTokens
+          : guidance.reasoningTokensGuidance?.default;
         const sanitized = sanitizeReasoningTokens(
           typeof baseTokens === "number" ? baseTokens : undefined,
           nextProvider,
@@ -1979,9 +2073,7 @@ function ProviderPanel({
         apiKey: trimmedKey,
       });
       if (!response.success) {
-        throw new Error(
-          response.message || "Provider key verification failed"
-        );
+        throw new Error(response.message || "Provider key verification failed");
       }
       if (response.state) {
         const serverState = response.state;
@@ -2175,8 +2267,12 @@ function ProviderPanel({
           onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
         >
           <summary className="admin-advanced__summary">
-            <span className="admin-advanced__title">Advanced Model Settings</span>
-            <span className="admin-advanced__hint">Tune output limits & reasoning</span>
+            <span className="admin-advanced__title">
+              Advanced Model Settings
+            </span>
+            <span className="admin-advanced__hint">
+              Tune output limits & reasoning
+            </span>
             <span className="admin-advanced__chevron" aria-hidden="true" />
           </summary>
           <div className="admin-advanced__body">
@@ -2263,7 +2359,9 @@ function ProviderPanel({
                       <input
                         type="checkbox"
                         checked={effectiveReasoningEnabled}
-                        onChange={(event) => handleReasoningToggle(event.target.checked)}
+                        onChange={(event) =>
+                          handleReasoningToggle(event.target.checked)
+                        }
                       />
                       <span>
                         {currentGuidance.guidanceSource === "provider"
@@ -2276,7 +2374,8 @@ function ProviderPanel({
                   <div className="admin-field">
                     <span className="admin-field__label">Reasoning tokens</span>
                     <p className="admin-field__helper">
-                      This model always applies a deliberate reasoning budget—adjust the cap below.
+                      This model always applies a deliberate reasoning
+                      budget—adjust the cap below.
                     </p>
                   </div>
                 )}
@@ -2296,7 +2395,9 @@ function ProviderPanel({
                         null
                       : null
                   }
-                  defaultValue={currentGuidance.reasoningTokensGuidance?.default}
+                  defaultValue={
+                    currentGuidance.reasoningTokensGuidance?.default
+                  }
                   min={currentGuidance.reasoningTokensGuidance?.min}
                   max={currentGuidance.reasoningTokensGuidance?.max}
                   disabled={!effectiveReasoningEnabled}
@@ -2378,6 +2479,7 @@ interface BriefSectionProps {
   onFilesChange: (files: File[]) => void;
   uploaderKey: number;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  extraContent?: React.ReactNode;
 }
 
 function BriefSection({
@@ -2395,6 +2497,7 @@ function BriefSection({
   onFilesChange,
   uploaderKey,
   onSubmit,
+  extraContent,
 }: BriefSectionProps) {
   const isSetup = variant === "setup";
   const title = "Brief";
@@ -2442,7 +2545,12 @@ function BriefSection({
             hint="Paste or upload sketches, storyboards, flow diagrams, or brand shots to steer the improvisation."
             variant="creative"
             captureDocumentPaste
-            examples={["Wireframes", "Mood boards", "Style guides", "Product photos"]}
+            examples={[
+              "Wireframes",
+              "Mood boards",
+              "Style guides",
+              "Product photos",
+            ]}
             onFilesChange={onFilesChange}
           />
 
@@ -2467,6 +2575,10 @@ function BriefSection({
             </div>
           )}
         </div>
+
+        {extraContent ? (
+          <div className="brief-extra-slot">{extraContent}</div>
+        ) : null}
 
         <div className="admin-actions">
           <button
@@ -2743,7 +2855,6 @@ function RuntimePanel({
             type="number"
             min={HISTORY_MAX_BYTES_MIN}
             max={HISTORY_MAX_BYTES_MAX}
-            step={1024}
             value={historyMaxBytesValue}
             onChange={(event) => {
               setHistoryMaxBytesValue(event.target.value);
@@ -2762,9 +2873,10 @@ function RuntimePanel({
             </p>
           ) : (
             <p className="admin-field__helper">
-              Once this threshold is exceeded, older entries will be trimmed. (
+              Once this threshold is exceeded, older entries will be trimmed (
               {HISTORY_MAX_BYTES_MIN.toLocaleString()}–
-              {HISTORY_MAX_BYTES_MAX.toLocaleString()} bytes)
+              {HISTORY_MAX_BYTES_MAX.toLocaleString()} bytes, default{" "}
+              {DEFAULT_HISTORY_MAX_BYTES.toLocaleString()})
             </p>
           )}
         </label>
@@ -2793,337 +2905,6 @@ function RuntimePanel({
           </button>
         </div>
       </form>
-    </section>
-  );
-}
-
-interface ImportPanelProps {
-  onState: (state: AdminStateResponse) => void;
-  onHistoryRefresh: () => void;
-}
-
-interface SnapshotPreview {
-  historyCount: number;
-  attachmentCount: number;
-  briefIncluded: boolean;
-  provider?: string;
-  model?: string;
-}
-
-function ImportPanel({ onState, onHistoryRefresh }: ImportPanelProps) {
-  const { notify } = useNotifications();
-  const [inputText, setInputText] = useState("");
-  const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null);
-  const [preview, setPreview] = useState<SnapshotPreview | null>(null);
-  const [parseError, setParseError] = useState<string | null>(null);
-  const [status, setStatus] = useState<NullableStatus>(null);
-  const [saving, setSaving] = useState<AsyncStatus>("idle");
-
-  const resetStatus = useCallback(() => {
-    setStatus(null);
-    setSaving("idle");
-  }, []);
-
-  const validateSnapshot = useCallback((source: string) => {
-    const trimmed = source.trim();
-    if (!trimmed) {
-      throw new Error("Paste or upload a snapshot JSON file first.");
-    }
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(trimmed);
-    } catch (error) {
-      throw new Error(
-        `Failed to parse JSON: ${(error as Error).message ?? String(error)}`
-      );
-    }
-    if (!parsed || typeof parsed !== "object") {
-      throw new Error("Snapshot must be a JSON object.");
-    }
-    const candidate = parsed as Record<string, unknown>;
-    if (candidate.version !== 1) {
-      throw new Error("Snapshot version must equal 1.");
-    }
-    if (!Array.isArray(candidate.history)) {
-      throw new Error("Snapshot must include a history array.");
-    }
-
-    const historyCount = candidate.history.length;
-    const attachmentCount = Array.isArray(candidate.briefAttachments)
-      ? candidate.briefAttachments.length
-      : 0;
-    const briefIncluded = Boolean(
-      typeof candidate.brief === "string" && candidate.brief.trim().length > 0
-    );
-    const provider =
-      candidate.llm &&
-      typeof candidate.llm === "object" &&
-      candidate.llm !== null &&
-      typeof (candidate.llm as Record<string, unknown>).provider === "string"
-        ? ((candidate.llm as Record<string, unknown>).provider as string)
-        : undefined;
-    const model =
-      candidate.llm &&
-      typeof candidate.llm === "object" &&
-      candidate.llm !== null &&
-      typeof (candidate.llm as Record<string, unknown>).model === "string"
-        ? ((candidate.llm as Record<string, unknown>).model as string)
-        : undefined;
-
-    return {
-      snapshot: candidate,
-      summary: {
-        historyCount,
-        attachmentCount,
-        briefIncluded,
-        provider,
-        model,
-      } as SnapshotPreview,
-    };
-  }, []);
-
-  const handleFileSelect = useCallback(
-    async (file: File) => {
-      try {
-        const text = await file.text();
-        setInputText(text);
-        setSelectedFile({ name: file.name, size: file.size });
-        const { summary } = validateSnapshot(text);
-        setPreview(summary);
-        setParseError(null);
-        setStatus({
-          tone: "info",
-          message: `Loaded snapshot from ${file.name}`,
-        });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setPreview(null);
-      setParseError(message);
-      setStatus({ tone: "error", message });
-      notify("error", message);
-    }
-  },
-  [notify, validateSnapshot]
-);
-
-  const handleUploadChange = useCallback(
-    (files: File[]) => {
-      if (files.length === 0) {
-        setSelectedFile(null);
-        setPreview(null);
-        setParseError(null);
-        resetStatus();
-        return;
-      }
-
-      const [file] = files;
-      resetStatus();
-      void handleFileSelect(file);
-    },
-    [handleFileSelect, resetStatus]
-  );
-
-  const handlePreview = useCallback(() => {
-    resetStatus();
-    try {
-      const { summary } = validateSnapshot(inputText);
-      setPreview(summary);
-      setParseError(null);
-      setStatus({
-        tone: "info",
-        message: `Snapshot ready with ${summary.historyCount} entries`,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setPreview(null);
-      setParseError(message);
-      setStatus({ tone: "error", message });
-      notify("error", message);
-    }
-  }, [inputText, notify, resetStatus, validateSnapshot]);
-
-  const handleSubmit = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      setSaving("loading");
-      setStatus(null);
-      try {
-        const { snapshot, summary } = validateSnapshot(inputText);
-        const response = await submitHistoryImport(snapshot);
-        if (!response.success) {
-          throw new Error(response.message || "History import failed");
-        }
-        if (response.state) {
-          onState(response.state);
-        }
-        onHistoryRefresh();
-        setPreview(summary);
-        setParseError(null);
-        setSelectedFile(null);
-        setInputText("");
-        setStatus({ tone: "info", message: response.message });
-        setSaving("success");
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        setStatus({ tone: "error", message });
-        notify("error", message);
-        setSaving("error");
-      }
-    },
-    [inputText, notify, onHistoryRefresh, onState, validateSnapshot]
-  );
-
-  return (
-    <section className="admin-card">
-      <div className="admin-card__header">
-        <div>
-          <h2>Import history</h2>
-          <p className="admin-card__subtitle">
-            Restore a previous session snapshot to resume where you left off.
-          </p>
-        </div>
-        {status && (
-          <div
-            className={`admin-status admin-status--${
-              status.tone === "error" ? "error" : "info"
-            }`}
-          >
-            {status.message}
-          </div>
-        )}
-      </div>
-
-      <form className="admin-form" onSubmit={handleSubmit}>
-        <AttachmentUploader
-          className="admin-import__uploader"
-          name="snapshotUpload"
-          accept="application/json,.json"
-          multiple={false}
-          label="Drop or paste a history snapshot"
-          hint="Drop a saved history.json, paste it from the clipboard, or browse to upload."
-          emptyStatus="No snapshot file selected yet."
-          onFilesChange={handleUploadChange}
-        />
-
-        {selectedFile ? (
-          <p className="admin-import__file" aria-live="polite">
-            Loaded snapshot: {selectedFile.name} · {selectedFile.size.toLocaleString()} bytes
-          </p>
-        ) : (
-          <p className="admin-import__helper">
-            You can also paste the snapshot JSON into the editor below.
-          </p>
-        )}
-
-        <label className="admin-field">
-          <span className="admin-field__label">Snapshot JSON</span>
-          <textarea
-            value={inputText}
-            onChange={(event) => {
-              setInputText(event.target.value);
-              setSelectedFile(null);
-              setPreview(null);
-              setParseError(null);
-              resetStatus();
-            }}
-            rows={10}
-            spellCheck={false}
-            placeholder="Paste the JSON snapshot here or drop a file above."
-          />
-          {parseError ? (
-            <p className="admin-field__error" role="alert">
-              {parseError}
-            </p>
-          ) : (
-            <p className="admin-field__helper">
-              You can paste the contents of an exported history snapshot to
-              import without upload.
-            </p>
-          )}
-        </label>
-
-        <div className="admin-import__actions">
-          <button
-            type="button"
-            className="admin-secondary"
-            onClick={handlePreview}
-          >
-            Preview snapshot
-          </button>
-          <button
-            type="submit"
-            className="admin-primary"
-            disabled={saving === "loading"}
-          >
-            {saving === "loading" ? "Importing…" : "Import snapshot"}
-          </button>
-        </div>
-
-        {preview ? (
-          <div className="admin-import__summary" aria-live="polite">
-            <h3>Snapshot details</h3>
-            <dl className="admin-import__preview">
-              <div>
-                <dt>History entries</dt>
-                <dd>{preview.historyCount.toLocaleString()}</dd>
-              </div>
-              <div>
-                <dt>Attachments</dt>
-                <dd>{preview.attachmentCount}</dd>
-              </div>
-              <div>
-                <dt>Brief included</dt>
-                <dd>{preview.briefIncluded ? "Yes" : "No"}</dd>
-              </div>
-              {preview.provider ? (
-                <div>
-                  <dt>Provider</dt>
-                  <dd>
-                    {preview.provider}
-                    {preview.model ? ` · ${preview.model}` : ""}
-                  </dd>
-                </div>
-              ) : null}
-            </dl>
-          </div>
-        ) : null}
-      </form>
-    </section>
-  );
-}
-
-interface ExportPanelProps {
-  exportJsonUrl: string;
-  exportMarkdownUrl: string;
-}
-
-function ExportPanel({ exportJsonUrl, exportMarkdownUrl }: ExportPanelProps) {
-  return (
-    <section className="admin-panel admin-panel--exports">
-      <div className="admin-card__header">
-        <div>
-          <h2>Exports</h2>
-          <p className="admin-card__subtitle">
-            Download the current session for safekeeping or handoff.
-          </p>
-        </div>
-      </div>
-      <div className="admin-actions admin-actions--stacked">
-        <a
-          className="admin-primary admin-primary--link"
-          href={exportJsonUrl}
-          download
-        >
-          Download JSON snapshot
-        </a>
-        <a
-          className="admin-secondary admin-secondary--link"
-          href={exportMarkdownUrl}
-          download
-        >
-          Download prompt.md
-        </a>
-      </div>
     </section>
   );
 }

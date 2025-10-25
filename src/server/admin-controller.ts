@@ -329,6 +329,20 @@ export class AdminController {
       return true;
     }
 
+    if (method === "DELETE" && subPath === "/history") {
+      const removedCount = this.sessionStore.clearHistory();
+      reqLogger.info({ removedCount }, "Purged admin history via API");
+      const message =
+        removedCount > 0
+          ? `Deleted ${removedCount} history ${removedCount === 1 ? "entry" : "entries"}`
+          : "History already empty";
+      this.respondJson(res, {
+        success: true,
+        message,
+      });
+      return true;
+    }
+
     if (method === "DELETE" && subPath.startsWith("/history/")) {
       const entryIdSegment = subPath.slice("/history/".length);
       if (!entryIdSegment) {

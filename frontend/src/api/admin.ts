@@ -233,3 +233,17 @@ export async function deleteHistoryEntry(
     "History deletion failed"
   );
 }
+
+export async function deleteAllHistoryEntries(): Promise<AdminUpdateResponse> {
+  return requestJson<AdminUpdateResponse>(
+    "/api/admin/history",
+    {
+      method: "DELETE",
+      headers: {
+        Accept: "application/json",
+      },
+      credentials: "same-origin",
+    },
+    "History purge failed"
+  );
+}

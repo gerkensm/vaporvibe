@@ -2,8 +2,13 @@ import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { ADMIN_ROUTE_PREFIX } from "../constants.js";
+
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 let cachedAssetsDir: string | undefined;
+
+const ADMIN_ASSET_ROUTE_PREFIX = "/vaporvibe/assets";
+const ADMIN_ASSET_ROUTE_PREFIX_WITH_SLASH = `${ADMIN_ASSET_ROUTE_PREFIX}/`;
 
 function findFrontendAssetsDir(): string | null {
   if (cachedAssetsDir && existsSync(cachedAssetsDir)) {
@@ -38,16 +43,25 @@ export function resolveScriptSource(
   assetFile: string,
   devEntry: string
 ): { url: string; mode: "asset" | "dev" } {
+  const preferDevFrontend = process.env.VAPORVIBE_PREFER_DEV_FRONTEND === "1";
   const assetsDir = findFrontendAssetsDir();
 
-  if (assetsDir) {
+  if (!preferDevFrontend && assetsDir) {
     const assetPath = resolve(assetsDir, assetFile);
     if (existsSync(assetPath)) {
-      return { url: `/assets/${assetFile}`, mode: "asset" };
+      return {
+        url: `${ADMIN_ASSET_ROUTE_PREFIX_WITH_SLASH}${assetFile}`,
+        mode: "asset",
+      };
     }
   }
 
-  const baseUrl = getDevServerBaseUrl();
   const entryPath = devEntry.startsWith("/") ? devEntry : `/${devEntry}`;
+
+  if (preferDevFrontend) {
+    return { url: entryPath, mode: "dev" };
+  }
+
+  const baseUrl = getDevServerBaseUrl();
   return { url: `${baseUrl}${entryPath}`, mode: "dev" };
 }

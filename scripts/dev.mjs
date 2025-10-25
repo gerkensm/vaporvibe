@@ -3,11 +3,19 @@ import { spawn } from "node:child_process";
 const children = new Set();
 let closing = false;
 
-function spawnScript(name, script) {
+const baseEnv = {
+  ...process.env,
+  NODE_ENV: process.env.NODE_ENV ?? "development",
+  VAPORVIBE_PREFER_DEV_FRONTEND: "1",
+  SERVE_LLM_DEV_SERVER_URL:
+    process.env.SERVE_LLM_DEV_SERVER_URL ?? "http://localhost:5173",
+};
+
+function spawnScript(name, script, extraEnv = {}) {
   const child = spawn("npm", ["run", script], {
     stdio: "inherit",
     shell: process.platform === "win32",
-    env: process.env,
+    env: { ...baseEnv, ...extraEnv },
   });
 
   children.add(child);
@@ -66,4 +74,3 @@ process.on("SIGTERM", () => {
 });
 
 spawnScript("backend", "dev:be");
-spawnScript("frontend", "dev:fe");

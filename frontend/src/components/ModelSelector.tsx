@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   ModelMetadata,
@@ -161,6 +161,7 @@ export function ModelSelector({
   onCustomConfigChange,
   onCustomModelIdChange,
 }: ModelSelectorProps) {
+  const MIN_CATALOG_HEIGHT = 360;
   const curatedOptions = modelOptions[provider] ?? [];
   const featured = featuredModels[provider] ?? [];
   const metadata = useMemo(
@@ -180,6 +181,31 @@ export function ModelSelector({
   const canSelectModels = providerUnlocked && !disableModelSelection;
   const [filter, setFilter] = useState("");
   const normalizedFilter = filter.trim().toLowerCase();
+  const inspectorRef = useRef<HTMLDivElement | null>(null);
+  const [inspectorHeight, setInspectorHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof ResizeObserver === "undefined") {
+      return undefined;
+    }
+    const node = inspectorRef.current;
+    if (!node) {
+      setInspectorHeight(null);
+      return undefined;
+    }
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const nextHeight = entry.contentRect.height;
+      setInspectorHeight((prev) =>
+        Math.abs((prev ?? 0) - nextHeight) > 1 ? nextHeight : prev
+      );
+    });
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+    };
+  }, [provider, model, providerUnlocked]);
 
   const modelPlaceholder = useMemo(() => {
     if (metadata?.value) {
@@ -241,6 +267,10 @@ export function ModelSelector({
   };
 
   const customModeId = customId || model;
+  const catalogMaxHeight =
+    inspectorHeight != null
+      ? Math.max(MIN_CATALOG_HEIGHT, Math.round(inspectorHeight))
+      : undefined;
 
   return (
     <div className="model-selector">
@@ -304,7 +334,17 @@ export function ModelSelector({
                   </button>
                 )}
               </div>
-              <div className="model-selector__grid">
+              <div
+                className="model-selector__grid"
+                style={
+                  catalogMaxHeight
+                    ? {
+                        maxHeight: `${catalogMaxHeight}px`,
+                        minHeight: `${MIN_CATALOG_HEIGHT}px`,
+                      }
+                    : undefined
+                }
+              >
                 {filteredOptions.map((option) => (
                   <ModelCard
                     key={option.value}
@@ -330,6 +370,7 @@ export function ModelSelector({
           </div>
 
           <ModelInspector
+            ref={inspectorRef}
             providerLabel={providerLabel}
             modelId={model}
             metadata={metadata}

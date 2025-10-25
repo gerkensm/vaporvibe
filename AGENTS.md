@@ -104,13 +104,13 @@ This is not a traditional software project; it's a creative tool. The "vibe" is 
 ### Navigation Interception
 
 - **Purpose**: Shows a loading overlay during LLM generation instead of a blank screen.
-- **Mechanism**: The backend injects `<script src="/assets/vaporvibe-interceptor.js">` into every LLM-generated HTML response. This script intercepts `<a>` clicks and `<form>` submissions, displays the overlay, and re-initiates the request, adding a marker (`__vaporvibe=interceptor`) so the server knows to send back the final HTML directly (or handle API calls).
+- **Mechanism**: The backend injects `<script src="/vaporvibe/assets/vaporvibe-interceptor.js">` into every LLM-generated HTML response. This script intercepts `<a>` clicks and `<form>` submissions, displays the overlay, and re-initiates the request, adding a marker (`__vaporvibe=interceptor`) so the server knows to send back the final HTML directly (or handle API calls).
 - **Source**: The interceptor logic lives in `frontend/src/interceptor.ts` and is bundled by Vite.
 
 ### Instructions Panel
 
 - **Purpose**: Allows users to provide quick, iterative feedback ("nudges") to the LLM for the next render without editing the main brief.
-- **Mechanism**: If enabled, the backend injects `<script src="/assets/vaporvibe-instructions-panel.js">`. This script adds a floating panel UI. Submitting instructions adds a special field (`LLM_WEB_SERVER_INSTRUCTIONS`) to the next form submission.
+- **Mechanism**: If enabled, the backend injects `<script src="/vaporvibe/assets/vaporvibe-instructions-panel.js">`. This script adds a floating panel UI. Submitting instructions adds a special field (`LLM_WEB_SERVER_INSTRUCTIONS`) to the next form submission.
 - **Source**: The panel logic lives in `frontend/src/instructions-panel.ts` and is bundled by Vite.
 
 ### Key Abstractions
@@ -149,6 +149,13 @@ Hallucinating UI on every request is fun, but we still like responses under a lu
 - **Virtual REST API (aka "Of course that data exists")** – Pages call `/rest_api/query/...` or `/rest_api/mutation/...` just like they would a real backend. The cheeky twist is that the server already knows what shape the UI expects, so it replies with JSON in exactly that format—no schema drift, no "oops I forgot a field". Mutations get recorded and fed back in the next prompt so state feels persistent.
 - **Component Placeholder Cache** – Every response gets annotated with stable `data-id`s on `<html>`, `<head>`, `<body>`, structural sections, helper scripts, and `<style>` blocks. Next render, the LLM can toss in `{{component:sl-gen-12}}` / `{{style:sl-style-3}}` and the server drops the cached markup back in. Chrome stays consistent, tokens stay low.
 - **History Time Travel** – Because those caches live with each history entry, the model can resurrect a prior page wholesale when nothing changed. Sometimes the whole response is one `<html>` placeholder—it still feels like sorcery when it works.
+
+### Navigation Interception & Loading Shell
+
+- **Interceptor script** – Every LLM-rendered document receives `vaporvibe-interceptor.js`, which hijacks `<a>` clicks, `<form>` submits, and `popstate` to insert the `__vaporvibe=interceptor` marker. This keeps admin/setup routes inside the SPA while forcing full navigations for the generated experience.
+- **Asynchronous result delivery** – When a non-interceptor request hits `/`, the server immediately streams the animated loading shell plus a hydration script. The real HTML is stored under a UUID token at `/__vaporvibe/result/{token}` (TTL: 15 minutes to accommodate >10 minute generations) and is never regenerated for retries.
+- **Hydration fetch** – The loader script performs a long-lived fetch for that token (no artificial timeout) and swaps in the HTML once it lands; transient network errors trigger lightweight retries without triggering a fresh LLM call because the fetch only reads the cached `/__vaporvibe/result` payload.
+- **User feedback** – While the fetch is pending, status messages rotate and the overlay mini-experiences continue to run, so the user always sees progress even during extremely slow model responses.
 
 ---
 
@@ -209,13 +216,12 @@ gerkensm-vaporvibe/
 
 ### Running the Development Server
 
-- **Dual Server**: `npm run dev`
-  - Starts the backend server using `tsx --watch src/index.ts` for automatic restarts on changes in `src/`.
-  - Starts the Vite dev server for the frontend (`frontend/`) on port 5173.
-  - The backend proxies requests for `/`, `/__setup`, `/vaporvibe`, `/assets/*`, and `/api/admin/*` to the appropriate server (Vite or itself).
-  - Access via `http://localhost:3000/__setup` or `http://localhost:3000/vaporvibe`.
-- **Backend Only**: `npm run dev:be` (runs `tsx --watch src/index.ts`)
-- **Frontend Only**: `npm run dev:fe` (runs `vite` inside `frontend/`) - useful for focusing on UI changes, access directly via `http://localhost:5173`.
+- **Integrated Dev Harness**: `npm run dev`
+  - Spins up `src/dev/backend-dev-server.ts`, which watches backend files with **chokidar**, restarts on change, and snapshots session/provider state so you keep your brief/history during reloads.
+  - Boots Vite in **middleware mode** (`VAPORVIBE_PREFER_DEV_FRONTEND=1`) so the admin/setup SPA is served through the Node server—with full HMR and no need to rebuild `frontend/dist/` while iterating.
+  - Access everything via `http://localhost:3000/__setup` or `http://localhost:3000/vaporvibe` (no separate Vite port required).
+- **Backend Only**: `npm run dev:be` (runs the same harness directly via `tsx src/dev/backend-dev-server.ts`).
+- **Frontend Only**: `npm run dev:fe` (launches Vite standalone on `http://localhost:5173` if you want to isolate UI work).
 
 ### Building for Production
 
@@ -228,6 +234,13 @@ gerkensm-vaporvibe/
 ### Running Compiled Code
 
 - `npm run start` executes the compiled backend from `dist/index.js`, serving the production frontend assets from `frontend/dist/`.
+
+### Testing
+
+- `npm test` (or `npm run test`) executes the Vitest suite once; `npm run test:watch` keeps it running while you iterate.
+- Coverage reports live in `coverage/` (text summary + HTML) and are configured via `vitest.config.ts` to focus on `src/**/*.ts`.
+- The suite lives in `tests/`, with targeted coverage for config loading, prompt assembly, the session store, and shared utilities. Reuse helpers in `tests/test-utils/` (HTTP mocks, keytar stubs, factories, logger spies) and the global logger stub defined in `tests/vitest.setup.ts`.
+- Tests intentionally stop at the Node boundary—browser flows and provider integrations still need manual verification.
 
 ### Logging & Debugging
 
@@ -246,7 +259,7 @@ gerkensm-vaporvibe/
 
 ### Areas for Caution ⚠️
 
-- **No Automated Tests**: Requires careful **manual testing** across providers for all changes.
+- **Focused Test Suite**: A Vitest suite now covers config loading, prompt compilation, the session store, and key utilities. It runs fast but doesn't yet exercise every provider path, so keep testing manually when touching network integrations or the SPA.
 - **macOS-Centric Builds**: `scripts/` contains complex logic for macOS `.app` and DMG creation/notarization.
 - **Inconsistent Reasoning APIs**: OpenAI/Grok use `reasoningMode`, while Anthropic/Gemini use `reasoningTokens`. Backend logic handles normalization.
 - **Embrace the Chaos**: Guide the LLM's creativity, don't force deterministic output. Minor variations are expected.

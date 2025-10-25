@@ -20,6 +20,20 @@ interface SessionData {
   };
 }
 
+export interface SessionDataSnapshot {
+  updatedAt: number;
+  prevHtml: string;
+  history: HistoryEntry[];
+  rest: {
+    mutations: RestMutationRecord[];
+    queries: RestQueryRecord[];
+  };
+}
+
+export interface SessionStoreSnapshot {
+  sessions: Array<[string, SessionDataSnapshot]>;
+}
+
 const REST_RECORD_LIMIT = 25;
 
 export class SessionStore {
@@ -142,6 +156,29 @@ export class SessionStore {
     return removed;
   }
 
+  clearHistory(): number {
+    let removedCount = 0;
+    for (const [sid, record] of this.sessions.entries()) {
+      const history = record.history ?? [];
+      const nextRecord: SessionData = {
+        ...record,
+        history: [],
+        prevHtml: "",
+        rest: {
+          mutations: [],
+          queries: [],
+        },
+      };
+
+      if (history.length > 0) {
+        removedCount += history.length;
+      }
+
+      this.persistRecord(sid, nextRecord);
+    }
+    return removedCount;
+  }
+
   exportHistory(): HistoryEntry[] {
     const now = Date.now();
     return Array.from(this.sessions.entries())
@@ -166,6 +203,30 @@ export class SessionStore {
       record.rest.queries = [];
       record.updatedAt = now;
       this.sessions.set(sid, record);
+    }
+    this.pruneSessions();
+  }
+
+  exportSnapshot(): SessionStoreSnapshot {
+    return {
+      sessions: Array.from(this.sessions.entries()).map(([sid, record]) => [
+        sid,
+        cloneSessionData(record),
+      ]),
+    };
+  }
+
+  importSnapshot(snapshot: SessionStoreSnapshot | null | undefined): void {
+    if (!snapshot) {
+      return;
+    }
+    this.sessions.clear();
+    const cutoff = Date.now() - this.ttlMs;
+    for (const [sid, record] of snapshot.sessions) {
+      if (record.updatedAt < cutoff) {
+        continue;
+      }
+      this.sessions.set(sid, cloneSessionData(record));
     }
     this.pruneSessions();
   }
@@ -311,6 +372,18 @@ function clampRestRecords<T>(records: T[]): T[] {
 
 function cloneRestRecord<T>(record: T): T {
   return structuredClone(record);
+}
+
+function cloneSessionData(record: SessionDataSnapshot): SessionData {
+  return {
+    updatedAt: record.updatedAt,
+    prevHtml: record.prevHtml,
+    history: record.history.map((entry) => structuredClone(entry)),
+    rest: {
+      mutations: record.rest.mutations.map((mutation) => cloneRestRecord(mutation)),
+      queries: record.rest.queries.map((query) => cloneRestRecord(query)),
+    },
+  };
 }
 
 function findLastHtmlEntry(history: HistoryEntry[]): HistoryEntry | undefined {

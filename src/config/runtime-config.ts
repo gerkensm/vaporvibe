@@ -24,7 +24,7 @@ import type { CliOptions } from "../cli/args.js";
 import { getCredentialStore } from "../utils/credential-store.js";
 import { logger } from "../logger.js";
 
-const SESSION_TTL_MS = 15 * 60 * 1000;
+const SESSION_TTL_MS = Number.MAX_SAFE_INTEGER;
 const SESSION_CAP = 200;
 
 export async function resolveAppConfig(
@@ -155,8 +155,9 @@ async function resolveProviderSettings(
     const maxOutputTokens = maxOverride ?? DEFAULT_MAX_OUTPUT_TOKENS;
     const reasoningTokensExplicit =
       reasoning.tokensExplicit && typeof reasoning.tokens === "number";
-    const reasoningTokensEnabled =
-      reasoningTokensExplicit ? reasoning.tokens !== 0 : true;
+    const reasoningTokensEnabled = reasoningTokensExplicit
+      ? reasoning.tokens !== 0
+      : true;
     let reasoningTokens: number | undefined;
     if (reasoningTokensEnabled) {
       reasoningTokens = reasoningTokensExplicit
@@ -211,7 +212,7 @@ async function resolveProviderSettings(
       reasoning.tokens > 0
     ) {
       logger.info(
-        `Groq does not expose reasoning token budgets; requested value ${reasoning.tokens} will be ignored.`,
+        `Groq does not expose reasoning token budgets; requested value ${reasoning.tokens} will be ignored.`
       );
     }
     const reasoningMode = reasoning.mode;
@@ -236,8 +237,9 @@ async function resolveProviderSettings(
       : DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS;
   const reasoningTokensExplicit =
     reasoning.tokensExplicit && typeof reasoning.tokens === "number";
-  const reasoningTokensEnabled =
-    reasoningTokensExplicit ? reasoning.tokens !== 0 : true;
+  const reasoningTokensEnabled = reasoningTokensExplicit
+    ? reasoning.tokens !== 0
+    : true;
   let reasoningTokens: number | undefined;
   if (reasoningTokensEnabled) {
     reasoningTokens = reasoningTokensExplicit

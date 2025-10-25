@@ -1,8 +1,10 @@
-export function ensureHtmlDocument(content: string, context: { method: string; path: string }): string {
-  const unwrapped = unwrapCodeFences(String(content ?? ""));
-  const trimmed = unwrapped.trim();
-  const looksHtml = /<\s*html[\s>]/i.test(trimmed) && /<\s*\/\s*html\s*>/i.test(trimmed);
-  if (looksHtml) {
+export function ensureHtmlDocument(
+  content: string,
+  context: { method: string; path: string }
+): string {
+  const candidate = unwrapCodeFences(String(content ?? ""));
+  const trimmed = candidate.trim();
+  if (looksLikeHtmlDocument(trimmed)) {
     return trimmed;
   }
 
@@ -58,14 +60,103 @@ export function escapeHtml(value: string): string {
 }
 
 function unwrapCodeFences(input: string): string {
-  let result = input.trim();
-  const fencePattern = /^```[a-z0-9_-]*\s*\r?\n([\s\S]*?)\r?\n?```$/i;
+  const raw = String(input ?? "").trim();
+  if (!raw) {
+    return raw;
+  }
 
+  const sentinel = extractSentinelHtml(raw);
+  if (sentinel) {
+    return sentinel;
+  }
+
+  const fencePattern = /^```[^\n\r`]*\r?\n([\s\S]*?)\r?\n?```$/i;
+  let result = raw;
   while (true) {
     const match = fencePattern.exec(result);
     if (!match) {
-      return result;
+      break;
     }
     result = match[1].trim();
   }
+
+  return extractEmbeddedHtml(result) ?? result;
+}
+
+function extractEmbeddedHtml(input: string): string | null {
+  const sentinel = extractSentinelHtml(input);
+  if (sentinel) {
+    return sentinel;
+  }
+
+  const fenced = extractHtmlFromAnyFence(input);
+  if (fenced) {
+    return fenced;
+  }
+
+  return extractLooseHtmlDocument(input);
+}
+
+function extractSentinelHtml(input: string): string | null {
+  const match = /-{3,}\s*BEGIN\s+HTML\s*-{3,}([\s\S]*?)-{3,}\s*END\s+HTML\s*-{3,}/i.exec(input);
+  return match ? match[1].trim() : null;
+}
+
+function extractHtmlFromAnyFence(input: string): string | null {
+  const fenceRegex = /```([^\n\r`]*)\r?\n([\s\S]*?)\r?\n?```/g;
+  let match: RegExpExecArray | null;
+  let fallback: string | null = null;
+
+  while ((match = fenceRegex.exec(input)) !== null) {
+    const language = match[1]?.trim() ?? "";
+    const body = match[2]?.trim() ?? "";
+    if (!body) {
+      continue;
+    }
+    if (looksLikeHtmlDocument(body)) {
+      return body;
+    }
+    if (!fallback && isHtmlishFence(language, body)) {
+      fallback = body;
+    }
+  }
+
+  return fallback;
+}
+
+function extractLooseHtmlDocument(input: string): string | null {
+  const match = /<!doctype\s+html[^>]*>|<\s*html[\s>]/i.exec(input);
+  if (!match) {
+    return null;
+  }
+  const start = match.index;
+  if (start === undefined) {
+    return null;
+  }
+  const remainder = input.slice(start);
+  const closing = /<\s*\/\s*html\s*>/i.exec(remainder);
+  if (!closing) {
+    return null;
+  }
+  const end = start + closing.index + closing[0].length;
+  return input.slice(start, end).trim();
+}
+
+function isHtmlishFence(language: string, body: string): boolean {
+  if (/html|doctype/i.test(language)) {
+    return true;
+  }
+  if (/^<\s*!?doctype/i.test(language) || /^<\s*html/i.test(language)) {
+    return true;
+  }
+  return startsLikeHtml(body);
+}
+
+function startsLikeHtml(value: string): boolean {
+  const normalized = value.trimStart();
+  return /^<!doctype\s+html/i.test(normalized) || /^<\s*html[\s>]/i.test(normalized);
+}
+
+function looksLikeHtmlDocument(content: string): boolean {
+  return /<\s*html[\s>]/i.test(content) && /<\s*\/\s*html\s*>/i.test(content);
 }
