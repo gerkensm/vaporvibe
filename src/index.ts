@@ -265,9 +265,11 @@ function handleFatalError(error: unknown): void {
   process.exitCode = 1;
 }
 
+const argv1 = process.argv[1];
 const isMain =
-  typeof process.argv[1] === "string" &&
-  fileURLToPath(import.meta.url) === process.argv[1];
+  typeof argv1 !== "string" || // SEA bundles often omit argv[1]
+  argv1 === process.argv[0] || // Some launchers set argv[1] to the executable itself
+  fileURLToPath(import.meta.url) === argv1;
 
 if (isMain) {
   try {
