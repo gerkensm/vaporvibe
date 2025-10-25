@@ -57,7 +57,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
         "",
         "MANDATORY RULES:",
         "1) OUTPUT: Respond with raw JSON (object or array). No comments, no code fences, no surrounding prose.",
-        "2) UNREALISTIC CONTENT: Provide richly detailed, plausible data that aligns with the app brief, recorded mutations, previous HTML (your prior work), and prior query responses.",
+        "2) REALISTIC CONTENT: Provide richly detailed, plausible data that aligns with the app brief, recorded mutations, previous HTML (your prior work), and prior query responses.",
         "3) CONTEXT: Consider the triggering request path, query, body, and the latest HTML (your prior work) to infer what data the UI expects.",
         "4) CONSISTENCY: Respect any persisted mutations or prior query results—treat them as authoritative state to build upon.",
         "5) STRUCTURE: Match the field names, nested structures, and conventions implied by the app history (your prior work). Prefer concise payloads that include only the fields the UI can display.",
