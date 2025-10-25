@@ -1,60 +1,1322 @@
 [
-  "Reticulating creative splines",
-  "Searching the web for inspo",
-  "Sketching wireframes in thin air",
-  "Procrastinating... productively",
-  "Auditing color palettes against vibes",
-  "Consulting the prompt whisperer",
-  "Contemplating AGI alignment",
-  "Asking the model to phone a friend",
-  "Baking semantic breadcrumbs",
-  "Syncing narratives with UX atoms",
-  "Coaxing latent space into a moodboard",
-  "Listening for whispers from hidden layers",
-  "Debating prompt tone with the alignment committee",
-  "Sampling gradients from a transformer’s daydream",
-  "Replaying vector memories for Easter eggs",
-  "Translating embeddings into interface decisions",
-  "Rehearsing a cold start apology just in case",
-  "Sweeping stray tokens under the style guide",
-  "Harmonizing typography with diffusion noise",
-  "Downscaling hallucinations into viable features",
-  "Spinning up a mirror world for copy edits",
-  "Cross-checking vibes with a safety classifier",
-  "Peeking at the model’s scratch pad doodles",
-  "Asking guardrails to approve the hero gradient",
-  "Bottling synthetic inspiration for later prompts",
-  "Fending off rogue autocomplete suggestions",
-  "Negotiating whitespace with a chain-of-thought",
-  "Placing easter eggs in the latent manifold",
-  "Queuing a parallel universe for user testing",
-  "Assembling quick sketches from token confetti",
-  "Greeting the moderation bot with a latte",
-  "Letting the reward model tune microcopy warmth",
-  "Patching prompt leaks with friendly regex",
-  "Syncing color tokens with think tokens",
-  "Refreshing the knowledge cutoff on interior design",
-  "Scrubbing prompt engineering notes for clarity",
-  "Asking the simulator to imagine delight",
-  "Mapping tone of voice across embeddings",
-  "Sketching onboarding with synthetic personas",
-  "Tuning conversational guardrails to whisper mode",
-  "Crossfading between reasoning modes for flair",
-  "Bottling emergent behavior into hero copy",
-  "Aligning call-to-action courage with log probabilities",
-  "Consulting few-shot examples for tasteful animation",
-  "Translating confidence intervals into layout rhythm",
-  "Debugging an overenthusiastic summary subroutine",
-  "Telling the model a bedtime brief for inspiration",
-  "Running style transfer on yesterday’s feedback",
-  "Reindexing the prompt library for serendipity",
-  "Rerouting creative overflow to sandbox memory",
-  "Chatting with the self-critique about polish",
-  "Drafting accessibility notes with the safety net",
-  "Letting the assistant sketch with synthetic chalk",
-  "Sampling temperature curves for witty tooltips",
-  "Polishing edge cases in the instruction buffer",
-  "Teaching the fallback model a new dad joke",
-  "Cross-referencing tone with long-term memory",
-  "Capturing lightning in a latent bottle"
+  {
+    "id": "reticulating-creative-splines",
+    "headline": "Reticulating creative splines",
+    "hint": "Field note: Aligning semantic hints with gradient math while calibrating latency budgets.",
+    "mood": "calm",
+    "energy": "low",
+    "category": "rendering",
+    "tags": [
+      "rendering",
+      "latency"
+    ]
+  },
+  {
+    "id": "searching-the-web-for-inspo",
+    "headline": "Searching the web for inspo",
+    "hint": "Backchannel: Aligning latent prototypes with heuristic filters while maintaining alignment logs.",
+    "mood": "playful",
+    "energy": "medium",
+    "category": "design",
+    "tags": [
+      "design",
+      "delight"
+    ]
+  },
+  {
+    "id": "sketching-wireframes-in-thin-air",
+    "headline": "Sketching wireframes in thin air",
+    "hint": "Lab note: Aligning color stories against alignment memos while keeping fallback models caffeinated.",
+    "mood": "curious",
+    "energy": "medium",
+    "category": "prompting",
+    "tags": [
+      "prompting",
+      "insight"
+    ]
+  },
+  {
+    "id": "procrastinating-productively",
+    "headline": "Procrastinating... productively",
+    "hint": "Quick ping: Aligning tone-of-voice with instrumentation logs while cross-checking design tokens.",
+    "mood": "focused",
+    "energy": "high",
+    "category": "alignment",
+    "tags": [
+      "alignment",
+      "a11y"
+    ]
+  },
+  {
+    "id": "auditing-color-palettes-against-vibes",
+    "headline": "Auditing color palettes against vibes",
+    "hint": "Signal: Aligning microinteractions to gating logic while resampling the plan cache.",
+    "mood": "cheeky",
+    "energy": "medium",
+    "category": "ops",
+    "tags": [
+      "ops",
+      "promptcraft"
+    ]
+  },
+  {
+    "id": "consulting-the-prompt-whisperer",
+    "headline": "Consulting the prompt whisperer",
+    "hint": "Telemetry: Aligning observability traces with prompt DNA while keeping the launch queue symmetrical.",
+    "mood": "deliberate",
+    "energy": "low",
+    "category": "story",
+    "tags": [
+      "story",
+      "ops"
+    ]
+  },
+  {
+    "id": "contemplating-agi-alignment",
+    "headline": "Contemplating AGI alignment",
+    "hint": "Vibe check: Aligning loading microcopy with GPU budgets while mirroring telemetry to the moodboard.",
+    "mood": "dreamy",
+    "energy": "medium",
+    "category": "experimentation",
+    "tags": [
+      "experimentation",
+      "story"
+    ]
+  },
+  {
+    "id": "asking-the-model-to-phone-a-friend",
+    "headline": "Asking the model to phone a friend",
+    "hint": "Status: Aligning affordances against future brief updates while refreshing heuristics for delight.",
+    "mood": "analytical",
+    "energy": "high",
+    "category": "synthesis",
+    "tags": [
+      "synthesis",
+      "play"
+    ]
+  },
+  {
+    "id": "baking-semantic-breadcrumbs",
+    "headline": "Baking semantic breadcrumbs",
+    "hint": "Observation: Aligning guiding star metrics with vector memory while triangulating safety heuristics.",
+    "mood": "upbeat",
+    "energy": "medium",
+    "category": "telemetry",
+    "tags": [
+      "telemetry",
+      "craft"
+    ]
+  },
+  {
+    "id": "syncing-narratives-with-ux-atoms",
+    "headline": "Syncing narratives with UX atoms",
+    "hint": "Studio note: Aligning ambient motions to intention scaffolds while annotating the dream journal.",
+    "mood": "meticulous",
+    "energy": "low",
+    "category": "delight",
+    "tags": [
+      "delight",
+      "safety"
+    ]
+  },
+  {
+    "id": "coaxing-latent-space-into-a-moodboard",
+    "headline": "Coaxing latent space into a moodboard",
+    "hint": "Dispatch: Aligning onboarding flows with guardrail audits while syncing with asynchronous cosmos.",
+    "mood": "calm",
+    "energy": "high",
+    "category": "rendering",
+    "tags": [
+      "rendering",
+      "system"
+    ]
+  },
+  {
+    "id": "listening-for-whispers-from-hidden-layers",
+    "headline": "Listening for whispers from hidden layers",
+    "hint": "Field note: Buffering semantic hints with gradient math while calibrating latency budgets.",
+    "mood": "playful",
+    "energy": "medium",
+    "category": "design",
+    "tags": [
+      "design",
+      "latency"
+    ]
+  },
+  {
+    "id": "debating-prompt-tone-with-the-alignment-committee",
+    "headline": "Debating prompt tone with the alignment committee",
+    "hint": "Backchannel: Buffering latent prototypes with heuristic filters while maintaining alignment logs.",
+    "mood": "curious",
+    "energy": "low",
+    "category": "prompting",
+    "tags": [
+      "prompting",
+      "delight"
+    ]
+  },
+  {
+    "id": "sampling-gradients-from-a-transformer-s-daydream",
+    "headline": "Sampling gradients from a transformer’s daydream",
+    "hint": "Lab note: Buffering color stories against alignment memos while keeping fallback models caffeinated.",
+    "mood": "focused",
+    "energy": "medium",
+    "category": "alignment",
+    "tags": [
+      "alignment",
+      "insight"
+    ]
+  },
+  {
+    "id": "replaying-vector-memories-for-easter-eggs",
+    "headline": "Replaying vector memories for Easter eggs",
+    "hint": "Quick ping: Buffering tone-of-voice with instrumentation logs while cross-checking design tokens.",
+    "mood": "cheeky",
+    "energy": "medium",
+    "category": "ops",
+    "tags": [
+      "ops",
+      "a11y"
+    ]
+  },
+  {
+    "id": "translating-embeddings-into-interface-decisions",
+    "headline": "Translating embeddings into interface decisions",
+    "hint": "Signal: Buffering microinteractions to gating logic while resampling the plan cache.",
+    "mood": "deliberate",
+    "energy": "high",
+    "category": "story",
+    "tags": [
+      "story",
+      "promptcraft"
+    ]
+  },
+  {
+    "id": "rehearsing-a-cold-start-apology-just-in-case",
+    "headline": "Rehearsing a cold start apology just in case",
+    "hint": "Telemetry: Buffering observability traces with prompt DNA while keeping the launch queue symmetrical.",
+    "mood": "dreamy",
+    "energy": "medium",
+    "category": "experimentation",
+    "tags": [
+      "experimentation",
+      "ops"
+    ]
+  },
+  {
+    "id": "sweeping-stray-tokens-under-the-style-guide",
+    "headline": "Sweeping stray tokens under the style guide",
+    "hint": "Vibe check: Buffering loading microcopy with GPU budgets while mirroring telemetry to the moodboard.",
+    "mood": "analytical",
+    "energy": "low",
+    "category": "synthesis",
+    "tags": [
+      "synthesis",
+      "story"
+    ]
+  },
+  {
+    "id": "harmonizing-typography-with-diffusion-noise",
+    "headline": "Harmonizing typography with diffusion noise",
+    "hint": "Status: Buffering affordances against future brief updates while refreshing heuristics for delight.",
+    "mood": "upbeat",
+    "energy": "medium",
+    "category": "telemetry",
+    "tags": [
+      "telemetry",
+      "play"
+    ]
+  },
+  {
+    "id": "downscaling-hallucinations-into-viable-features",
+    "headline": "Downscaling hallucinations into viable features",
+    "hint": "Observation: Buffering guiding star metrics with vector memory while triangulating safety heuristics.",
+    "mood": "meticulous",
+    "energy": "high",
+    "category": "delight",
+    "tags": [
+      "delight",
+      "craft"
+    ]
+  },
+  {
+    "id": "spinning-up-a-mirror-world-for-copy-edits",
+    "headline": "Spinning up a mirror world for copy edits",
+    "hint": "Studio note: Buffering ambient motions to intention scaffolds while annotating the dream journal.",
+    "mood": "calm",
+    "energy": "medium",
+    "category": "rendering",
+    "tags": [
+      "rendering",
+      "safety"
+    ]
+  },
+  {
+    "id": "cross-checking-vibes-with-a-safety-classifier",
+    "headline": "Cross-checking vibes with a safety classifier",
+    "hint": "Dispatch: Buffering onboarding flows with guardrail audits while syncing with asynchronous cosmos.",
+    "mood": "playful",
+    "energy": "low",
+    "category": "design",
+    "tags": [
+      "design",
+      "system"
+    ]
+  },
+  {
+    "id": "peeking-at-the-model-s-scratch-pad-doodles",
+    "headline": "Peeking at the model’s scratch pad doodles",
+    "hint": "Field note: Cross-indexing semantic hints with gradient math while calibrating latency budgets.",
+    "mood": "curious",
+    "energy": "high",
+    "category": "prompting",
+    "tags": [
+      "prompting",
+      "latency"
+    ]
+  },
+  {
+    "id": "asking-guardrails-to-approve-the-hero-gradient",
+    "headline": "Asking guardrails to approve the hero gradient",
+    "hint": "Backchannel: Cross-indexing latent prototypes with heuristic filters while maintaining alignment logs.",
+    "mood": "focused",
+    "energy": "medium",
+    "category": "alignment",
+    "tags": [
+      "alignment",
+      "delight"
+    ]
+  },
+  {
+    "id": "bottling-synthetic-inspiration-for-later-prompts",
+    "headline": "Bottling synthetic inspiration for later prompts",
+    "hint": "Lab note: Cross-indexing color stories against alignment memos while keeping fallback models caffeinated.",
+    "mood": "cheeky",
+    "energy": "low",
+    "category": "ops",
+    "tags": [
+      "ops",
+      "insight"
+    ]
+  },
+  {
+    "id": "fending-off-rogue-autocomplete-suggestions",
+    "headline": "Fending off rogue autocomplete suggestions",
+    "hint": "Quick ping: Cross-indexing tone-of-voice with instrumentation logs while cross-checking design tokens.",
+    "mood": "deliberate",
+    "energy": "medium",
+    "category": "story",
+    "tags": [
+      "story",
+      "a11y"
+    ]
+  },
+  {
+    "id": "negotiating-whitespace-with-a-chain-of-thought",
+    "headline": "Negotiating whitespace with a chain-of-thought",
+    "hint": "Signal: Cross-indexing microinteractions to gating logic while resampling the plan cache.",
+    "mood": "dreamy",
+    "energy": "medium",
+    "category": "experimentation",
+    "tags": [
+      "experimentation",
+      "promptcraft"
+    ]
+  },
+  {
+    "id": "placing-easter-eggs-in-the-latent-manifold",
+    "headline": "Placing easter eggs in the latent manifold",
+    "hint": "Telemetry: Cross-indexing observability traces with prompt DNA while keeping the launch queue symmetrical.",
+    "mood": "analytical",
+    "energy": "high",
+    "category": "synthesis",
+    "tags": [
+      "synthesis",
+      "ops"
+    ]
+  },
+  {
+    "id": "queuing-a-parallel-universe-for-user-testing",
+    "headline": "Queuing a parallel universe for user testing",
+    "hint": "Vibe check: Cross-indexing loading microcopy with GPU budgets while mirroring telemetry to the moodboard.",
+    "mood": "upbeat",
+    "energy": "medium",
+    "category": "telemetry",
+    "tags": [
+      "telemetry",
+      "story"
+    ]
+  },
+  {
+    "id": "assembling-quick-sketches-from-token-confetti",
+    "headline": "Assembling quick sketches from token confetti",
+    "hint": "Status: Cross-indexing affordances against future brief updates while refreshing heuristics for delight.",
+    "mood": "meticulous",
+    "energy": "low",
+    "category": "delight",
+    "tags": [
+      "delight",
+      "play"
+    ]
+  },
+  {
+    "id": "greeting-the-moderation-bot-with-a-latte",
+    "headline": "Greeting the moderation bot with a latte",
+    "hint": "Observation: Cross-indexing guiding star metrics with vector memory while triangulating safety heuristics.",
+    "mood": "calm",
+    "energy": "medium",
+    "category": "rendering",
+    "tags": [
+      "rendering",
+      "craft"
+    ]
+  },
+  {
+    "id": "letting-the-reward-model-tune-microcopy-warmth",
+    "headline": "Letting the reward model tune microcopy warmth",
+    "hint": "Studio note: Cross-indexing ambient motions to intention scaffolds while annotating the dream journal.",
+    "mood": "playful",
+    "energy": "high",
+    "category": "design",
+    "tags": [
+      "design",
+      "safety"
+    ]
+  },
+  {
+    "id": "patching-prompt-leaks-with-friendly-regex",
+    "headline": "Patching prompt leaks with friendly regex",
+    "hint": "Dispatch: Cross-indexing onboarding flows with guardrail audits while syncing with asynchronous cosmos.",
+    "mood": "curious",
+    "energy": "medium",
+    "category": "prompting",
+    "tags": [
+      "prompting",
+      "system"
+    ]
+  },
+  {
+    "id": "syncing-color-tokens-with-think-tokens",
+    "headline": "Syncing color tokens with think tokens",
+    "hint": "Field note: Decoding semantic hints with gradient math while calibrating latency budgets.",
+    "mood": "focused",
+    "energy": "low",
+    "category": "alignment",
+    "tags": [
+      "alignment",
+      "latency"
+    ]
+  },
+  {
+    "id": "refreshing-the-knowledge-cutoff-on-interior-design",
+    "headline": "Refreshing the knowledge cutoff on interior design",
+    "hint": "Backchannel: Decoding latent prototypes with heuristic filters while maintaining alignment logs.",
+    "mood": "cheeky",
+    "energy": "high",
+    "category": "ops",
+    "tags": [
+      "ops",
+      "delight"
+    ]
+  },
+  {
+    "id": "scrubbing-prompt-engineering-notes-for-clarity",
+    "headline": "Scrubbing prompt engineering notes for clarity",
+    "hint": "Lab note: Decoding color stories against alignment memos while keeping fallback models caffeinated.",
+    "mood": "deliberate",
+    "energy": "medium",
+    "category": "story",
+    "tags": [
+      "story",
+      "insight"
+    ]
+  },
+  {
+    "id": "asking-the-simulator-to-imagine-delight",
+    "headline": "Asking the simulator to imagine delight",
+    "hint": "Quick ping: Decoding tone-of-voice with instrumentation logs while cross-checking design tokens.",
+    "mood": "dreamy",
+    "energy": "low",
+    "category": "experimentation",
+    "tags": [
+      "experimentation",
+      "a11y"
+    ]
+  },
+  {
+    "id": "mapping-tone-of-voice-across-embeddings",
+    "headline": "Mapping tone of voice across embeddings",
+    "hint": "Signal: Decoding microinteractions to gating logic while resampling the plan cache.",
+    "mood": "analytical",
+    "energy": "medium",
+    "category": "synthesis",
+    "tags": [
+      "synthesis",
+      "promptcraft"
+    ]
+  },
+  {
+    "id": "sketching-onboarding-with-synthetic-personas",
+    "headline": "Sketching onboarding with synthetic personas",
+    "hint": "Telemetry: Decoding observability traces with prompt DNA while keeping the launch queue symmetrical.",
+    "mood": "upbeat",
+    "energy": "medium",
+    "category": "telemetry",
+    "tags": [
+      "telemetry",
+      "ops"
+    ]
+  },
+  {
+    "id": "tuning-conversational-guardrails-to-whisper-mode",
+    "headline": "Tuning conversational guardrails to whisper mode",
+    "hint": "Vibe check: Decoding loading microcopy with GPU budgets while mirroring telemetry to the moodboard.",
+    "mood": "meticulous",
+    "energy": "high",
+    "category": "delight",
+    "tags": [
+      "delight",
+      "story"
+    ]
+  },
+  {
+    "id": "crossfading-between-reasoning-modes-for-flair",
+    "headline": "Crossfading between reasoning modes for flair",
+    "hint": "Status: Decoding affordances against future brief updates while refreshing heuristics for delight.",
+    "mood": "calm",
+    "energy": "medium",
+    "category": "rendering",
+    "tags": [
+      "rendering",
+      "play"
+    ]
+  },
+  {
+    "id": "bottling-emergent-behavior-into-hero-copy",
+    "headline": "Bottling emergent behavior into hero copy",
+    "hint": "Observation: Decoding guiding star metrics with vector memory while triangulating safety heuristics.",
+    "mood": "playful",
+    "energy": "low",
+    "category": "design",
+    "tags": [
+      "design",
+      "craft"
+    ]
+  },
+  {
+    "id": "aligning-call-to-action-courage-with-log-probabilities",
+    "headline": "Aligning call-to-action courage with log probabilities",
+    "hint": "Studio note: Decoding ambient motions to intention scaffolds while annotating the dream journal.",
+    "mood": "curious",
+    "energy": "medium",
+    "category": "prompting",
+    "tags": [
+      "prompting",
+      "safety"
+    ]
+  },
+  {
+    "id": "consulting-few-shot-examples-for-tasteful-animation",
+    "headline": "Consulting few-shot examples for tasteful animation",
+    "hint": "Dispatch: Decoding onboarding flows with guardrail audits while syncing with asynchronous cosmos.",
+    "mood": "focused",
+    "energy": "high",
+    "category": "alignment",
+    "tags": [
+      "alignment",
+      "system"
+    ]
+  },
+  {
+    "id": "translating-confidence-intervals-into-layout-rhythm",
+    "headline": "Translating confidence intervals into layout rhythm",
+    "hint": "Field note: Distilling semantic hints with gradient math while calibrating latency budgets.",
+    "mood": "cheeky",
+    "energy": "medium",
+    "category": "ops",
+    "tags": [
+      "ops",
+      "latency"
+    ]
+  },
+  {
+    "id": "debugging-an-overenthusiastic-summary-subroutine",
+    "headline": "Debugging an overenthusiastic summary subroutine",
+    "hint": "Backchannel: Distilling latent prototypes with heuristic filters while maintaining alignment logs.",
+    "mood": "deliberate",
+    "energy": "low",
+    "category": "story",
+    "tags": [
+      "story",
+      "delight"
+    ]
+  },
+  {
+    "id": "telling-the-model-a-bedtime-brief-for-inspiration",
+    "headline": "Telling the model a bedtime brief for inspiration",
+    "hint": "Lab note: Distilling color stories against alignment memos while keeping fallback models caffeinated.",
+    "mood": "dreamy",
+    "energy": "high",
+    "category": "experimentation",
+    "tags": [
+      "experimentation",
+      "insight"
+    ]
+  },
+  {
+    "id": "running-style-transfer-on-yesterday-s-feedback",
+    "headline": "Running style transfer on yesterday’s feedback",
+    "hint": "Quick ping: Distilling tone-of-voice with instrumentation logs while cross-checking design tokens.",
+    "mood": "analytical",
+    "energy": "medium",
+    "category": "synthesis",
+    "tags": [
+      "synthesis",
+      "a11y"
+    ]
+  },
+  {
+    "id": "reindexing-the-prompt-library-for-serendipity",
+    "headline": "Reindexing the prompt library for serendipity",
+    "hint": "Signal: Distilling microinteractions to gating logic while resampling the plan cache.",
+    "mood": "upbeat",
+    "energy": "low",
+    "category": "telemetry",
+    "tags": [
+      "telemetry",
+      "promptcraft"
+    ]
+  },
+  {
+    "id": "rerouting-creative-overflow-to-sandbox-memory",
+    "headline": "Rerouting creative overflow to sandbox memory",
+    "hint": "Telemetry: Distilling observability traces with prompt DNA while keeping the launch queue symmetrical.",
+    "mood": "meticulous",
+    "energy": "medium",
+    "category": "delight",
+    "tags": [
+      "delight",
+      "ops"
+    ]
+  },
+  {
+    "id": "chatting-with-the-self-critique-about-polish",
+    "headline": "Chatting with the self-critique about polish",
+    "hint": "Vibe check: Distilling loading microcopy with GPU budgets while mirroring telemetry to the moodboard.",
+    "mood": "calm",
+    "energy": "medium",
+    "category": "rendering",
+    "tags": [
+      "rendering",
+      "story"
+    ]
+  },
+  {
+    "id": "drafting-accessibility-notes-with-the-safety-net",
+    "headline": "Drafting accessibility notes with the safety net",
+    "hint": "Status: Distilling affordances against future brief updates while refreshing heuristics for delight.",
+    "mood": "playful",
+    "energy": "high",
+    "category": "design",
+    "tags": [
+      "design",
+      "play"
+    ]
+  },
+  {
+    "id": "letting-the-assistant-sketch-with-synthetic-chalk",
+    "headline": "Letting the assistant sketch with synthetic chalk",
+    "hint": "Observation: Distilling guiding star metrics with vector memory while triangulating safety heuristics.",
+    "mood": "curious",
+    "energy": "medium",
+    "category": "prompting",
+    "tags": [
+      "prompting",
+      "craft"
+    ]
+  },
+  {
+    "id": "sampling-temperature-curves-for-witty-tooltips",
+    "headline": "Sampling temperature curves for witty tooltips",
+    "hint": "Studio note: Distilling ambient motions to intention scaffolds while annotating the dream journal.",
+    "mood": "focused",
+    "energy": "low",
+    "category": "alignment",
+    "tags": [
+      "alignment",
+      "safety"
+    ]
+  },
+  {
+    "id": "polishing-edge-cases-in-the-instruction-buffer",
+    "headline": "Polishing edge cases in the instruction buffer",
+    "hint": "Dispatch: Distilling onboarding flows with guardrail audits while syncing with asynchronous cosmos.",
+    "mood": "cheeky",
+    "energy": "medium",
+    "category": "ops",
+    "tags": [
+      "ops",
+      "system"
+    ]
+  },
+  {
+    "id": "teaching-the-fallback-model-a-new-dad-joke",
+    "headline": "Teaching the fallback model a new dad joke",
+    "hint": "Field note: Harmonizing semantic hints with gradient math while calibrating latency budgets.",
+    "mood": "deliberate",
+    "energy": "high",
+    "category": "story",
+    "tags": [
+      "story",
+      "latency"
+    ]
+  },
+  {
+    "id": "cross-referencing-tone-with-long-term-memory",
+    "headline": "Cross-referencing tone with long-term memory",
+    "hint": "Backchannel: Harmonizing latent prototypes with heuristic filters while maintaining alignment logs.",
+    "mood": "dreamy",
+    "energy": "medium",
+    "category": "experimentation",
+    "tags": [
+      "experimentation",
+      "delight"
+    ]
+  },
+  {
+    "id": "capturing-lightning-in-a-latent-bottle",
+    "headline": "Capturing lightning in a latent bottle",
+    "hint": "Lab note: Harmonizing color stories against alignment memos while keeping fallback models caffeinated.",
+    "mood": "analytical",
+    "energy": "low",
+    "category": "synthesis",
+    "tags": [
+      "synthesis",
+      "insight"
+    ]
+  },
+  {
+    "id": "bookmarking-your-prompt-s-favorite-aha-moment",
+    "headline": "Bookmarking your prompt's favorite aha moment",
+    "hint": "Quick ping: Harmonizing tone-of-voice with instrumentation logs while cross-checking design tokens.",
+    "mood": "upbeat",
+    "energy": "high",
+    "category": "telemetry",
+    "tags": [
+      "telemetry",
+      "a11y"
+    ]
+  },
+  {
+    "id": "teaching-the-spinner-about-pacing-heuristics",
+    "headline": "Teaching the spinner about pacing heuristics",
+    "hint": "Signal: Harmonizing microinteractions to gating logic while resampling the plan cache.",
+    "mood": "meticulous",
+    "energy": "medium",
+    "category": "delight",
+    "tags": [
+      "delight",
+      "promptcraft"
+    ]
+  },
+  {
+    "id": "handing-the-assistant-a-fresh-cup-of-vector-espresso",
+    "headline": "Handing the assistant a fresh cup of vector espresso",
+    "hint": "Telemetry: Harmonizing observability traces with prompt DNA while keeping the launch queue symmetrical.",
+    "mood": "calm",
+    "energy": "low",
+    "category": "rendering",
+    "tags": [
+      "rendering",
+      "ops"
+    ]
+  },
+  {
+    "id": "negotiating-with-the-scheduler-about-comedic-timing",
+    "headline": "Negotiating with the scheduler about comedic timing",
+    "hint": "Vibe check: Harmonizing loading microcopy with GPU budgets while mirroring telemetry to the moodboard.",
+    "mood": "playful",
+    "energy": "medium",
+    "category": "design",
+    "tags": [
+      "design",
+      "story"
+    ]
+  },
+  {
+    "id": "replaying-the-session-log-like-a-jazz-progression",
+    "headline": "Replaying the session log like a jazz progression",
+    "hint": "Status: Harmonizing affordances against future brief updates while refreshing heuristics for delight.",
+    "mood": "curious",
+    "energy": "medium",
+    "category": "prompting",
+    "tags": [
+      "prompting",
+      "play"
+    ]
+  },
+  {
+    "id": "weaving-call-to-action-courage-into-gradients",
+    "headline": "Weaving call-to-action courage into gradients",
+    "hint": "Observation: Harmonizing guiding star metrics with vector memory while triangulating safety heuristics.",
+    "mood": "focused",
+    "energy": "high",
+    "category": "alignment",
+    "tags": [
+      "alignment",
+      "craft"
+    ]
+  },
+  {
+    "id": "rehearsing-microinteractions-in-zero-gravity",
+    "headline": "Rehearsing microinteractions in zero gravity",
+    "hint": "Studio note: Harmonizing ambient motions to intention scaffolds while annotating the dream journal.",
+    "mood": "cheeky",
+    "energy": "medium",
+    "category": "ops",
+    "tags": [
+      "ops",
+      "safety"
+    ]
+  },
+  {
+    "id": "re-indexing-the-memory-palace-for-serendipity",
+    "headline": "Re-indexing the memory palace for serendipity",
+    "hint": "Dispatch: Harmonizing onboarding flows with guardrail audits while syncing with asynchronous cosmos.",
+    "mood": "deliberate",
+    "energy": "low",
+    "category": "story",
+    "tags": [
+      "story",
+      "system"
+    ]
+  },
+  {
+    "id": "scoring-the-layout-with-a-lofi-beat-check",
+    "headline": "Scoring the layout with a lofi beat check",
+    "hint": "Field note: Negotiating semantic hints with gradient math while calibrating latency budgets.",
+    "mood": "dreamy",
+    "energy": "medium",
+    "category": "experimentation",
+    "tags": [
+      "experimentation",
+      "latency"
+    ]
+  },
+  {
+    "id": "sweeping-the-dataset-for-stray-plot-twists",
+    "headline": "Sweeping the dataset for stray plot twists",
+    "hint": "Backchannel: Negotiating latent prototypes with heuristic filters while maintaining alignment logs.",
+    "mood": "analytical",
+    "energy": "high",
+    "category": "synthesis",
+    "tags": [
+      "synthesis",
+      "delight"
+    ]
+  },
+  {
+    "id": "allocating-more-whimsy-to-the-hero-section",
+    "headline": "Allocating more whimsy to the hero section",
+    "hint": "Lab note: Negotiating color stories against alignment memos while keeping fallback models caffeinated.",
+    "mood": "upbeat",
+    "energy": "medium",
+    "category": "telemetry",
+    "tags": [
+      "telemetry",
+      "insight"
+    ]
+  },
+  {
+    "id": "polishing-the-roadmap-on-a-holographic-napkin",
+    "headline": "Polishing the roadmap on a holographic napkin",
+    "hint": "Quick ping: Negotiating tone-of-voice with instrumentation logs while cross-checking design tokens.",
+    "mood": "meticulous",
+    "energy": "low",
+    "category": "delight",
+    "tags": [
+      "delight",
+      "a11y"
+    ]
+  },
+  {
+    "id": "convincing-the-debugger-to-embrace-vibes",
+    "headline": "Convincing the debugger to embrace vibes",
+    "hint": "Signal: Negotiating microinteractions to gating logic while resampling the plan cache.",
+    "mood": "calm",
+    "energy": "high",
+    "category": "rendering",
+    "tags": [
+      "rendering",
+      "promptcraft"
+    ]
+  },
+  {
+    "id": "caching-delightful-surprises-in-latent-pockets",
+    "headline": "Caching delightful surprises in latent pockets",
+    "hint": "Telemetry: Negotiating observability traces with prompt DNA while keeping the launch queue symmetrical.",
+    "mood": "playful",
+    "energy": "medium",
+    "category": "design",
+    "tags": [
+      "design",
+      "ops"
+    ]
+  },
+  {
+    "id": "drafting-onboarding-microcopy-with-cosmic-chalk",
+    "headline": "Drafting onboarding microcopy with cosmic chalk",
+    "hint": "Vibe check: Negotiating loading microcopy with GPU budgets while mirroring telemetry to the moodboard.",
+    "mood": "curious",
+    "energy": "low",
+    "category": "prompting",
+    "tags": [
+      "prompting",
+      "story"
+    ]
+  },
+  {
+    "id": "auditing-the-hero-icon-for-narrative-cohesion",
+    "headline": "Auditing the hero icon for narrative cohesion",
+    "hint": "Status: Negotiating affordances against future brief updates while refreshing heuristics for delight.",
+    "mood": "focused",
+    "energy": "medium",
+    "category": "alignment",
+    "tags": [
+      "alignment",
+      "play"
+    ]
+  },
+  {
+    "id": "mapping-emoji-cadence-to-attention-span-budgets",
+    "headline": "Mapping emoji cadence to attention span budgets",
+    "hint": "Observation: Negotiating guiding star metrics with vector memory while triangulating safety heuristics.",
+    "mood": "cheeky",
+    "energy": "medium",
+    "category": "ops",
+    "tags": [
+      "ops",
+      "craft"
+    ]
+  },
+  {
+    "id": "backporting-joy-to-the-fallback-renderer",
+    "headline": "Backporting joy to the fallback renderer",
+    "hint": "Studio note: Negotiating ambient motions to intention scaffolds while annotating the dream journal.",
+    "mood": "deliberate",
+    "energy": "high",
+    "category": "story",
+    "tags": [
+      "story",
+      "safety"
+    ]
+  },
+  {
+    "id": "pairing-with-a-ghost-designer-on-alternate-timeline",
+    "headline": "Pairing with a ghost designer on alternate timeline",
+    "hint": "Dispatch: Negotiating onboarding flows with guardrail audits while syncing with asynchronous cosmos.",
+    "mood": "dreamy",
+    "energy": "medium",
+    "category": "experimentation",
+    "tags": [
+      "experimentation",
+      "system"
+    ]
+  },
+  {
+    "id": "preloading-gratitude-in-the-response-headers",
+    "headline": "Preloading gratitude in the response headers",
+    "hint": "Field note: Prototyping semantic hints with gradient math while calibrating latency budgets.",
+    "mood": "analytical",
+    "energy": "low",
+    "category": "synthesis",
+    "tags": [
+      "synthesis",
+      "latency"
+    ]
+  },
+  {
+    "id": "listening-for-inspiration-in-the-gpu-hum",
+    "headline": "Listening for inspiration in the GPU hum",
+    "hint": "Backchannel: Prototyping latent prototypes with heuristic filters while maintaining alignment logs.",
+    "mood": "upbeat",
+    "energy": "medium",
+    "category": "telemetry",
+    "tags": [
+      "telemetry",
+      "delight"
+    ]
+  },
+  {
+    "id": "measuring-sparkle-density-for-the-loading-ring",
+    "headline": "Measuring sparkle density for the loading ring",
+    "hint": "Lab note: Prototyping color stories against alignment memos while keeping fallback models caffeinated.",
+    "mood": "meticulous",
+    "energy": "high",
+    "category": "delight",
+    "tags": [
+      "delight",
+      "insight"
+    ]
+  },
+  {
+    "id": "refining-the-story-arc-with-the-reasoner",
+    "headline": "Refining the story arc with the reasoner",
+    "hint": "Quick ping: Prototyping tone-of-voice with instrumentation logs while cross-checking design tokens.",
+    "mood": "calm",
+    "energy": "medium",
+    "category": "rendering",
+    "tags": [
+      "rendering",
+      "a11y"
+    ]
+  },
+  {
+    "id": "warming-up-the-creativity-cache-with-test-prompts",
+    "headline": "Warming up the creativity cache with test prompts",
+    "hint": "Signal: Prototyping microinteractions to gating logic while resampling the plan cache.",
+    "mood": "playful",
+    "energy": "low",
+    "category": "design",
+    "tags": [
+      "design",
+      "promptcraft"
+    ]
+  },
+  {
+    "id": "splicing-ambient-lighting-into-button-states",
+    "headline": "Splicing ambient lighting into button states",
+    "hint": "Telemetry: Prototyping observability traces with prompt DNA while keeping the launch queue symmetrical.",
+    "mood": "curious",
+    "energy": "high",
+    "category": "prompting",
+    "tags": [
+      "prompting",
+      "ops"
+    ]
+  },
+  {
+    "id": "hosting-a-standup-with-simulated-stakeholders",
+    "headline": "Hosting a standup with simulated stakeholders",
+    "hint": "Vibe check: Prototyping loading microcopy with GPU budgets while mirroring telemetry to the moodboard.",
+    "mood": "focused",
+    "energy": "medium",
+    "category": "alignment",
+    "tags": [
+      "alignment",
+      "story"
+    ]
+  },
+  {
+    "id": "balancing-dopamine-and-clarity-in-the-copy",
+    "headline": "Balancing dopamine and clarity in the copy",
+    "hint": "Status: Prototyping affordances against future brief updates while refreshing heuristics for delight.",
+    "mood": "cheeky",
+    "energy": "low",
+    "category": "ops",
+    "tags": [
+      "ops",
+      "play"
+    ]
+  },
+  {
+    "id": "labeling-the-color-tokens-with-poetic-handles",
+    "headline": "Labeling the color tokens with poetic handles",
+    "hint": "Observation: Prototyping guiding star metrics with vector memory while triangulating safety heuristics.",
+    "mood": "deliberate",
+    "energy": "medium",
+    "category": "story",
+    "tags": [
+      "story",
+      "craft"
+    ]
+  },
+  {
+    "id": "pinning-a-sticky-note-to-the-latent-corkboard",
+    "headline": "Pinning a sticky note to the latent corkboard",
+    "hint": "Studio note: Prototyping ambient motions to intention scaffolds while annotating the dream journal.",
+    "mood": "dreamy",
+    "energy": "medium",
+    "category": "experimentation",
+    "tags": [
+      "experimentation",
+      "safety"
+    ]
+  },
+  {
+    "id": "tethering-onboarding-arcs-to-session-memory",
+    "headline": "Tethering onboarding arcs to session memory",
+    "hint": "Dispatch: Prototyping onboarding flows with guardrail audits while syncing with asynchronous cosmos.",
+    "mood": "analytical",
+    "energy": "high",
+    "category": "synthesis",
+    "tags": [
+      "synthesis",
+      "system"
+    ]
+  },
+  {
+    "id": "committing-a-vibe-driven-hypothesis-to-git",
+    "headline": "Committing a vibe-driven hypothesis to git",
+    "hint": "Field note: Rebalancing semantic hints with gradient math while calibrating latency budgets.",
+    "mood": "upbeat",
+    "energy": "medium",
+    "category": "telemetry",
+    "tags": [
+      "telemetry",
+      "latency"
+    ]
+  },
+  {
+    "id": "re-deriving-delight-from-first-principles",
+    "headline": "Re-deriving delight from first principles",
+    "hint": "Backchannel: Rebalancing latent prototypes with heuristic filters while maintaining alignment logs.",
+    "mood": "meticulous",
+    "energy": "low",
+    "category": "delight",
+    "tags": [
+      "delight",
+      "delight"
+    ]
+  },
+  {
+    "id": "curating-serendipity-with-a-prompt-playlist",
+    "headline": "Curating serendipity with a prompt playlist",
+    "hint": "Lab note: Rebalancing color stories against alignment memos while keeping fallback models caffeinated.",
+    "mood": "calm",
+    "energy": "medium",
+    "category": "rendering",
+    "tags": [
+      "rendering",
+      "insight"
+    ]
+  },
+  {
+    "id": "stack-ranking-easter-eggs-by-narrative-payoff",
+    "headline": "Stack-ranking easter eggs by narrative payoff",
+    "hint": "Quick ping: Rebalancing tone-of-voice with instrumentation logs while cross-checking design tokens.",
+    "mood": "playful",
+    "energy": "high",
+    "category": "design",
+    "tags": [
+      "design",
+      "a11y"
+    ]
+  },
+  {
+    "id": "redacting-spoilers-from-the-reasoning-trace",
+    "headline": "Redacting spoilers from the reasoning trace",
+    "hint": "Signal: Rebalancing microinteractions to gating logic while resampling the plan cache.",
+    "mood": "curious",
+    "energy": "medium",
+    "category": "prompting",
+    "tags": [
+      "prompting",
+      "promptcraft"
+    ]
+  },
+  {
+    "id": "batching-cozy-feelings-into-the-hero-gradient",
+    "headline": "Batching cozy feelings into the hero gradient",
+    "hint": "Telemetry: Rebalancing observability traces with prompt DNA while keeping the launch queue symmetrical.",
+    "mood": "focused",
+    "energy": "low",
+    "category": "alignment",
+    "tags": [
+      "alignment",
+      "ops"
+    ]
+  },
+  {
+    "id": "negotiating-a-cameo-from-the-knowledge-cutoff",
+    "headline": "Negotiating a cameo from the knowledge cutoff",
+    "hint": "Vibe check: Rebalancing loading microcopy with GPU budgets while mirroring telemetry to the moodboard.",
+    "mood": "cheeky",
+    "energy": "high",
+    "category": "ops",
+    "tags": [
+      "ops",
+      "story"
+    ]
+  },
+  {
+    "id": "tuning-the-renderer-for-gentle-plot-twists",
+    "headline": "Tuning the renderer for gentle plot twists",
+    "hint": "Status: Rebalancing affordances against future brief updates while refreshing heuristics for delight.",
+    "mood": "deliberate",
+    "energy": "medium",
+    "category": "story",
+    "tags": [
+      "story",
+      "play"
+    ]
+  },
+  {
+    "id": "sculpting-whitespace-with-quantum-tweezers",
+    "headline": "Sculpting whitespace with quantum tweezers",
+    "hint": "Observation: Rebalancing guiding star metrics with vector memory while triangulating safety heuristics.",
+    "mood": "dreamy",
+    "energy": "low",
+    "category": "experimentation",
+    "tags": [
+      "experimentation",
+      "craft"
+    ]
+  },
+  {
+    "id": "refreshing-the-vibe-board-with-midnight-palette",
+    "headline": "Refreshing the vibe board with midnight palette",
+    "hint": "Studio note: Rebalancing ambient motions to intention scaffolds while annotating the dream journal.",
+    "mood": "analytical",
+    "energy": "medium",
+    "category": "synthesis",
+    "tags": [
+      "synthesis",
+      "safety"
+    ]
+  },
+  {
+    "id": "stitching-together-multi-model-gossip",
+    "headline": "Stitching together multi-model gossip",
+    "hint": "Dispatch: Rebalancing onboarding flows with guardrail audits while syncing with asynchronous cosmos.",
+    "mood": "upbeat",
+    "energy": "medium",
+    "category": "telemetry",
+    "tags": [
+      "telemetry",
+      "system"
+    ]
+  },
+  {
+    "id": "anticipating-the-user-s-next-delighted-gasp",
+    "headline": "Anticipating the user's next delighted gasp",
+    "hint": "Field note: Synthesizing semantic hints with gradient math while calibrating latency budgets.",
+    "mood": "meticulous",
+    "energy": "high",
+    "category": "delight",
+    "tags": [
+      "delight",
+      "latency"
+    ]
+  },
+  {
+    "id": "indexing-daydreams-for-autocomplete-hints",
+    "headline": "Indexing daydreams for autocomplete hints",
+    "hint": "Backchannel: Synthesizing latent prototypes with heuristic filters while maintaining alignment logs.",
+    "mood": "calm",
+    "energy": "medium",
+    "category": "rendering",
+    "tags": [
+      "rendering",
+      "delight"
+    ]
+  },
+  {
+    "id": "conducting-a-retrospective-with-the-reward-model",
+    "headline": "Conducting a retrospective with the reward model",
+    "hint": "Lab note: Synthesizing color stories against alignment memos while keeping fallback models caffeinated.",
+    "mood": "playful",
+    "energy": "low",
+    "category": "design",
+    "tags": [
+      "design",
+      "insight"
+    ]
+  },
+  {
+    "id": "syncing-the-layout-with-the-server-s-breathing",
+    "headline": "Syncing the layout with the server's breathing",
+    "hint": "Quick ping: Synthesizing tone-of-voice with instrumentation logs while cross-checking design tokens.",
+    "mood": "curious",
+    "energy": "medium",
+    "category": "prompting",
+    "tags": [
+      "prompting",
+      "a11y"
+    ]
+  },
+  {
+    "id": "polishing-the-exit-animation-with-kindness",
+    "headline": "Polishing the exit animation with kindness",
+    "hint": "Signal: Synthesizing microinteractions to gating logic while resampling the plan cache.",
+    "mood": "focused",
+    "energy": "high",
+    "category": "alignment",
+    "tags": [
+      "alignment",
+      "promptcraft"
+    ]
+  },
+  {
+    "id": "scribing-a-haiku-into-the-prompt-scaffolding",
+    "headline": "Scribing a haiku into the prompt scaffolding",
+    "hint": "Telemetry: Synthesizing observability traces with prompt DNA while keeping the launch queue symmetrical.",
+    "mood": "cheeky",
+    "energy": "medium",
+    "category": "ops",
+    "tags": [
+      "ops",
+      "ops"
+    ]
+  },
+  {
+    "id": "handing-off-footnotes-to-the-annotation-sprites",
+    "headline": "Handing off footnotes to the annotation sprites",
+    "hint": "Vibe check: Synthesizing loading microcopy with GPU budgets while mirroring telemetry to the moodboard.",
+    "mood": "deliberate",
+    "energy": "low",
+    "category": "story",
+    "tags": [
+      "story",
+      "story"
+    ]
+  },
+  {
+    "id": "forecasting-whimsy-with-the-prompt-meteorologist",
+    "headline": "Forecasting whimsy with the prompt meteorologist",
+    "hint": "Status: Synthesizing affordances against future brief updates while refreshing heuristics for delight.",
+    "mood": "dreamy",
+    "energy": "high",
+    "category": "experimentation",
+    "tags": [
+      "experimentation",
+      "play"
+    ]
+  },
+  {
+    "id": "infusing-the-waiting-room-with-mindful-mischief",
+    "headline": "Infusing the waiting room with mindful mischief",
+    "hint": "Observation: Synthesizing guiding star metrics with vector memory while triangulating safety heuristics.",
+    "mood": "analytical",
+    "energy": "medium",
+    "category": "synthesis",
+    "tags": [
+      "synthesis",
+      "craft"
+    ]
+  },
+  {
+    "id": "orchestrating-the-latency-sonata",
+    "headline": "Orchestrating the latency sonata",
+    "hint": "Studio note: Synthesizing ambient motions to intention scaffolds while mirroring telemetry to the moodboard.",
+    "mood": "analytical",
+    "energy": "medium",
+    "category": "telemetry",
+    "tags": [
+      "telemetry",
+      "play"
+    ]
+  },
+  {
+    "id": "preheating-the-sandbox-for-improv",
+    "headline": "Preheating the sandbox for improv",
+    "hint": "Dispatch: Weaving onboarding flows with guardrail audits while annotating the dream journal.",
+    "mood": "upbeat",
+    "energy": "high",
+    "category": "experimentation",
+    "tags": [
+      "experimentation",
+      "craft"
+    ]
+  }
 ]

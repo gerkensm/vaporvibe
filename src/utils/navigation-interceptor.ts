@@ -10,7 +10,7 @@ export function getNavigationInterceptorScript(): string {
     "vaporvibe-interceptor.js",
     "/src/interceptor.ts"
   );
-  const statusMessages = getStatusMessages();
+  const statusMessages = getStatusMessages({ randomize: true });
   const statusBootstrap = `<script>window.__vaporVibeStatusMessages = ${serializeForInlineScript(
     statusMessages
   )};</script>`;

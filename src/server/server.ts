@@ -13,6 +13,7 @@ import {
   BRIEF_FORM_ROUTE,
   INSTRUCTIONS_FIELD,
   SETUP_ROUTE,
+  OVERLAY_DEBUG_ROUTE,
   SETUP_VERIFY_ROUTE,
   DEFAULT_OPENAI_MODEL,
   DEFAULT_GEMINI_MODEL,
@@ -56,6 +57,7 @@ import {
   renderResultHydrationScript,
   renderLoaderErrorScript,
 } from "../views/loading-shell.js";
+import { renderOverlayDebugPage } from "../views/overlay-debug.js";
 import { logger } from "../logger.js";
 import { AdminController } from "./admin-controller.js";
 import { createLlmClient } from "../llm/factory.js";
@@ -794,6 +796,22 @@ export function createServer(options: ServerOptions): http.Server {
     }
 
     if (!devServer && maybeServeFrontendAsset(context, res, reqLogger)) {
+      return;
+    }
+
+    if (context.path === OVERLAY_DEBUG_ROUTE && context.method === "GET") {
+      const html = renderOverlayDebugPage({
+        selectedEffectId: context.url.searchParams.get("effect"),
+        seedMessage: context.url.searchParams.get("message"),
+      });
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.end(html);
+      reqLogger.info(
+        `Overlay debug page served with status ${res.statusCode} in ${
+          Date.now() - requestStart
+        } ms`
+      );
       return;
     }
 
