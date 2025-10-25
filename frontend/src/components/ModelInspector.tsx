@@ -1,4 +1,5 @@
-import type { ChangeEvent } from "react";
+import { forwardRef } from "react";
+import type { ChangeEvent, ForwardedRef } from "react";
 
 import type {
   ModelCompositeScores,
@@ -113,7 +114,8 @@ function summarizeReasoningTokens(tokens: ModelReasoningTokens): string {
   }
 
   if (typeof defaultValue === "number") {
-    const defaultLabel = defaultValue < 0 ? "Auto" : formatTokenAmount(defaultValue);
+    const defaultLabel =
+      defaultValue < 0 ? "Auto" : formatTokenAmount(defaultValue);
     parts.push(`Default ${defaultLabel}`);
   }
 
@@ -125,9 +127,12 @@ function buildFeatureBadges(
   customConfig?: CustomModelConfig
 ): CapabilityBadge[] {
   const badges: CapabilityBadge[] = [];
-  const multimodal = metadata?.isMultimodal ?? customConfig?.isMultimodal ?? false;
-  const image = metadata?.supportsImageInput ?? customConfig?.supportsImageInput ?? false;
-  const pdf = metadata?.supportsPDFInput ?? customConfig?.supportsPDFInput ?? false;
+  const multimodal =
+    metadata?.isMultimodal ?? customConfig?.isMultimodal ?? false;
+  const image =
+    metadata?.supportsImageInput ?? customConfig?.supportsImageInput ?? false;
+  const pdf =
+    metadata?.supportsPDFInput ?? customConfig?.supportsPDFInput ?? false;
 
   if (multimodal) {
     badges.push({
@@ -188,7 +193,9 @@ function buildReasoningBadges({
   const modeFlag = metadata?.supportsReasoningMode;
   const modesSupported = metadata
     ? modeFlag === true
-    : Boolean(customConfig?.supportsReasoningMode ?? providerSupportsReasoningMode);
+    : Boolean(
+        customConfig?.supportsReasoningMode ?? providerSupportsReasoningMode
+      );
 
   const reasoningSupported = tokensSupported || modesSupported;
   if (reasoningSupported) {
@@ -285,7 +292,8 @@ function CustomCapabilitiesForm({
   onConfigChange: (value: CustomModelConfig) => void;
   description: string;
 }) {
-  const handleToggle = (key: keyof CustomModelConfig) =>
+  const handleToggle =
+    (key: keyof CustomModelConfig) =>
     (event: ChangeEvent<HTMLInputElement>) => {
       onConfigChange({
         ...config,
@@ -304,8 +312,8 @@ function CustomCapabilitiesForm({
           onChange={(event) => onCustomIdChange(event.target.value)}
         />
         <p className="model-detail__helper">
-          The identifier is sent to the provider API. Leave hints in the brief if
-          additional context is required.
+          The identifier is sent to the provider API. Leave hints in the brief
+          if additional context is required.
         </p>
       </label>
 
@@ -377,144 +385,153 @@ interface ModelInspectorProps {
   onCustomModelIdChange: (value: string) => void;
 }
 
-export function ModelInspector({
-  providerLabel,
-  modelId,
-  metadata,
-  customMode,
-  customModelId,
-  customConfig,
-  apiKeyPlaceholder,
-  modelPlaceholder,
-  providerGuidance,
-  providerCapability,
-  customDescription,
-  onCustomConfigChange,
-  onCustomModelIdChange,
-}: ModelInspectorProps) {
-  const badges = [
-    ...buildFeatureBadges(metadata, customMode ? customConfig : undefined),
-    ...buildReasoningBadges({
+export const ModelInspector = forwardRef<HTMLDivElement, ModelInspectorProps>(
+  (
+    {
+      providerLabel,
+      modelId,
       metadata,
-      customConfig: customMode ? customConfig : undefined,
-      providerTokens: providerGuidance?.reasoningTokens,
-      providerSupportsReasoningMode: providerCapability?.mode,
-    }),
-  ];
+      customMode,
+      customModelId,
+      customConfig,
+      apiKeyPlaceholder,
+      modelPlaceholder,
+      providerGuidance,
+      providerCapability,
+      customDescription,
+      onCustomConfigChange,
+      onCustomModelIdChange,
+    }: ModelInspectorProps,
+    ref: ForwardedRef<HTMLDivElement>
+  ) => {
+    const badges = [
+      ...buildFeatureBadges(metadata, customMode ? customConfig : undefined),
+      ...buildReasoningBadges({
+        metadata,
+        customConfig: customMode ? customConfig : undefined,
+        providerTokens: providerGuidance?.reasoningTokens,
+        providerSupportsReasoningMode: providerCapability?.mode,
+      }),
+    ];
 
-  const headingLabel = metadata?.label ?? (customModelId || "Custom model");
-  const tagline = metadata?.tagline ??
-    (customMode
-      ? "Describe capabilities so teammates know what to expect."
-      : "Provide your own model identifier.");
+    const headingLabel = metadata?.label ?? (customModelId || "Custom model");
+    const tagline =
+      metadata?.tagline ??
+      (customMode
+        ? "Describe capabilities so teammates know what to expect."
+        : "Provide your own model identifier.");
 
-  return (
-    <div className="model-detail">
-      <div className="model-detail__header">
-        <div>
-          <h3>{headingLabel}</h3>
-          <p className="model-detail__tagline">{tagline}</p>
-        </div>
-        <div className="model-detail__meta">
-          {metadata ? formatCost(metadata.cost) : providerLabel}
-        </div>
-      </div>
-
-      <CapabilityPills badges={badges} />
-
-      {customMode ? (
-        <CustomCapabilitiesForm
-          customId={customModelId}
-          onCustomIdChange={onCustomModelIdChange}
-          placeholder={modelPlaceholder}
-          config={customConfig}
-          onConfigChange={onCustomConfigChange}
-          description={customDescription}
-        />
-      ) : (
-        <>
-          <p className="model-detail__description">
-            {metadata?.description ?? customDescription}
-          </p>
-
-          {metadata?.reasoningModeNotes && (
-            <p className="model-detail__note">{metadata.reasoningModeNotes}</p>
-          )}
-
-          {providerGuidance?.reasoningTokens?.helper && !metadata?.reasoningTokens.helper && (
-            <p className="model-detail__note">
-              {providerGuidance.reasoningTokens.helper}
-            </p>
-          )}
-
-          <div className="model-detail__facts">
-            <div>
-              <dt>Context window</dt>
-              <dd>
-                {typeof metadata?.contextWindow === "number"
-                  ? `${metadata.contextWindow.toLocaleString()} ${
-                      metadata.contextWindowUnit ?? "tokens"
-                    }`
-                  : "—"}
-              </dd>
-            </div>
-            <div>
-              <dt>Recommended for</dt>
-              <dd>{metadata?.recommendedFor ?? "Versatile creative work"}</dd>
-            </div>
-            <div>
-              <dt>Highlights</dt>
-              <dd>
-                {metadata?.highlights && metadata.highlights.length > 0 ? (
-                  <span className="model-highlight-list">
-                    {metadata.highlights.map((item) => (
-                      <span key={item} className="model-highlight">
-                        {item}
-                      </span>
-                    ))}
-                  </span>
-                ) : (
-                  "—"
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt>Cost</dt>
-              <dd>{formatCost(metadata?.cost)}</dd>
-            </div>
+    return (
+      <div className="model-detail" ref={ref}>
+        <div className="model-detail__header">
+          <div>
+            <h3>{headingLabel}</h3>
+            <p className="model-detail__tagline">{tagline}</p>
           </div>
+          <div className="model-detail__meta">
+            {metadata ? formatCost(metadata.cost) : providerLabel}
+          </div>
+        </div>
 
-          <CompositeScores scores={metadata?.compositeScores} />
+        <CapabilityPills badges={badges} />
 
-          {metadata?.documentationUrl && (
-            <a
-              className="model-detail__docs"
-              href={metadata.documentationUrl}
-              target="_blank"
-              rel="noreferrer"
-            >
-              View provider docs
-            </a>
-          )}
-
-          {!metadata && (
-            <p className="model-detail__hint">
-              Using a custom identifier? Double-check the provider docs for
-              supported capabilities. API key placeholder: {apiKeyPlaceholder}
+        {customMode ? (
+          <CustomCapabilitiesForm
+            customId={customModelId}
+            onCustomIdChange={onCustomModelIdChange}
+            placeholder={modelPlaceholder}
+            config={customConfig}
+            onConfigChange={onCustomConfigChange}
+            description={customDescription}
+          />
+        ) : (
+          <>
+            <p className="model-detail__description">
+              {metadata?.description ?? customDescription}
             </p>
-          )}
-        </>
-      )}
 
-      {!customMode && !metadata && (
-        <p className="model-detail__hint">
-          Model `{modelId}` is not in the curated catalog. Configure it manually
-          via advanced settings and the custom capability toggles.
-        </p>
-      )}
-    </div>
-  );
-}
+            {metadata?.reasoningModeNotes && (
+              <p className="model-detail__note">
+                {metadata.reasoningModeNotes}
+              </p>
+            )}
+
+            {providerGuidance?.reasoningTokens?.helper &&
+              !metadata?.reasoningTokens.helper && (
+                <p className="model-detail__note">
+                  {providerGuidance.reasoningTokens.helper}
+                </p>
+              )}
+
+            <div className="model-detail__facts">
+              <div>
+                <dt>Context window</dt>
+                <dd>
+                  {typeof metadata?.contextWindow === "number"
+                    ? `${metadata.contextWindow.toLocaleString()} ${
+                        metadata.contextWindowUnit ?? "tokens"
+                      }`
+                    : "—"}
+                </dd>
+              </div>
+              <div>
+                <dt>Recommended for</dt>
+                <dd>{metadata?.recommendedFor ?? "Versatile creative work"}</dd>
+              </div>
+              <div>
+                <dt>Highlights</dt>
+                <dd>
+                  {metadata?.highlights && metadata.highlights.length > 0 ? (
+                    <span className="model-highlight-list">
+                      {metadata.highlights.map((item) => (
+                        <span key={item} className="model-highlight">
+                          {item}
+                        </span>
+                      ))}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Cost</dt>
+                <dd>{formatCost(metadata?.cost)}</dd>
+              </div>
+            </div>
+
+            <CompositeScores scores={metadata?.compositeScores} />
+
+            {metadata?.documentationUrl && (
+              <a
+                className="model-detail__docs"
+                href={metadata.documentationUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                View provider docs
+              </a>
+            )}
+
+            {!metadata && (
+              <p className="model-detail__hint">
+                Using a custom identifier? Double-check the provider docs for
+                supported capabilities. API key placeholder: {apiKeyPlaceholder}
+              </p>
+            )}
+          </>
+        )}
+
+        {!customMode && !metadata && (
+          <p className="model-detail__hint">
+            Model `{modelId}` is not in the curated catalog. Configure it
+            manually via advanced settings and the custom capability toggles.
+          </p>
+        )}
+      </div>
+    );
+  }
+);
 
 export default ModelInspector;
 export type { ModelInspectorProps };

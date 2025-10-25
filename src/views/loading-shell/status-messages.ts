@@ -37,46 +37,57 @@ function readStatusMessagesAsset(): string {
   throw new Error("Unable to locate loading shell status messages asset");
 }
 
-function validateStatusMessage(value: unknown): value is StatusMessageDefinition {
+function collectStatusMessageValidationErrors(value: unknown): readonly string[] {
   if (typeof value !== "object" || value === null) {
-    return false;
+    return ["Expected an object but received a non-object value."];
   }
 
   const record = value as Record<string, unknown>;
-  if (typeof record.id !== "string" || record.id.trim().length === 0) {
-    return false;
-  }
-  if (typeof record.headline !== "string" || record.headline.trim().length === 0) {
-    return false;
-  }
-  if (typeof record.mood !== "string" || record.mood.trim().length === 0) {
-    return false;
-  }
-  if (typeof record.energy !== "string" || record.energy.trim().length === 0) {
-    return false;
-  }
-  if (typeof record.category !== "string" || record.category.trim().length === 0) {
-    return false;
-  }
+  const errors: string[] = [];
+
+  const requiredStringFields: readonly (keyof Pick<
+    StatusMessageDefinition,
+    "id" | "headline" | "mood" | "energy" | "category"
+  >)[] = ["id", "headline", "mood", "energy", "category"];
+
+  requiredStringFields.forEach((field) => {
+    const fieldValue = record[field];
+    if (typeof fieldValue !== "string" || fieldValue.trim().length === 0) {
+      errors.push(`Field "${field}" must be a non-empty string.`);
+    }
+  });
+
   if (
     Object.prototype.hasOwnProperty.call(record, "hint") &&
     record.hint !== undefined &&
     typeof record.hint !== "string"
   ) {
-    return false;
+    errors.push('Field "hint" must be a string when provided.');
   }
+
   if (
     Object.prototype.hasOwnProperty.call(record, "tags") &&
     record.tags !== undefined
   ) {
     if (!Array.isArray(record.tags)) {
-      return false;
-    }
-    if (!record.tags.every((tag) => typeof tag === "string")) {
-      return false;
+      errors.push('Field "tags" must be an array of strings.');
+    } else {
+      const invalidTagIndexes = record.tags
+        .map((tag, index) => (typeof tag === "string" ? null : index))
+        .filter((index): index is number => index !== null);
+      if (invalidTagIndexes.length > 0) {
+        errors.push(
+          `Field "tags" must be an array of strings (invalid entries at indexes: ${invalidTagIndexes.join(", ")}).`
+        );
+      }
     }
   }
-  return true;
+
+  return errors;
+}
+
+function validateStatusMessage(value: unknown): value is StatusMessageDefinition {
+  return collectStatusMessageValidationErrors(value).length === 0;
 }
 
 function shuffleStatusMessages(
@@ -96,10 +107,27 @@ export function getStatusMessages(options?: {
   if (!cachedStatusMessages) {
     const raw = readStatusMessagesAsset();
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || !parsed.every((item) => validateStatusMessage(item))) {
-      throw new Error("Invalid status messages payload");
+    if (!Array.isArray(parsed)) {
+      throw new Error("Invalid status messages payload: expected an array.");
     }
-    cachedStatusMessages = parsed.map((item) => ({
+
+    const validationFailures: string[] = [];
+    parsed.forEach((item, index) => {
+      const errors = collectStatusMessageValidationErrors(item);
+      if (errors.length > 0) {
+        validationFailures.push(
+          `Entry at index ${index} is invalid: ${errors.join(" ")}`
+        );
+      }
+    });
+
+    if (validationFailures.length > 0) {
+      throw new Error(
+        `Invalid status messages payload:\n${validationFailures.join("\n")}`
+      );
+    }
+
+    cachedStatusMessages = (parsed as StatusMessageDefinition[]).map((item) => ({
       ...item,
       tags: Array.isArray(item.tags) ? [...new Set(item.tags)] : undefined,
     }));
