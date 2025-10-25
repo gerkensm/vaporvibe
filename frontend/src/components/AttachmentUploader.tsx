@@ -21,19 +21,22 @@ type StatusState = {
   tone: Tone;
 };
 
+export type AttachmentUploaderVariant = "default" | "creative" | "history";
+
 export interface AttachmentUploaderProps {
   name: string;
   id?: string;
   label?: string;
   hint?: string;
   browseLabel?: string;
+  pasteHint?: string;
   accept?: string;
   multiple?: boolean;
   emptyStatus?: string;
   className?: string;
   prefixActions?: ReactNode;
   onFilesChange?: (files: File[]) => void;
-  variant?: "default" | "creative";
+  variant?: AttachmentUploaderVariant;
   examples?: string[];
   captureDocumentPaste?: boolean;
 }
@@ -96,6 +99,7 @@ export function AttachmentUploader({
   emptyStatus = "No files selected yet.",
   className,
   prefixActions,
+  pasteHint = "or paste images directly",
   onFilesChange,
   variant = "default",
   examples,
@@ -114,14 +118,16 @@ export function AttachmentUploader({
   const errorTimeoutRef = useRef<number | null>(null);
   const pasteHighlightTimeoutRef = useRef<number | null>(null);
   const tokens = useMemo(() => toTokens(accept), [accept]);
-  const isCreative = variant === "creative";
-  const creativeExamples = useMemo(() => {
+  const usesHeroLayout = variant === "creative" || variant === "history";
+  const variantExamples = useMemo(() => {
     if (examples && examples.length > 0) {
       return examples;
     }
-    if (!isCreative) return null;
-    return ["Wireframes", "Mood boards", "Flow charts", "Screenshots"];
-  }, [examples, isCreative]);
+    if (variant === "creative") {
+      return ["Wireframes", "Mood boards", "Flow charts", "Screenshots"];
+    }
+    return null;
+  }, [examples, variant]);
   const latestOnFilesChange = useLatest(onFilesChange);
 
   const resetError = useCallback(() => {
@@ -295,12 +301,13 @@ export function AttachmentUploader({
     () =>
       [
         "attachment-uploader",
-        isCreative ? "attachment-uploader--creative" : null,
+        usesHeroLayout ? "attachment-uploader--creative" : null,
+        variant === "history" ? "attachment-uploader--history" : null,
         className,
       ]
         .filter(Boolean)
         .join(" "),
-    [className, isCreative]
+    [className, usesHeroLayout, variant]
   );
 
   useEffect(() => {
@@ -380,11 +387,17 @@ export function AttachmentUploader({
         onDrop={handleDrop}
         onPaste={handlePaste}
       >
-        {isCreative ? (
-          <div className="attachment-uploader__art" aria-hidden="true">
+        {variant === "creative" ? (
+          <div className="attachment-uploader__art attachment-uploader__art--creative" aria-hidden="true">
             <span className="attachment-uploader__shape attachment-uploader__shape--canvas" />
             <span className="attachment-uploader__shape attachment-uploader__shape--photo" />
             <span className="attachment-uploader__shape attachment-uploader__shape--spark" />
+          </div>
+        ) : variant === "history" ? (
+          <div className="attachment-uploader__art attachment-uploader__art--history" aria-hidden="true">
+            <span className="attachment-uploader__shape attachment-uploader__shape--ledger" />
+            <span className="attachment-uploader__shape attachment-uploader__shape--bookmark" />
+            <span className="attachment-uploader__shape attachment-uploader__shape--clock" />
           </div>
         ) : (
           <div className="attachment-uploader__icon" aria-hidden="true">
@@ -394,9 +407,9 @@ export function AttachmentUploader({
         <div className="attachment-uploader__copy">
           <p className="attachment-uploader__title">{label}</p>
           <p className="attachment-uploader__hint">{hint}</p>
-          {creativeExamples ? (
+          {variantExamples ? (
             <ul className="attachment-uploader__examples" aria-label="Suggested uploads">
-              {creativeExamples.map((item) => (
+              {variantExamples.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
@@ -414,7 +427,7 @@ export function AttachmentUploader({
           >
             {browseLabel}
           </button>
-          <span>or paste images directly</span>
+          <span className="attachment-uploader__paste-hint">{pasteHint}</span>
           {prefixActions}
         </div>
       </div>

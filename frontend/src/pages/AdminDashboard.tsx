@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -8,6 +9,8 @@ import {
 } from "../components";
 import type { CustomModelConfig } from "../components";
 import HistoryExplorer from "../components/HistoryExplorer";
+import HistorySnapshotControls from "../components/HistorySnapshotControls";
+import ResumeSessionCallout from "../components/ResumeSessionCallout";
 import {
   fetchAdminState,
   fetchAdminHistory,
@@ -16,7 +19,6 @@ import {
   submitBriefUpdate,
   submitProviderUpdate,
   submitRuntimeUpdate,
-  submitHistoryImport,
   verifyProviderKey,
   type ProviderUpdatePayload,
 } from "../api/admin";
@@ -40,8 +42,6 @@ import vaporvibeLogoUrl from "../assets/vaporvibe-icon-both.svg";
 type AsyncStatus = "idle" | "loading" | "success" | "error";
 type StatusMessage = { tone: "info" | "error"; message: string };
 type NullableStatus = StatusMessage | null;
-
-type FileInfo = { name: string; size: number };
 
 type QueuedAttachment = {
   id: string;
@@ -81,14 +81,7 @@ const createDefaultCustomConfig = (): CustomModelConfig => ({
   ...DEFAULT_CUSTOM_MODEL_CONFIG,
 });
 
-const TAB_ORDER = [
-  "provider",
-  "brief",
-  "runtime",
-  "import",
-  "export",
-  "history",
-] as const;
+const TAB_ORDER = ["provider", "brief", "runtime", "history"] as const;
 
 type TabKey = (typeof TAB_ORDER)[number];
 
@@ -96,8 +89,6 @@ const TAB_LABELS: Record<TabKey, string> = {
   brief: "Brief",
   provider: "Provider",
   runtime: "Runtime",
-  import: "Import",
-  export: "Exports",
   history: "History",
 };
 
@@ -213,6 +204,30 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     setHistoryTotalCount(snapshot.totalHistoryCount);
     setHistorySessionCount(snapshot.sessionCount);
   }, []);
+
+  const handleSnapshotHydrate = useCallback(
+    (snapshot: AdminStateResponse) => {
+      handleStateUpdate(snapshot);
+      setBriefDraft(snapshot.brief ?? "");
+      setAttachmentsToRemove(new Set());
+      setPendingUploads((prev) => {
+        prev.forEach((upload) => {
+          if (upload.previewUrl) {
+            URL.revokeObjectURL(upload.previewUrl);
+          }
+        });
+        return [];
+      });
+      setUploaderKey((value) => value + 1);
+    },
+    [
+      handleStateUpdate,
+      setAttachmentsToRemove,
+      setBriefDraft,
+      setPendingUploads,
+      setUploaderKey,
+    ]
+  );
 
   useEffect(() => {
     if (!showSetupShell) {
@@ -818,20 +833,14 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
               onDeleteAll={handleHistoryDeleteAll}
               deletingAll={historyPurgingAll}
               hasMore={historyNextOffset != null}
-            />
-          );
-        case "import":
-          return (
-            <ImportPanel
-              onState={handleStateUpdate}
-              onHistoryRefresh={handleHistoryRefresh}
-            />
-          );
-        case "export":
-          return (
-            <ExportPanel
-              exportJsonUrl={state.exportJsonUrl}
-              exportMarkdownUrl={state.exportMarkdownUrl}
+              snapshotControls={
+                <HistorySnapshotControls
+                  exportJsonUrl={state.exportJsonUrl}
+                  exportMarkdownUrl={state.exportMarkdownUrl}
+                  onState={handleSnapshotHydrate}
+                  onHistoryRefresh={handleHistoryRefresh}
+                />
+              }
             />
           );
         default:
@@ -1180,6 +1189,12 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
                 onFilesChange={handleQueuedFilesChange}
                 uploaderKey={uploaderKey}
                 onSubmit={handleBriefSubmit}
+                extraContent={
+                  <ResumeSessionCallout
+                    onState={handleSnapshotHydrate}
+                    onHistoryRefresh={handleHistoryRefresh}
+                  />
+                }
               />
             )}
           </div>
@@ -2464,6 +2479,7 @@ interface BriefSectionProps {
   onFilesChange: (files: File[]) => void;
   uploaderKey: number;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  extraContent?: React.ReactNode;
 }
 
 function BriefSection({
@@ -2481,6 +2497,7 @@ function BriefSection({
   onFilesChange,
   uploaderKey,
   onSubmit,
+  extraContent,
 }: BriefSectionProps) {
   const isSetup = variant === "setup";
   const title = "Brief";
@@ -2558,6 +2575,10 @@ function BriefSection({
             </div>
           )}
         </div>
+
+        {extraContent ? (
+          <div className="brief-extra-slot">{extraContent}</div>
+        ) : null}
 
         <div className="admin-actions">
           <button
@@ -2884,338 +2905,6 @@ function RuntimePanel({
           </button>
         </div>
       </form>
-    </section>
-  );
-}
-
-interface ImportPanelProps {
-  onState: (state: AdminStateResponse) => void;
-  onHistoryRefresh: () => void;
-}
-
-interface SnapshotPreview {
-  historyCount: number;
-  attachmentCount: number;
-  briefIncluded: boolean;
-  provider?: string;
-  model?: string;
-}
-
-function ImportPanel({ onState, onHistoryRefresh }: ImportPanelProps) {
-  const { notify } = useNotifications();
-  const [inputText, setInputText] = useState("");
-  const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null);
-  const [preview, setPreview] = useState<SnapshotPreview | null>(null);
-  const [parseError, setParseError] = useState<string | null>(null);
-  const [status, setStatus] = useState<NullableStatus>(null);
-  const [saving, setSaving] = useState<AsyncStatus>("idle");
-
-  const resetStatus = useCallback(() => {
-    setStatus(null);
-    setSaving("idle");
-  }, []);
-
-  const validateSnapshot = useCallback((source: string) => {
-    const trimmed = source.trim();
-    if (!trimmed) {
-      throw new Error("Paste or upload a snapshot JSON file first.");
-    }
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(trimmed);
-    } catch (error) {
-      throw new Error(
-        `Failed to parse JSON: ${(error as Error).message ?? String(error)}`
-      );
-    }
-    if (!parsed || typeof parsed !== "object") {
-      throw new Error("Snapshot must be a JSON object.");
-    }
-    const candidate = parsed as Record<string, unknown>;
-    if (candidate.version !== 1) {
-      throw new Error("Snapshot version must equal 1.");
-    }
-    if (!Array.isArray(candidate.history)) {
-      throw new Error("Snapshot must include a history array.");
-    }
-
-    const historyCount = candidate.history.length;
-    const attachmentCount = Array.isArray(candidate.briefAttachments)
-      ? candidate.briefAttachments.length
-      : 0;
-    const briefIncluded = Boolean(
-      typeof candidate.brief === "string" && candidate.brief.trim().length > 0
-    );
-    const provider =
-      candidate.llm &&
-      typeof candidate.llm === "object" &&
-      candidate.llm !== null &&
-      typeof (candidate.llm as Record<string, unknown>).provider === "string"
-        ? ((candidate.llm as Record<string, unknown>).provider as string)
-        : undefined;
-    const model =
-      candidate.llm &&
-      typeof candidate.llm === "object" &&
-      candidate.llm !== null &&
-      typeof (candidate.llm as Record<string, unknown>).model === "string"
-        ? ((candidate.llm as Record<string, unknown>).model as string)
-        : undefined;
-
-    return {
-      snapshot: candidate,
-      summary: {
-        historyCount,
-        attachmentCount,
-        briefIncluded,
-        provider,
-        model,
-      } as SnapshotPreview,
-    };
-  }, []);
-
-  const handleFileSelect = useCallback(
-    async (file: File) => {
-      try {
-        const text = await file.text();
-        setInputText(text);
-        setSelectedFile({ name: file.name, size: file.size });
-        const { summary } = validateSnapshot(text);
-        setPreview(summary);
-        setParseError(null);
-        setStatus({
-          tone: "info",
-          message: `Loaded snapshot from ${file.name}`,
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        setPreview(null);
-        setParseError(message);
-        setStatus({ tone: "error", message });
-        notify("error", message);
-      }
-    },
-    [notify, validateSnapshot]
-  );
-
-  const handleUploadChange = useCallback(
-    (files: File[]) => {
-      if (files.length === 0) {
-        setSelectedFile(null);
-        setPreview(null);
-        setParseError(null);
-        resetStatus();
-        return;
-      }
-
-      const [file] = files;
-      resetStatus();
-      void handleFileSelect(file);
-    },
-    [handleFileSelect, resetStatus]
-  );
-
-  const handlePreview = useCallback(() => {
-    resetStatus();
-    try {
-      const { summary } = validateSnapshot(inputText);
-      setPreview(summary);
-      setParseError(null);
-      setStatus({
-        tone: "info",
-        message: `Snapshot ready with ${summary.historyCount} entries`,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setPreview(null);
-      setParseError(message);
-      setStatus({ tone: "error", message });
-      notify("error", message);
-    }
-  }, [inputText, notify, resetStatus, validateSnapshot]);
-
-  const handleSubmit = useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      setSaving("loading");
-      setStatus(null);
-      try {
-        const { snapshot, summary } = validateSnapshot(inputText);
-        const response = await submitHistoryImport(snapshot);
-        if (!response.success) {
-          throw new Error(response.message || "History import failed");
-        }
-        if (response.state) {
-          onState(response.state);
-        }
-        onHistoryRefresh();
-        setPreview(summary);
-        setParseError(null);
-        setSelectedFile(null);
-        setInputText("");
-        setStatus({ tone: "info", message: response.message });
-        setSaving("success");
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        setStatus({ tone: "error", message });
-        notify("error", message);
-        setSaving("error");
-      }
-    },
-    [inputText, notify, onHistoryRefresh, onState, validateSnapshot]
-  );
-
-  return (
-    <section className="admin-card">
-      <div className="admin-card__header">
-        <div>
-          <h2>Import history</h2>
-          <p className="admin-card__subtitle">
-            Restore a previous session snapshot to resume where you left off.
-          </p>
-        </div>
-        {status && (
-          <div
-            className={`admin-status admin-status--${
-              status.tone === "error" ? "error" : "info"
-            }`}
-          >
-            {status.message}
-          </div>
-        )}
-      </div>
-
-      <form className="admin-form" onSubmit={handleSubmit}>
-        <AttachmentUploader
-          className="admin-import__uploader"
-          name="snapshotUpload"
-          accept="application/json,.json"
-          multiple={false}
-          label="Drop or paste a history snapshot"
-          hint="Drop a saved history.json, paste it from the clipboard, or browse to upload."
-          emptyStatus="No snapshot file selected yet."
-          onFilesChange={handleUploadChange}
-        />
-
-        {selectedFile ? (
-          <p className="admin-import__file" aria-live="polite">
-            Loaded snapshot: {selectedFile.name} ·{" "}
-            {selectedFile.size.toLocaleString()} bytes
-          </p>
-        ) : (
-          <p className="admin-import__helper">
-            You can also paste the snapshot JSON into the editor below.
-          </p>
-        )}
-
-        <label className="admin-field">
-          <span className="admin-field__label">Snapshot JSON</span>
-          <textarea
-            value={inputText}
-            onChange={(event) => {
-              setInputText(event.target.value);
-              setSelectedFile(null);
-              setPreview(null);
-              setParseError(null);
-              resetStatus();
-            }}
-            rows={10}
-            spellCheck={false}
-            placeholder="Paste the JSON snapshot here or drop a file above."
-          />
-          {parseError ? (
-            <p className="admin-field__error" role="alert">
-              {parseError}
-            </p>
-          ) : (
-            <p className="admin-field__helper">
-              You can paste the contents of an exported history snapshot to
-              import without upload.
-            </p>
-          )}
-        </label>
-
-        <div className="admin-import__actions">
-          <button
-            type="button"
-            className="admin-secondary"
-            onClick={handlePreview}
-          >
-            Preview snapshot
-          </button>
-          <button
-            type="submit"
-            className="admin-primary"
-            disabled={saving === "loading"}
-          >
-            {saving === "loading" ? "Importing…" : "Import snapshot"}
-          </button>
-        </div>
-
-        {preview ? (
-          <div className="admin-import__summary" aria-live="polite">
-            <h3>Snapshot details</h3>
-            <dl className="admin-import__preview">
-              <div>
-                <dt>History entries</dt>
-                <dd>{preview.historyCount.toLocaleString()}</dd>
-              </div>
-              <div>
-                <dt>Attachments</dt>
-                <dd>{preview.attachmentCount}</dd>
-              </div>
-              <div>
-                <dt>Brief included</dt>
-                <dd>{preview.briefIncluded ? "Yes" : "No"}</dd>
-              </div>
-              {preview.provider ? (
-                <div>
-                  <dt>Provider</dt>
-                  <dd>
-                    {preview.provider}
-                    {preview.model ? ` · ${preview.model}` : ""}
-                  </dd>
-                </div>
-              ) : null}
-            </dl>
-          </div>
-        ) : null}
-      </form>
-    </section>
-  );
-}
-
-interface ExportPanelProps {
-  exportJsonUrl: string;
-  exportMarkdownUrl: string;
-}
-
-function ExportPanel({ exportJsonUrl, exportMarkdownUrl }: ExportPanelProps) {
-  return (
-    <section className="admin-panel admin-panel--exports">
-      <div className="admin-card__header">
-        <div>
-          <h2>Exports</h2>
-          <p className="admin-card__subtitle">
-            Download the current session for safekeeping or handoff.
-          </p>
-        </div>
-      </div>
-      <div className="admin-actions admin-actions--stacked">
-        <a
-          className="admin-primary admin-primary--link"
-          href={exportJsonUrl}
-          download
-        >
-          Download JSON snapshot
-        </a>
-        <a
-          className="admin-secondary admin-secondary--link"
-          href={exportMarkdownUrl}
-          download
-        >
-          Download prompt.md
-        </a>
-      </div>
     </section>
   );
 }

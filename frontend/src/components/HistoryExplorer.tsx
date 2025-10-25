@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { MouseEvent } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -21,6 +21,7 @@ interface HistoryExplorerProps {
   onDeleteEntry?: (id: string) => Promise<void> | void;
   onDeleteAll?: () => Promise<void> | void;
   deletingAll?: boolean;
+  snapshotControls?: ReactNode;
 }
 
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
@@ -52,6 +53,7 @@ export function HistoryExplorer({
   onDeleteEntry,
   onDeleteAll,
   deletingAll = false,
+  snapshotControls,
 }: HistoryExplorerProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [purgeConfirmVisible, setPurgeConfirmVisible] = useState(false);
@@ -168,6 +170,7 @@ export function HistoryExplorer({
           ) : null}
         </div>
       </div>
+      {snapshotControls}
       {purgeConfirmVisible ? (
         <div
           className="history-purge-banner"
