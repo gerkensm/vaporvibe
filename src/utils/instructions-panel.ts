@@ -1,10 +1,24 @@
 import { ADMIN_ROUTE_PREFIX, INSTRUCTIONS_FIELD } from "../constants.js";
+import type { BranchLabel } from "../types.js";
 import { resolveScriptSource } from "./frontend-assets.js";
 
-export function getInstructionsPanelScript(): string {
+interface InstructionsPanelOptions {
+  branchId?: string | null;
+  branchLabel?: BranchLabel | null;
+  forkActive?: boolean;
+  forkInstructions?: Array<{ label: BranchLabel; instructions: string }>;
+}
+
+export function getInstructionsPanelScript(
+  options: InstructionsPanelOptions = {}
+): string {
   const config = {
     adminRoutePrefix: ADMIN_ROUTE_PREFIX,
     instructionsField: INSTRUCTIONS_FIELD,
+    branchId: options.branchId ?? null,
+    branchLabel: options.branchLabel ?? null,
+    forkActive: options.forkActive ?? false,
+    forkInstructions: options.forkInstructions ?? [],
   };
 
   const configScript = `window.__SERVE_LLM_INSTRUCTIONS_CONFIG__ = ${JSON.stringify(

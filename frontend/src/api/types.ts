@@ -131,6 +131,27 @@ export interface AdminHistoryItem {
   viewUrl: string;
   downloadUrl: string;
   deleteUrl: string;
+  forkInfo?: {
+    forkId: string;
+    branchId: string;
+    label: "A" | "B";
+    status: "in-progress" | "chosen" | "discarded";
+  };
+}
+
+export interface AdminForkBranchSummary {
+  branchId: string;
+  label: "A" | "B";
+  instructions: string;
+  entryCount: number;
+}
+
+export interface AdminActiveForkSummary {
+  sessionId: string;
+  forkId: string;
+  originEntryId: string;
+  createdAt: number;
+  branches: AdminForkBranchSummary[];
 }
 
 export interface AdminStateResponse {
@@ -145,6 +166,8 @@ export interface AdminStateResponse {
   sessionCount: number;
   exportJsonUrl: string;
   exportMarkdownUrl: string;
+  isForkActive: boolean;
+  activeForks: AdminActiveForkSummary[];
   providerKeyStatuses: Record<
     string,
     {

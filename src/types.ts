@@ -85,6 +85,7 @@ export interface HistoryEntry {
   rest?: RestHistoryMetadata;
   componentCache?: Record<string, string>;
   styleCache?: Record<string, string>;
+  forkInfo?: HistoryForkInfo;
 }
 
 export interface RestHistoryMetadata {
@@ -131,6 +132,39 @@ export interface ProviderSettingsSummary {
   reasoningTokensEnabled?: boolean;
   reasoningTokens?: number;
   apiKeyMask?: string;
+}
+
+export type BranchLabel = "A" | "B";
+
+export interface HistoryForkInfo {
+  forkId: string;
+  branchId: string;
+  label: BranchLabel;
+  status: "in-progress" | "chosen" | "discarded";
+}
+
+export interface BranchState {
+  branchId: string;
+  label: BranchLabel;
+  instructions: string;
+  history: HistoryEntry[];
+  rest: {
+    mutations: RestMutationRecord[];
+    queries: RestQueryRecord[];
+  };
+  prevHtml: string;
+  componentCache: Record<string, string>;
+  styleCache: Record<string, string>;
+  nextComponentId: number;
+  nextStyleId: number;
+}
+
+export interface ForkState {
+  forkId: string;
+  originEntryId: string;
+  status: "active" | "resolved";
+  branches: Map<string, BranchState>;
+  createdAt: number;
 }
 
 export interface HistorySnapshot {

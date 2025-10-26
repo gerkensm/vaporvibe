@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
-import type { DragEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { DragEvent, MouseEvent } from "react";
 
 import type { AdminStateResponse } from "../api/types";
 import SnapshotImportForm from "./SnapshotImportForm";
@@ -9,6 +9,7 @@ interface HistorySnapshotControlsProps {
   exportMarkdownUrl: string;
   onState: (state: AdminStateResponse) => void;
   onHistoryRefresh: () => void;
+  forkActive: boolean;
 }
 
 type CollapsibleKey = "import" | "export";
@@ -18,6 +19,7 @@ function HistorySnapshotControls({
   exportMarkdownUrl,
   onState,
   onHistoryRefresh,
+  forkActive,
 }: HistorySnapshotControlsProps) {
   const [openSection, setOpenSection] = useState<CollapsibleKey | null>(null);
   const [pendingDropFiles, setPendingDropFiles] = useState<File[] | null>(null);
@@ -26,12 +28,29 @@ function HistorySnapshotControls({
   const importOpen = openSection === "import";
   const exportOpen = openSection === "export";
 
-  const toggleSection = useCallback((key: CollapsibleKey) => {
-    setOpenSection((current) => (current === key ? null : key));
-  }, []);
+  useEffect(() => {
+    if (forkActive) {
+      setOpenSection(null);
+      setIsDragActive(false);
+      setPendingDropFiles(null);
+    }
+  }, [forkActive]);
+
+  const toggleSection = useCallback(
+    (key: CollapsibleKey) => {
+      if (forkActive) {
+        return;
+      }
+      setOpenSection((current) => (current === key ? null : key));
+    },
+    [forkActive]
+  );
 
   const handleContainerDragEnter = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
+      if (forkActive) {
+        return;
+      }
       if (!event.dataTransfer?.types.includes("Files")) {
         return;
       }
@@ -42,10 +61,13 @@ function HistorySnapshotControls({
       }
       setIsDragActive(true);
     },
-    [importOpen]
+    [forkActive, importOpen]
   );
 
   const handleContainerDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
+    if (forkActive) {
+      return;
+    }
     if (!event.dataTransfer?.types.includes("Files")) {
       return;
     }
@@ -54,12 +76,19 @@ function HistorySnapshotControls({
   }, []);
 
   const handleContainerDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
+    if (forkActive) {
+      setIsDragActive(false);
+      return;
+    }
     if (!event.currentTarget.contains(event.relatedTarget as Node)) {
       setIsDragActive(false);
     }
   }, []);
 
   const handleContainerDrop = useCallback((event: DragEvent<HTMLDivElement>) => {
+    if (forkActive) {
+      return;
+    }
     if (!event.dataTransfer?.files?.length) {
       return;
     }
@@ -71,12 +100,22 @@ function HistorySnapshotControls({
     setIsDragActive(false);
   }, []);
 
-  const hint = useMemo(
-    () =>
-      importOpen
-        ? "Drop a snapshot anywhere in this panel to load it."
-        : "Drop a history.json here or click to import.",
-    [importOpen]
+  const hint = useMemo(() => {
+    if (forkActive) {
+      return "Resolve the active A/B comparison to import a snapshot.";
+    }
+    return importOpen
+      ? "Drop a snapshot anywhere in this panel to load it."
+      : "Drop a history.json here or click to import.";
+  }, [forkActive, importOpen]);
+
+  const handleDisabledLink = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      if (forkActive) {
+        event.preventDefault();
+      }
+    },
+    [forkActive]
   );
 
   return (
@@ -95,6 +134,7 @@ function HistorySnapshotControls({
           <button
             type="button"
             className="history-snapshot-controls__toggle"
+            disabled={forkActive}
             onClick={() => toggleSection("import")}
             aria-expanded={importOpen}
           >
@@ -114,6 +154,11 @@ function HistorySnapshotControls({
             onExternalFilesHandled={() => setPendingDropFiles(null)}
           />
         ) : null}
+        {forkActive ? (
+          <p className="history-snapshot-controls__notice" role="status">
+            A/B comparison active. Finish or discard it to import snapshots.
+          </p>
+        ) : null}
       </section>
 
       <section
@@ -124,6 +169,7 @@ function HistorySnapshotControls({
           <button
             type="button"
             className="history-snapshot-controls__toggle"
+            disabled={forkActive}
             onClick={() => toggleSection("export")}
             aria-expanded={exportOpen}
           >
@@ -144,6 +190,9 @@ function HistorySnapshotControls({
               className="admin-primary admin-primary--link"
               href={exportJsonUrl}
               download
+              aria-disabled={forkActive}
+              onClick={handleDisabledLink}
+              tabIndex={forkActive ? -1 : 0}
             >
               Download JSON snapshot
             </a>
@@ -151,10 +200,18 @@ function HistorySnapshotControls({
               className="admin-secondary admin-secondary--link"
               href={exportMarkdownUrl}
               download
+              aria-disabled={forkActive}
+              onClick={handleDisabledLink}
+              tabIndex={forkActive ? -1 : 0}
             >
               Download prompt.md
             </a>
           </div>
+        ) : null}
+        {forkActive ? (
+          <p className="history-snapshot-controls__notice" role="status">
+            Resolve the active A/B comparison to enable exports.
+          </p>
         ) : null}
       </section>
     </div>

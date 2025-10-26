@@ -36,6 +36,7 @@ import { createLlmClient } from "../llm/factory.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
 import { readBody } from "../utils/body.js";
 import type { ParsedFile } from "../utils/body.js";
+import { parseCookies } from "../utils/cookies.js";
 import { maskSensitive } from "../utils/sensitive.js";
 import {
   createHistorySnapshot,
@@ -46,6 +47,7 @@ import { SessionStore } from "./session-store.js";
 import { getCredentialStore } from "../utils/credential-store.js";
 import { processBriefAttachmentFiles } from "./brief-attachments.js";
 import type {
+  AdminActiveForkSummary,
   AdminBriefAttachment,
   AdminHistoryItem,
   AdminHistoryResponse,
@@ -179,6 +181,26 @@ export class AdminController {
 
     const subPath = path.slice("/api/admin".length) || "/";
 
+    if (method === "POST" && subPath === "/forks/start") {
+      await this.handleForkStart(context, reqLogger);
+      return true;
+    }
+
+    if (method === "POST") {
+      const commitMatch = subPath.match(/^\/forks\/([^/]+)\/commit\/([^/]+)$/);
+      if (commitMatch) {
+        const [, forkId, branchId] = commitMatch;
+        await this.handleForkCommit(context, reqLogger, forkId, branchId);
+        return true;
+      }
+      const discardMatch = subPath.match(/^\/forks\/([^/]+)\/discard$/);
+      if (discardMatch) {
+        const [, forkId] = discardMatch;
+        await this.handleForkDiscard(context, reqLogger, forkId);
+        return true;
+      }
+    }
+
     if (method === "GET" && (subPath === "/" || subPath === "/state")) {
       const state = await this.buildAdminStateResponse();
       this.respondJson(res, state);
@@ -288,6 +310,17 @@ export class AdminController {
     }
 
     if (method === "POST" && subPath === "/history/import") {
+      if (this.sessionStore.hasAnyActiveFork()) {
+        this.respondJson(
+          res,
+          {
+            success: false,
+            message: "Cannot import history while an A/B test is active",
+          },
+          409
+        );
+        return true;
+      }
       const body = await readBody(req);
       const candidate = extractSnapshotCandidate(body.data);
       const fallbackRaw =
@@ -330,6 +363,17 @@ export class AdminController {
     }
 
     if (method === "DELETE" && subPath === "/history") {
+      if (this.sessionStore.hasAnyActiveFork()) {
+        this.respondJson(
+          res,
+          {
+            success: false,
+            message: "Cannot clear history while an A/B test is active",
+          },
+          409
+        );
+        return true;
+      }
       const removedCount = this.sessionStore.clearHistory();
       reqLogger.info({ removedCount }, "Purged admin history via API");
       const message =
@@ -355,6 +399,19 @@ export class AdminController {
       }
 
       const entryId = decodeURIComponent(entryIdSegment);
+      const target = this.getSortedHistoryEntries().find((item) => item.id === entryId);
+      if (target?.forkInfo?.status === "in-progress") {
+        this.respondJson(
+          res,
+          {
+            success: false,
+            message: "Cannot delete history entry while an A/B test is active",
+          },
+          409
+        );
+        return true;
+      }
+
       const removed = this.sessionStore.removeHistoryEntry(entryId);
       if (!removed) {
         this.respondJson(
@@ -419,6 +476,113 @@ export class AdminController {
     return true;
   }
 
+  private async handleForkStart(
+    context: RequestContext,
+    reqLogger: Logger
+  ): Promise<void> {
+    const { req, res } = context;
+    const body = await readBody(req);
+    const instructionsA = String(body.data?.instructionsA ?? "").trim();
+    const instructionsB = String(body.data?.instructionsB ?? "").trim();
+    const baseEntryIdRaw = body.data?.baseEntryId;
+    const baseEntryId =
+      typeof baseEntryIdRaw === "string" && baseEntryIdRaw.trim().length > 0
+        ? baseEntryIdRaw.trim()
+        : undefined;
+
+    if (!instructionsA || !instructionsB) {
+      this.respondJson(
+        res,
+        {
+          success: false,
+          message: "Both instruction fields are required",
+        },
+        400
+      );
+      return;
+    }
+
+    const cookies = parseCookies(req.headers.cookie);
+    const sid = this.sessionStore.getOrCreateSessionId(cookies, res);
+
+    try {
+      const result = this.sessionStore.startFork(
+        sid,
+        baseEntryId,
+        instructionsA,
+        instructionsB
+      );
+      reqLogger.info({ forkId: result.forkId }, "Started A/B fork");
+      this.respondJson(res, { success: true, ...result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const status = /already active/i.test(message) ? 409 : 400;
+      this.respondJson(
+        res,
+        {
+          success: false,
+          message,
+        },
+        status
+      );
+    }
+  }
+
+  private async handleForkCommit(
+    context: RequestContext,
+    reqLogger: Logger,
+    forkId: string,
+    branchId: string
+  ): Promise<void> {
+    const { req, res } = context;
+    const cookies = parseCookies(req.headers.cookie);
+    const sid = this.sessionStore.getOrCreateSessionId(cookies, res);
+
+    try {
+      this.sessionStore.resolveFork(sid, forkId, branchId);
+      reqLogger.info({ forkId, branchId }, "Resolved A/B fork");
+      this.respondJson(res, { success: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const status = /no active fork/i.test(message) ? 404 : 400;
+      this.respondJson(
+        res,
+        {
+          success: false,
+          message,
+        },
+        status
+      );
+    }
+  }
+
+  private async handleForkDiscard(
+    context: RequestContext,
+    reqLogger: Logger,
+    forkId: string
+  ): Promise<void> {
+    const { req, res } = context;
+    const cookies = parseCookies(req.headers.cookie);
+    const sid = this.sessionStore.getOrCreateSessionId(cookies, res);
+
+    try {
+      this.sessionStore.discardFork(sid, forkId);
+      reqLogger.info({ forkId }, "Discarded A/B fork");
+      this.respondJson(res, { success: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const status = /no active fork/i.test(message) ? 404 : 400;
+      this.respondJson(
+        res,
+        {
+          success: false,
+          message,
+        },
+        status
+      );
+    }
+  }
+
   private async computeProviderKeyStatuses(): Promise<
     Record<
       "openai" | "gemini" | "anthropic" | "grok" | "groq",
@@ -481,6 +645,21 @@ export class AdminController {
     const attachments = (this.state.briefAttachments ?? []).map((attachment) =>
       this.toAdminBriefAttachment(attachment)
     );
+
+    const activeForks: AdminActiveForkSummary[] = this.sessionStore
+      .getActiveForkSummaries()
+      .map(({ sessionId, fork }) => ({
+        sessionId,
+        forkId: fork.forkId,
+        originEntryId: fork.originEntryId,
+        createdAt: fork.createdAt,
+        branches: fork.branches.map((branch) => ({
+          branchId: branch.branchId,
+          label: branch.label,
+          instructions: branch.instructions,
+          entryCount: branch.entryCount,
+        })),
+      }));
 
     const providerInfo: AdminProviderInfo = {
       provider: this.state.provider.provider,
@@ -549,6 +728,8 @@ export class AdminController {
       featuredModels,
       providerReasoningModes: PROVIDER_REASONING_MODES,
       providerReasoningCapabilities: PROVIDER_REASONING_CAPABILITIES,
+      isForkActive: activeForks.length > 0,
+      activeForks,
     };
   }
 
@@ -577,6 +758,17 @@ export class AdminController {
 
   private handleHistoryJson(context: RequestContext): void {
     const { res } = context;
+    if (this.sessionStore.hasAnyActiveFork()) {
+      this.respondJson(
+        res,
+        {
+          success: false,
+          message: "Cannot export history while an A/B test is active",
+        },
+        409
+      );
+      return;
+    }
     const history = this.sessionStore.exportHistory();
     const snapshot = createHistorySnapshot({
       history,
@@ -594,6 +786,17 @@ export class AdminController {
 
   private handlePromptMarkdown(context: RequestContext): void {
     const { res } = context;
+    if (this.sessionStore.hasAnyActiveFork()) {
+      this.respondJson(
+        res,
+        {
+          success: false,
+          message: "Cannot export prompts while an A/B test is active",
+        },
+        409
+      );
+      return;
+    }
     const history = this.sessionStore.exportHistory();
     const markdown = createPromptMarkdown({
       history,
@@ -1499,6 +1702,14 @@ export class AdminController {
         entry.id
       )}/download`,
       deleteUrl: `/api/admin/history/${encodeURIComponent(entry.id)}`,
+      forkInfo: entry.forkInfo
+        ? {
+            forkId: entry.forkInfo.forkId,
+            branchId: entry.forkInfo.branchId,
+            label: entry.forkInfo.label,
+            status: entry.forkInfo.status,
+          }
+        : undefined,
     };
   }
 }

@@ -1,3 +1,10 @@
+import {
+  BRANCH_FIELD,
+  resolveActiveBranchId,
+  applyBranchToUrl,
+  ensureBranchField,
+} from "./interceptor-branch-utils";
+
 (() => {
   type NavigationOverlayEffect = {
     id: string;
@@ -125,6 +132,11 @@
   const DEMOSCENE_EFFECT_ID = "ansi-demoscene";
   const demosceneMelodyPattern = [330, 392, 415, 440, 494, 523, 494, 440];
   const demosceneBassPattern = [110, 147, 123, 98];
+  const iframeContext = window.frameElement as HTMLIFrameElement | null;
+  const activeBranchId = resolveActiveBranchId({
+    href: window.location.href,
+    frameBranchAttribute: iframeContext?.getAttribute("data-vaporvibe-branch"),
+  });
 
   const navigationOverlayEffectStyles = String.raw`
   .effect-ornament {
@@ -3943,6 +3955,7 @@
   function handleRequest(url: URL | string, options: { method: string }): void {
     const destination =
       url instanceof URL ? url : new URL(url, window.location.origin);
+    applyBranchToUrl(activeBranchId, destination);
     if (isRestApiPath(destination.pathname)) {
       emitRestApiEvent(document.body ?? null, {
         method: options.method,
@@ -4072,10 +4085,12 @@
       } catch (error) {
         console.warn("vaporvibe form encoding failed:", error);
       }
+      applyBranchToUrl(activeBranchId, url);
       handleRequest(url, { method: "GET" });
       return;
     }
 
+    ensureBranchField(activeBranchId, form, document);
     showOverlay();
     const existingMarker = form.querySelector<HTMLInputElement>(
       'input[name="__vaporvibe"][value="interceptor"]'

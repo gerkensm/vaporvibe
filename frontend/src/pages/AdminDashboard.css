@@ -981,6 +981,34 @@
   justify-content: center;
 }
 
+.history-snapshot-controls__notice {
+  margin: 0;
+  padding: 0 clamp(20px, 3vw, 28px) clamp(16px, 3vw, 24px);
+  font-size: 0.9rem;
+  color: #334155;
+  background: rgba(148, 163, 184, 0.12);
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.history-fork-banner {
+  margin: 0 clamp(20px, 3vw, 28px) clamp(12px, 3vw, 18px);
+  padding: clamp(16px, 3vw, 22px);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(139, 92, 246, 0.12));
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  color: #1e293b;
+}
+
+.history-fork-banner__title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.history-fork-banner__details {
+  font-size: 0.9rem;
+  color: #475569;
+}
+
 .history-item {
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 16px;
@@ -1065,6 +1093,30 @@
   background: rgba(148, 163, 184, 0.16);
   border-color: rgba(148, 163, 184, 0.28);
   color: #64748b;
+}
+
+.history-chip--fork {
+  background: rgba(99, 102, 241, 0.14);
+  border-color: rgba(99, 102, 241, 0.28);
+  color: #4338ca;
+}
+
+.history-chip--fork-in-progress {
+  background: rgba(249, 115, 22, 0.14);
+  border-color: rgba(249, 115, 22, 0.28);
+  color: #c2410c;
+}
+
+.history-chip--fork-chosen {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.28);
+  color: #047857;
+}
+
+.history-chip--fork-discarded {
+  background: rgba(148, 163, 184, 0.18);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #475569;
 }
 
 .history-item__content {

@@ -813,7 +813,19 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
               onState={handleStateUpdate}
             />
           );
-        case "history":
+        case "history": {
+          const activeFork = state.isForkActive
+            ? state.activeForks[0] ?? null
+            : null;
+          const forkInstructions = activeFork
+            ? activeFork.branches.map((branch) => {
+                const snippet =
+                  branch.instructions.length > 80
+                    ? `${branch.instructions.slice(0, 77)}…`
+                    : branch.instructions;
+                return `${branch.label}: "${snippet || "(no instructions provided)"}"`;
+              })
+            : [];
           return (
             <HistoryExplorer
               items={historyItems}
@@ -834,15 +846,29 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
               deletingAll={historyPurgingAll}
               hasMore={historyNextOffset != null}
               snapshotControls={
-                <HistorySnapshotControls
-                  exportJsonUrl={state.exportJsonUrl}
-                  exportMarkdownUrl={state.exportMarkdownUrl}
-                  onState={handleSnapshotHydrate}
-                  onHistoryRefresh={handleHistoryRefresh}
-                />
+                <>
+                  {activeFork ? (
+                    <div className="history-fork-banner" role="status">
+                      <div className="history-fork-banner__title">
+                        A/B comparison active — resolve before importing or exporting.
+                      </div>
+                      <div className="history-fork-banner__details">
+                        {forkInstructions.join(" · ")}
+                      </div>
+                    </div>
+                  ) : null}
+                  <HistorySnapshotControls
+                    exportJsonUrl={state.exportJsonUrl}
+                    exportMarkdownUrl={state.exportMarkdownUrl}
+                    onState={handleSnapshotHydrate}
+                    onHistoryRefresh={handleHistoryRefresh}
+                    forkActive={state.isForkActive}
+                  />
+                </>
               }
             />
           );
+        }
         default:
           return null;
       }

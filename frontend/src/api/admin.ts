@@ -247,3 +247,73 @@ export async function deleteAllHistoryEntries(): Promise<AdminUpdateResponse> {
     "History purge failed"
   );
 }
+
+export interface StartAbForkPayload {
+  instructionsA: string;
+  instructionsB: string;
+  baseEntryId?: string;
+}
+
+export interface StartAbForkResponse {
+  success: boolean;
+  forkId: string;
+  branchIdA: string;
+  branchIdB: string;
+}
+
+export async function startAbFork(
+  payload: StartAbForkPayload
+): Promise<StartAbForkResponse> {
+  return requestJson<StartAbForkResponse>(
+    "/api/admin/forks/start",
+    {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(payload),
+    },
+    "Failed to start A/B test"
+  );
+}
+
+export interface ResolveAbForkResponse {
+  success: boolean;
+}
+
+export async function keepAbForkVersion(
+  forkId: string,
+  branchId: string
+): Promise<ResolveAbForkResponse> {
+  return requestJson<ResolveAbForkResponse>(
+    `/api/admin/forks/${encodeURIComponent(forkId)}/commit/${encodeURIComponent(
+      branchId
+    )}`,
+    {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json",
+      },
+    },
+    "Failed to keep fork version"
+  );
+}
+
+export async function discardAbFork(
+  forkId: string
+): Promise<ResolveAbForkResponse> {
+  return requestJson<ResolveAbForkResponse>(
+    `/api/admin/forks/${encodeURIComponent(forkId)}/discard`,
+    {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        Accept: "application/json",
+      },
+    },
+    "Failed to discard fork"
+  );
+}
