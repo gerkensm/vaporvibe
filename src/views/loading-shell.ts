@@ -143,7 +143,11 @@ export function renderResultHydrationScript(token: string, path: string): string
   return `<script>window.__vaporVibeHydrateFromToken(${tokenPayload}, ${pathPayload});</script></body></html>`;
 }
 
-export function renderLoaderErrorScript(message: string): string {
-  const payload = escapeForInlineScript(message);
-  return `<script>window.__vaporVibeHydrateError(${payload});</script></body></html>`;
+export function renderLoaderErrorScript(
+  message: string,
+  detail?: string
+): string {
+  const messagePayload = escapeForInlineScript(message);
+  const detailPayload = detail ? escapeForInlineScript(detail) : "null";
+  return `<script>window.__vaporVibeHydrateError(${messagePayload}, ${detailPayload});</script></body></html>`;
 }

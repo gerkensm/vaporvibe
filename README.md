@@ -92,6 +92,7 @@ graph TD
 - **Effortless Setup:** Forget config files. A slick browser-based wizard gets your API key and initial brief configured in moments.
 - **AI-Powered Hot-Fixes:** Use the floating AI Assist panel to give the model live feedback. "Make the buttons rounder" or "Fix this layout bug"—and watch it regenerate the page.
 - **Model "Thinking" Traces:** Enable reasoning mode to see the model's chain-of-thought, giving you a peek into how it decided to render the page.
+- **A/B Comparisons:** Fork any point in your history, give the model alternative instructions, and review the resulting A & B experiences side-by-side before choosing which path to keep.
 
 ---
 

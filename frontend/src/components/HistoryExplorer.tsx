@@ -63,6 +63,11 @@ export function HistoryExplorer({
     return items.length === 0 && !loading;
   }, [items, loading]);
 
+  const hasLockedEntries = useMemo(
+    () => items.some((item) => item.forkInfo?.status === "in-progress"),
+    [items]
+  );
+
   const handleDelete = useCallback(
     async (entryId: string, event: MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
@@ -118,8 +123,12 @@ export function HistoryExplorer({
   }, [items.length]);
 
   const purgeDisabled =
-    !onDeleteAll || items.length === 0 || deletingAll || loading;
-  const purgeButtonLabel = deletingAll ? "Purging…" : "Delete all";
+    !onDeleteAll || items.length === 0 || deletingAll || loading || hasLockedEntries;
+  const purgeButtonLabel = deletingAll
+    ? "Purging…"
+    : hasLockedEntries
+      ? "Locked by A/B test"
+      : "Delete all";
 
   return (
     <section className="admin-card">
@@ -153,6 +162,11 @@ export function HistoryExplorer({
                 className="admin-secondary admin-secondary--danger history-delete-all-button"
                 onClick={handleDeleteAllIntent}
                 disabled={purgeDisabled}
+                title={
+                  hasLockedEntries
+                    ? "Resolve the active A/B comparison to delete all history"
+                    : undefined
+                }
               >
                 {purgeButtonLabel}
               </button>
@@ -230,6 +244,19 @@ export function HistoryExplorer({
                   {item.entryKind !== "html" ? (
                     <span className="history-chip history-chip--muted">
                       {item.entryKind === "rest-mutation" ? "REST mutation" : "REST query"}
+                    </span>
+                  ) : null}
+                  {item.forkInfo ? (
+                    <span
+                      className={`history-chip history-chip--fork history-chip--fork-${item.forkInfo.status}`}
+                      aria-label={`Fork status: ${item.forkInfo.status}`}
+                    >
+                      {`Variant ${item.forkInfo.label}`}
+                      {item.forkInfo.status === "in-progress"
+                        ? " · in review"
+                        : item.forkInfo.status === "chosen"
+                          ? " · kept"
+                          : " · discarded"}
                     </span>
                   ) : null}
                   {item.usageSummary ? (
@@ -454,9 +481,20 @@ export function HistoryExplorer({
                       type="button"
                       className="history-item__action history-item__action--danger admin-secondary admin-secondary--danger"
                       onClick={(event) => handleDelete(item.id, event)}
-                      disabled={deletingId === item.id}
+                      disabled={
+                        deletingId === item.id || item.forkInfo?.status === "in-progress"
+                      }
+                      title={
+                        item.forkInfo?.status === "in-progress"
+                          ? "Finish the A/B comparison before deleting this entry"
+                          : undefined
+                      }
                     >
-                      {deletingId === item.id ? "Deleting…" : "Delete entry"}
+                      {deletingId === item.id
+                        ? "Deleting…"
+                        : item.forkInfo?.status === "in-progress"
+                          ? "Locked by A/B test"
+                          : "Delete entry"}
                     </button>
                   ) : null}
                 </div>

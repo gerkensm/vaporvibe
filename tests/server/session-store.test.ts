@@ -47,6 +47,22 @@ describe("SessionStore", () => {
     setCookieMock.mockClear();
   });
 
+  function seedBaseSession(
+    overrides: Partial<HistoryEntry> = {}
+  ): { sid: string; entry: HistoryEntry } {
+    const res = createWritableResponse();
+    const sid = store.getOrCreateSessionId({}, res);
+    const entry = createHistoryEntry({
+      response: { html: "<html><body>Origin</body></html>" },
+      componentCache: { "sl-gen-1": "<div>base</div>" },
+      styleCache: { "sl-style-1": ".base{}" },
+      ...overrides,
+    });
+    store.appendHistoryEntry(sid, entry);
+    store.setPrevHtml(sid, entry.response.html);
+    return { sid, entry };
+  }
+
   it("creates a session id and sets cookie when missing", () => {
     const res = createWritableResponse();
     const sid = store.getOrCreateSessionId({}, res);
@@ -149,5 +165,191 @@ describe("SessionStore", () => {
     expect(restEntry.entryKind).toBe("rest-mutation");
     expect(restEntry.response.html).toContain("vaporvibe-rest-json");
     expect(store.getPrevHtml(sid)).toContain("Existing");
+  });
+
+  describe("fork support", () => {
+    it("creates fork branches with cloned state and instructions", () => {
+      const { sid, entry } = seedBaseSession();
+
+      const { forkId, branchIdA, branchIdB } = store.startFork(
+        sid,
+        entry.id,
+        "Instruction A",
+        "Instruction B"
+      );
+
+      expect(forkId).toBeTypeOf("string");
+      expect(branchIdA).toBeTypeOf("string");
+      expect(branchIdB).toBeTypeOf("string");
+
+      const summary = store.getActiveForkSummary(sid);
+      expect(summary).not.toBeNull();
+      expect(summary).toMatchObject({
+        forkId,
+        originEntryId: entry.id,
+      });
+      expect(summary!.branches).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            branchId: branchIdA,
+            label: "A",
+            instructions: "Instruction A",
+            entryCount: 0,
+          }),
+          expect.objectContaining({
+            branchId: branchIdB,
+            label: "B",
+            instructions: "Instruction B",
+            entryCount: 0,
+          }),
+        ])
+      );
+
+      expect(store.getPrevHtml(sid, branchIdA)).toContain("Origin");
+      expect(store.getPrevHtml(sid, branchIdB)).toContain("Origin");
+      expect(() => store.appendHistoryEntry(sid, createHistoryEntry())).toThrow(
+        /fork is active/i
+      );
+    });
+
+    it("isolates branch histories and prev html until resolution", () => {
+      const { sid, entry } = seedBaseSession();
+      const { forkId, branchIdA, branchIdB } = store.startFork(
+        sid,
+        entry.id,
+        "Variant A",
+        "Variant B"
+      );
+
+      const branchEntryA = createHistoryEntry({
+        id: "branch-a-1",
+        response: { html: "<html><body>A1</body></html>" },
+        componentCache: { "sl-gen-2": "<div>A</div>" },
+        styleCache: { "sl-style-2": ".a{}" },
+      });
+      store.appendToBranchHistory(sid, branchIdA, branchEntryA);
+
+      const branchEntryB = createHistoryEntry({
+        id: "branch-b-1",
+        response: { html: "<html><body>B1</body></html>" },
+      });
+      store.appendToBranchHistory(sid, branchIdB, branchEntryB);
+
+      const branchHistory = store.getHistoryForPrompt(sid, branchIdA);
+      expect(branchHistory.map((item) => item.id)).toEqual([
+        entry.id,
+        branchEntryA.id,
+      ]);
+      expect(branchHistory.at(-1)?.forkInfo).toMatchObject({
+        forkId,
+        branchId: branchIdA,
+        label: "A",
+        status: "in-progress",
+      });
+      expect(store.getPrevHtml(sid, branchIdA)).toContain("A1");
+      expect(store.getPrevHtml(sid, branchIdB)).toContain("B1");
+      expect(store.getPrevHtml(sid)).toContain("Origin");
+    });
+
+    it("merges chosen branch history and rest records on resolve", () => {
+      const { sid, entry } = seedBaseSession();
+      const { forkId, branchIdA, branchIdB } = store.startFork(
+        sid,
+        entry.id,
+        "Keep A",
+        "Keep B"
+      );
+
+      const branchEntryA = createHistoryEntry({
+        id: "branch-a-final",
+        response: { html: "<html><body>Chosen</body></html>" },
+      });
+      store.appendToBranchHistory(sid, branchIdA, branchEntryA);
+      store.appendMutationRecord(
+        sid,
+        createRestMutation({ id: "mutation-a" }),
+        branchIdA
+      );
+      store.appendQueryRecord(
+        sid,
+        createRestQuery({ id: "query-a" }),
+        branchIdA
+      );
+
+      const branchEntryB = createHistoryEntry({
+        id: "branch-b-final",
+        response: { html: "<html><body>Discarded</body></html>" },
+      });
+      store.appendToBranchHistory(sid, branchIdB, branchEntryB);
+
+      store.resolveFork(sid, forkId, branchIdA);
+
+      const mergedHistory = store.getHistory(sid);
+      expect(mergedHistory.map((item) => item.id)).toEqual([
+        entry.id,
+        branchEntryA.id,
+      ]);
+      expect(mergedHistory.at(-1)?.forkInfo).toMatchObject({
+        forkId,
+        branchId: branchIdA,
+        status: "chosen",
+      });
+      expect(store.isForkActive(sid)).toBe(false);
+      expect(store.getPrevHtml(sid)).toContain("Chosen");
+
+      const restState = store.getRestState(sid);
+      expect(restState.mutations.at(-1)?.id).toBe("mutation-a");
+      expect(restState.queries.at(-1)?.id).toBe("query-a");
+    });
+
+    it("discards branches without altering base history", () => {
+      const { sid, entry } = seedBaseSession();
+      const { forkId, branchIdA } = store.startFork(
+        sid,
+        entry.id,
+        "Keep",
+        "Discard"
+      );
+
+      store.appendToBranchHistory(
+        sid,
+        branchIdA,
+        createHistoryEntry({ id: "branch-a" })
+      );
+
+      store.discardFork(sid, forkId);
+
+      const baseHistory = store.getHistory(sid);
+      expect(baseHistory.map((item) => item.id)).toEqual([entry.id]);
+      expect(store.isForkActive(sid)).toBe(false);
+      expect(store.getPrevHtml(sid)).toContain("Origin");
+    });
+
+    it("routes rest records to branches when a fork is active", () => {
+      const { sid, entry } = seedBaseSession();
+      const { branchIdA } = store.startFork(sid, entry.id, "A", "B");
+
+      store.appendMutationRecord(
+        sid,
+        createRestMutation({ id: "branch-mutation" }),
+        branchIdA
+      );
+      store.appendQueryRecord(
+        sid,
+        createRestQuery({ id: "branch-query" }),
+        branchIdA
+      );
+
+      const branchRest = store.getRestState(sid, undefined, branchIdA);
+      expect(branchRest.mutations.at(-1)?.id).toBe("branch-mutation");
+      expect(branchRest.queries.at(-1)?.id).toBe("branch-query");
+
+      expect(() =>
+        store.appendMutationRecord(sid, createRestMutation({ id: "base" }))
+      ).toThrow(/fork is active/i);
+      expect(() =>
+        store.appendQueryRecord(sid, createRestQuery({ id: "base" }))
+      ).toThrow(/fork is active/i);
+    });
   });
 });

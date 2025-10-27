@@ -813,7 +813,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
               onState={handleStateUpdate}
             />
           );
-        case "history":
+        case "history": {
           return (
             <HistoryExplorer
               items={historyItems}
@@ -834,15 +834,19 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
               deletingAll={historyPurgingAll}
               hasMore={historyNextOffset != null}
               snapshotControls={
-                <HistorySnapshotControls
-                  exportJsonUrl={state.exportJsonUrl}
-                  exportMarkdownUrl={state.exportMarkdownUrl}
-                  onState={handleSnapshotHydrate}
-                  onHistoryRefresh={handleHistoryRefresh}
-                />
+                <>
+                  <HistorySnapshotControls
+                    exportJsonUrl={state.exportJsonUrl}
+                    exportMarkdownUrl={state.exportMarkdownUrl}
+                    onState={handleSnapshotHydrate}
+                    onHistoryRefresh={handleHistoryRefresh}
+                    forkActive={state.isForkActive}
+                  />
+                </>
               }
             />
           );
+        }
         default:
           return null;
       }

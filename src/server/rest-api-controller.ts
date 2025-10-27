@@ -16,6 +16,8 @@ import type { RequestContext } from "./server.js";
 import { selectHistoryForPrompt } from "./history-utils.js";
 import { SessionStore } from "./session-store.js";
 
+const BRANCH_FIELD = "__vaporvibe_branch";
+
 function normalizeJsonResponse(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) return trimmed;
@@ -105,9 +107,24 @@ export class RestApiController {
     const cookies = parseCookies(req.headers.cookie);
     const sid = this.sessionStore.getOrCreateSessionId(cookies, res);
 
+    const rawQueryEntries = Array.from(url.searchParams.entries());
+    let branchId = context.branchId;
+    for (const [key, value] of rawQueryEntries) {
+      if (key === BRANCH_FIELD && typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed.length > 0 && !branchId) {
+          branchId = trimmed;
+        }
+      }
+    }
     const query = sanitizeQuery(url);
     const parsedBody = await readBody(req);
-    const body = sanitizeBody(parsedBody.data ?? {});
+    const bodySource = parsedBody.data ?? {};
+    const bodyBranch = extractBranchId(bodySource[BRANCH_FIELD]);
+    if (!branchId && bodyBranch) {
+      branchId = bodyBranch;
+    }
+    const body = sanitizeBody(bodySource);
 
     const record: RestMutationRecord = {
       id: randomUUID(),
@@ -118,7 +135,10 @@ export class RestApiController {
       createdAt: new Date().toISOString(),
     };
 
-    this.sessionStore.appendMutationRecord(sid, record);
+    const normalizedBranchId =
+      branchId && branchId.trim().length > 0 ? branchId.trim() : undefined;
+
+    this.sessionStore.appendMutationRecord(sid, record, normalizedBranchId);
 
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -131,6 +151,7 @@ export class RestApiController {
       record,
       response: { success: true },
       durationMs: Date.now() - requestStart,
+      branchId: normalizedBranchId,
     });
   }
 
@@ -164,18 +185,38 @@ export class RestApiController {
     const cookies = parseCookies(req.headers.cookie);
     const sid = this.sessionStore.getOrCreateSessionId(cookies, res);
 
+    const rawQueryEntries = Array.from(url.searchParams.entries());
+    let branchId = context.branchId;
+    for (const [key, value] of rawQueryEntries) {
+      if (key === BRANCH_FIELD && typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed.length > 0 && !branchId) {
+          branchId = trimmed;
+        }
+      }
+    }
+
     const query = sanitizeQuery(url);
     let bodyData: Record<string, unknown> = {};
     if (method === "POST") {
       const parsedBody = await readBody(req);
-      bodyData = sanitizeBody(parsedBody.data ?? {});
+      const bodySource = parsedBody.data ?? {};
+      const bodyBranch = extractBranchId(bodySource[BRANCH_FIELD]);
+      if (!branchId && bodyBranch) {
+        branchId = bodyBranch;
+      }
+      bodyData = sanitizeBody(bodySource);
     }
+
+    const normalizedBranchId =
+      branchId && branchId.trim().length > 0 ? branchId.trim() : undefined;
 
     const promptContext = this.preparePromptContext(
       sid,
       env.runtime,
       env.briefAttachments,
-      env.llmClient
+      env.llmClient,
+      normalizedBranchId
     );
 
     const messages = buildMessages({
@@ -198,6 +239,7 @@ export class RestApiController {
       historyByteOmitted: promptContext.historyByteOmitted,
       adminPath: this.adminPath,
       mode: "json-query",
+      branchId: normalizedBranchId,
     });
 
     try {
@@ -223,7 +265,11 @@ export class RestApiController {
               ? error.message
               : "Invalid JSON from model",
         };
-        this.sessionStore.appendQueryRecord(sid, failureRecord);
+        this.sessionStore.appendQueryRecord(
+          sid,
+          failureRecord,
+          normalizedBranchId
+        );
         reqLogger.warn({ path }, "Model returned invalid JSON for query");
         res.statusCode = 502;
         res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -244,6 +290,7 @@ export class RestApiController {
           durationMs: Date.now() - requestStart,
           usage: result.usage,
           reasoning: result.reasoning,
+          branchId: normalizedBranchId,
         });
         return;
       }
@@ -260,7 +307,11 @@ export class RestApiController {
         rawResponse: raw,
       };
 
-      this.sessionStore.appendQueryRecord(sid, successRecord);
+      this.sessionStore.appendQueryRecord(
+        sid,
+        successRecord,
+        normalizedBranchId
+      );
 
       res.statusCode = 200;
       res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -276,6 +327,7 @@ export class RestApiController {
         durationMs: Date.now() - requestStart,
         usage: result.usage,
         reasoning: result.reasoning,
+        branchId: normalizedBranchId,
       });
     } catch (error) {
       const message =
@@ -297,13 +349,18 @@ export class RestApiController {
         rawResponse: "",
         error: message,
       };
-      this.sessionStore.appendQueryRecord(sid, failureRecord);
+      this.sessionStore.appendQueryRecord(
+        sid,
+        failureRecord,
+        normalizedBranchId
+      );
       this.sessionStore.appendRestHistoryEntry(sid, {
         type: "query",
         record: failureRecord,
         ok: false,
         error: message,
         durationMs: Date.now() - requestStart,
+        branchId: normalizedBranchId,
       });
     }
   }
@@ -312,7 +369,8 @@ export class RestApiController {
     sid: string,
     runtime: RuntimeConfig,
     attachments: BriefAttachment[],
-    llmClient: LlmClient
+    llmClient: LlmClient,
+    branchId?: string
   ): {
     historyForPrompt: HistoryEntry[];
     historyTotal: number;
@@ -324,7 +382,10 @@ export class RestApiController {
     attachments: BriefAttachment[];
     omittedAttachmentCount: number;
   } {
-    const fullHistory = this.sessionStore.getHistory(sid);
+    const baseHistory = this.sessionStore.getHistory(sid);
+    const fullHistory = branchId
+      ? this.sessionStore.getHistoryForPrompt(sid, branchId)
+      : baseHistory;
     const historyLimit = Math.max(1, runtime.historyLimit);
     const limitedHistory =
       historyLimit >= fullHistory.length
@@ -340,7 +401,7 @@ export class RestApiController {
     const prevHtml =
       historyForPrompt.at(-1)?.response.html ??
       limitedHistory.at(-1)?.response.html ??
-      this.sessionStore.getPrevHtml(sid);
+      this.sessionStore.getPrevHtml(sid, branchId);
 
     const includeAttachments = supportsImageInput(
       llmClient.settings.provider,
@@ -369,7 +430,9 @@ export class RestApiController {
 
 function sanitizeQuery(url: URL): Record<string, unknown> {
   const entries = Array.from(url.searchParams.entries());
-  const filtered = entries.filter(([key]) => key !== "__vaporvibe");
+  const filtered = entries.filter(
+    ([key]) => key !== "__vaporvibe" && key !== BRANCH_FIELD
+  );
   return Object.fromEntries(filtered);
 }
 
@@ -378,7 +441,7 @@ function sanitizeBody(
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(body ?? {})) {
-    if (key === "__vaporvibe") {
+    if (key === "__vaporvibe" || key === BRANCH_FIELD) {
       continue;
     }
     if (Array.isArray(value)) {
@@ -398,4 +461,18 @@ function sanitizeBody(
     result[key] = value;
   }
   return result;
+}
+
+function extractBranchId(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  }
+  if (Array.isArray(value)) {
+    const match = value.find(
+      (item) => typeof item === "string" && item.trim().length > 0
+    );
+    return typeof match === "string" ? match.trim() : undefined;
+  }
+  return undefined;
 }

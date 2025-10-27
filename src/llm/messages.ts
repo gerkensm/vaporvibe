@@ -22,6 +22,7 @@ export interface MessageContext {
   historyByteOmitted: number;
   adminPath: string;
   mode?: "page" | "json-query";
+  branchId?: string;
 }
 
 export function buildMessages(context: MessageContext): ChatMessage[] {
@@ -45,6 +46,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     historyByteOmitted,
     adminPath,
     mode = "page",
+    branchId,
   } = context;
   const isJsonQuery = mode === "json-query";
 
@@ -233,6 +235,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     ...(timestampIso ? [`- Timestamp: ${timestampIso}`] : []),
     `- Method: ${method}`,
     `- Path: ${path}`,
+    ...(branchId ? [`- Branch: ${branchId}`] : []),
     `- Query Params (URL-decoded JSON): ${JSON.stringify(query, null, 2)}`,
     `- Body Params (URL-decoded JSON): ${JSON.stringify(body, null, 2)}`
   );

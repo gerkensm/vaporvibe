@@ -54,8 +54,26 @@ window.__vaporVibeHydrateFromToken = function(token, path) {
   attemptFetch(1);
 };
 
-window.__vaporVibeHydrateError = function(message) {
+window.__vaporVibeHydrateError = function(message, detail) {
   var container = document.querySelector("main");
   if (!container) return;
-  container.innerHTML = '<h1>We hit a snag</h1><p>' + message + '</p><p class="hint">Retry the request, or check the server logs for additional detail.</p>';
+  var detailHtml = "";
+  if (detail) {
+    var pre = document.createElement("pre");
+    pre.textContent = detail;
+    pre.style.background = "rgba(8, 47, 73, 0.65)";
+    pre.style.padding = "16px 20px";
+    pre.style.borderRadius = "12px";
+    pre.style.lineHeight = "1.45";
+    pre.style.overflowX = "auto";
+    pre.style.textAlign = "left";
+    pre.style.color = "#e2e8f0";
+    pre.style.fontFamily = "monospace";
+    detailHtml = "<h3>Error Details</h3>" + pre.outerHTML;
+  }
+  container.innerHTML =
+    '<h1>We hit a snag</h1><p>' +
+    message +
+    '</p><p class="hint">Retry the request, or check the server logs for additional detail.</p>' +
+    detailHtml;
 };

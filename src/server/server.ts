@@ -98,6 +98,8 @@ const SPA_SOURCE_INDEX_PATH = resolvePath(FRONTEND_SOURCE_DIR, "index.html");
 const ADMIN_ASSET_ROUTE_PREFIX = `${ADMIN_ROUTE_PREFIX}/assets`;
 const ADMIN_ASSET_ROUTE_PREFIX_WITH_SLASH = `${ADMIN_ASSET_ROUTE_PREFIX}/`;
 
+const BRANCH_FIELD = "__vaporvibe_branch";
+
 const DEV_SERVER_ASSET_EXTENSIONS = new Set([
   ".ts",
   ".tsx",
@@ -623,6 +625,7 @@ export interface RequestContext {
   url: URL;
   method: string;
   path: string;
+  branchId?: string;
 }
 
 export interface MutableServerState {
@@ -761,6 +764,9 @@ export function createServer(options: ServerOptions): http.Server {
       path: context.path,
     });
 
+    const cookies = parseCookies(req.headers.cookie);
+    const sid = sessionStore.getOrCreateSessionId(cookies, res);
+
     const routedByDevServer = Boolean(
       devServer && shouldDelegateToDevServer(context.path)
     );
@@ -860,6 +866,47 @@ export function createServer(options: ServerOptions): http.Server {
         return;
       }
 
+      if (sessionStore.isForkActive(sid) && !context.branchId) {
+        const forkSummary = sessionStore.getActiveForkSummary(sid);
+        if (forkSummary) {
+          const isAbWorkspaceRequest = context.path.startsWith(
+            `${ADMIN_ROUTE_PREFIX}/ab-test/${forkSummary.forkId}`
+          );
+          const isAdminRoute = context.path.startsWith(ADMIN_ROUTE_PREFIX);
+          const isSetupRoute = context.path.startsWith(SETUP_ROUTE);
+          const isResultRoute = context.path.startsWith(LLM_RESULT_ROUTE_PREFIX);
+          const acceptHeader = req.headers["accept"] ?? "";
+          const wantsHtml =
+            typeof acceptHeader === "string" &&
+            acceptHeader
+              .split(",")
+              .some((value) => value.includes("text/html"));
+
+          if (
+            wantsHtml &&
+            !isAbWorkspaceRequest &&
+            !isAdminRoute &&
+            !isSetupRoute &&
+            !isResultRoute
+          ) {
+            reqLogger.info(
+              { path: context.path, forkId: forkSummary.forkId },
+              "Active A/B test detected, redirecting top-level navigation to workspace"
+            );
+            const redirectBase = `${ADMIN_ROUTE_PREFIX}/ab-test/${forkSummary.forkId}`;
+            const search = context.url.search ?? "";
+            const sourcePath = `${context.path}${search}` || "/";
+            const redirectUrl = `${redirectBase}?source=${encodeURIComponent(
+              sourcePath
+            )}`;
+            res.statusCode = 307;
+            res.setHeader("Location", redirectUrl);
+            res.end();
+            return;
+          }
+        }
+      }
+
       if (
         !state.providerReady ||
         state.providerSelectionRequired ||
@@ -940,12 +987,14 @@ function buildContext(
     `http://${req.headers.host ?? "localhost"}`
   );
   const method = (req.method ?? "GET").toUpperCase();
+  const branchId = url.searchParams.get(BRANCH_FIELD) ?? undefined;
   return {
     req,
     res,
     url,
     method,
     path: url.pathname,
+    branchId: branchId && branchId.trim().length > 0 ? branchId : undefined,
   };
 }
 
@@ -1022,12 +1071,25 @@ async function handleLlmRequest(
   const sid = sessionStore.getOrCreateSessionId(cookies, res);
 
   const rawQueryEntries = Array.from(url.searchParams.entries());
-  const isInterceptorQuery = rawQueryEntries.some(
-    ([key, value]) => key === "__vaporvibe" && value === "interceptor"
-  );
-  const query = Object.fromEntries(
-    rawQueryEntries.filter(([key]) => key !== "__vaporvibe")
-  );
+  let branchId = context.branchId;
+  let isInterceptorQuery = false;
+  const filteredQueryEntries: Array<[string, string]> = [];
+  for (const [key, value] of rawQueryEntries) {
+    if (key === "__vaporvibe") {
+      if (value === "interceptor") {
+        isInterceptorQuery = true;
+      }
+      continue;
+    }
+    if (key === BRANCH_FIELD) {
+      if (!branchId && typeof value === "string" && value.trim().length > 0) {
+        branchId = value.trim();
+      }
+      continue;
+    }
+    filteredQueryEntries.push([key, value]);
+  }
+  const query = Object.fromEntries(filteredQueryEntries);
   if (Object.keys(query).length > 0) {
     reqLogger.debug(formatJsonForLog(query, "Query parameters"));
   }
@@ -1046,12 +1108,59 @@ async function handleLlmRequest(
       isInterceptorBody = true;
       delete bodyData["__vaporvibe"];
     }
+    const branchMarker = bodyData[BRANCH_FIELD];
+    if (typeof branchMarker === "string") {
+      const trimmed = branchMarker.trim();
+      if (trimmed.length > 0) {
+        branchId = trimmed;
+      }
+      delete bodyData[BRANCH_FIELD];
+    } else if (Array.isArray(branchMarker)) {
+      const firstValue = branchMarker.find(
+        (item) => typeof item === "string" && item.trim().length > 0
+      );
+      if (typeof firstValue === "string") {
+        branchId = firstValue.trim();
+      }
+      delete bodyData[BRANCH_FIELD];
+    } else if (branchMarker !== undefined) {
+      delete bodyData[BRANCH_FIELD];
+    }
     if (parsed.raw) {
       reqLogger.debug(formatJsonForLog(bodyData, "Request body"));
     }
   }
 
-  const fullHistory = sessionStore.getHistory(sid);
+  branchId = branchId && branchId.trim().length > 0 ? branchId.trim() : undefined;
+
+  const baseHistory = sessionStore.getHistory(sid);
+  const activeForkSummary = sessionStore.getActiveForkSummary(sid);
+  const activeBranchSummary =
+    branchId && activeForkSummary
+      ? activeForkSummary.branches.find(
+          (branch) => branch.branchId === branchId
+        )
+      : undefined;
+
+  if (branchId && activeBranchSummary) {
+    const branchHasEntries = activeBranchSummary.entryCount > 0;
+    const branchInstructions = activeBranchSummary.instructions?.trim();
+    if (!branchHasEntries && branchInstructions) {
+      const existing = bodyData[INSTRUCTIONS_FIELD];
+      const hasInstructions =
+        (typeof existing === "string" && existing.trim().length > 0) ||
+        (Array.isArray(existing) &&
+          existing.some(
+            (item) => typeof item === "string" && item.trim().length > 0
+          ));
+      if (!hasInstructions) {
+        bodyData[INSTRUCTIONS_FIELD] = branchInstructions;
+      }
+    }
+  }
+  const fullHistory = branchId
+    ? sessionStore.getHistoryForPrompt(sid, branchId)
+    : baseHistory;
   const historyLimit = Math.max(1, state.runtime.historyLimit);
   const limitedHistory =
     historyLimit >= fullHistory.length
@@ -1071,9 +1180,9 @@ async function handleLlmRequest(
     findLastHtml(historyForPrompt) ?? findLastHtml(limitedHistory) ?? undefined;
 
   const prevHtml =
-    prevHtmlEntry?.response.html ?? sessionStore.getPrevHtml(sid);
+    prevHtmlEntry?.response.html ?? sessionStore.getPrevHtml(sid, branchId);
 
-  const restState = sessionStore.getRestState(sid);
+  const restState = sessionStore.getRestState(sid, undefined, branchId);
   const previousEntry = findLastHtml(fullHistory);
   const sinceTimestamp = previousEntry
     ? new Date(previousEntry.createdAt).getTime()
@@ -1131,6 +1240,7 @@ async function handleLlmRequest(
     historyLimitOmitted: limitOmitted,
     historyByteOmitted: byteOmitted,
     adminPath: ADMIN_ROUTE_PREFIX,
+    branchId,
   });
   reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
 
@@ -1140,7 +1250,10 @@ async function handleLlmRequest(
     : interceptorHeader === "interceptor";
   const isInterceptorRequest =
     isInterceptorHeader || isInterceptorQuery || isInterceptorBody;
-  const shouldStreamBody = method !== "HEAD" && !isInterceptorRequest;
+  const isInitialBranchLoad =
+    branchId !== undefined ? sessionStore.isBranchEmpty(sid, branchId) : false;
+  const shouldStreamBody =
+    method !== "HEAD" && (!isInterceptorRequest || isInitialBranchLoad);
   res.statusCode = 200;
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   if (shouldStreamBody) {
@@ -1167,7 +1280,7 @@ async function handleLlmRequest(
         500
       )}`
     );
-    const historyForCache = sessionStore.getHistory(sid);
+    const historyForCache = fullHistory;
     const {
       componentCache: historicalComponentCache,
       styleCache: historicalStyleCache,
@@ -1238,7 +1351,19 @@ async function handleLlmRequest(
       nextComponentId,
       nextStyleId,
     });
-    const promptHtml = cacheResult.html;
+    const entryId = randomUUID();
+    const entryMetaTag = `<meta name="vaporvibe-entry-id" content="${entryId}">`;
+    const injectEntryMeta = (html: string): string => {
+      if (/<head[^>]*>/i.test(html)) {
+        return html.replace(/(<head[^>]*>)/i, `$1${entryMetaTag}`);
+      }
+      if (/<body[^>]*>/i.test(html)) {
+        return html.replace(/(<body[^>]*>)/i, `$1${entryMetaTag}`);
+      }
+      return `${entryMetaTag}${html}`;
+    };
+
+    let promptHtml = injectEntryMeta(cacheResult.html);
     let renderedHtml = promptHtml;
 
     const interceptorScriptTag = getNavigationInterceptorScript();
@@ -1252,7 +1377,17 @@ async function handleLlmRequest(
     }
 
     if (state.runtime.includeInstructionPanel) {
-      const instructionsScripts = getInstructionsPanelScript();
+      const instructionsScripts = getInstructionsPanelScript({
+        branchId,
+        branchLabel: activeBranchSummary?.label,
+        forkActive: Boolean(activeForkSummary),
+        forkInstructions: activeForkSummary
+          ? activeForkSummary.branches.map((branch) => ({
+              label: branch.label,
+              instructions: branch.instructions,
+            }))
+          : [],
+      });
       if (/<\/body\s*>/i.test(renderedHtml)) {
         renderedHtml = renderedHtml.replace(
           /(<\/body\s*>)/i,
@@ -1263,11 +1398,11 @@ async function handleLlmRequest(
       }
     }
 
-    sessionStore.setPrevHtml(sid, promptHtml);
+    sessionStore.setPrevHtml(sid, promptHtml, branchId);
 
     const instructions = extractInstructions(bodyData);
     const historyEntry: HistoryEntry = {
-      id: randomUUID(),
+      id: entryId,
       sessionId: sid,
       createdAt: new Date().toISOString(),
       durationMs,
@@ -1301,15 +1436,25 @@ async function handleLlmRequest(
         restQueriesForEntry.length > 0 ? restQueriesForEntry : undefined,
     };
 
-    sessionStore.appendHistoryEntry(sid, historyEntry, {
-      preservePrevHtml: true,
-    });
+    if (branchId) {
+      sessionStore.appendToBranchHistory(sid, branchId, historyEntry, {
+        preservePrevHtml: true,
+      });
+    } else {
+      sessionStore.appendHistoryEntry(sid, historyEntry, {
+        preservePrevHtml: true,
+      });
+    }
 
     if (isInterceptorRequest) {
-      res.statusCode = 200;
-      res.setHeader("Content-Type", "text/html; charset=utf-8");
-      res.end(renderedHtml);
-      return;
+      if (shouldStreamBody) {
+        reqLogger.debug("Streaming interceptor response; hydration will attach via token.");
+      } else {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.end(renderedHtml);
+        return;
+      }
     }
 
     cleanupPendingHtml(state);
@@ -1328,26 +1473,43 @@ async function handleLlmRequest(
     }
     res.end();
   } catch (error) {
+    const errorDetail =
+      error instanceof Error ? error.stack ?? error.message : String(error);
     const message =
       error instanceof Error
         ? `${error.name}: ${error.message}`
         : String(error);
-    reqLogger.error(`LLM generation failed: ${message}`);
-    if (isInterceptorRequest && !res.headersSent) {
+    reqLogger.error(
+      { err: error, stack: errorDetail },
+      `LLM generation failed: ${message}`
+    );
+    if (shouldStreamBody) {
+      try {
+        res.write(
+          renderLoaderErrorScript(
+            "The model response took too long or failed. Please retry in a moment.",
+            errorDetail
+          )
+        );
+      } catch (writeError) {
+        reqLogger.error(
+          { err: writeError },
+          "Failed to stream loader error script"
+        );
+      }
+      if (!res.writableEnded) {
+        res.end();
+      }
+      return;
+    }
+
+    if (!res.headersSent) {
       res.statusCode = 500;
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.end(renderErrorPage(error));
       return;
     }
-    if (shouldStreamBody) {
-      res.write(
-        renderLoaderErrorScript(
-          "The model response took too long or failed. Please retry in a moment."
-        )
-      );
-    } else if (!res.headersSent) {
-      res.statusCode = 500;
-    }
+
     res.end();
   }
 }
