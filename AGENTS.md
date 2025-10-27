@@ -93,7 +93,90 @@ This is not a traditional software project; it's a creative tool. The "vibe" is 
 
 ---
 
-## 4\. Core Mechanisms & Technical Details
+## 4\. Style and Brand Guide 🎨
+
+This section defines the desired visual style, UI patterns, and overall user experience for LLM-generated applications. The `VaporVibe` admin UI itself (`frontend/`) serves as a primary inspiration, but the goal is creative interpretation, not rigid replication.
+
+### Overall Philosophy & Vibe
+
+- **Feeling:** Generated apps should feel **modern, clean, intuitive, and slightly playful**. The experience should be engaging and feel "alive," even though it's improvised. Prioritize **clarity and usability** over visual density.
+- **Goal:** Create high-fidelity prototypes that _feel_ real enough to validate an idea quickly. Use realistic content, not placeholders.
+- **Heuristics:**
+  - **Simplicity First:** Start with clear layouts and essential elements. Add complexity only if the brief demands it.
+  - **Convention over Configuration:** Use familiar web patterns (buttons, forms, cards) unless the brief suggests otherwise.
+  - **Accessibility Matters:** Aim for semantic HTML, keyboard navigability, sufficient contrast, and clear focus states.
+  - **Embrace Generative Flair:** Allow for creative interpretations within the bounds of good UX. Slight visual variations between renders are acceptable.
+
+### Visual Language
+
+- **Colors:**
+  - **Base:** Use a light, clean background (whites, very light grays). Text should be dark gray or black for readability.
+  - **Accent:** Employ a primary accent color (like the admin UI's blue: `#1d4ed8`, `#2563eb`) for interactive elements (buttons, links, active states). Use it purposefully.
+  - **Semantic:** Use conventional colors for status: green for success/confirmation, red for errors/danger, yellow/orange for warnings/pending states.
+  - **Neutrals:** Use a range of grays for borders, secondary text, and disabled states (`#475569`, `#64748b`, `#94a3b8`, `#e2e8f0`).
+  - _Reference:_ `frontend/src/pages/AdminDashboard.css` variables and component styles.
+- **Typography:**
+  - **Font:** Primarily use **system UI fonts** (`system-ui`, `-apple-system`, `Segoe UI`, `sans-serif`) for broad compatibility and a native feel. `Inter` is used in the admin UI.
+  - **Hierarchy:** Establish clear visual hierarchy using font size (e.g., larger for headings) and weight (e.g., `600` or `700` for titles/buttons).
+  - **Readability:** Ensure sufficient line height (e.g., `1.5` or `1.6`) and keep text lines reasonably short.
+  - _Reference:_ `frontend/src/pages/AdminDashboard.css` body styles.
+- **Spacing:** Use generous spacing (padding, margins) to create a breathable, uncluttered layout. Consistent spacing units are preferred.
+  - _Reference:_ Padding values in `AdminDashboard.css` (e.g., `clamp(24px, 4vw, 32px)`).
+- **Borders & Shadows:**
+  - **Borders:** Use light gray borders (`rgba(148, 163, 184, 0.3-0.4)`) sparingly, primarily on containers (cards, inputs) or interactive elements needing definition. Dashed borders can indicate dropzones or placeholders.
+  - **Rounding:** Apply consistent, medium-to-large corner rounding (`border-radius`) to containers, buttons, and inputs (e.g., `16px`, `24px`) for a softer, modern look. Use `999px` for pills/fully rounded elements.
+  - **Shadows:** Use subtle box shadows (`box-shadow`) to lift elements like cards and buttons off the background, enhancing depth. Hover/active states can intensify shadows slightly.
+  - _Reference:_ `admin-card`, `setup-card`, `tabbed-card`, button styles.
+
+### Core UI Patterns
+
+- **Layout:** Use CSS Grid or Flexbox for clean, responsive layouts. Center content within main containers.
+  - _Reference:_ `admin-shell`, `model-selector__body`.
+- **Containers/Cards:** Group related content within rounded panels/cards with white/light backgrounds, subtle borders, and shadows. Use padding generously inside containers.
+  - _Reference:_ `.admin-card`, `.panel`, `.setup-card`.
+- **Forms:**
+  - **Layout:** Stack labels clearly above their corresponding inputs. Group related fields logically.
+  - **Inputs:** Use rounded (`~14px-16px`), lightly bordered inputs, textareas, and selects with clear `:focus` states (e.g., blue outline/shadow).
+  - **Hints/Errors:** Provide helper text below inputs (`.admin-field__helper`) and display validation errors clearly, often below the field (`.admin-field__error`), potentially using red text/borders.
+  - _Reference:_ `.admin-field` structure, `TokenBudgetControl.css`, `ModelInspector.css` custom fields.
+- **Buttons:**
+  - **Styles:** Provide distinct styles for primary (solid accent color, often gradient), secondary (light background, accent border/text), and destructive actions (red). Use fully rounded (`999px`) corners.
+  - **States:** Include clear hover and focus-visible states (e.g., slight transform, increased shadow). Disabled states should have reduced opacity.
+  - **Placement:** Group actions logically, often at the bottom of a form or card section.
+  - _Reference:_ `.admin-primary`, `.admin-secondary`, `.admin-danger` styles.
+- **Navigation/Tabs:** For secondary navigation within a view, use tab patterns with clear active states (e.g., background color change, shadow).
+  - _Reference:_ `.tabs`, `.tab-button` styles.
+- **Status Communication:**
+  - **Loading:** Indicate loading states clearly, potentially using spinners, skeletons, or placeholder text. The main loading overlay (`src/views/loading-shell/`) provides inspiration for full-page waits.
+  - **Notifications:** Use temporary notifications/toasts for confirmations or non-critical errors.
+    - _Reference:_ `frontend/src/components/Notifications.tsx`.
+  - **Inline Status:** Use inline messages (e.g., `.admin-status`) or visual cues (color changes) for context-specific feedback. Badges/pills can convey status concisely.
+
+### Component Inspiration
+
+While the LLM generates raw HTML/CSS/JS, the structure and patterns found in the `VaporVibe` admin UI components can serve as excellent conceptual references:
+
+- **`AttachmentUploader.tsx`**: Demonstrates handling file inputs, drag-and-drop states, previews, and status feedback. The default variant is a good baseline.
+- **`ModelSelector.tsx` / `ModelInspector.tsx`**: Showcases card-based selection patterns, using badges for capabilities, and structured display of complex information.
+- **`HistoryExplorer.tsx`**: Provides a pattern for displaying lists of items with expandable details (`<details>`), metadata chips (`.history-chip`), and contextual actions.
+- **`TokenBudgetControl.tsx`**: Example of a custom input control combining a slider and number input with clear labels and hints.
+- **`Notifications.tsx`**: Basic pattern for dismissible toast notifications.
+
+_Code References:_ Primarily `frontend/src/components/` and associated CSS files (`frontend/src/components/*.css`), plus general layout in `frontend/src/pages/AdminDashboard.css`.
+
+### Points of Caution ⚠️ (Admin UI Inconsistencies)
+
+The admin UI is functional but has some minor inconsistencies the LLM should _not_ treat as strict rules for generated apps:
+
+- **Varying `border-radius`:** Values like `12px`, `14px`, `16px`, `18px`, `20px`, `22px`, `24px`, `28px`, `32px` are used. **Guideline:** Aim for a simpler set, e.g., small (`~8px`), medium (`~16px`), large (`~24px`), and pill (`999px`).
+- **Varying `box-shadow`:** Shadow styles differ slightly between components. **Guideline:** Use consistent shadow depths for similar element types (e.g., one style for cards, one for primary buttons).
+- **Stylized Variants:** Components like `AttachmentUploader` have highly stylized "creative" and "history" variants. **Guideline:** Generated apps should generally stick to simpler, more conventional styles unless the brief specifically requests high visual flair. The default variant is a better reference.
+
+**Instruction:** When generating UI, draw inspiration from the _patterns_ and _general aesthetic_ of the admin UI, but prioritize consistency, clarity, and the specific needs of the app brief over replicating every minor detail or inconsistency found in `frontend/`.
+
+---
+
+## 5\. Core Mechanisms & Technical Details
 
 ### The Core Prompt
 
@@ -153,13 +236,13 @@ Hallucinating UI on every request is fun, but we still like responses under a lu
 ### Navigation Interception & Loading Shell
 
 - **Interceptor script** – Every LLM-rendered document receives `vaporvibe-interceptor.js`, which hijacks `<a>` clicks, `<form>` submits, and `popstate` to insert the `__vaporvibe=interceptor` marker. This keeps admin/setup routes inside the SPA while forcing full navigations for the generated experience.
-- **Asynchronous result delivery** – When a non-interceptor request hits `/`, the server immediately streams the animated loading shell plus a hydration script. The real HTML is stored under a UUID token at `/__vaporvibe/result/{token}` (TTL: 15 minutes to accommodate >10 minute generations) and is never regenerated for retries.
+- **Asynchronous result delivery** – When a non-interceptor request hits `/`, the server immediately streams the animated loading shell plus a hydration script. The real HTML is stored under a UUID token at `/__vaporvibe/result/{token}` (TTL: 15 minutes to accommodate \>10 minute generations) and is never regenerated for retries.
 - **Hydration fetch** – The loader script performs a long-lived fetch for that token (no artificial timeout) and swaps in the HTML once it lands; transient network errors trigger lightweight retries without triggering a fresh LLM call because the fetch only reads the cached `/__vaporvibe/result` payload.
 - **User feedback** – While the fetch is pending, status messages rotate and the overlay mini-experiences continue to run, so the user always sees progress even during extremely slow model responses.
 
 ---
 
-## 5\. Repository Structure & Key Files
+## 6\. Repository Structure & Key Files
 
 ```
 gerkensm-vaporvibe/
@@ -207,7 +290,7 @@ gerkensm-vaporvibe/
 
 ---
 
-## 6\. Development Workflow & Guidelines
+## 7\. Development Workflow & Guidelines
 
 ### Environment Setup
 
@@ -274,7 +357,7 @@ gerkensm-vaporvibe/
 
 ---
 
-## 7\. How To... (Common Agent Tasks)
+## 8\. How To... (Common Agent Tasks)
 
 ### ...Add a New LLM Provider
 
