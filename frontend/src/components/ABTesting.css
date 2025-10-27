@@ -178,11 +178,9 @@
 }
 
 .ab-workspace__frame-instructions-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #1d4ed8;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0f172a;
 }
 
 .ab-workspace__frame-instructions {
@@ -238,8 +236,8 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 20px;
-  height: 48px;
+  width: 16px;
+  height: 28px;
   border-radius: 10px;
   border: 1px solid rgba(148, 163, 184, 0.45);
   background: rgba(255, 255, 255, 0.92);

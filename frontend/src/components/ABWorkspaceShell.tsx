@@ -647,9 +647,7 @@ export function ABWorkspaceShell({
     <div className="ab-workspace">
       <header className="ab-workspace__toolbar">
         <div className="ab-workspace__toolbar-info">
-          <div className="ab-workspace__toolbar-title">
-            A/B Comparison Mode ↔️
-          </div>
+          <div className="ab-workspace__toolbar-title">A/B Comparison Mode</div>
           <p className="ab-workspace__toolbar-description">
             Review both branches, then keep the experience that delivers the
             strongest vibe.
