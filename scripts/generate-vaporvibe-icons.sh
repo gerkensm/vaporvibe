@@ -40,7 +40,7 @@ magick -background none -density "${DENSITY}" "${SVG_BOTH}" "${ICON_SRC_DIR}/bot
 magick -size 1024x1024 gradient:'#1a0042-#041537' "${ICON_SRC_DIR}/bg-base.png"
 magick -size 1024x1024 radial-gradient:'rgba(255,255,255,0.18)'-'rgba(255,255,255,0)' "${ICON_SRC_DIR}/bg-light.png"
 magick "${ICON_SRC_DIR}/bg-base.png" "${ICON_SRC_DIR}/bg-light.png" -compose screen -composite "${ICON_SRC_DIR}/bg-mix.png"
-magick -size 1024x1024 xc:black -fill white -draw 'roundrectangle 0,0 1023,1023 210,210' "${ICON_SRC_DIR}/mask-round.png"
+magick -size 1024x1024 xc:none -fill white -draw 'roundrectangle 0,0 1023,1023 210,210' "${ICON_SRC_DIR}/mask-round.png"
 magick "${ICON_SRC_DIR}/bg-mix.png" "${ICON_SRC_DIR}/mask-round.png" -compose CopyAlpha -composite "${ICON_SRC_DIR}/background.png"
 magick -size 1024x1024 xc:none -fill 'rgba(4,10,26,0.70)' -draw 'ellipse 512,820 240,72 0,360' -blur 0x32 "${ICON_SRC_DIR}/base-shadow.png"
 magick "${ICON_SRC_DIR}/background.png" "${ICON_SRC_DIR}/base-shadow.png" -compose over -composite "${ICON_SRC_DIR}/background.png"
@@ -56,6 +56,12 @@ magick "${ICON_SRC_DIR}/background.png" \
 magick "${ICON_SRC_DIR}/mark-on-bg.png" "${ICON_SRC_DIR}/border.png" -compose over -composite "${ASSETS_DIR}/vaporvibe-icon-mark.png"
 
 magick "${ICON_SRC_DIR}/background.png" \
+  "${ICON_SRC_DIR}/mark.png" -gravity center -geometry +0-110 -compose over -composite \
+  "${ICON_SRC_DIR}/text.png" -gravity center -geometry +0+300 -compose over -composite \
+  "${ICON_SRC_DIR}/with-text-on-bg.png"
+magick "${ICON_SRC_DIR}/with-text-on-bg.png" "${ICON_SRC_DIR}/border.png" -compose over -composite "${ASSETS_DIR}/vaporvibe-icon-with-text.png"
+
+magick "${ICON_SRC_DIR}/background.png" \
   \( "${ICON_SRC_DIR}/both.png" -gravity center -geometry +0+20 \) \
   -compose over -composite "${ICON_SRC_DIR}/both-on-bg.png"
 magick "${ICON_SRC_DIR}/both-on-bg.png" "${ICON_SRC_DIR}/border.png" -compose over -composite "${ASSETS_DIR}/vaporvibe-icon.png"
@@ -65,6 +71,7 @@ magick "${ICON_SRC_DIR}/text.png" -background none -gravity center -extent 1024x
 cat <<'DONE'
 Generated assets:
   - assets/vaporvibe-icon.png
+  - assets/vaporvibe-icon-with-text.png
   - assets/vaporvibe-icon-mark.png
   - assets/vaporvibe-wordmark.png
 Intermediates stored in assets/icon-src/
