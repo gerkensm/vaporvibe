@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 
 import {
@@ -28,15 +22,16 @@ type BranchInfo = {
   instructions: string;
 };
 
-type SplitterArrowState = {
-  icon: string;
-  ariaLabel: string;
-  title: string;
-  disabled: boolean;
-  onClick: () => void;
-  pressed: boolean;
-  ariaHidden?: boolean;
-};
+type SplitterArrowState =
+  | {
+      icon: string;
+      ariaLabel: string;
+      title: string;
+      disabled: boolean;
+      onClick: () => void;
+      pressed: boolean;
+    }
+  | { hidden: true };
 
 type ConfirmationState =
   | { type: "keep"; branch: BranchInfo }
@@ -85,7 +80,9 @@ function summarizeInstructions(branches: BranchInfo[]): string {
     .map((branch) => {
       const snippet = branch.instructions.trim();
       const truncated =
-        snippet.length > 80 ? `${snippet.slice(0, 77)}…` : snippet || "(no instructions)";
+        snippet.length > 80
+          ? `${snippet.slice(0, 77)}…`
+          : snippet || "(no instructions)";
       return `${branch.label}: "${truncated}"`;
     })
     .join(" · ");
@@ -119,6 +116,9 @@ export function ABWorkspaceShell({
   );
   const framesRef = useRef<HTMLDivElement | null>(null);
   const resizeCleanupRef = useRef<(() => void) | null>(null);
+  const lastSplitPercentRef = useRef(splitPercent);
+  const splitRafRef = useRef<number | null>(null);
+  const pendingSplitPercentRef = useRef<number | null>(null);
 
   const normalizedSource = useMemo(
     () => sanitizePath(sourcePathParam),
@@ -198,6 +198,50 @@ export function ABWorkspaceShell({
     [branches]
   );
 
+  const commitSplitPercent = useCallback((value: number) => {
+    setSplitPercent(value);
+    lastSplitPercentRef.current = value;
+  }, []);
+
+  const finishSplitAnimation = useCallback(() => {
+    if (splitRafRef.current !== null) {
+      cancelAnimationFrame(splitRafRef.current);
+      splitRafRef.current = null;
+    }
+    if (pendingSplitPercentRef.current !== null) {
+      commitSplitPercent(pendingSplitPercentRef.current);
+      pendingSplitPercentRef.current = null;
+    }
+  }, [commitSplitPercent]);
+
+  const scheduleSplitPercent = useCallback(
+    (value: number) => {
+      pendingSplitPercentRef.current = value;
+      if (splitRafRef.current !== null) {
+        return;
+      }
+      splitRafRef.current = window.requestAnimationFrame(() => {
+        splitRafRef.current = null;
+        if (pendingSplitPercentRef.current !== null) {
+          commitSplitPercent(pendingSplitPercentRef.current);
+          pendingSplitPercentRef.current = null;
+        }
+      });
+    },
+    [commitSplitPercent]
+  );
+
+  const setIframePointerInteractivity = useCallback((enabled: boolean) => {
+    const container = framesRef.current;
+    if (!container) {
+      return;
+    }
+    const iframes = container.querySelectorAll("iframe");
+    iframes.forEach((iframe) => {
+      iframe.style.pointerEvents = enabled ? "" : "none";
+    });
+  }, []);
+
   const handleSplitterMouseDown = useCallback(
     (event: ReactMouseEvent<HTMLDivElement>) => {
       if (viewMode !== "split") {
@@ -214,9 +258,10 @@ export function ABWorkspaceShell({
         const relativeX = clientX - rect.left;
         const nextPercent = (relativeX / rect.width) * 100;
         const clamped = Math.max(0, Math.min(100, nextPercent));
-        setSplitPercent(clamped);
+        scheduleSplitPercent(clamped);
       };
 
+      finishSplitAnimation();
       updateFromClientX(event.clientX);
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -224,106 +269,141 @@ export function ABWorkspaceShell({
       };
 
       const handleMouseUp = () => {
+        finishSplitAnimation();
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
         document.body.classList.remove("is-resizing");
+        setIframePointerInteractivity(true);
         resizeCleanupRef.current = null;
       };
 
       resizeCleanupRef.current = () => {
+        finishSplitAnimation();
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
         document.body.classList.remove("is-resizing");
+        setIframePointerInteractivity(true);
       };
 
       document.body.classList.add("is-resizing");
+      setIframePointerInteractivity(false);
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
     },
-    [viewMode]
+    [
+      finishSplitAnimation,
+      scheduleSplitPercent,
+      setIframePointerInteractivity,
+      viewMode,
+    ]
   );
 
   useEffect(() => {
     return () => {
+      finishSplitAnimation();
       if (resizeCleanupRef.current) {
         resizeCleanupRef.current();
       }
     };
-  }, []);
+  }, [finishSplitAnimation]);
 
   const showSplit = useCallback(() => {
-    setSplitPercent(50);
+    finishSplitAnimation();
+    const previous = lastSplitPercentRef.current;
+    const next =
+      Number.isFinite(previous) && previous > 0 && previous < 100
+        ? previous
+        : 50;
+    commitSplitPercent(next);
     setViewMode("split");
-  }, []);
+  }, [commitSplitPercent, finishSplitAnimation]);
 
-  const showBranchFull = useCallback((mode: "a-full" | "b-full") => {
-    setViewMode(mode);
-  }, []);
+  const showBranchFull = useCallback(
+    (mode: "a-full" | "b-full") => {
+      finishSplitAnimation();
+      setViewMode(mode);
+    },
+    [finishSplitAnimation]
+  );
+
+  const snapSplitToCenter = useCallback(() => {
+    finishSplitAnimation();
+    commitSplitPercent(50);
+    setViewMode("split");
+  }, [commitSplitPercent, finishSplitAnimation]);
+
+  const isSplitView = viewMode === "split";
+  const isAFocused = viewMode === "a-full";
+  const isBFocused = viewMode === "b-full";
 
   const framesClassName = useMemo(() => {
-    let base = "ab-workspace__frames";
-    if (viewMode === "a-full") {
-      base += " show-a-full";
-    } else if (viewMode === "b-full") {
-      base += " show-b-full";
+    return isSplitView
+      ? "ab-workspace__frames"
+      : "ab-workspace__frames ab-workspace__frames--focus";
+  }, [isSplitView]);
+
+  const gridTemplateColumns = useMemo(() => {
+    if (!isSplitView) {
+      return "minmax(0, 1fr)";
     }
-    return base;
-  }, [viewMode]);
+    return `${splitPercent}% 12px ${100 - splitPercent}%`;
+  }, [isSplitView, splitPercent]);
 
   const leftArrowState: SplitterArrowState = useMemo(() => {
-    if (viewMode === "b-full") {
+    if (isBFocused) {
       return {
         icon: "↔",
-        ariaLabel: "Return to split view",
-        title: "Return to split view",
+        ariaLabel: "Return to split view 50/50",
+        title: "Return to split view 50/50",
         disabled: false,
         onClick: showSplit,
         pressed: true,
       };
+    }
+    if (isAFocused) {
+      return { hidden: true };
     }
     return {
       icon: "‹",
       ariaLabel: "Expand Version B to full width",
       title: "Expand Version B to full width",
-      disabled: viewMode === "a-full",
-      ariaHidden: viewMode === "a-full",
+      disabled: false,
       onClick: () => showBranchFull("b-full"),
       pressed: false,
     };
-  }, [showBranchFull, showSplit, viewMode]);
+  }, [isAFocused, isBFocused, showBranchFull, showSplit]);
 
   const rightArrowState: SplitterArrowState = useMemo(() => {
-    if (viewMode === "a-full") {
+    if (isAFocused) {
       return {
         icon: "↔",
-        ariaLabel: "Return to split view",
-        title: "Return to split view",
+        ariaLabel: "Return to split view 50/50",
+        title: "Return to split view 50/50",
         disabled: false,
         onClick: showSplit,
         pressed: true,
       };
     }
+    if (isBFocused) {
+      return { hidden: true };
+    }
     return {
       icon: "›",
       ariaLabel: "Expand Version A to full width",
       title: "Expand Version A to full width",
-      disabled: viewMode === "b-full",
-      ariaHidden: viewMode === "b-full",
+      disabled: false,
       onClick: () => showBranchFull("a-full"),
       pressed: false,
     };
-  }, [showBranchFull, showSplit, viewMode]);
+  }, [isAFocused, isBFocused, showBranchFull, showSplit]);
 
   const handleReload = useCallback(() => {
     void fetchSummary();
   }, [fetchSummary]);
 
-  const startKeepFlow = useCallback(
-    (branch: BranchInfo) => {
-      setConfirmation({ type: "keep", branch });
-    },
-    []
-  );
+  const startKeepFlow = useCallback((branch: BranchInfo) => {
+    setConfirmation({ type: "keep", branch });
+  }, []);
 
   const startDiscardFlow = useCallback(() => {
     setConfirmation({ type: "discard" });
@@ -465,11 +545,15 @@ export function ABWorkspaceShell({
     <div className="ab-workspace">
       <header className="ab-workspace__toolbar">
         <div className="ab-workspace__toolbar-info">
-          <div className="ab-workspace__toolbar-title">A/B Comparison Mode ↔️</div>
+          <div className="ab-workspace__toolbar-title">
+            A/B Comparison Mode ↔️
+          </div>
           <div className="ab-workspace__toolbar-meta">
             Comparing changes based on page from {createdAt}
           </div>
-          <div className="ab-workspace__toolbar-summary">{branchInstructionsSummary}</div>
+          <div className="ab-workspace__toolbar-summary">
+            {branchInstructionsSummary}
+          </div>
         </div>
         <div className="ab-workspace__toolbar-actions">
           <button
@@ -477,7 +561,7 @@ export function ABWorkspaceShell({
             className="ab-workspace__action admin-danger"
             onClick={startDiscardFlow}
           >
-            Discard Both &amp; Go Back 🗑️
+            Discard Both &amp; Go Back
           </button>
         </div>
       </header>
@@ -485,107 +569,140 @@ export function ABWorkspaceShell({
       <main
         className={framesClassName}
         ref={framesRef}
-        style={
-          viewMode === "split"
-            ? {
-                gridTemplateColumns: `${splitPercent}fr 12px ${100 - splitPercent}fr`,
-              }
-            : undefined
-        }
+        style={{ gridTemplateColumns }}
       >
-        <section
-          className="ab-workspace__frame ab-workspace__frame--a"
-          aria-label="Version A preview"
-        >
-          <header className="ab-workspace__frame-header">
-            <div className="ab-workspace__frame-header-top">
-              <span className="ab-workspace__badge">Version A</span>
-              <p className="ab-workspace__frame-instructions">
-                {branchA.instructions.trim() || "No additional instructions provided."}
-              </p>
-            </div>
-            <div className="ab-workspace__frame-actions">
-              <button
-                type="button"
-                className="ab-workspace__keep-button admin-primary"
-                onClick={() => startKeepFlow(branchA)}
-              >
-                Select Version A
-              </button>
-            </div>
-          </header>
-          <iframe
-            key={branchA.branchId}
-            src={branchAUrl}
-            data-ab-workspace="true"
-            data-vaporvibe-branch={branchA.branchId}
-            title="Version A"
-          />
-        </section>
-        <div className="ab-workspace__splitter">
+        {!isSplitView ? (
           <button
             type="button"
-            className="ab-workspace__splitter-arrow left"
-            aria-label={leftArrowState.ariaLabel}
-            aria-pressed={leftArrowState.pressed}
-            title={leftArrowState.title}
-            onClick={leftArrowState.onClick}
-            disabled={leftArrowState.disabled}
-            aria-hidden={leftArrowState.ariaHidden || undefined}
-            tabIndex={leftArrowState.ariaHidden ? -1 : 0}
+            className={`ab-workspace__focus-arrow ${
+              isAFocused
+                ? "ab-workspace__focus-arrow--right"
+                : "ab-workspace__focus-arrow--left"
+            }`}
+            aria-label="Return to split view 50/50"
+            title="Return to split view 50/50"
+            onClick={showSplit}
           >
-            {leftArrowState.icon}
+            {isAFocused ? "‹" : "›"}
           </button>
-          <div
-            className="ab-workspace__splitter-handle"
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Resize comparison frames"
-            onMouseDown={handleSplitterMouseDown}
-          />
-          <button
-            type="button"
-            className="ab-workspace__splitter-arrow right"
-            aria-label={rightArrowState.ariaLabel}
-            aria-pressed={rightArrowState.pressed}
-            title={rightArrowState.title}
-            onClick={rightArrowState.onClick}
-            disabled={rightArrowState.disabled}
-            aria-hidden={rightArrowState.ariaHidden || undefined}
-            tabIndex={rightArrowState.ariaHidden ? -1 : 0}
+        ) : null}
+        {viewMode !== "b-full" ? (
+          <section
+            className="ab-workspace__frame ab-workspace__frame--a"
+            aria-label="Version A preview"
           >
-            {rightArrowState.icon}
-          </button>
-        </div>
-        <section
-          className="ab-workspace__frame ab-workspace__frame--b"
-          aria-label="Version B preview"
-        >
-          <header className="ab-workspace__frame-header">
-            <div className="ab-workspace__frame-header-top">
-              <span className="ab-workspace__badge">Version B</span>
-              <p className="ab-workspace__frame-instructions">
-                {branchB.instructions.trim() || "No additional instructions provided."}
-              </p>
-            </div>
-            <div className="ab-workspace__frame-actions">
+            <header className="ab-workspace__frame-header">
+              <div className="ab-workspace__frame-header-top">
+                <span className="ab-workspace__badge">Version A</span>
+                <p className="ab-workspace__frame-instructions">
+                  {branchA.instructions.trim() ||
+                    "No additional instructions provided."}
+                </p>
+              </div>
+              <div className="ab-workspace__frame-actions">
+                <button
+                  type="button"
+                  className="ab-workspace__keep-button admin-primary"
+                  onClick={() => startKeepFlow(branchA)}
+                >
+                  Select Version A
+                </button>
+              </div>
+            </header>
+            <iframe
+              key={branchA.branchId}
+              src={branchAUrl}
+              data-ab-workspace="true"
+              data-vaporvibe-branch={branchA.branchId}
+              title="Version A"
+            />
+          </section>
+        ) : null}
+        {isSplitView ? (
+          <div className="ab-workspace__splitter">
+            {"hidden" in leftArrowState ? null : (
               <button
                 type="button"
-                className="ab-workspace__keep-button admin-primary"
-                onClick={() => startKeepFlow(branchB)}
+                className="ab-workspace__splitter-arrow left"
+                aria-label={leftArrowState.ariaLabel}
+                aria-pressed={leftArrowState.pressed}
+                title={leftArrowState.title}
+                onClick={leftArrowState.onClick}
+                disabled={leftArrowState.disabled}
               >
-                Select Version B
+                {leftArrowState.icon}
               </button>
-            </div>
-          </header>
-          <iframe
-            key={branchB.branchId}
-            src={branchBUrl}
-            data-ab-workspace="true"
-            data-vaporvibe-branch={branchB.branchId}
-            title="Version B"
-          />
-        </section>
+            )}
+            <div
+              className="ab-workspace__splitter-handle"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize comparison frames"
+              onMouseDown={handleSplitterMouseDown}
+              onDoubleClick={snapSplitToCenter}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  if (viewMode !== "split") {
+                    showSplit();
+                  } else {
+                    snapSplitToCenter();
+                  }
+                }
+                if (event.key === "Escape" && viewMode !== "split") {
+                  event.preventDefault();
+                  showSplit();
+                }
+              }}
+              tabIndex={viewMode === "split" ? 0 : -1}
+            />
+            {"hidden" in rightArrowState ? null : (
+              <button
+                type="button"
+                className="ab-workspace__splitter-arrow right"
+                aria-label={rightArrowState.ariaLabel}
+                aria-pressed={rightArrowState.pressed}
+                title={rightArrowState.title}
+                onClick={rightArrowState.onClick}
+                disabled={rightArrowState.disabled}
+              >
+                {rightArrowState.icon}
+              </button>
+            )}
+          </div>
+        ) : null}
+        {viewMode !== "a-full" ? (
+          <section
+            className="ab-workspace__frame ab-workspace__frame--b"
+            aria-label="Version B preview"
+          >
+            <header className="ab-workspace__frame-header">
+              <div className="ab-workspace__frame-header-top">
+                <span className="ab-workspace__badge">Version B</span>
+                <p className="ab-workspace__frame-instructions">
+                  {branchB.instructions.trim() ||
+                    "No additional instructions provided."}
+                </p>
+              </div>
+              <div className="ab-workspace__frame-actions">
+                <button
+                  type="button"
+                  className="ab-workspace__keep-button admin-primary"
+                  onClick={() => startKeepFlow(branchB)}
+                >
+                  Select Version B
+                </button>
+              </div>
+            </header>
+            <iframe
+              key={branchB.branchId}
+              src={branchBUrl}
+              data-ab-workspace="true"
+              data-vaporvibe-branch={branchB.branchId}
+              title="Version B"
+            />
+          </section>
+        ) : null}
       </main>
 
       <ConfirmationModal
@@ -596,23 +713,19 @@ export function ABWorkspaceShell({
             : ""
         }
         description={
-          confirmation?.type === "keep"
-            ? (
-                <>
-                  <p>
-                    This will save the history from Version {confirmation.branch.label}
-                    {" "}
-                    and permanently discard Version
-                    {" "}
-                    {confirmation.branch.label === "A" ? "B" : "A"}.
-                  </p>
-                  <p className="ab-modal__note">
-                    Based on instruction: "
-                    {formatInstructionSnippet(confirmation.branch.instructions)}"
-                  </p>
-                </>
-              )
-            : undefined
+          confirmation?.type === "keep" ? (
+            <>
+              <p>
+                This will save the history from Version{" "}
+                {confirmation.branch.label} and permanently discard Version{" "}
+                {confirmation.branch.label === "A" ? "B" : "A"}.
+              </p>
+              <p className="ab-modal__note">
+                Based on instruction: "
+                {formatInstructionSnippet(confirmation.branch.instructions)}"
+              </p>
+            </>
+          ) : undefined
         }
         confirmLabel={
           confirmation?.type === "keep"
@@ -638,9 +751,13 @@ export function ABWorkspaceShell({
         <div className="ab-workspace__overlay" role="alert">
           <div className="ab-workspace__overlay-card">
             <div className="ab-workspace__overlay-spinner" aria-hidden="true" />
-            <div className="ab-workspace__overlay-message">{resolving.message}</div>
+            <div className="ab-workspace__overlay-message">
+              {resolving.message}
+            </div>
             {resolving.detail ? (
-              <div className="ab-workspace__overlay-detail">{resolving.detail}</div>
+              <div className="ab-workspace__overlay-detail">
+                {resolving.detail}
+              </div>
             ) : null}
           </div>
         </div>
