@@ -6,7 +6,7 @@ Instead of vibe-coding a frontend and backend, you picture the page you want and
 
 It’s also a rapid-prototyping cheat code: why spend a weekend wiring a throwaway backend and pixel-tweaking a frontend just to sanity-check a UX flow or study a short interaction? Let the model “predict” what the app would render -- if it quacks like a duck, that might be enough to validate the idea before investing real build time.
 
-<img width="256" height="256" alt="vaporvibe-icon-with-text" src="https://github.com/user-attachments/assets/9ca4c4a6-8ccc-49c1-bb08-efc3475446e2" />
+<img width="200" height="200" alt="vaporvibe-icon-with-text" src="https://github.com/user-attachments/assets/4e839635-567c-4434-80d1-d817c505ffeb" />
 
 ---
 
