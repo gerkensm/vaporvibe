@@ -38,19 +38,13 @@ function HistorySnapshotControls({
 
   const toggleSection = useCallback(
     (key: CollapsibleKey) => {
-      if (forkActive) {
-        return;
-      }
       setOpenSection((current) => (current === key ? null : key));
     },
-    [forkActive]
+    []
   );
 
   const handleContainerDragEnter = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
-      if (forkActive) {
-        return;
-      }
       if (!event.dataTransfer?.types.includes("Files")) {
         return;
       }
@@ -61,13 +55,10 @@ function HistorySnapshotControls({
       }
       setIsDragActive(true);
     },
-    [forkActive, importOpen]
+    [importOpen]
   );
 
   const handleContainerDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (forkActive) {
-      return;
-    }
     if (!event.dataTransfer?.types.includes("Files")) {
       return;
     }
@@ -76,19 +67,12 @@ function HistorySnapshotControls({
   }, []);
 
   const handleContainerDragLeave = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (forkActive) {
-      setIsDragActive(false);
-      return;
-    }
     if (!event.currentTarget.contains(event.relatedTarget as Node)) {
       setIsDragActive(false);
     }
   }, []);
 
   const handleContainerDrop = useCallback((event: DragEvent<HTMLDivElement>) => {
-    if (forkActive) {
-      return;
-    }
     if (!event.dataTransfer?.files?.length) {
       return;
     }
@@ -100,14 +84,22 @@ function HistorySnapshotControls({
     setIsDragActive(false);
   }, []);
 
-  const hint = useMemo(() => {
-    if (forkActive) {
-      return "Resolve the active A/B comparison to import a snapshot.";
-    }
+  const importHint = useMemo(() => {
     return importOpen
       ? "Drop a snapshot anywhere in this panel to load it."
       : "Drop a history.json here or click to import.";
-  }, [forkActive, importOpen]);
+  }, [importOpen]);
+
+  const exportHint = useMemo(() => {
+    if (forkActive) {
+      return "Exports are disabled while an A/B comparison is active.";
+    }
+    return exportOpen
+      ? "Download the full history or prompt markdown."
+      : "Save a snapshot for safekeeping or sharing.";
+  }, [exportOpen, forkActive]);
+
+  const exportDisabled = forkActive;
 
   const handleDisabledLink = useCallback(
     (event: MouseEvent<HTMLAnchorElement>) => {
@@ -134,13 +126,12 @@ function HistorySnapshotControls({
           <button
             type="button"
             className="history-snapshot-controls__toggle"
-            disabled={forkActive}
             onClick={() => toggleSection("import")}
             aria-expanded={importOpen}
           >
             <span className="history-snapshot-controls__label">
               <span className="history-snapshot-controls__title">Import snapshot</span>
-              <span className="history-snapshot-controls__hint">{hint}</span>
+              <span className="history-snapshot-controls__hint">{importHint}</span>
             </span>
             <span className="history-snapshot-controls__chevron" aria-hidden="true" />
           </button>
@@ -154,11 +145,6 @@ function HistorySnapshotControls({
             onExternalFilesHandled={() => setPendingDropFiles(null)}
           />
         ) : null}
-        {forkActive ? (
-          <p className="history-snapshot-controls__notice" role="status">
-            A/B comparison active. Finish or discard it to import snapshots.
-          </p>
-        ) : null}
       </section>
 
       <section
@@ -169,17 +155,13 @@ function HistorySnapshotControls({
           <button
             type="button"
             className="history-snapshot-controls__toggle"
-            disabled={forkActive}
+            disabled={exportDisabled}
             onClick={() => toggleSection("export")}
             aria-expanded={exportOpen}
           >
             <span className="history-snapshot-controls__label">
               <span className="history-snapshot-controls__title">Export session</span>
-              <span className="history-snapshot-controls__hint">
-                {exportOpen
-                  ? "Download the full history or prompt markdown."
-                  : "Save a snapshot for safekeeping or sharing."}
-              </span>
+              <span className="history-snapshot-controls__hint">{exportHint}</span>
             </span>
             <span className="history-snapshot-controls__chevron" aria-hidden="true" />
           </button>
@@ -207,11 +189,6 @@ function HistorySnapshotControls({
               Download prompt.md
             </a>
           </div>
-        ) : null}
-        {forkActive ? (
-          <p className="history-snapshot-controls__notice" role="status">
-            Resolve the active A/B comparison to enable exports.
-          </p>
         ) : null}
       </section>
     </div>

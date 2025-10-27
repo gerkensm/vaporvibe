@@ -13,6 +13,11 @@ import ConfirmationModal from "./ConfirmationModal";
 import "./ABTesting.css";
 
 const BRANCH_FIELD = "__vaporvibe_branch";
+const COMPACT_BREAKPOINT = 800;
+const DEFAULT_SPLIT_PERCENT = 50;
+const SPLITTER_GAP = 12;
+const MIN_FRAME_WIDTH = 360;
+const COMPACT_HYSTERESIS_PX = 32;
 
 type BranchLabel = "A" | "B";
 
@@ -75,19 +80,6 @@ const buildBranchUrl = (basePath: string, branchId: string): string => {
   return `${url.pathname}${url.search}`;
 };
 
-function summarizeInstructions(branches: BranchInfo[]): string {
-  return branches
-    .map((branch) => {
-      const snippet = branch.instructions.trim();
-      const truncated =
-        snippet.length > 80
-          ? `${snippet.slice(0, 77)}…`
-          : snippet || "(no instructions)";
-      return `${branch.label}: "${truncated}"`;
-    })
-    .join(" · ");
-}
-
 const formatInstructionSnippet = (value: string): string => {
   const trimmed = value.trim();
   if (!trimmed) {
@@ -110,15 +102,17 @@ export function ABWorkspaceShell({
     null
   );
   const [resolving, setResolving] = useState<ResolvingState | null>(null);
-  const [splitPercent, setSplitPercent] = useState(50);
+  const [splitPercent, setSplitPercent] = useState(DEFAULT_SPLIT_PERCENT);
   const [viewMode, setViewMode] = useState<"split" | "a-full" | "b-full">(
     "split"
   );
+  const [isCompactLayout, setIsCompactLayout] = useState(false);
   const framesRef = useRef<HTMLDivElement | null>(null);
   const resizeCleanupRef = useRef<(() => void) | null>(null);
   const lastSplitPercentRef = useRef(splitPercent);
   const splitRafRef = useRef<number | null>(null);
   const pendingSplitPercentRef = useRef<number | null>(null);
+  const containerWidthRef = useRef<number>(0);
 
   const normalizedSource = useMemo(
     () => sanitizePath(sourcePathParam),
@@ -193,15 +187,101 @@ export function ABWorkspaceShell({
   const branchA = branches.find((branch) => branch.label === "A");
   const branchB = branches.find((branch) => branch.label === "B");
 
-  const branchInstructionsSummary = useMemo(
-    () => summarizeInstructions(branches),
-    [branches]
-  );
-
-  const commitSplitPercent = useCallback((value: number) => {
-    setSplitPercent(value);
-    lastSplitPercentRef.current = value;
+  const applySplitBounds = useCallback((value: number) => {
+    const clamped = Math.max(0, Math.min(100, value));
+    const width = containerWidthRef.current;
+    if (!width) {
+      return clamped;
+    }
+    const available = Math.max(0, width - SPLITTER_GAP);
+    if (available <= 0) {
+      return DEFAULT_SPLIT_PERCENT;
+    }
+    const minPercent = Math.min(50, (MIN_FRAME_WIDTH / available) * 100);
+    const maxPercent = 100 - minPercent;
+    if (minPercent >= maxPercent) {
+      return DEFAULT_SPLIT_PERCENT;
+    }
+    if (clamped < minPercent) {
+      return minPercent;
+    }
+    if (clamped > maxPercent) {
+      return maxPercent;
+    }
+    return clamped;
   }, []);
+
+  useEffect(() => {
+    const updateFromWidth = (rawWidth?: number | null) => {
+      if (typeof rawWidth !== "number" || Number.isNaN(rawWidth)) {
+        return;
+      }
+      containerWidthRef.current = rawWidth;
+      const minSideBySideWidth = Math.max(
+        COMPACT_BREAKPOINT,
+        MIN_FRAME_WIDTH * 2 + SPLITTER_GAP
+      );
+      setIsCompactLayout((previous) => {
+        if (previous) {
+          return rawWidth >= minSideBySideWidth + COMPACT_HYSTERESIS_PX
+            ? false
+            : true;
+        }
+        if (rawWidth <= minSideBySideWidth) {
+          return true;
+        }
+        return false;
+      });
+      const bounded = applySplitBounds(lastSplitPercentRef.current);
+      if (bounded !== lastSplitPercentRef.current) {
+        lastSplitPercentRef.current = bounded;
+        setSplitPercent(bounded);
+      }
+    };
+
+    const container = framesRef.current;
+    if (container && typeof ResizeObserver !== "undefined") {
+      updateFromWidth(container.getBoundingClientRect().width);
+      const observer = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry) {
+          return;
+        }
+        updateFromWidth(entry.contentRect.width);
+      });
+      observer.observe(container);
+      return () => {
+        observer.disconnect();
+      };
+    }
+
+    const handleWindowResize = () => {
+      const width =
+        container?.getBoundingClientRect().width ??
+        (typeof window !== "undefined" ? window.innerWidth : undefined);
+      updateFromWidth(width);
+    };
+
+    handleWindowResize();
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", handleWindowResize);
+      return () => {
+        window.removeEventListener("resize", handleWindowResize);
+      };
+    }
+
+    return;
+  }, [applySplitBounds]);
+
+  const commitSplitPercent = useCallback(
+    (value: number) => {
+      const bounded = applySplitBounds(value);
+      setSplitPercent(bounded);
+      lastSplitPercentRef.current = bounded;
+    },
+    [applySplitBounds]
+  );
 
   const finishSplitAnimation = useCallback(() => {
     if (splitRafRef.current !== null) {
@@ -216,7 +296,7 @@ export function ABWorkspaceShell({
 
   const scheduleSplitPercent = useCallback(
     (value: number) => {
-      pendingSplitPercentRef.current = value;
+      pendingSplitPercentRef.current = applySplitBounds(value);
       if (splitRafRef.current !== null) {
         return;
       }
@@ -228,7 +308,7 @@ export function ABWorkspaceShell({
         }
       });
     },
-    [commitSplitPercent]
+    [applySplitBounds, commitSplitPercent]
   );
 
   const setIframePointerInteractivity = useCallback((enabled: boolean) => {
@@ -313,7 +393,7 @@ export function ABWorkspaceShell({
     const next =
       Number.isFinite(previous) && previous > 0 && previous < 100
         ? previous
-        : 50;
+        : DEFAULT_SPLIT_PERCENT;
     commitSplitPercent(next);
     setViewMode("split");
   }, [commitSplitPercent, finishSplitAnimation]);
@@ -328,7 +408,7 @@ export function ABWorkspaceShell({
 
   const snapSplitToCenter = useCallback(() => {
     finishSplitAnimation();
-    commitSplitPercent(50);
+    commitSplitPercent(DEFAULT_SPLIT_PERCENT);
     setViewMode("split");
   }, [commitSplitPercent, finishSplitAnimation]);
 
@@ -337,17 +417,43 @@ export function ABWorkspaceShell({
   const isBFocused = viewMode === "b-full";
 
   const framesClassName = useMemo(() => {
-    return isSplitView
-      ? "ab-workspace__frames"
-      : "ab-workspace__frames ab-workspace__frames--focus";
-  }, [isSplitView]);
-
-  const gridTemplateColumns = useMemo(() => {
+    const classes = ["ab-workspace__frames"];
     if (!isSplitView) {
-      return "minmax(0, 1fr)";
+      classes.push("ab-workspace__frames--focus");
     }
-    return `${splitPercent}% 12px ${100 - splitPercent}%`;
-  }, [isSplitView, splitPercent]);
+    if (isCompactLayout) {
+      classes.push("ab-workspace__frames--stacked");
+    }
+    return classes.join(" ");
+  }, [isCompactLayout, isSplitView]);
+
+  const framesStyle = useMemo(() => {
+    if (!isSplitView || isCompactLayout) {
+      return undefined;
+    }
+    return {
+      gridTemplateColumns: `${splitPercent}% 12px ${100 - splitPercent}%`,
+    };
+  }, [isCompactLayout, isSplitView, splitPercent]);
+
+  const isFrameAHidden = viewMode === "b-full";
+  const isFrameBHidden = viewMode === "a-full";
+
+  const frameAClassName = useMemo(() => {
+    const classes = ["ab-workspace__frame", "ab-workspace__frame--a"];
+    if (isFrameAHidden) {
+      classes.push("ab-workspace__frame--hidden");
+    }
+    return classes.join(" ");
+  }, [isFrameAHidden]);
+
+  const frameBClassName = useMemo(() => {
+    const classes = ["ab-workspace__frame", "ab-workspace__frame--b"];
+    if (isFrameBHidden) {
+      classes.push("ab-workspace__frame--hidden");
+    }
+    return classes.join(" ");
+  }, [isFrameBHidden]);
 
   const leftArrowState: SplitterArrowState = useMemo(() => {
     if (isBFocused) {
@@ -534,10 +640,6 @@ export function ABWorkspaceShell({
     );
   }
 
-  const createdAt = summary
-    ? new Date(summary.createdAt).toLocaleString()
-    : new Date().toLocaleString();
-
   const branchAUrl = buildBranchUrl(normalizedSource, branchA.branchId);
   const branchBUrl = buildBranchUrl(normalizedSource, branchB.branchId);
 
@@ -548,12 +650,10 @@ export function ABWorkspaceShell({
           <div className="ab-workspace__toolbar-title">
             A/B Comparison Mode ↔️
           </div>
-          <div className="ab-workspace__toolbar-meta">
-            Comparing changes based on page from {createdAt}
-          </div>
-          <div className="ab-workspace__toolbar-summary">
-            {branchInstructionsSummary}
-          </div>
+          <p className="ab-workspace__toolbar-description">
+            Review both branches, then keep the experience that delivers the
+            strongest vibe.
+          </p>
         </div>
         <div className="ab-workspace__toolbar-actions">
           <button
@@ -566,11 +666,7 @@ export function ABWorkspaceShell({
         </div>
       </header>
 
-      <main
-        className={framesClassName}
-        ref={framesRef}
-        style={{ gridTemplateColumns }}
-      >
+      <main className={framesClassName} ref={framesRef} style={framesStyle}>
         {!isSplitView ? (
           <button
             type="button"
@@ -586,39 +682,41 @@ export function ABWorkspaceShell({
             {isAFocused ? "‹" : "›"}
           </button>
         ) : null}
-        {viewMode !== "b-full" ? (
-          <section
-            className="ab-workspace__frame ab-workspace__frame--a"
-            aria-label="Version A preview"
-          >
-            <header className="ab-workspace__frame-header">
-              <div className="ab-workspace__frame-header-top">
-                <span className="ab-workspace__badge">Version A</span>
+        <section
+          className={frameAClassName}
+          aria-label="Version A preview"
+          aria-hidden={isFrameAHidden}
+        >
+          <header className="ab-workspace__frame-header">
+            <div className="ab-workspace__frame-header-content">
+              <span className="ab-workspace__badge">Version A</span>
+              <div className="ab-workspace__frame-instructions-card">
+                <span className="ab-workspace__frame-instructions-label">
+                  Instructions
+                </span>
                 <p className="ab-workspace__frame-instructions">
                   {branchA.instructions.trim() ||
                     "No additional instructions provided."}
                 </p>
               </div>
-              <div className="ab-workspace__frame-actions">
-                <button
-                  type="button"
-                  className="ab-workspace__keep-button admin-primary"
-                  onClick={() => startKeepFlow(branchA)}
-                >
-                  Select Version A
-                </button>
-              </div>
-            </header>
-            <iframe
-              key={branchA.branchId}
-              src={branchAUrl}
-              data-ab-workspace="true"
-              data-vaporvibe-branch={branchA.branchId}
-              title="Version A"
-            />
-          </section>
-        ) : null}
-        {isSplitView ? (
+            </div>
+            <button
+              type="button"
+              className="ab-workspace__keep-button admin-primary"
+              onClick={() => startKeepFlow(branchA)}
+            >
+              Select Version A
+            </button>
+          </header>
+          <iframe
+            key={branchA.branchId}
+            src={branchAUrl}
+            data-ab-workspace="true"
+            data-vaporvibe-branch={branchA.branchId}
+            title="Version A"
+          />
+        </section>
+        {isSplitView && !isCompactLayout ? (
           <div className="ab-workspace__splitter">
             {"hidden" in leftArrowState ? null : (
               <button
@@ -671,38 +769,40 @@ export function ABWorkspaceShell({
             )}
           </div>
         ) : null}
-        {viewMode !== "a-full" ? (
-          <section
-            className="ab-workspace__frame ab-workspace__frame--b"
-            aria-label="Version B preview"
-          >
-            <header className="ab-workspace__frame-header">
-              <div className="ab-workspace__frame-header-top">
-                <span className="ab-workspace__badge">Version B</span>
+        <section
+          className={frameBClassName}
+          aria-label="Version B preview"
+          aria-hidden={isFrameBHidden}
+        >
+          <header className="ab-workspace__frame-header">
+            <div className="ab-workspace__frame-header-content">
+              <span className="ab-workspace__badge">Version B</span>
+              <div className="ab-workspace__frame-instructions-card">
+                <span className="ab-workspace__frame-instructions-label">
+                  Instructions
+                </span>
                 <p className="ab-workspace__frame-instructions">
                   {branchB.instructions.trim() ||
                     "No additional instructions provided."}
                 </p>
               </div>
-              <div className="ab-workspace__frame-actions">
-                <button
-                  type="button"
-                  className="ab-workspace__keep-button admin-primary"
-                  onClick={() => startKeepFlow(branchB)}
-                >
-                  Select Version B
-                </button>
-              </div>
-            </header>
-            <iframe
-              key={branchB.branchId}
-              src={branchBUrl}
-              data-ab-workspace="true"
-              data-vaporvibe-branch={branchB.branchId}
-              title="Version B"
-            />
-          </section>
-        ) : null}
+            </div>
+            <button
+              type="button"
+              className="ab-workspace__keep-button admin-primary"
+              onClick={() => startKeepFlow(branchB)}
+            >
+              Select Version B
+            </button>
+          </header>
+          <iframe
+            key={branchB.branchId}
+            src={branchBUrl}
+            data-ab-workspace="true"
+            data-vaporvibe-branch={branchB.branchId}
+            title="Version B"
+          />
+        </section>
       </main>
 
       <ConfirmationModal
