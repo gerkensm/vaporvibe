@@ -69,7 +69,8 @@ The admin console at `/vaporvibe` is a **React SPA** (built in `frontend/`) serv
 - **API Driven**: The SPA communicates with the backend exclusively through **JSON API endpoints** under `/api/admin/*`. The backend no longer renders any admin HTML directly.
 - **Live Controls**: Tweak the global brief, manage attachments, adjust history limits, switch providers/models, and update API keys via API calls without restarting the server.
 - **History Explorer**: Inspect every generated page (including REST API interactions), view token usage, raw HTML, and model reasoning traces fetched via `/api/admin/history`.
-- **Import/Export**: Download session snapshots (`GET /api/admin/history.json`) or prompt markdown (`GET /api/admin/history.md`). Upload snapshots via drag-drop (`POST /api/admin/history/import`).
+- **A/B Comparisons (Forks)**: Initiate side-by-side experiments to compare alternative instructions, review the A/B workspace, and merge or discard branches when ready.
+- **Import/Export**: Download session snapshots (`GET /api/admin/history.json`) or prompt markdown (`GET /api/admin/history.md`). Upload snapshots via drag-drop (`POST /api/admin/history/import`). Certain actions (exports, purging) are temporarily disabled while a fork is in progress to avoid state conflicts.
 
 ---
 
@@ -198,8 +199,8 @@ The admin UI is functional but has some minor inconsistencies the LLM should _no
 
 ### Key Abstractions
 
-- **Session Store (`src/server/session-store.ts`)**: Manages user history in memory, keyed by a session ID cookie. Prunes old sessions based on TTL and capacity. Provides history context for prompts.
-- **History Entries (`src/types.ts`)**: Each entry captures the request (method, path, query, body, instructions), the generated HTML, LLM settings (provider, model), token usage, reasoning traces (if enabled), and any REST API calls made during that step.
+- **Session Store (`src/server/session-store.ts`)**: Manages user history in memory, keyed by a session ID cookie. Tracks active forks (A/B comparisons), maintains per-branch history/REST snapshots, prunes old sessions based on TTL and capacity, and provides prompt context.
+- **History Entries (`src/types.ts`)**: Each entry captures the request (method, path, query, body, instructions), the generated HTML, LLM settings (provider, model), token usage, reasoning traces (if enabled), any REST API calls made during that step, and optional fork metadata (e.g., branch ID, status, resolution details).
 - **The Brief (`state.brief`)**: The central user-provided text guiding the LLM's behavior for the entire session. Can be updated via the Admin Console (`POST /api/admin/brief`).
 
 ### State Management Patterns
@@ -222,8 +223,19 @@ The admin UI is functional but has some minor inconsistencies the LLM should _no
   - `POST /api/admin/history/import`: Import history snapshot.
   - `DELETE /api/admin/history/:id`: Delete a history entry.
   - `GET /api/admin/history.json` / `history.md`: Export history.
+- `/api/admin/forks/*`: Endpoints for A/B comparison lifecycle (handled within `AdminController` in `src/server/admin-controller.ts`).
+  - `POST /api/admin/forks/start`: Initiate an A/B test fork from a history entry.
+  - `POST /api/admin/forks/:forkId/commit/:branchId`: Resolve a fork by promoting the selected branch back into the main timeline.
+  - `POST /api/admin/forks/:forkId/discard`: Discard an active fork and all of its branches.
 - `/rest_api/mutation/*` & `/rest_api/query/*`: Endpoints intended to be called via `fetch` from _within the LLM-generated HTML_ for lightweight state persistence or data retrieval without full page reloads. Handled by `RestApiController` (`src/server/rest-api-controller.ts`).
 - `/__vaporvibe/result/{token}`: Temporary route used by the loading shell to fetch the asynchronously generated HTML.
+
+### A/B Testing (Forking)
+
+- **Concept**: From any history entry, the admin can start a fork that creates two divergent branches (A and B) with their own instruction nudges. Each branch evolves independently while sharing the original session up to the fork point.
+- **Branch Context**: Requests issued inside a fork include a hidden `__vaporvibe_branch` identifier (managed by the interceptor and instructions panel). The server uses it to load the correct branch’s history, `prevHtml`, and virtual REST state before calling the LLM.
+- **Workspace UI**: The `/vaporvibe/ab-test/:forkId` route renders `ABWorkspaceShell`, which loads both branches in synchronized iframes, supports draggable split view, and provides actions to keep or discard outcomes.
+- **Resolution**: Choosing a winning branch merges its accumulated history back into the primary timeline and clears fork metadata. Discarding abandons both branches and restores the pre-fork session state. While a fork is active, destructive history operations (export, purge, delete) are temporarily disabled.
 
 ### Token & Latency Tricks
 
@@ -253,8 +265,8 @@ gerkensm-vaporvibe/
 │   │   ├── App.tsx       # Root React component w/ Router
 │   │   ├── main.tsx      # React DOM bootstrap
 │   │   ├── api/          # Frontend API client (fetches from /api/admin/*)
-│   │   ├── components/   # Reusable React UI components
-│   │   ├── pages/        # Top-level page components (AdminDashboard, SetupWizard)
+│   │   ├── components/   # Reusable React UI components (ABWorkspaceShell, ConfirmationModal, Notifications, etc.) + styles (ABTesting.css)
+│   │   ├── pages/        # Top-level page components (AdminDashboard, SetupWizard, AbTestWorkspacePage)
 │   │   ├── interceptor.ts # Navigation interceptor logic (bundled)
 │   │   └── instructions-panel.ts # Instructions panel logic (bundled)
 │   └── dist/             # Compiled SPA assets (served by backend)
