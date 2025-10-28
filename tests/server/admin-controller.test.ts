@@ -76,6 +76,23 @@ function createState(): MutableServerState {
   };
 }
 
+function createContext(
+  path: string,
+  method: string,
+  req: Parameters<typeof createIncomingMessage>[0],
+  res: TestResponse
+): RequestContext {
+  const request = createIncomingMessage(req);
+  (request as unknown as { method: string }).method = method;
+  return {
+    req: request,
+    res,
+    url: new URL(`http://localhost${path}`),
+    method,
+    path,
+  } satisfies RequestContext;
+}
+
 describe("AdminController forks", () => {
   const ttl = 60_000;
   const capacity = 50;
@@ -99,23 +116,6 @@ describe("AdminController forks", () => {
     sessionStore.appendHistoryEntry(sid, entry);
     sessionStore.setPrevHtml(sid, entry.response.html);
     return { sid, entryId: entry.id };
-  }
-
-  function createContext(
-    path: string,
-    method: string,
-    req: Parameters<typeof createIncomingMessage>[0],
-    res: TestResponse
-  ): RequestContext {
-    const request = createIncomingMessage(req);
-    (request as unknown as { method: string }).method = method;
-    return {
-      req: request,
-      res,
-      url: new URL(`http://localhost${path}`),
-      method,
-      path,
-    } satisfies RequestContext;
   }
 
   it("starts a fork via the API", async () => {
@@ -350,5 +350,85 @@ describe("AdminController forks", () => {
     expect(res.statusCode).toBe(409);
     const payload = JSON.parse(res.body ?? "{}") as { success?: boolean };
     expect(payload.success).toBe(false);
+  });
+});
+
+describe("AdminController history import", () => {
+  const ttl = 60_000;
+  const capacity = 50;
+  let sessionStore: SessionStore;
+  let controller: AdminController;
+  const logger = getLoggerMock();
+
+  beforeEach(() => {
+    sessionStore = new SessionStore(ttl, capacity);
+    controller = new AdminController({ state: createState(), sessionStore });
+    Object.values(credentialStoreMock).forEach((mockFn) => mockFn.mockReset?.());
+  });
+
+  it("imports snapshot history into the active session id", async () => {
+    const response = createResponse();
+    const sid = sessionStore.getOrCreateSessionId({}, response);
+    sessionStore.appendHistoryEntry(
+      sid,
+      createHistoryEntry({
+        sessionId: sid,
+        response: { html: "<html><body>Existing</body></html>" },
+      })
+    );
+
+    const snapshot = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      brief: "Imported brief",
+      briefAttachments: [],
+      history: [
+        createHistoryEntry({
+          sessionId: "other-session",
+          createdAt: "2024-01-01T00:00:00.000Z",
+          response: { html: "<html><body>Imported</body></html>" },
+        }),
+      ],
+      runtime: {
+        historyLimit: 100,
+        historyMaxBytes: 5_000_000,
+        includeInstructionPanel: true,
+      },
+      llm: {
+        provider: "openai",
+        model: "gpt-4o-mini",
+        maxOutputTokens: 2048,
+        reasoningMode: "default",
+      },
+    };
+
+    const res = createResponse();
+    const context = createContext(
+      "/api/admin/history/import",
+      "POST",
+      {
+        headers: {
+          "content-type": "application/json",
+          cookie: `sid=${sid}`,
+        },
+        body: [JSON.stringify({ snapshot })],
+      },
+      res
+    );
+
+    const handled = await controller.handle(context, Date.now(), logger);
+    expect(handled).toBe(true);
+
+    const payload = JSON.parse(res.body ?? "{}") as {
+      success?: boolean;
+      state?: MutableServerState;
+    };
+
+    expect(payload.success).toBe(true);
+    const history = sessionStore.getHistory(sid);
+    expect(history).toHaveLength(1);
+    expect(history[0].sessionId).toBe(sid);
+    expect(history[0].response.html).toContain("Imported");
+    expect(payload.state?.brief).toBe("Imported brief");
   });
 });

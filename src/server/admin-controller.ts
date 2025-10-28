@@ -341,8 +341,15 @@ export class AdminController {
         return true;
       }
 
+      const cookies = parseCookies(req.headers.cookie);
+      const sid = this.sessionStore.getOrCreateSessionId(cookies, res);
+
       try {
-        const entries = await this.importHistorySnapshot(snapshotInput, reqLogger);
+        const entries = await this.importHistorySnapshot(
+          snapshotInput,
+          reqLogger,
+          sid
+        );
         const state = await this.buildAdminStateResponse();
         const payload: AdminUpdateResponse = {
           success: true,
@@ -1358,8 +1365,16 @@ export class AdminController {
       );
       return;
     }
+
+    const cookies = parseCookies(req.headers.cookie);
+    const sid = this.sessionStore.getOrCreateSessionId(cookies, res);
+
     try {
-      const entries = await this.importHistorySnapshot(snapshotInput, reqLogger);
+      const entries = await this.importHistorySnapshot(
+        snapshotInput,
+        reqLogger,
+        sid
+      );
       this.redirectWithMessage(
         res,
         describeHistoryImportResult(entries),
@@ -1374,7 +1389,8 @@ export class AdminController {
 
   private async importHistorySnapshot(
     snapshotInput: unknown,
-    reqLogger: Logger
+    reqLogger: Logger,
+    sid: string
   ): Promise<number> {
     let snapshot: HistorySnapshot;
 
@@ -1412,7 +1428,7 @@ export class AdminController {
       response: entry.response,
       briefAttachments: cloneAttachments(entry.briefAttachments),
     }));
-    this.sessionStore.replaceHistory(historyEntries);
+    this.sessionStore.replaceSessionHistory(sid, historyEntries);
 
     if (typeof snapshot.brief === "string") {
       this.state.brief = snapshot.brief.trim() || null;

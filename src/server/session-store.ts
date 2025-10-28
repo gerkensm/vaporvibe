@@ -586,6 +586,34 @@ export class SessionStore {
     this.pruneSessions();
   }
 
+  replaceSessionHistory(sid: string, entries: HistoryEntry[]): void {
+    const now = Date.now();
+    const sortedEntries = [...entries]
+      .map((entry) => normalizeImportedEntry(structuredClone(entry)))
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      )
+      .map((entry) => ({
+        ...entry,
+        sessionId: sid,
+      }));
+
+    const nextRecord: SessionData = {
+      updatedAt: now,
+      prevHtml: findLastHtmlEntry(sortedEntries)?.response.html ?? "",
+      history: sortedEntries,
+      rest: {
+        mutations: [],
+        queries: [],
+      },
+      activeFork: undefined,
+    };
+
+    this.sessions.set(sid, nextRecord);
+    this.pruneSessions();
+  }
+
   exportSnapshot(): SessionStoreSnapshot {
     return {
       sessions: Array.from(this.sessions.entries()).map(([sid, record]) => [

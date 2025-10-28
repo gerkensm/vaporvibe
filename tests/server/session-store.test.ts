@@ -146,6 +146,43 @@ describe("SessionStore", () => {
     expect(restored.getPrevHtml(sid)).toBe("tampered");
   });
 
+  it("replaces history for the current session id when importing", () => {
+    const res = createWritableResponse();
+    const sid = store.getOrCreateSessionId({}, res);
+
+    store.appendHistoryEntry(
+      sid,
+      createHistoryEntry({
+        sessionId: sid,
+        response: { html: "<html><body>Original</body></html>" },
+      })
+    );
+
+    const importedEntries = [
+      createHistoryEntry({
+        sessionId: "external-session",
+        createdAt: "2024-01-01T00:00:00.000Z",
+        response: { html: "<html><body>First</body></html>" },
+      }),
+      createHistoryEntry({
+        sessionId: "external-session",
+        createdAt: "2024-01-02T00:00:00.000Z",
+        response: { html: "<html><body>Latest</body></html>" },
+      }),
+    ];
+
+    store.replaceSessionHistory(sid, importedEntries);
+
+    const history = store.getHistory(sid);
+    expect(history).toHaveLength(2);
+    expect(history.every((entry) => entry.sessionId === sid)).toBe(true);
+    expect(store.getPrevHtml(sid)).toContain("Latest");
+
+    const restState = store.getRestState(sid);
+    expect(restState.mutations).toHaveLength(0);
+    expect(restState.queries).toHaveLength(0);
+  });
+
   it("appends REST history entries with preserved previous html", () => {
     const res = createWritableResponse();
     const sid = store.getOrCreateSessionId({}, res);
