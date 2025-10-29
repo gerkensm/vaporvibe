@@ -646,20 +646,20 @@ export function ABWorkspaceShell({
   return (
     <div className="ab-workspace">
       <header className="ab-workspace__toolbar">
-        <div className="ab-workspace__toolbar-info">
-          <div className="ab-workspace__toolbar-title">A/B Comparison Mode</div>
+        <div className="ab-workspace__toolbar-leading">
+          <div className="ab-workspace__toolbar-title">A/B Review</div>
           <p className="ab-workspace__toolbar-description">
-            Review both branches, then keep the experience that delivers the
-            strongest vibe.
+            Compare both versions side by side, then keep the direction that
+            best fits the brief.
           </p>
         </div>
         <div className="ab-workspace__toolbar-actions">
           <button
             type="button"
-            className="ab-workspace__action admin-danger"
+            className="ab-workspace__toolbar-discard"
             onClick={startDiscardFlow}
           >
-            Discard Both &amp; Go Back
+            Discard comparison
           </button>
         </div>
       </header>
@@ -686,25 +686,29 @@ export function ABWorkspaceShell({
           aria-hidden={isFrameAHidden}
         >
           <header className="ab-workspace__frame-header">
-            <div className="ab-workspace__frame-header-content">
+            <div className="ab-workspace__frame-meta">
               <span className="ab-workspace__badge">Version A</span>
-              <div className="ab-workspace__frame-instructions-card">
-                <span className="ab-workspace__frame-instructions-label">
-                  Instructions
-                </span>
-                <p className="ab-workspace__frame-instructions">
-                  {branchA.instructions.trim() ||
-                    "No additional instructions provided."}
-                </p>
-              </div>
+              <p
+                className="ab-workspace__frame-instructions"
+                title={
+                  branchA.instructions.trim() ||
+                  "No additional instructions provided."
+                }
+              >
+                {formatInstructionSnippet(
+                  branchA.instructions || "No additional instructions provided."
+                )}
+              </p>
             </div>
-            <button
-              type="button"
-              className="ab-workspace__keep-button admin-primary"
-              onClick={() => startKeepFlow(branchA)}
-            >
-              Select Version A
-            </button>
+            <div className="ab-workspace__frame-actions">
+              <button
+                type="button"
+                className="ab-workspace__frame-select"
+                onClick={() => startKeepFlow(branchA)}
+              >
+                Keep Version A
+              </button>
+            </div>
           </header>
           <iframe
             key={branchA.branchId}
@@ -773,25 +777,29 @@ export function ABWorkspaceShell({
           aria-hidden={isFrameBHidden}
         >
           <header className="ab-workspace__frame-header">
-            <div className="ab-workspace__frame-header-content">
+            <div className="ab-workspace__frame-meta">
               <span className="ab-workspace__badge">Version B</span>
-              <div className="ab-workspace__frame-instructions-card">
-                <span className="ab-workspace__frame-instructions-label">
-                  Instructions
-                </span>
-                <p className="ab-workspace__frame-instructions">
-                  {branchB.instructions.trim() ||
-                    "No additional instructions provided."}
-                </p>
-              </div>
+              <p
+                className="ab-workspace__frame-instructions"
+                title={
+                  branchB.instructions.trim() ||
+                  "No additional instructions provided."
+                }
+              >
+                {formatInstructionSnippet(
+                  branchB.instructions || "No additional instructions provided."
+                )}
+              </p>
             </div>
-            <button
-              type="button"
-              className="ab-workspace__keep-button admin-primary"
-              onClick={() => startKeepFlow(branchB)}
-            >
-              Select Version B
-            </button>
+            <div className="ab-workspace__frame-actions">
+              <button
+                type="button"
+                className="ab-workspace__frame-select"
+                onClick={() => startKeepFlow(branchB)}
+              >
+                Keep Version B
+              </button>
+            </div>
           </header>
           <iframe
             key={branchB.branchId}
