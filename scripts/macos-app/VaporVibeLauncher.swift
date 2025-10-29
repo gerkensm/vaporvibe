@@ -1,34 +1,14 @@
 import AppKit
+import Darwin
 import Foundation
 
-private let serverURL = URL(string: "http://127.0.0.1:3000/")!
+private let defaultServerURL = URL(string: "http://127.0.0.1:3000/")!
+private let adminConsolePathComponent = "vaporvibe"
 private let logDirectory = FileManager.default.homeDirectoryForCurrentUser
   .appendingPathComponent("Library/Logs/VaporVibe", isDirectory: true)
 private let logFileURL = logDirectory.appendingPathComponent("vaporvibe.log", isDirectory: false)
-private let adminConsoleURL = serverURL.appendingPathComponent("vaporvibe")
-
-@discardableResult
-private func waitForServer(timeout: TimeInterval) -> Bool {
-  let deadline = Date().addingTimeInterval(timeout)
-  let session = URLSession(configuration: .ephemeral)
-  let request = URLRequest(url: serverURL, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 1.5)
-
-  while Date() < deadline {
-    let semaphore = DispatchSemaphore(value: 0)
-    var reachable = false
-    let task = session.dataTask(with: request) { (_, response, _) in
-      if let http = response as? HTTPURLResponse, (200..<500).contains(http.statusCode) {
-        reachable = true
-      }
-      semaphore.signal()
-    }
-    task.resume()
-    _ = semaphore.wait(timeout: .now() + 1.6)
-    if reachable { return true }
-    Thread.sleep(forTimeInterval: 0.25)
-  }
-  return false
-}
+private let terminationGracePeriod: TimeInterval = 3
+private let monitoredSignals: [Int32] = [SIGTERM, SIGINT, SIGQUIT, SIGHUP]
 
 private func configureLoggingPipe(_ pipe: Pipe, onData: @escaping (Data) -> Void) -> FileHandle? {
   var logHandle: FileHandle?
@@ -285,9 +265,172 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
   private var serverBinaryURL: URL?
   private let logWindowController = LogWindowController()
   private let ansiParser = AnsiEscapeParser()
+  private let childTerminationQueue = DispatchQueue(label: "vaporvibe.launcher.child-termination")
+  private var signalSources: [DispatchSourceSignal] = []
+  private let serverURLQueue = DispatchQueue(label: "vaporvibe.launcher.server-url", attributes: .concurrent)
+  private var resolvedServerURLValue = defaultServerURL
+  private var pendingLogLineFragment = ""
+  private let urlDetector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+
+  private func currentServerURL() -> URL {
+    serverURLQueue.sync { resolvedServerURLValue }
+  }
+
+  private func setResolvedServerURL(_ url: URL, synchronous: Bool = false) {
+    let work = {
+      self.resolvedServerURLValue = url
+    }
+
+    if synchronous {
+      serverURLQueue.sync(flags: .barrier, execute: work)
+    } else {
+      serverURLQueue.async(flags: .barrier, execute: work)
+    }
+  }
+
+  private func updateServerURLIfNeeded(_ url: URL) {
+    let current = currentServerURL()
+    if current.absoluteString == url.absoluteString { return }
+    setResolvedServerURL(url)
+  }
+
+  private func processLogChunkForURLDetection(_ chunk: String) {
+    guard !chunk.isEmpty else { return }
+
+    pendingLogLineFragment.append(chunk)
+    pendingLogLineFragment = pendingLogLineFragment
+      .replacingOccurrences(of: "\r\n", with: "\n")
+      .replacingOccurrences(of: "\r", with: "\n")
+
+    let components = pendingLogLineFragment
+      .split(separator: "\n", omittingEmptySubsequences: false)
+      .map(String.init)
+
+    guard !components.isEmpty else { return }
+
+    let endsWithNewline = pendingLogLineFragment.hasSuffix("\n")
+    let linesToProcess = endsWithNewline ? components : Array(components.dropLast())
+    pendingLogLineFragment = endsWithNewline ? "" : (components.last ?? "")
+
+    for line in linesToProcess where !line.isEmpty {
+      let sanitizedLine = stripANSIEscapeSequences(from: line)
+      guard !sanitizedLine.isEmpty else { continue }
+      if let url = extractServerURL(fromLogLine: sanitizedLine) {
+        updateServerURLIfNeeded(url)
+      }
+    }
+
+    if pendingLogLineFragment.count > 2048 {
+      pendingLogLineFragment = String(pendingLogLineFragment.suffix(2048))
+    }
+  }
+
+  private func extractServerURL(fromLogLine line: String) -> URL? {
+    if let url = extractServerURLFromJSONLine(line) {
+      return url
+    }
+
+    return extractServerURLFromText(line)
+  }
+
+  private func extractServerURLFromJSONLine(_ line: String) -> URL? {
+    guard let data = line.data(using: .utf8) else { return nil }
+    guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+      return nil
+    }
+
+    return extractServerURL(fromJSONObject: object)
+  }
+
+  private func extractServerURL(fromJSONObject object: [String: Any]) -> URL? {
+    if let urlString = object["url"] as? String, let url = normalizedBaseURL(from: urlString) {
+      return url
+    }
+
+    if let message = object["msg"] as? String, let url = extractServerURLFromText(message) {
+      return url
+    }
+
+    if let port = object["port"] as? Int {
+      let host = (object["host"] as? String)
+        ?? (object["address"] as? String)
+        ?? "127.0.0.1"
+      if let url = buildURL(host: host, port: port) {
+        return url
+      }
+    }
+
+    return nil
+  }
+
+  private func extractServerURLFromText(_ text: String) -> URL? {
+    guard let detector = urlDetector else { return nil }
+    let range = NSRange(text.startIndex..<text.endIndex, in: text)
+    let matches = detector.matches(in: text, options: [], range: range)
+
+    for match in matches {
+      guard let foundURL = match.url else { continue }
+      guard let scheme = foundURL.scheme, scheme == "http" || scheme == "https" else { continue }
+      if let normalized = normalizedBaseURL(foundURL) {
+        return normalized
+      }
+    }
+
+    return nil
+  }
+
+  private func normalizedBaseURL(from string: String) -> URL? {
+    let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else { return nil }
+    guard let url = URL(string: trimmed) else { return nil }
+    return normalizedBaseURL(url)
+  }
+
+  private func normalizedBaseURL(_ url: URL) -> URL? {
+    guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+    if components.scheme == nil {
+      components.scheme = "http"
+    }
+    if let host = components.host {
+      components.host = normalizedHostForBrowser(host)
+    }
+    components.path = "/"
+    components.query = nil
+    components.fragment = nil
+    return components.url
+  }
+
+  private func buildURL(host: String, port: Int) -> URL? {
+    var components = URLComponents()
+    components.scheme = "http"
+    components.host = normalizedHostForBrowser(host)
+    components.port = port
+    components.path = "/"
+    return components.url
+  }
+
+  private func normalizedHostForBrowser(_ host: String) -> String {
+    switch host {
+    case "0.0.0.0":
+      return "127.0.0.1"
+    case "::", "::0":
+      return "::1"
+    default:
+      return host
+    }
+  }
+
+  private func stripANSIEscapeSequences(from string: String) -> String {
+    string.replacingOccurrences(
+      of: "\u{001B}\\[[0-9;?]*[ -/]*[@-~]",
+      with: "",
+      options: .regularExpression
+    )
+  }
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     configureMenu()
+    installSignalHandlers()
 
     guard let serverBinaryPath = Bundle.main.path(forResource: "vaporvibe-macos", ofType: nil) else {
       presentFatalError(message: "The bundled vaporvibe binary is missing.")
@@ -317,17 +460,17 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
 
     isTerminatingChild = true
     isRestartingChild = false
-    process.terminate()
-
-    DispatchQueue.global().async { [weak self] in
-      process.waitUntilExit()
-      DispatchQueue.main.async {
-        self?.childDidTerminate()
-        sender.reply(toApplicationShouldTerminate: true)
-      }
+    terminateChildProcess(forceKillAfter: terminationGracePeriod) {
+      sender.reply(toApplicationShouldTerminate: true)
     }
 
     return .terminateLater
+  }
+
+  func applicationWillTerminate(_ notification: Notification) {
+    isTerminatingChild = true
+    isRestartingChild = false
+    forceKillChildIfRunning()
   }
 
   private func childDidTerminate() {
@@ -359,6 +502,10 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
     mainMenu.addItem(appMenuItem)
 
     let appMenu = NSMenu()
+    let liveAppItem = NSMenuItem(title: "Open Live App", action: #selector(showLiveApp(_:)), keyEquivalent: "")
+    liveAppItem.target = self
+    appMenu.addItem(liveAppItem)
+
     let adminItem = NSMenuItem(title: "Show Admin Console", action: #selector(showAdminConsole(_:)), keyEquivalent: "")
     adminItem.target = self
     appMenu.addItem(adminItem)
@@ -386,6 +533,10 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
   func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
     let menu = NSMenu()
 
+    let liveItem = NSMenuItem(title: "Open Live App", action: #selector(showLiveApp(_:)), keyEquivalent: "")
+    liveItem.target = self
+    menu.addItem(liveItem)
+
     let adminItem = NSMenuItem(title: "Show Admin Console", action: #selector(showAdminConsole(_:)), keyEquivalent: "")
     adminItem.target = self
     menu.addItem(adminItem)
@@ -401,13 +552,12 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
     return menu
   }
 
+  @objc private func showLiveApp(_ sender: Any?) {
+    openWhenServerReady(pathComponent: nil)
+  }
+
   @objc private func showAdminConsole(_ sender: Any?) {
-    DispatchQueue.global().async {
-      _ = waitForServer(timeout: 5)
-      DispatchQueue.main.async {
-        NSWorkspace.shared.open(adminConsoleURL)
-      }
-    }
+    openWhenServerReady(pathComponent: adminConsolePathComponent)
   }
 
   @objc private func showLogs(_ sender: Any?) {
@@ -426,6 +576,9 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
 
   private func launchServerProcess() {
     guard let serverBinaryURL else { return }
+
+    pendingLogLineFragment = ""
+    setResolvedServerURL(defaultServerURL, synchronous: true)
 
     let process = Process()
     process.executableURL = serverBinaryURL
@@ -459,9 +612,65 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
     child = process
   }
 
+  private func terminateChildProcess(forceKillAfter timeout: TimeInterval, completion: (() -> Void)? = nil) {
+    childTerminationQueue.async { [weak self] in
+      guard let self else { return }
+
+      guard let process = self.child else {
+        DispatchQueue.main.async { [weak self] in
+          if let self {
+            if self.isRestartingChild {
+              self.isRestartingChild = false
+            }
+            self.isTerminatingChild = false
+          }
+          completion?()
+        }
+        return
+      }
+
+      if process.isRunning {
+        process.terminate()
+      }
+
+      if process.isRunning && timeout > 0 {
+        let deadline = Date().addingTimeInterval(timeout)
+        while process.isRunning && Date() < deadline {
+          Thread.sleep(forTimeInterval: 0.05)
+        }
+      }
+
+      if process.isRunning {
+        kill(process.processIdentifier, SIGKILL)
+      }
+
+      process.waitUntilExit()
+
+      DispatchQueue.main.async { [weak self] in
+        self?.childDidTerminate()
+        completion?()
+      }
+    }
+  }
+
+  private func forceKillChildIfRunning() {
+    let needsCleanup = childTerminationQueue.sync { () -> Bool in
+      guard let process = child, process.isRunning else { return false }
+      kill(process.processIdentifier, SIGKILL)
+      process.waitUntilExit()
+      return true
+    }
+
+    if needsCleanup {
+      childDidTerminate()
+    }
+  }
+
   private func handleLogData(_ data: Data) {
     guard !data.isEmpty else { return }
     guard let string = String(data: data, encoding: .utf8) else { return }
+
+    processLogChunkForURLDetection(string)
 
     let attributed = ansiParser.parse(string)
     if attributed.length == 0 { return }
@@ -477,7 +686,105 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
     alert.informativeText = message
     alert.alertStyle = .critical
     alert.runModal()
-    NSApp.terminate(nil)
+    isTerminatingChild = true
+    isRestartingChild = false
+    terminateChildProcess(forceKillAfter: terminationGracePeriod) {
+      NSApp.terminate(nil)
+    }
+  }
+
+  private func openWhenServerReady(pathComponent: String?) {
+    DispatchQueue.global().async { [weak self] in
+      guard let self else { return }
+
+      let baseURL = self.waitForServer(timeout: 5) ?? self.currentServerURL()
+      let destination: URL
+      if let path = pathComponent, !path.isEmpty {
+        destination = baseURL.appendingPathComponent(path)
+      } else {
+        destination = baseURL
+      }
+
+      DispatchQueue.main.async {
+        NSWorkspace.shared.open(destination)
+      }
+    }
+  }
+
+  @discardableResult
+  private func waitForServer(timeout: TimeInterval) -> URL? {
+    let deadline = Date().addingTimeInterval(timeout)
+    let session = URLSession(configuration: .ephemeral)
+
+    defer {
+      session.invalidateAndCancel()
+    }
+
+    while Date() < deadline {
+      let baseURL = currentServerURL()
+      let request = URLRequest(
+        url: baseURL,
+        cachePolicy: .reloadIgnoringLocalCacheData,
+        timeoutInterval: 1.5
+      )
+
+      let semaphore = DispatchSemaphore(value: 0)
+      var reachable = false
+
+      let task = session.dataTask(with: request) { (_, response, _) in
+        if let http = response as? HTTPURLResponse, (200..<500).contains(http.statusCode) {
+          reachable = true
+        }
+        semaphore.signal()
+      }
+      task.resume()
+
+      _ = semaphore.wait(timeout: .now() + 1.6)
+      if reachable {
+        return baseURL
+      }
+
+      Thread.sleep(forTimeInterval: 0.25)
+    }
+
+    return nil
+  }
+
+  private func installSignalHandlers() {
+    signalSources.forEach { $0.cancel() }
+    signalSources.removeAll()
+
+    for signum in monitoredSignals {
+      signal(signum, SIG_IGN)
+      let source = DispatchSource.makeSignalSource(signal: signum, queue: DispatchQueue.global(qos: .userInitiated))
+      source.setEventHandler { [weak self] in
+        self?.handleTerminationSignal(signum)
+      }
+      source.resume()
+      signalSources.append(source)
+    }
+  }
+
+  private func handleTerminationSignal(_ signum: Int32) {
+    DispatchQueue.main.async { [weak self] in
+      guard let self else { return }
+      if self.isTerminatingChild { return }
+      self.isTerminatingChild = true
+      self.isRestartingChild = false
+      self.signalSources.forEach { $0.cancel() }
+      self.signalSources.removeAll()
+      self.terminateChildProcess(forceKillAfter: 1) {
+        signal(signum, SIG_DFL)
+        raise(signum)
+      }
+    }
+  }
+
+  deinit {
+    signalSources.forEach { $0.cancel() }
+    for signum in monitoredSignals {
+      signal(signum, SIG_DFL)
+    }
   }
 }
 
