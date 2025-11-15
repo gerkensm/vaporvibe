@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import type { ChatMessage, LlmReasoningTrace, LlmUsageMetrics, ProviderSettings, VerificationResult } from "../types.js";
-import type { LlmClient, LlmResult } from "./client.js";
+import type { LlmClient, LlmResult, LlmGenerateOptions } from "./client.js";
 import { logger } from "../logger.js";
 
 type InputContentPart =
@@ -27,7 +27,10 @@ export class OpenAiClient implements LlmClient {
     }
   }
 
-  async generateHtml(messages: ChatMessage[]): Promise<LlmResult> {
+  async generateHtml(
+    messages: ChatMessage[],
+    options: LlmGenerateOptions = {}
+  ): Promise<LlmResult> {
     const input: InputMessage[] = messages.map((message) => {
       const content: InputContentPart[] = [
         { type: "input_text", text: message.content },
@@ -65,9 +68,46 @@ export class OpenAiClient implements LlmClient {
       };
     }
 
-    const response = await this.client.responses.create(request as never);
+    const observer = options.streamObserver;
+    const stream = this.client.responses.stream({ ...request, stream: true } as never);
 
-    const html = extractHtml(response);
+    let streamedHtml = "";
+    const reasoningBuffers: Record<"thinking" | "summary", string> = {
+      thinking: "",
+      summary: "",
+    };
+
+    const emitReasoningChunk = (
+      kind: "thinking" | "summary",
+      value: unknown
+    ): void => {
+      if (!observer) return;
+      const normalized = normalizeReasoningChunk(reasoningBuffers[kind], value);
+      if (!normalized) return;
+      observer.onReasoningEvent({ kind, text: normalized });
+      reasoningBuffers[kind] += normalized;
+    };
+
+    if (observer) {
+      stream.on("response.reasoning_text.delta", (event: any) => {
+        emitReasoningChunk("thinking", event?.delta);
+      });
+      stream.on("response.reasoning_summary_text.delta", (event: any) => {
+        emitReasoningChunk("summary", event?.delta);
+      });
+    }
+
+    stream.on("response.output_text.delta", (event: any) => {
+      if (typeof event?.snapshot === "string") {
+        streamedHtml = event.snapshot;
+      } else if (typeof event?.delta === "string") {
+        streamedHtml += event.delta;
+      }
+    });
+
+    const response = await stream.finalResponse();
+
+    const html = streamedHtml.trim().length > 0 ? streamedHtml : extractHtml(response);
     const reasoning = extractReasoning(response, this.settings.reasoningMode, this.settings.reasoningTokens);
 
     return {
@@ -224,4 +264,19 @@ function extractStatus(error: unknown): number | undefined {
   }
   const maybeString = typeof statusValue === "string" ? Number.parseInt(statusValue, 10) : undefined;
   return Number.isFinite(maybeString) ? maybeString : undefined;
+}
+
+function normalizeReasoningChunk(previous: string, raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const sanitized = raw.replace(/\r/g, "");
+  if (sanitized.trim().length === 0) {
+    return null;
+  }
+  const trimmedStart = sanitized.trimStart();
+  if (/^#{1,6}\s/.test(trimmedStart) && !/\n\s*$/.test(previous)) {
+    if (!sanitized.startsWith("\n")) {
+      return `\n${sanitized}`;
+    }
+  }
+  return sanitized;
 }

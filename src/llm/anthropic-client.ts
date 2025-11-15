@@ -8,7 +8,12 @@ import type {
   ProviderSettings,
   VerificationResult,
 } from "../types.js";
-import type { LlmClient, LlmResult } from "./client.js";
+import type {
+  LlmClient,
+  LlmGenerateOptions,
+  LlmResult,
+  LlmStreamObserver,
+} from "./client.js";
 import { logger } from "../logger.js";
 
 const ANTHROPIC_MODELS_URL = "https://api.anthropic.com/v1/models";
@@ -100,7 +105,10 @@ export class AnthropicClient implements LlmClient {
     this.client = new Anthropic({ apiKey: settings.apiKey });
   }
 
-  async generateHtml(messages: ChatMessage[]): Promise<LlmResult> {
+  async generateHtml(
+    messages: ChatMessage[],
+    options: LlmGenerateOptions = {}
+  ): Promise<LlmResult> {
     const systemBlocks = buildSystemBlocks(messages);
     const userMessages = messages.filter((message) => message.role === "user");
 
@@ -142,7 +150,11 @@ export class AnthropicClient implements LlmClient {
     );
 
     if (wantsThinking) {
-      return this.generateWithThinking(systemBlocks, requestMessages);
+      return this.generateWithThinking(
+        systemBlocks,
+        requestMessages,
+        options.streamObserver
+      );
     }
 
     const betas = resolveBetas(this.settings.model);
@@ -164,7 +176,8 @@ export class AnthropicClient implements LlmClient {
 
   private async generateWithThinking(
     systemBlocks: AnthropicRequestContent[],
-    requestMessages: AnthropicMessage[]
+    requestMessages: AnthropicMessage[],
+    observer?: LlmStreamObserver
   ): Promise<LlmResult> {
     const thinkingBudgetCandidate = this.settings.reasoningTokens ?? this.settings.maxOutputTokens;
     const maxTokens = Math.max(1, this.settings.maxOutputTokens);
@@ -204,6 +217,9 @@ export class AnthropicClient implements LlmClient {
       const thinkingDelta = this.extractThinkingDelta(event);
       if (thinkingDelta) {
         streamedThinking += thinkingDelta;
+        if (observer) {
+          observer.onReasoningEvent({ kind: "thinking", text: thinkingDelta });
+        }
       }
       if (captureDiagnostics) {
         diagnostics.push(summarizeStreamEvent(event));

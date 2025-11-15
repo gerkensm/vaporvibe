@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import type { ChatMessage, LlmReasoningTrace, LlmUsageMetrics, ProviderSettings, VerificationResult } from "../types.js";
-import type { LlmClient, LlmResult } from "./client.js";
+import type { LlmClient, LlmResult, LlmGenerateOptions } from "./client.js";
 import { logger } from "../logger.js";
 
 const GROK_BASE_URL = "https://api.x.ai/v1";
@@ -45,22 +45,45 @@ export class GrokClient implements LlmClient {
     }
   }
 
-  async generateHtml(messages: ChatMessage[]): Promise<LlmResult> {
+  async generateHtml(
+    messages: ChatMessage[],
+    _options: LlmGenerateOptions = {}
+  ): Promise<LlmResult> {
     const requestMessages = buildMessages(messages);
-    const payload: Record<string, unknown> = {
+    const request: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
       model: this.settings.model,
       messages: requestMessages,
+      stream: true,
       max_tokens: this.settings.maxOutputTokens,
-      stream: false,
     };
 
     const reasoningEffort = resolveReasoningEffort(this.settings);
     if (reasoningEffort) {
-      payload.reasoning_effort = reasoningEffort;
+      (request as any).reasoning_effort = reasoningEffort;
     }
 
-    const response = await this.client.chat.completions.create(payload as never);
-    const html = extractHtml(response);
+    const stream = this.client.chat.completions.stream(request);
+
+    const htmlChunks: string[] = [];
+    for await (const chunk of stream) {
+      const delta = chunk?.choices?.[0]?.delta;
+      const content = delta?.content;
+      if (Array.isArray(content)) {
+        for (const part of content) {
+          const text = (part as any)?.text;
+          if (typeof text === "string") {
+            htmlChunks.push(text);
+          }
+        }
+      } else if (typeof content === "string") {
+        htmlChunks.push(content);
+      }
+    }
+
+    const response = await stream.finalChatCompletion();
+
+    const htmlFromStream = htmlChunks.join("").trim();
+    const html = htmlFromStream.length > 0 ? htmlFromStream : extractHtml(response);
     const reasoning = extractReasoning(response, this.settings.reasoningMode);
 
     return {

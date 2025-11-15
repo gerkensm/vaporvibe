@@ -1,22 +1,26 @@
 import { GoogleGenAI } from "@google/genai";
-import type { ChatMessage, LlmReasoningTrace, LlmUsageMetrics, ProviderSettings, VerificationResult } from "../types.js";
-import type { LlmClient, LlmResult } from "./client.js";
+import type {
+  ChatMessage,
+  LlmReasoningTrace,
+  LlmUsageMetrics,
+  ProviderSettings,
+  VerificationResult,
+} from "../types.js";
+import type {
+  LlmClient,
+  LlmResult,
+  LlmGenerateOptions,
+  LlmStreamObserver,
+} from "./client.js";
 import { logger } from "../logger.js";
+import { GenerateContentConfig } from "@google/genai";
+import { ThinkingLevel } from "@google/genai";
 
 type ContentPart =
   | { text: string }
   | { inlineData: { data: string; mimeType: string } };
 type ContentMessage = { role?: string; parts: ContentPart[] };
 
-type GenerateConfig = {
-  maxOutputTokens?: number;
-  systemInstruction?: ContentMessage;
-  thinkingConfig?: {
-    includeThoughts?: boolean;
-    thinkingBudget?: number;
-    thinkingLevel?: "LOW" | "HIGH";
-  };
-};
 
 export class GeminiClient implements LlmClient {
   readonly settings: ProviderSettings;
@@ -27,15 +31,23 @@ export class GeminiClient implements LlmClient {
     this.client = new GoogleGenAI({ apiKey: settings.apiKey });
   }
 
-  async generateHtml(messages: ChatMessage[]): Promise<LlmResult> {
-    const systemMessages = messages.filter((message) => message.role === "system");
+  async generateHtml(
+    messages: ChatMessage[],
+    _options: LlmGenerateOptions = {}
+  ): Promise<LlmResult> {
+    const systemMessages = messages.filter(
+      (message) => message.role === "system"
+    );
     const userMessages = messages.filter((message) => message.role === "user");
 
     const contents: ContentMessage[] = userMessages.map((message) => {
       const parts: ContentPart[] = [{ text: message.content }];
       if (message.attachments?.length) {
         for (const attachment of message.attachments) {
-          if (attachment.mimeType.startsWith("image/") || attachment.mimeType === "application/pdf") {
+          if (
+            attachment.mimeType.startsWith("image/") ||
+            attachment.mimeType === "application/pdf"
+          ) {
             parts.push({
               inlineData: {
                 data: attachment.base64,
@@ -43,8 +55,7 @@ export class GeminiClient implements LlmClient {
               },
             });
           } else {
-            const descriptor =
-              `Attachment ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes) encoded in Base64:\n${attachment.base64}`;
+            const descriptor = `Attachment ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes) encoded in Base64:\n${attachment.base64}`;
             parts.push({ text: descriptor });
           }
         }
@@ -56,14 +67,18 @@ export class GeminiClient implements LlmClient {
       contents.push({ role: "user", parts: [{ text: "" }] });
     }
 
-    const config: GenerateConfig = {};
+    const config: GenerateContentConfig = {};
     if (this.settings.maxOutputTokens) {
       config.maxOutputTokens = this.settings.maxOutputTokens;
     }
     if (systemMessages.length > 0) {
       config.systemInstruction = {
         role: "system",
-        parts: [{ text: systemMessages.map((message) => message.content).join("\n\n") }],
+        parts: [
+          {
+            text: systemMessages.map((message) => message.content).join("\n\n"),
+          },
+        ],
       };
     }
     const includeThoughts = shouldEnableGeminiThoughts(this.settings);
@@ -71,7 +86,7 @@ export class GeminiClient implements LlmClient {
       if (this.settings.model.includes("gemini-3-pro")) {
         config.thinkingConfig = {
           includeThoughts: true,
-          thinkingLevel: this.settings.reasoningMode === "low" ? "LOW" : "HIGH",
+          thinkingLevel: this.settings.reasoningMode === "low" ? ThinkingLevel.LOW : ThinkingLevel.HIGH,
         };
       } else {
         config.thinkingConfig = {
@@ -85,31 +100,94 @@ export class GeminiClient implements LlmClient {
       }
     }
 
-    const response = await this.client.models.generateContent({
+    const stream = await this.client.models.generateContentStream({
       model: this.settings.model,
       contents,
       config: config as any,
     });
 
+    let finalResponse: any = null;
+    const streamedPieces: string[] = [];
+    const streamedThoughtSummaries: string[] = [];
+    const streamedThoughtSnapshots: string[] = [];
+    const observer = includeThoughts ? _options.streamObserver : undefined;
+    for await (const chunk of stream) {
+      finalResponse = chunk;
+      const chunkText = coerceGeminiText(chunk);
+      if (typeof chunkText === "string" && chunkText.trim().length > 0) {
+        streamedPieces.push(chunkText);
+      }
+      if (includeThoughts) {
+        collectGeminiThoughtSummaries(
+          chunk,
+          streamedThoughtSummaries,
+          streamedThoughtSnapshots,
+          observer
+        );
+      }
+    }
+
+    const response =
+      finalResponse ??
+      (await this.client.models.generateContent({
+        model: this.settings.model,
+        contents,
+        config,
+      }));
+
+    if (includeThoughts && finalResponse === null) {
+      collectGeminiThoughtSummaries(
+        response,
+        streamedThoughtSummaries,
+        streamedThoughtSnapshots,
+        observer
+      );
+    }
+
     const reasoning = includeThoughts
-      ? extractGeminiThinking(response, this.settings)
+      ? extractGeminiThinking(response, this.settings, streamedThoughtSummaries)
       : undefined;
 
-    const text = response.text?.trim();
-    if (text) {
-      return { html: text, usage: extractUsage(response), reasoning, raw: response };
+    const streamedHtml = streamedPieces.join("").trim();
+    if (streamedHtml.length > 0) {
+      return {
+        html: streamedHtml,
+        usage: extractUsage(response),
+        reasoning,
+        raw: response,
+      };
+    }
+
+    const text = coerceGeminiText(response);
+    if (typeof text === "string" && text.trim().length > 0) {
+      return {
+        html: text.trim(),
+        usage: extractUsage(response),
+        reasoning,
+        raw: response,
+      };
     }
 
     const firstCandidate = response.candidates?.[0];
-    const fallback = firstCandidate?.content?.parts
-      ?.map((part) => ("text" in part && typeof part.text === "string" ? part.text : ""))
-      .join("") ?? "";
+    const fallback =
+      firstCandidate?.content?.parts
+        ?.map((part: any) =>
+          "text" in part && typeof part.text === "string" ? part.text : ""
+        )
+        .join("") ?? "";
 
-    return { html: fallback.trim(), usage: extractUsage(response), reasoning, raw: response };
+    return {
+      html: fallback.trim(),
+      usage: extractUsage(response),
+      reasoning,
+      raw: response,
+    };
   }
 }
 
-export async function verifyGeminiApiKey(apiKey: string): Promise<VerificationResult> {
+export async function verifyGeminiApiKey(
+  apiKey: string
+): Promise<VerificationResult> {
   const trimmed = apiKey.trim();
   if (!trimmed) {
     return { ok: false, message: "Enter a Gemini API key to continue." };
@@ -121,7 +199,11 @@ export async function verifyGeminiApiKey(apiKey: string): Promise<VerificationRe
   } catch (error) {
     const status = extractStatus(error);
     if (status === 401 || status === 403) {
-      return { ok: false, message: "Gemini rejected that key. Confirm the key has Generative Language API access." };
+      return {
+        ok: false,
+        message:
+          "Gemini rejected that key. Confirm the key has Generative Language API access.",
+      };
     }
     const message = error instanceof Error ? error.message : String(error);
     return { ok: false, message: `Unable to reach Gemini: ${message}` };
@@ -131,7 +213,7 @@ export async function verifyGeminiApiKey(apiKey: string): Promise<VerificationRe
 function clampGeminiBudget(
   requested: number,
   maxOutputTokens: number,
-  model: string,
+  model: string
 ): number {
   const limits = getGeminiThinkingLimits(model);
   if (Number.isNaN(requested)) {
@@ -144,9 +226,10 @@ function clampGeminiBudget(
     return limits.allowZero ? 0 : limits.minPositive ?? 0;
   }
 
-  const boundedByMaxTokens = Number.isFinite(maxOutputTokens) && maxOutputTokens > 0
-    ? Math.min(requested, maxOutputTokens)
-    : requested;
+  const boundedByMaxTokens =
+    Number.isFinite(maxOutputTokens) && maxOutputTokens > 0
+      ? Math.min(requested, maxOutputTokens)
+      : requested;
   const boundedByModel = limits.max
     ? Math.min(boundedByMaxTokens, limits.max)
     : boundedByMaxTokens;
@@ -155,7 +238,11 @@ function clampGeminiBudget(
   if (finalBudget === 0 && !limits.allowZero) {
     finalBudget = limits.minPositive ?? 1;
   }
-  if (finalBudget > 0 && limits.minPositive && finalBudget < limits.minPositive) {
+  if (
+    finalBudget > 0 &&
+    limits.minPositive &&
+    finalBudget < limits.minPositive
+  ) {
     finalBudget = limits.minPositive;
   }
 
@@ -167,11 +254,101 @@ function clampGeminiBudget(
         model,
         maxOutputTokens,
       },
-      "Adjusted Gemini thinking budget to comply with model limits",
+      "Adjusted Gemini thinking budget to comply with model limits"
     );
   }
 
   return finalBudget;
+}
+
+function coerceGeminiText(chunk: unknown): string | undefined {
+  const value = (chunk as any)?.text;
+  if (typeof value === "function") {
+    try {
+      return value();
+    } catch (error) {
+      logger.warn({ error }, "Gemini chunk text getter threw an error");
+      return undefined;
+    }
+  }
+  return typeof value === "string" ? value : undefined;
+}
+
+function collectGeminiThoughtSummaries(
+  chunk: any,
+  aggregate: string[],
+  snapshots: string[],
+  observer?: LlmStreamObserver
+): void {
+  const parts = chunk?.candidates?.[0]?.content?.parts;
+  if (!Array.isArray(parts) || parts.length === 0) {
+    return;
+  }
+  let thoughtIndex = 0;
+  for (const part of parts) {
+    if (part?.thought === true && typeof part?.text === "string") {
+      const normalized = part.text.trim();
+      if (normalized.length === 0) {
+        thoughtIndex += 1;
+        continue;
+      }
+      const previousSnapshot = snapshots[thoughtIndex] ?? "";
+      if (normalized === previousSnapshot) {
+        thoughtIndex += 1;
+        continue;
+      }
+      snapshots[thoughtIndex] = normalized;
+      const merged = mergeGeminiThoughtSummary(
+        aggregate[thoughtIndex],
+        normalized
+      );
+      aggregate[thoughtIndex] = merged;
+      if (observer) {
+        let delta = normalized;
+        if (previousSnapshot && normalized.startsWith(previousSnapshot)) {
+          delta = normalized.slice(previousSnapshot.length);
+        } else if (previousSnapshot && normalized !== previousSnapshot) {
+          const tailIndex = normalized.lastIndexOf(previousSnapshot);
+          if (tailIndex > 0) {
+            delta = normalized.slice(0, tailIndex);
+          }
+        }
+        const emission = delta.length > 0 ? delta : normalized;
+        if (emission.length > 0) {
+          observer.onReasoningEvent({
+            kind: "summary",
+            text: emission + "\n\n",
+          });
+        }
+      }
+      thoughtIndex += 1;
+    }
+  }
+}
+
+function mergeGeminiThoughtSummary(
+  existing: string | undefined,
+  incoming: string
+): string {
+  if (!existing) {
+    return incoming;
+  }
+  if (incoming === existing) {
+    return existing;
+  }
+  if (incoming.startsWith(existing)) {
+    return incoming;
+  }
+  if (existing.startsWith(incoming)) {
+    return existing;
+  }
+  if (incoming.endsWith(existing)) {
+    return incoming;
+  }
+  if (existing.endsWith(incoming)) {
+    return existing;
+  }
+  return incoming.length >= existing.length ? incoming : existing;
 }
 
 function extractUsage(response: any): LlmUsageMetrics | undefined {
@@ -189,17 +366,17 @@ function extractUsage(response: any): LlmUsageMetrics | undefined {
   if (Number.isFinite(total)) metrics.totalTokens = Number(total);
   if (Number.isFinite(thoughts)) metrics.reasoningTokens = Number(thoughts);
   const providerMetricsEntries = Object.entries(usage).filter(
-    ([, value]) => typeof value === "number" || typeof value === "string",
+    ([, value]) => typeof value === "number" || typeof value === "string"
   );
   if (providerMetricsEntries.length > 0) {
     metrics.providerMetrics = Object.fromEntries(providerMetricsEntries);
   }
   if (
-    metrics.inputTokens === undefined
-    && metrics.outputTokens === undefined
-    && metrics.totalTokens === undefined
-    && metrics.reasoningTokens === undefined
-    && !metrics.providerMetrics
+    metrics.inputTokens === undefined &&
+    metrics.outputTokens === undefined &&
+    metrics.totalTokens === undefined &&
+    metrics.reasoningTokens === undefined &&
+    !metrics.providerMetrics
   ) {
     return undefined;
   }
@@ -209,15 +386,34 @@ function extractUsage(response: any): LlmUsageMetrics | undefined {
 function extractGeminiThinking(
   response: any,
   settings: ProviderSettings,
+  streamedSummaries?: readonly string[]
 ): LlmReasoningTrace | undefined {
   try {
     const firstCandidate = response?.candidates?.[0];
     const parts = firstCandidate?.content?.parts ?? [];
-    const thoughtSummaries = parts
-      .filter((part: any) => part?.thought === true && typeof part?.text === "string")
-      .map((part: any) => part.text);
+    const summarySet: string[] = Array.isArray(streamedSummaries)
+      ? streamedSummaries
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0)
+      : [];
+
+    for (const part of parts) {
+      if (part?.thought === true && typeof part?.text === "string") {
+        const trimmed = part.text.trim();
+        if (trimmed.length === 0) {
+          continue;
+        }
+        if (!summarySet.some((existing) => existing === trimmed)) {
+          summarySet.push(trimmed);
+        }
+      }
+    }
+
+    const thoughtSummaries = summarySet;
     const usage = response?.usageMetadata ?? response?.usage_metadata;
-    const thoughtsTokenCount = usage?.thoughtsTokenCount ?? usage?.thoughts_token_count;
+    const thoughtsTokenCount =
+      usage?.thoughtsTokenCount ?? usage?.thoughts_token_count;
 
     const budgetLabel =
       typeof settings.reasoningTokens === "number"
@@ -244,7 +440,9 @@ function extractGeminiThinking(
     logger.debug(`${header} — no thought summaries returned.`);
     return undefined;
   } catch (error) {
-    logger.warn(`Failed to capture Gemini thinking metadata: ${(error as Error).message}`);
+    logger.warn(
+      `Failed to capture Gemini thinking metadata: ${(error as Error).message}`
+    );
     return undefined;
   }
 }

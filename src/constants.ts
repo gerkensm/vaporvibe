@@ -61,3 +61,4 @@ export const OVERLAY_DEBUG_ROUTE = "/__overlay-debug";
 export const ADMIN_ROUTE_PREFIX = "/vaporvibe";
 export const INSTRUCTIONS_PANEL_ROUTE = "/__vaporvibe/vaporvibe-instructions-panel.js";
 export const LLM_RESULT_ROUTE_PREFIX = "/__vaporvibe/result";
+export const LLM_REASONING_STREAM_ROUTE_PREFIX = "/__vaporvibe/reasoning";
