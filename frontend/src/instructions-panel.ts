@@ -651,5 +651,15 @@
     }
   }
 
+  window.addEventListener("vaporvibe:instructions-refresh", () => {
+    if (forkActive && activeBranchId) {
+      return;
+    }
+    if (document.getElementById(PANEL_ID)) {
+      return;
+    }
+    bootstrapPanel();
+  });
+
   initInstructionsPanel();
 })();

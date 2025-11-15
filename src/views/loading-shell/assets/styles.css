@@ -105,6 +105,120 @@ footer {
   max-width: 360px;
 }
 
+.reasoning-panel {
+  display: none;
+  width: 100%;
+  text-align: left;
+  background: rgba(148, 163, 184, 0.12);
+  border-radius: 18px;
+  padding: 16px 20px;
+  margin: 8px 0 4px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  max-height: 220px;
+  overflow-y: auto;
+  transition: opacity 0.2s ease;
+}
+
+.reasoning-panel[data-active="true"] {
+  display: block;
+}
+
+.reasoning-heading {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--subtle);
+}
+
+.reasoning-log {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: clamp(160px, 28vh, 280px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.reasoning-entry {
+  font-size: 0.92rem;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.7);
+  padding: 12px 14px;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.18);
+  white-space: normal;
+  line-height: 1.45;
+}
+
+.reasoning-entry.reasoning-summary {
+  border-left: 3px solid __ACCENT_COLOR__;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.reasoning-entry.reasoning-final {
+  border-left: 3px solid rgba(30, 64, 175, 0.3);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+}
+
+.reasoning-entry.reasoning-live {
+  opacity: 0.92;
+}
+
+.reasoning-entry.reasoning-markdown {
+  display: block;
+}
+
+.reasoning-entry.reasoning-markdown h1,
+.reasoning-entry.reasoning-markdown h2,
+.reasoning-entry.reasoning-markdown h3,
+.reasoning-entry.reasoning-markdown h4 {
+  margin: 0 0 0.35em;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.reasoning-entry.reasoning-markdown p {
+  margin: 0 0 0.6em;
+}
+
+.reasoning-entry.reasoning-markdown ul,
+.reasoning-entry.reasoning-markdown ol {
+  margin: 0 0 0.6em 1.1em;
+  padding: 0;
+}
+
+.reasoning-entry.reasoning-markdown code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.85em;
+  background: rgba(148, 163, 184, 0.22);
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+
+.reasoning-entry.reasoning-markdown pre {
+  margin: 0 0 0.6em;
+  background: rgba(15, 23, 42, 0.85);
+  color: #e2e8f0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.reasoning-entry.reasoning-markdown a {
+  color: __ACCENT_COLOR__;
+  text-decoration: none;
+}
+
+.reasoning-entry.reasoning-markdown a:hover,
+.reasoning-entry.reasoning-markdown a:focus {
+  text-decoration: underline;
+}
+
 .status {
   font-size: 0.95rem;
   color: var(--muted);

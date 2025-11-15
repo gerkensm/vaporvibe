@@ -24,6 +24,7 @@ import {
   DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS,
   DEFAULT_REASONING_TOKENS,
   LLM_RESULT_ROUTE_PREFIX,
+  LLM_REASONING_STREAM_ROUTE_PREFIX,
 } from "../constants.js";
 import {
   DEFAULT_MAX_TOKENS_BY_PROVIDER,
@@ -97,6 +98,17 @@ const FRONTEND_SOURCE_DIR = resolvePath(PROJECT_ROOT_DIR, "frontend");
 const SPA_SOURCE_INDEX_PATH = resolvePath(FRONTEND_SOURCE_DIR, "index.html");
 const ADMIN_ASSET_ROUTE_PREFIX = `${ADMIN_ROUTE_PREFIX}/assets`;
 const ADMIN_ASSET_ROUTE_PREFIX_WITH_SLASH = `${ADMIN_ASSET_ROUTE_PREFIX}/`;
+const INTERCEPTOR_SW_FILENAME = "vaporvibe-interceptor-sw.js";
+const INTERCEPTOR_SW_ROUTE = `/${INTERCEPTOR_SW_FILENAME}`;
+const INTERCEPTOR_SW_DIST_PATH = resolvePath(
+  FRONTEND_DIST_DIR,
+  INTERCEPTOR_SW_FILENAME
+);
+const INTERCEPTOR_SW_SOURCE_PATH = resolvePath(
+  FRONTEND_SOURCE_DIR,
+  "public",
+  INTERCEPTOR_SW_FILENAME
+);
 
 const BRANCH_FIELD = "__vaporvibe_branch";
 
@@ -238,6 +250,9 @@ function isDevServerAssetPath(path: string): boolean {
 }
 
 function shouldDelegateToDevServer(path: string): boolean {
+  if (path === INTERCEPTOR_SW_ROUTE) {
+    return false;
+  }
   if (
     path.startsWith("/api/") ||
     path.startsWith("/rest_api/") ||
@@ -473,6 +488,53 @@ function maybeServeFrontendAsset(
   }
 }
 
+function serveNavigationServiceWorker(
+  context: RequestContext,
+  res: ServerResponse,
+  reqLogger: RequestLogger
+): boolean {
+  if (context.method !== "GET" && context.method !== "HEAD") {
+    res.statusCode = 405;
+    res.setHeader("Allow", "GET, HEAD");
+    res.end("Method Not Allowed");
+    return true;
+  }
+
+  const candidatePaths = [
+    INTERCEPTOR_SW_DIST_PATH,
+    INTERCEPTOR_SW_SOURCE_PATH,
+  ];
+  const filePath = candidatePaths.find((candidate) => existsSync(candidate));
+  if (!filePath) {
+    res.statusCode = 404;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("Not Found");
+    return true;
+  }
+
+  try {
+    const content = readFileSync(filePath);
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/javascript; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Service-Worker-Allowed", "/");
+    res.setHeader("Content-Length", String(content.length));
+    if (context.method === "HEAD") {
+      res.end();
+    } else {
+      res.end(content);
+    }
+    reqLogger.debug("Served navigation service worker bundle");
+    return true;
+  } catch (error) {
+    reqLogger.error({ err: error }, "Failed to serve navigation service worker");
+    res.statusCode = 500;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("Internal Server Error");
+    return true;
+  }
+}
+
 function loadSpaShell(): string {
   if (!existsSync(SPA_INDEX_PATH)) {
     throw new Error("SPA_INDEX_MISSING");
@@ -640,6 +702,7 @@ export interface MutableServerState {
   providersWithKeys: Set<ModelProvider>;
   verifiedProviders: Partial<Record<ModelProvider, boolean>>;
   pendingHtml: Map<string, PendingHtmlEntry>;
+  reasoningStreams: Map<string, ReasoningStreamEntry>;
 }
 
 export interface PendingHtmlEntry {
@@ -647,9 +710,179 @@ export interface PendingHtmlEntry {
   expiresAt: number;
 }
 
+export interface ReasoningStreamEntry {
+  createdAt: number;
+  events: string[];
+  closed: boolean;
+  subscriber?: ServerResponse | null;
+}
+
 // LLM renders can easily exceed 10 minutes, so keep pending HTML around long enough
 // for the loader fetch to succeed even if the client is briefly stalled.
 const PENDING_HTML_TTL_MS = 15 * 60 * 1000;
+const REASONING_STREAM_TTL_MS = 10 * 60 * 1000;
+const REASONING_STREAM_EVENT_LIMIT = 200;
+
+function formatSseEvent(event: string, data: unknown): string {
+  const payload = JSON.stringify(data ?? null);
+  return `event: ${event}\ndata: ${payload}\n\n`;
+}
+
+function isReasoningStreamEnabled(settings: ProviderSettings): boolean {
+  if (!settings) {
+    return false;
+  }
+  if (settings.reasoningMode && settings.reasoningMode !== "none") {
+    return true;
+  }
+  if (
+    settings.reasoningTokensEnabled !== false &&
+    typeof settings.reasoningTokens === "number" &&
+    settings.reasoningTokens > 0
+  ) {
+    return true;
+  }
+  return false;
+}
+
+function cleanupReasoningStreams(state: MutableServerState): void {
+  const now = Date.now();
+  for (const [token, entry] of state.reasoningStreams.entries()) {
+    const expired = now - entry.createdAt > REASONING_STREAM_TTL_MS;
+    const finished = entry.closed && (!entry.subscriber || entry.subscriber.writableEnded);
+    if (expired || finished) {
+      try {
+        entry.subscriber?.end();
+      } catch {
+        // ignore cleanup errors
+      }
+      state.reasoningStreams.delete(token);
+    }
+  }
+}
+
+function registerReasoningStream(state: MutableServerState): {
+  token: string;
+  emit: (event: string, data: unknown) => void;
+  close: (finalData?: unknown) => void;
+  error: (message: string) => void;
+} {
+  const token = randomUUID();
+  const entry: ReasoningStreamEntry = {
+    createdAt: Date.now(),
+    events: [],
+    closed: false,
+    subscriber: null,
+  };
+  state.reasoningStreams.set(token, entry);
+
+  const emit = (event: string, data: unknown) => {
+    const current = state.reasoningStreams.get(token);
+    if (!current || current.closed) {
+      return;
+    }
+    const formatted = formatSseEvent(event, data);
+    current.events.push(formatted);
+    if (current.events.length > REASONING_STREAM_EVENT_LIMIT) {
+      current.events.shift();
+    }
+    if (current.subscriber && !current.subscriber.writableEnded) {
+      try {
+        current.subscriber.write(formatted);
+      } catch (error) {
+        current.subscriber = null;
+      }
+    }
+  };
+
+  return {
+    token,
+    emit,
+    close: (finalData?: unknown) => {
+      const current = state.reasoningStreams.get(token);
+      if (!current) {
+        return;
+      }
+      if (!current.closed) {
+        if (finalData !== undefined) {
+          emit("final", finalData);
+        }
+        emit("complete", { ok: true });
+        current.closed = true;
+      }
+      if (current.subscriber && !current.subscriber.writableEnded) {
+        try {
+          current.subscriber.end();
+        } catch {
+          // ignore errors closing subscriber
+        }
+      }
+      cleanupReasoningStreams(state);
+    },
+    error: (message: string) => {
+      const current = state.reasoningStreams.get(token);
+      if (!current || current.closed) {
+        return;
+      }
+      emit("error", { message });
+      current.closed = true;
+      if (current.subscriber && !current.subscriber.writableEnded) {
+        try {
+          current.subscriber.end();
+        } catch {
+          // ignore errors closing subscriber
+        }
+      }
+      cleanupReasoningStreams(state);
+    },
+  };
+}
+
+function attachReasoningStream(
+  state: MutableServerState,
+  token: string,
+  context: RequestContext
+): boolean {
+  const entry = state.reasoningStreams.get(token);
+  if (!entry) {
+    return false;
+  }
+
+  const { res, req } = context;
+  res.statusCode = 200;
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.setHeader("Connection", "keep-alive");
+  if (typeof res.flushHeaders === "function") {
+    res.flushHeaders();
+  }
+
+  if (entry.subscriber && entry.subscriber !== res && !entry.subscriber.writableEnded) {
+    try {
+      entry.subscriber.end();
+    } catch {
+      // ignore errors closing previous subscriber
+    }
+  }
+
+  entry.subscriber = res;
+  entry.events.forEach((event) => {
+    if (!res.writableEnded) {
+      res.write(event);
+    }
+  });
+  if (entry.closed && !res.writableEnded) {
+    res.end();
+  }
+
+  req.on("close", () => {
+    if (entry.subscriber === res) {
+      entry.subscriber = null;
+      cleanupReasoningStreams(state);
+    }
+  });
+  return true;
+}
 
 function cloneAttachment(attachment: BriefAttachment): BriefAttachment {
   return { ...attachment };
@@ -718,6 +951,7 @@ export function createServerState(
           ])
         )
       : new Map(),
+    reasoningStreams: new Map(),
   };
 }
 
@@ -803,6 +1037,11 @@ export function createServer(options: ServerOptions): http.Server {
       return;
     }
 
+    if (context.path === INTERCEPTOR_SW_ROUTE) {
+      serveNavigationServiceWorker(context, res, reqLogger);
+      return;
+    }
+
     if (!devServer && maybeServeFrontendAsset(context, res, reqLogger)) {
       return;
     }
@@ -833,6 +1072,10 @@ export function createServer(options: ServerOptions): http.Server {
     }
 
     try {
+      if (handleReasoningStreamRequest(context, state, reqLogger)) {
+        return;
+      }
+
       if (handlePendingHtmlRequest(context, state, reqLogger)) {
         reqLogger.info(
           `Pending render delivered with status ${res.statusCode} in ${
@@ -1137,9 +1380,7 @@ async function handleLlmRequest(
   const activeForkSummary = sessionStore.getActiveForkSummary(sid);
   const activeBranchSummary =
     branchId && activeForkSummary
-      ? activeForkSummary.branches.find(
-          (branch) => branch.branchId === branchId
-        )
+      ? activeForkSummary.branches.find((branch) => branch.branchId === branchId)
       : undefined;
 
   if (branchId && activeBranchSummary) {
@@ -1158,6 +1399,7 @@ async function handleLlmRequest(
       }
     }
   }
+
   const fullHistory = branchId
     ? sessionStore.getHistoryForPrompt(sid, branchId)
     : baseHistory;
@@ -1254,25 +1496,77 @@ async function handleLlmRequest(
     branchId !== undefined ? sessionStore.isBranchEmpty(sid, branchId) : false;
   const shouldStreamBody =
     method !== "HEAD" && (!isInterceptorRequest || isInitialBranchLoad);
-  res.statusCode = 200;
+  const respondImmediately = isInterceptorRequest && !isInitialBranchLoad;
+
+  const reasoningStreamEnabled = isReasoningStreamEnabled(llmClient.settings);
+  if (reasoningStreamEnabled) {
+    cleanupReasoningStreams(state);
+  }
+  const reasoningStreamController = reasoningStreamEnabled
+    ? registerReasoningStream(state)
+    : null;
+
+  cleanupPendingHtml(state);
+  const pendingHtmlToken = randomUUID();
+  const pendingPath = `${LLM_RESULT_ROUTE_PREFIX}/${pendingHtmlToken}`;
+
   res.setHeader("Content-Type", "text/html; charset=utf-8");
-  if (shouldStreamBody) {
-    const providerLabel = getProviderLabel(llmClient.settings.provider);
-    const loadingMessage = `Asking ${providerLabel} (${llmClient.settings.model}) to refresh this page.`;
-    res.write(
-      renderLoadingShell({
-        message: loadingMessage,
-        originalPath,
-        resultRoutePrefix: LLM_RESULT_ROUTE_PREFIX,
-      })
-    );
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.setHeader("Link", `<${pendingPath}>; rel="render"`);
+  if (reasoningStreamController) {
+    res.setHeader("X-VaporVibe-Reasoning", reasoningStreamController.token);
+  }
+
+  if (respondImmediately) {
+    res.statusCode = 202;
     if (typeof res.flushHeaders === "function") {
-      res.flushHeaders();
+      try {
+        res.flushHeaders();
+      } catch {
+        // ignore flush failures
+      }
+    }
+    res.end();
+  } else {
+    res.statusCode = 200;
+    if (shouldStreamBody) {
+      const providerLabel = getProviderLabel(llmClient.settings.provider);
+      const loadingMessage = `Asking ${providerLabel} (${llmClient.settings.model}) to refresh this page.`;
+      res.write(
+        renderLoadingShell({
+          message: loadingMessage,
+          originalPath,
+          resultRoutePrefix: LLM_RESULT_ROUTE_PREFIX,
+          reasoningStreamToken: reasoningStreamController?.token,
+          reasoningStreamRoutePrefix: LLM_REASONING_STREAM_ROUTE_PREFIX,
+        })
+      );
+    }
+    if (typeof res.flushHeaders === "function") {
+      try {
+        res.flushHeaders();
+      } catch {
+        // ignore flush failures
+      }
     }
   }
 
   try {
-    const result = await llmClient.generateHtml(messages);
+    const result = await llmClient.generateHtml(
+      messages,
+      reasoningStreamController
+        ? {
+            streamObserver: {
+              onReasoningEvent: (event) => {
+                reasoningStreamController.emit("reasoning", {
+                  kind: event.kind,
+                  text: event.text,
+                });
+              },
+            },
+          }
+        : undefined
+    );
     const durationMs = Date.now() - requestStart;
     reqLogger.debug(
       `LLM response preview [${llmClient.settings.provider}]:\n${truncate(
@@ -1446,32 +1740,34 @@ async function handleLlmRequest(
       });
     }
 
-    if (isInterceptorRequest) {
+    const expiresAt = Date.now() + PENDING_HTML_TTL_MS;
+    state.pendingHtml.set(pendingHtmlToken, {
+      html: renderedHtml,
+      expiresAt,
+    });
+
+    if (!respondImmediately) {
       if (shouldStreamBody) {
-        reqLogger.debug("Streaming interceptor response; hydration will attach via token.");
-      } else {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.end(renderedHtml);
-        return;
+        if (!res.writableEnded) {
+          res.write(
+            renderResultHydrationScript(pendingHtmlToken, originalPath)
+          );
+          res.end();
+        }
+      } else if (!res.writableEnded) {
+        res.end();
       }
     }
 
-    cleanupPendingHtml(state);
-    const token = randomUUID();
-    state.pendingHtml.set(token, {
-      html: renderedHtml,
-      expiresAt: Date.now() + PENDING_HTML_TTL_MS,
-    });
-    const pendingPath = `${LLM_RESULT_ROUTE_PREFIX}/${token}`;
-
-    if (shouldStreamBody) {
-      res.write(renderResultHydrationScript(token, originalPath));
-    } else {
-      // For HEAD requests we expose the target via header so clients can follow-up with GET.
-      res.setHeader("Link", `<${pendingPath}>; rel="render"`);
+    if (reasoningStreamController) {
+      const finalPayload = result.reasoning
+        ? {
+            summaries: result.reasoning.summaries,
+            details: result.reasoning.details,
+          }
+        : undefined;
+      reasoningStreamController.close(finalPayload);
     }
-    res.end();
   } catch (error) {
     const errorDetail =
       error instanceof Error ? error.stack ?? error.message : String(error);
@@ -1483,6 +1779,30 @@ async function handleLlmRequest(
       { err: error, stack: errorDetail },
       `LLM generation failed: ${message}`
     );
+
+    if (reasoningStreamController) {
+      const streamMessage =
+        error instanceof Error
+          ? error.message
+          : typeof error === "string"
+            ? error
+            : "LLM generation failed";
+      reasoningStreamController.error(streamMessage);
+    }
+
+    const failureHtml = ensureHtmlDocument(renderErrorPage(error), {
+      method,
+      path,
+    });
+    state.pendingHtml.set(pendingHtmlToken, {
+      html: failureHtml,
+      expiresAt: Date.now() + PENDING_HTML_TTL_MS,
+    });
+
+    if (respondImmediately) {
+      return;
+    }
+
     if (shouldStreamBody) {
       try {
         res.write(
@@ -1510,10 +1830,11 @@ async function handleLlmRequest(
       return;
     }
 
-    res.end();
+    if (!res.writableEnded) {
+      res.end();
+    }
   }
 }
-
 function renderErrorPage(error: unknown): string {
   const message =
     error instanceof Error
@@ -1793,8 +2114,6 @@ function handlePendingHtmlRequest(
     return false;
   }
 
-  cleanupPendingHtml(state);
-
   if (method !== "GET") {
     res.statusCode = 405;
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -1812,8 +2131,18 @@ function handlePendingHtmlRequest(
   }
 
   const entry = state.pendingHtml.get(token);
+  cleanupPendingHtml(state);
   if (!entry) {
     reqLogger.warn({ token }, "No pending HTML found for token");
+    res.statusCode = 404;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("Not Found");
+    return true;
+  }
+
+  if (Date.now() > entry.expiresAt) {
+    state.pendingHtml.delete(token);
+    reqLogger.warn({ token }, "Pending HTML token expired");
     res.statusCode = 404;
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.end("Not Found");
@@ -1825,5 +2154,46 @@ function handlePendingHtmlRequest(
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
   res.end(entry.html);
+  return true;
+}
+
+function handleReasoningStreamRequest(
+  context: RequestContext,
+  state: MutableServerState,
+  reqLogger: RequestLogger
+): boolean {
+  const { path, method } = context;
+  if (!path.startsWith(LLM_REASONING_STREAM_ROUTE_PREFIX)) {
+    return false;
+  }
+
+  cleanupReasoningStreams(state);
+
+  if (method !== "GET") {
+    context.res.statusCode = 405;
+    context.res.setHeader("Allow", "GET");
+    context.res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    context.res.end("Method Not Allowed");
+    return true;
+  }
+
+  const token = path.slice(LLM_REASONING_STREAM_ROUTE_PREFIX.length).replace(/^\/+/, "");
+  if (!token) {
+    context.res.statusCode = 404;
+    context.res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    context.res.end("Not Found");
+    return true;
+  }
+
+  const attached = attachReasoningStream(state, token, context);
+  if (!attached) {
+    reqLogger.warn({ token }, "No reasoning stream found for token");
+    context.res.statusCode = 404;
+    context.res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    context.res.end("Not Found");
+    return true;
+  }
+
+  reqLogger.debug({ token }, "Reasoning stream connected");
   return true;
 }
