@@ -45,7 +45,7 @@
   "license": "MIT",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
-    "@google/genai": "^1.22.0",
+    "@google/genai": "^1.30.0",
     "keytar": "^7.9.0",
     "node-html-parser": "^7.0.1",
     "open": "^10.2.0",

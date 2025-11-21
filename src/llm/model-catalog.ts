@@ -56,8 +56,8 @@ export interface ModelMetadata {
 
 type RawModelReasoningTokens =
   | (NumericRange & {
-      readonly helper?: string;
-    })
+    readonly helper?: string;
+  })
   | null
   | undefined;
 
@@ -1103,7 +1103,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
     placeholder: "AIza...",
     defaultModel: "gemini-2.5-flash",
     defaultReasoningMode: "none",
-    reasoningModes: ["none"],
+    reasoningModes: ["none", "low", "high"],
     maxOutputTokens: {
       default: 65_536,
       max: 65_536,
@@ -1123,6 +1123,41 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         "Flash and Flash Lite support disabling reasoning with 0. Pro always thinks but lets you set a ceiling or use auto (-1).",
     },
     models: [
+      {
+        value: "gemini-3-pro-preview",
+        label: "Gemini 3 Pro Preview",
+        tagline: "Most powerful agentic and coding model",
+        description:
+          "Gemini 3 Pro is designed to tackle the most challenging agentic problems with strong coding and state-of-the-art reasoning capabilities. It is the best model for complex multimodal understanding.",
+        recommendedFor:
+          "Complex agentic problems, coding tasks, and multimodal understanding.",
+        highlights: [
+          "State-of-the-art reasoning",
+          "Best multimodal understanding",
+          "Strong coding capabilities",
+        ],
+        release: "2025-11-18",
+        contextWindow: 1_000_000,
+        contextWindowUnit: "tokens",
+        featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 64_000,
+          max: 64_000,
+          description: "Output token limit is 64k for Gemini 3 Pro Preview.",
+        },
+        supportsReasoningMode: true,
+        reasoningModes: ["low", "high"],
+        cost: usdCost({ input: 1.25, output: 10 }),
+        reasoningModeNotes:
+          "Supports 'low' (fast) and 'high' (thorough) reasoning levels. Legacy token budgets are not supported.",
+        reasoningTokens: {
+          helper:
+            "Gemini 3 Pro uses 'low' or 'high' reasoning levels instead of a token budget. Use the Reasoning Effort dropdown.",
+        },
+      },
       {
         value: "gemini-2.5-flash",
         label: "Gemini 2.5 Flash",
