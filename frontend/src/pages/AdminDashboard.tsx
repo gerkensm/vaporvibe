@@ -1204,9 +1204,8 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
           </div>
 
           <footer
-            className={`setup-card__footer${
-              activeSetupStep === "brief" ? " setup-card__footer--between" : ""
-            }`}
+            className={`setup-card__footer${activeSetupStep === "brief" ? " setup-card__footer--between" : ""
+              }`}
           >
             {activeSetupStep === "brief" ? (
               <button
@@ -1258,9 +1257,8 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
             href="/"
             target="_blank"
             rel="noreferrer noopener"
-            className={`admin-live-cta${
-              canLaunchApp ? "" : " admin-live-cta--disabled"
-            }`}
+            className={`admin-live-cta${canLaunchApp ? "" : " admin-live-cta--disabled"
+              }`}
             aria-disabled={canLaunchApp ? undefined : true}
             tabIndex={canLaunchApp ? 0 : -1}
             title={liveAppCtaTitle}
@@ -1404,6 +1402,7 @@ function ProviderPanel({
     Record<ProviderKey, string>
   >({});
   const currentProvider = provider.provider as ProviderKey;
+  const lastAppliedDefaultRef = useRef<string | null>(null);
 
   useEffect(() => {
     setCustomModelConfigs((prev) => {
@@ -1476,8 +1475,8 @@ function ProviderPanel({
         targetModel !== undefined
           ? targetModel
           : target === provider.provider
-          ? state.provider.model
-          : undefined;
+            ? state.provider.model
+            : undefined;
       const hasModelSelection = resolvedModel !== undefined;
       const selectedModel =
         hasModelSelection && resolvedModel
@@ -1761,9 +1760,9 @@ function ProviderPanel({
   const reasoningGuidance = currentGuidance.reasoningTokensGuidance;
   const reasoningDescription = currentGuidance.reasoningTokensSupported
     ? reasoningGuidance?.description ??
-      (currentGuidance.guidanceSource === "provider"
-        ? "Using provider defaults for the reasoning budget."
-        : "Reserve deliberate thinking tokens for this model when you need deeper analysis.")
+    (currentGuidance.guidanceSource === "provider"
+      ? "Using provider defaults for the reasoning budget."
+      : "Reserve deliberate thinking tokens for this model when you need deeper analysis.")
     : "This model does not expose a manual reasoning budget.";
   const reasoningHelper = (() => {
     if (!currentGuidance.reasoningTokensSupported) {
@@ -1801,27 +1800,27 @@ function ProviderPanel({
   const safeReasoningMode = currentGuidance.reasoningModesSupported
     ? availableReasoningModes && availableReasoningModes.length > 0
       ? (() => {
-          const currentMode = provider.reasoningMode ?? "none";
-          if (
-            availableReasoningModes.includes(currentMode) &&
-            !(
-              currentMode === "none" &&
-              availableReasoningModes.includes("default")
-            )
-          ) {
-            return currentMode;
-          }
-          if (availableReasoningModes.includes("default")) {
-            return "default" as const;
-          }
-          const firstNonNone = availableReasoningModes.find(
-            (mode) => mode !== "none"
-          );
-          if (firstNonNone) {
-            return firstNonNone;
-          }
-          return availableReasoningModes[0];
-        })()
+        const currentMode = provider.reasoningMode ?? "none";
+        if (
+          availableReasoningModes.includes(currentMode) &&
+          !(
+            currentMode === "none" &&
+            availableReasoningModes.includes("default")
+          )
+        ) {
+          return currentMode;
+        }
+        if (availableReasoningModes.includes("default")) {
+          return "default" as const;
+        }
+        const firstNonNone = availableReasoningModes.find(
+          (mode) => mode !== "none"
+        );
+        if (firstNonNone) {
+          return firstNonNone;
+        }
+        return availableReasoningModes[0];
+      })()
       : provider.reasoningMode ?? "none"
     : "none";
 
@@ -1838,26 +1837,38 @@ function ProviderPanel({
       }
       return;
     }
-    if (
+
+    const modelDefaultMode = currentGuidance.modelMetadata?.defaultReasoningMode;
+
+    // Apply model default if:
+    // 1. Model has a specific default
+    // 2. It's available for this model
+    // 3. Current mode is "none" (the provider default)
+    const shouldApplyModelDefault =
+      modelDefaultMode &&
+      modelDefaultMode !== "none" &&
       availableReasoningModes &&
-      availableReasoningModes.length > 0 &&
-      !availableReasoningModes.includes(provider.reasoningMode)
-    ) {
+      availableReasoningModes.includes(modelDefaultMode) &&
+      provider.reasoningMode === "none";
+
+    if (shouldApplyModelDefault) {
+      // Apply model's default reasoning mode
       onState({
         ...state,
         provider: {
           ...state.provider,
-          reasoningMode: safeReasoningMode,
+          reasoningMode: modelDefaultMode,
         },
       });
     }
   }, [
-    availableReasoningModes,
-    currentGuidance.reasoningModesSupported,
+    provider.provider,
+    provider.model,
     provider.reasoningMode,
+    currentGuidance.reasoningModesSupported,
+    currentGuidance.modelMetadata?.defaultReasoningMode,
+    availableReasoningModes,
     safeReasoningMode,
-    onState,
-    state,
   ]);
 
   const applyProviderDefaults = useCallback(
@@ -1866,16 +1877,22 @@ function ProviderPanel({
         hintedModel !== undefined
           ? hintedModel
           : state.defaultModelByProvider[nextProvider] ?? provider.model;
+      const guidance = computeGuidance(nextProvider, desiredModel);
       const sanitizedMaxTokens = sanitizeMaxOutputTokens(
-        state.defaultMaxOutputTokens[nextProvider] ?? provider.maxOutputTokens,
+        guidance.defaultMax,
         nextProvider,
         desiredModel
       );
-      const guidance = computeGuidance(nextProvider, desiredModel);
 
       const availableModes = guidance.availableReasoningModes ?? [];
+      const modelDefaultMode = guidance.modelMetadata?.defaultReasoningMode;
       let nextReasoningMode = provider.reasoningMode ?? "none";
-      if (!availableModes.includes(nextReasoningMode)) {
+
+      // When changing models, prioritize the model's default reasoning mode
+      if (modelDefaultMode && availableModes.includes(modelDefaultMode)) {
+        nextReasoningMode = modelDefaultMode;
+      } else if (!availableModes.includes(nextReasoningMode)) {
+        // Only fallback to other modes if the model doesn't have a default
         if (availableModes.includes("default")) {
           nextReasoningMode = "default";
         } else if (availableModes.includes("low")) {
@@ -2013,14 +2030,14 @@ function ProviderPanel({
       setReasoningTokensEnabled(enabled);
       const nextTokenValue = enabled
         ? state.provider.reasoningTokens ??
-          currentGuidance.reasoningTokensGuidance?.default
+        currentGuidance.reasoningTokensGuidance?.default
         : undefined;
       const sanitizedTokens = enabled
         ? sanitizeReasoningTokens(
-            nextTokenValue,
-            currentProvider,
-            provider.model
-          )
+          nextTokenValue,
+          currentProvider,
+          provider.model
+        )
         : undefined;
       onState({
         ...state,
@@ -2134,10 +2151,10 @@ function ProviderPanel({
       : false;
     const sanitizedReasoningTokens = effectiveReasoningEnabled
       ? sanitizeReasoningTokens(
-          provider.reasoningTokens,
-          currentProvider,
-          provider.model
-        )
+        provider.reasoningTokens,
+        currentProvider,
+        provider.model
+      )
       : undefined;
     const reasoningMode = currentGuidance.reasoningModesSupported
       ? safeReasoningMode
@@ -2203,9 +2220,8 @@ function ProviderPanel({
         </div>
         {status && (
           <div
-            className={`admin-status admin-status--${
-              status.tone === "error" ? "error" : "info"
-            }`}
+            className={`admin-status admin-status--${status.tone === "error" ? "error" : "info"
+              }`}
           >
             {status.message}
           </div>
@@ -2292,10 +2308,10 @@ function ProviderPanel({
               value={
                 typeof provider.maxOutputTokens === "number"
                   ? sanitizeMaxOutputTokens(
-                      provider.maxOutputTokens,
-                      currentProvider,
-                      provider.model
-                    )
+                    provider.maxOutputTokens,
+                    currentProvider,
+                    provider.model
+                  )
                   : currentGuidance.defaultMax ?? null
               }
               defaultValue={
@@ -2391,12 +2407,12 @@ function ProviderPanel({
                   value={
                     effectiveReasoningEnabled
                       ? sanitizeReasoningTokens(
-                          provider.reasoningTokens,
-                          currentProvider,
-                          provider.model
-                        ) ??
-                        currentGuidance.reasoningTokensGuidance?.default ??
-                        null
+                        provider.reasoningTokens,
+                        currentProvider,
+                        provider.model
+                      ) ??
+                      currentGuidance.reasoningTokensGuidance?.default ??
+                      null
                       : null
                   }
                   defaultValue={
@@ -2593,14 +2609,13 @@ function BriefSection({
             {submitState === "loading"
               ? "Saving…"
               : isSetup
-              ? "Save brief"
-              : "Save brief"}
+                ? "Save brief"
+                : "Save brief"}
           </button>
           {status && (
             <span
-              className={`admin-status admin-status--${
-                status.tone === "error" ? "error" : "info"
-              }`}
+              className={`admin-status admin-status--${status.tone === "error" ? "error" : "info"
+                }`}
             >
               {status.message}
             </span>
@@ -2652,9 +2667,8 @@ function AttachmentCard({
   return (
     <button
       type="button"
-      className={`admin-attachment-card${
-        markedForRemoval ? " admin-attachment-card--marked" : ""
-      }`}
+      className={`admin-attachment-card${markedForRemoval ? " admin-attachment-card--marked" : ""
+        }`}
       onClick={onToggle}
     >
       <div className="admin-attachment-card__preview" aria-hidden="true">
@@ -2811,9 +2825,8 @@ function RuntimePanel({
         </div>
         {status && (
           <div
-            className={`admin-status admin-status--${
-              status.tone === "error" ? "error" : "info"
-            }`}
+            className={`admin-status admin-status--${status.tone === "error" ? "error" : "info"
+              }`}
           >
             {status.message}
           </div>

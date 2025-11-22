@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import "./TokenBudgetControl.css";
 
@@ -51,6 +51,14 @@ export function TokenBudgetControl({
   const [manual, setManual] = useState<string>(
     value === null || value === undefined ? "" : String(value)
   );
+
+  useEffect(() => {
+    const currentNumeric = manual === "" ? null : Number(manual);
+    const incoming = value ?? null;
+    if (incoming !== currentNumeric) {
+      setManual(value === null || value === undefined ? "" : String(value));
+    }
+  }, [value, manual]);
 
   const effectiveValue = useMemo(() => {
     if (value === null || value === undefined) {

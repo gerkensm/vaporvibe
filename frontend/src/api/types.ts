@@ -77,6 +77,7 @@ export interface ModelMetadata {
   reasoningTokens: ModelReasoningTokens;
   reasoningModeNotes?: string;
   reasoningModes?: string[];
+  defaultReasoningMode?: string;
   documentationUrl?: string;
   cost?: ModelCostInfo;
   compositeScores?: ModelCompositeScores;

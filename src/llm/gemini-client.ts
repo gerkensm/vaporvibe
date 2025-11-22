@@ -14,6 +14,7 @@ type GenerateConfig = {
   thinkingConfig?: {
     includeThoughts?: boolean;
     thinkingBudget?: number;
+    thinkingLevel?: "LOW" | "HIGH";
   };
 };
 
@@ -67,20 +68,27 @@ export class GeminiClient implements LlmClient {
     }
     const includeThoughts = shouldEnableGeminiThoughts(this.settings);
     if (includeThoughts) {
-      config.thinkingConfig = {
-        includeThoughts: true,
-        thinkingBudget: clampGeminiBudget(
-          this.settings.reasoningTokens ?? -1,
-          this.settings.maxOutputTokens,
-          this.settings.model,
-        ),
-      };
+      if (this.settings.model.includes("gemini-3-pro")) {
+        config.thinkingConfig = {
+          includeThoughts: true,
+          thinkingLevel: this.settings.reasoningMode === "low" ? "LOW" : "HIGH",
+        };
+      } else {
+        config.thinkingConfig = {
+          includeThoughts: true,
+          thinkingBudget: clampGeminiBudget(
+            this.settings.reasoningTokens ?? -1,
+            this.settings.maxOutputTokens,
+            this.settings.model,
+          ),
+        };
+      }
     }
 
     const response = await this.client.models.generateContent({
       model: this.settings.model,
       contents,
-      config,
+      config: config as any,
     });
 
     const reasoning = includeThoughts
@@ -215,8 +223,8 @@ function extractGeminiThinking(
       typeof settings.reasoningTokens === "number"
         ? settings.reasoningTokens
         : settings.reasoningTokensEnabled === false
-        ? "disabled"
-        : "auto";
+          ? "disabled"
+          : "auto";
     const header = `Gemini thinking (mode=${settings.reasoningMode}, budget=${budgetLabel}, thoughtTokens=${thoughtsTokenCount ?? "n/a"})`;
     if (thoughtSummaries.length > 0) {
       logger.debug(`${header}\n${thoughtSummaries.join("\n\n")}`);
