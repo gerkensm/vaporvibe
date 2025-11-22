@@ -6,6 +6,7 @@ import {
 } from "./interceptor-branch-utils";
 
 (() => {
+  const initialUrl = new URL(window.location.href);
   type NavigationOverlayEffect = {
     id: string;
     label: string;
@@ -3614,8 +3615,8 @@ import {
   const statusMessages: StatusMessage[] = (() => {
     const provided = Array.isArray(globalScope.__vaporVibeStatusMessages)
       ? (globalScope.__vaporVibeStatusMessages as unknown[]).filter(
-          (item): item is StatusMessage => isStatusMessage(item)
-        )
+        (item): item is StatusMessage => isStatusMessage(item)
+      )
       : [];
     return provided.length > 0 ? provided : [];
   })();
@@ -3665,7 +3666,7 @@ import {
   let overlayStatusInterval: number | null = null;
   const hasDemosceneAudioSupport = Boolean(
     window.AudioContext ||
-      (window as WindowWithWebkitAudioContext).webkitAudioContext
+    (window as WindowWithWebkitAudioContext).webkitAudioContext
   );
   let demosceneAudioContext: AudioContext | null = null;
   let demosceneGainNode: GainNode | null = null;
@@ -3906,14 +3907,14 @@ import {
       : "";
     const summaries = streamState.finalized
       ? streamState.summaryEntries
-          .map((entry) => sanitizeText(entry))
-          .filter((entry) => entry && entry.trim().length > 0)
+        .map((entry) => sanitizeText(entry))
+        .filter((entry) => entry && entry.trim().length > 0)
       : [];
     const hasContent = Boolean(
       (summaries && summaries.length > 0) ||
-        (summaryPreview && summaryPreview.trim().length > 0) ||
-        (streaming && live && live.trim().length > 0) ||
-        (!streaming && final && final.trim().length > 0)
+      (summaryPreview && summaryPreview.trim().length > 0) ||
+      (streaming && live && live.trim().length > 0) ||
+      (!streaming && final && final.trim().length > 0)
     );
 
     return {
@@ -3972,7 +3973,7 @@ import {
     const html = markdownToHtml(markdown);
     const hasContent = Boolean(
       (snapshot && snapshot.hasContent) ||
-        (markdown && markdown.trim().length > 0)
+      (markdown && markdown.trim().length > 0)
     );
 
     for (let i = displays.length - 1; i >= 0; i -= 1) {
@@ -5092,7 +5093,7 @@ import {
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const candidate =
         overlayEffectsConfig[
-          Math.floor(Math.random() * overlayEffectsConfig.length)
+        Math.floor(Math.random() * overlayEffectsConfig.length)
         ];
       if (
         !candidate ||
@@ -5108,7 +5109,7 @@ import {
     if (!chosen) {
       chosen =
         overlayEffectsConfig[
-          Math.floor(Math.random() * overlayEffectsConfig.length)
+        Math.floor(Math.random() * overlayEffectsConfig.length)
         ];
     }
     applyOverlayEffectById(chosen ? chosen.id : null);
@@ -5158,6 +5159,7 @@ import {
   }
 
   const onDocumentClick = (event: MouseEvent): void => {
+    if (event.defaultPrevented) return;
     if (
       event.button !== 0 ||
       event.ctrlKey ||
@@ -5520,6 +5522,15 @@ import {
   hijackExistingForms();
 
   window.addEventListener("popstate", () => {
+    const current = new URL(window.location.href);
+    if (
+      current.pathname === initialUrl.pathname &&
+      current.search === initialUrl.search &&
+      current.origin === initialUrl.origin
+    ) {
+      return;
+    }
+
     logDebug("popstate triggered", window.location.href);
     showOverlay("Loading previous view…");
     window.setTimeout(() => {
