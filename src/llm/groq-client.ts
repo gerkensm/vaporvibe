@@ -7,7 +7,12 @@ import type {
   VerificationResult,
   ReasoningMode,
 } from "../types.js";
-import type { LlmClient, LlmResult } from "./client.js";
+import type {
+  LlmClient,
+  LlmResult,
+  LlmGenerateOptions,
+  LlmStreamObserver,
+} from "./client.js";
 import { logger } from "../logger.js";
 import { supportsImageInput } from "./capabilities.js";
 
@@ -54,7 +59,10 @@ export class GroqClient implements LlmClient {
     }
   }
 
-  async generateHtml(messages: ChatMessage[]): Promise<LlmResult> {
+  async generateHtml(
+    messages: ChatMessage[],
+    options: LlmGenerateOptions = {}
+  ): Promise<LlmResult> {
     // Convert your internal messages to Chat Completions messages
     const chatMessages = messages.map((m) =>
       toChatCompletionMessage(
@@ -65,26 +73,63 @@ export class GroqClient implements LlmClient {
       )
     );
 
-    // Build a typed request. Setting stream:false as const narrows the return type to ChatCompletion.
-    const request: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming =
-      {
-        model: this.settings.model,
-        messages: chatMessages,
-        stream: false as const,
-        max_completion_tokens: this.settings.maxOutputTokens,
-      };
+    const request: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
+      model: this.settings.model,
+      messages: chatMessages,
+      stream: true,
+      max_completion_tokens: this.settings.maxOutputTokens,
+    };
 
     applyReasoningOptionsForChat(request, this.settings);
 
-    const resp = await this.client.chat.completions.create(request);
+    const stream = this.client.chat.completions.stream(request);
+    const htmlChunks: string[] = [];
+    const observer = options.streamObserver;
+    const streamingTracker: StreamingReasoningTracker = {
+      summaryBuffer: "",
+      detailBuffer: "",
+    };
+    for await (const chunk of stream) {
+      const delta = chunk?.choices?.[0]?.delta;
+      const content = delta?.content;
+      if (Array.isArray(content)) {
+        for (const part of content) {
+          const text = (part as any)?.text;
+          if (typeof text === "string") {
+            htmlChunks.push(text);
+          }
+        }
+      } else if (typeof content === "string") {
+        htmlChunks.push(content);
+      }
+      const reasoningDelta = (delta as any)?.reasoning;
+      if (reasoningDelta !== undefined) {
+        processStreamingReasoningDelta(
+          reasoningDelta,
+          streamingTracker,
+          observer
+        );
+      }
+    }
 
-    const html = extractHtmlFromChat(resp);
+    const resp = await stream.finalChatCompletion();
+
+    const htmlFromStream = htmlChunks.join("");
+    const html =
+      htmlFromStream.length > 0 ? htmlFromStream : extractHtmlFromChat(resp);
     const usage = extractUsageFromChat(resp);
-    const reasoning = extractReasoningFromChat(
+    const reasoningFromResponse = extractReasoningFromChat(
       resp,
       this.settings.reasoningMode,
       this.settings.model
     );
+
+    const reasoning = mergeReasoningTraces(
+      reasoningFromResponse,
+      streamingTracker.summaryBuffer,
+      streamingTracker.detailBuffer
+    );
+    logger.info(`Reasoning: ${JSON.stringify(reasoning)}`);
 
     return {
       html,
@@ -141,7 +186,7 @@ function toChatCompletionMessage(
     | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" } }
   > = [];
 
-  if (text && text.trim().length > 0) {
+  if (text && text.length > 0) {
     parts.push({ type: "text", text });
   }
 
@@ -222,7 +267,7 @@ function extractHtmlFromChat(
     | Array<{ type?: string; text?: string }>;
 
   if (typeof content === "string") {
-    const trimmed = content.trim();
+    const trimmed = content;
     if (trimmed) return trimmed;
   } else if (Array.isArray(content)) {
     const text = content
@@ -230,7 +275,7 @@ function extractHtmlFromChat(
         p?.type === "text" && typeof p?.text === "string" ? p.text : ""
       )
       .join("");
-    if (text.trim()) return text.trim();
+    return text;
   }
 
   // Fallback: try to read from tool calls or other deltas (unlikely here)
@@ -294,11 +339,11 @@ function extractReasoningFromChat(
     // Groq Chat with include_reasoning may add a `reasoning` object or put reasoning parts in content.
     if (msg?.reasoning) {
       const r = msg.reasoning;
-      if (typeof r.summary === "string" && r.summary.trim()) {
-        summaries.add(r.summary.trim());
+      if (typeof r.summary === "string" && r.summary) {
+        summaries.add(r.summary);
       }
-      if (typeof r.text === "string" && r.text.trim()) {
-        details.add(r.text.trim());
+      if (typeof r.text === "string" && r.text) {
+        details.add(r.text);
       }
       // If it’s nested arrays/objects, flatten conservatively:
       collectReasoningContent(r, { summaries, details }, "reasoning");
@@ -324,8 +369,7 @@ function extractReasoningFromChat(
     };
   } catch (err) {
     logger.warn(
-      `Failed to capture Groq reasoning metadata (chat): ${
-        (err as Error).message
+      `Failed to capture Groq reasoning metadata (chat): ${(err as Error).message
       }`
     );
     return undefined;
@@ -336,8 +380,7 @@ function extractThinkSections(text?: string): string[] {
   if (typeof text !== "string" || text.length === 0) return [];
   const matches = text.match(/<think>[\s\S]*?<\/think>/gi);
   return (
-    matches?.map((m) => m.replace(/<\/?think>/gi, "").trim()).filter(Boolean) ??
-    []
+    matches?.map((m) => m.replace(/<\/?think>/gi, "")).filter(Boolean) ?? []
   );
 }
 
@@ -354,7 +397,7 @@ function collectReasoningContent(
   if (node === null || node === undefined) return;
 
   if (typeof node === "string") {
-    const text = node.trim();
+    const text = node;
     if (!text) return;
     if (context.includes("summary")) acc.summaries.add(text);
     else acc.details.add(text);
@@ -378,7 +421,7 @@ function collectReasoningContent(
     : context;
 
   if (typeof record.text === "string") {
-    const text = record.text.trim();
+    const text = record.text;
     if (text) {
       if (nextContext.includes("summary")) acc.summaries.add(text);
       else acc.details.add(text);
@@ -399,6 +442,113 @@ function collectReasoningContent(
   }
 }
 
+interface StreamingReasoningTracker {
+  summaryBuffer: string;
+  detailBuffer: string;
+}
+
+function processStreamingReasoningDelta(
+  input: unknown,
+  tracker: StreamingReasoningTracker,
+  observer?: LlmStreamObserver
+): void {
+  if (input === null || input === undefined) return;
+  const scratch: ReasoningAccumulator = {
+    summaries: new Set<string>(),
+    details: new Set<string>(),
+  };
+  collectReasoningContent(input, scratch, "reasoning");
+
+  scratch.summaries.forEach((value) => {
+    tracker.summaryBuffer += value;
+    if (observer) {
+      observer.onReasoningEvent({ kind: "summary", text: value });
+    }
+  });
+
+  scratch.details.forEach((value) => {
+    tracker.detailBuffer += value;
+    if (observer) {
+      observer.onReasoningEvent({ kind: "thinking", text: value });
+    }
+  });
+}
+
+function normalizeReasoningEntries(values: Iterable<string>): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const value of values) {
+    const trimmed = typeof value === "string" ? value : "";
+    if (!trimmed) continue;
+    // Filter out strings that are just dots or whitespace (e.g. ".\n\n" or "...")
+    if (/^[\s\.]+$/.test(trimmed)) continue;
+    if (seen.has(trimmed)) continue;
+    seen.add(trimmed);
+    result.push(trimmed);
+  }
+  return result;
+}
+
+function mergeReasoningTraces(
+  base: LlmReasoningTrace | undefined,
+  streamingSummary: string,
+  streamingDetail: string
+): LlmReasoningTrace | undefined {
+  // 1. Prepare streaming parts (normalized)
+  const normStreamingSummary = normalizeReasoningEntries(
+    streamingSummary ? [streamingSummary] : []
+  );
+  const normStreamingDetail = normalizeReasoningEntries(
+    streamingDetail ? [streamingDetail] : []
+  );
+
+  // 2. Prepare base parts (normalized)
+  const baseSummaries = normalizeReasoningEntries(base?.summaries ?? []);
+  const baseDetails = normalizeReasoningEntries(base?.details ?? []);
+
+  // 3. Merge Logic
+  // If we have a substantial streaming detail, we prioritize it to avoid
+  // the "final reasoning" fragment often seen with Groq.
+  let finalDetails: string[] = [];
+
+  if (normStreamingDetail.length > 0) {
+    finalDetails = [...normStreamingDetail];
+    // Only append base details if they are significantly different and not just a subset/noise
+    for (const bd of baseDetails) {
+      const isSubset = normStreamingDetail.some(sd => sd.includes(bd) || bd.includes(sd));
+      if (!isSubset) {
+        finalDetails.push(bd);
+      }
+    }
+  } else {
+    finalDetails = baseDetails;
+  }
+
+  // Same logic for summaries
+  let finalSummaries: string[] = [];
+  if (normStreamingSummary.length > 0) {
+    finalSummaries = [...normStreamingSummary];
+    for (const bs of baseSummaries) {
+      const isSubset = normStreamingSummary.some(ss => ss.includes(bs) || bs.includes(ss));
+      if (!isSubset) {
+        finalSummaries.push(bs);
+      }
+    }
+  } else {
+    finalSummaries = baseSummaries;
+  }
+
+  if (!finalSummaries.length && !finalDetails.length) {
+    return base;
+  }
+
+  return {
+    summaries: finalSummaries.length ? finalSummaries : undefined,
+    details: finalDetails.length ? finalDetails : undefined,
+    raw: base?.raw,
+  };
+}
+
 /* -------------------- reasoning options (Chat) -------------------- */
 
 function applyReasoningOptionsForChat(
@@ -417,7 +567,9 @@ function applyReasoningOptionsForChat(
 
   const normalizedModel = normalizeModelId(settings.model);
   if (!GROQ_REASONING_SUPPORTED_MODELS.has(normalizedModel)) return;
-  const supportedModes = GROQ_MODEL_REASONING_EFFORT[normalizedModel] ?? ["none"];
+  const supportedModes = GROQ_MODEL_REASONING_EFFORT[normalizedModel] ?? [
+    "none",
+  ];
   const effectiveMode = supportedModes.includes(mode)
     ? mode
     : supportedModes.find((item) => item !== "none") ?? "none";
@@ -427,7 +579,8 @@ function applyReasoningOptionsForChat(
   }
 
   if (normalizedModel === "qwen/qwen3-32b") {
-    (request as any).reasoning_effort = effectiveMode === "default" ? "default" : "none";
+    (request as any).reasoning_effort =
+      effectiveMode === "default" ? "default" : "none";
     (request as any).reasoning_format = "parsed";
     if (effectiveMode !== "default") {
       delete (request as any).reasoning_effort;

@@ -6,6 +6,7 @@ import {
 } from "./interceptor-branch-utils";
 
 (() => {
+  const initialUrl = new URL(window.location.href);
   type NavigationOverlayEffect = {
     id: string;
     label: string;
@@ -25,6 +26,608 @@ import {
 
   interface WindowWithWebkitAudioContext extends Window {
     webkitAudioContext?: typeof AudioContext;
+  }
+
+  function closeActiveReasoningStream(): void {
+    if (activeReasoningSource) {
+      try {
+        activeReasoningSource.close();
+      } catch {
+        // ignore close failures
+      }
+      activeReasoningSource = null;
+    }
+    deactivateReasoningMode();
+  }
+
+  function connectToReasoningStream(
+    token: string | null | undefined,
+    routePrefix?: string | null
+  ): void {
+    if (!token) return;
+    closeActiveReasoningStream();
+
+    const basePrefix =
+      typeof routePrefix === "string" && routePrefix.trim().length > 0
+        ? routePrefix
+        : LLM_REASONING_STREAM_ROUTE_PREFIX;
+    const endpoint =
+      basePrefix.replace(/\/$/, "") + "/" + token.replace(/^\/+/, "");
+
+    try {
+      activeReasoningSource = new EventSource(endpoint);
+    } catch (error) {
+      console.warn("Unable to open reasoning stream", error);
+      if (observer && observer.disconnect) {
+        observer.disconnect();
+        observer = null;
+      }
+      return;
+    }
+
+    const source = activeReasoningSource;
+
+    const closeStream = () => {
+      if (source) {
+        try {
+          source.close();
+        } catch {
+          // ignore
+        }
+      }
+      if (observer && observer.disconnect) {
+        observer.disconnect();
+        observer = null;
+      }
+      if (activeReasoningSource === source) {
+        activeReasoningSource = null;
+      }
+    };
+
+    if (!observer) {
+      observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (!mutation.addedNodes) continue;
+          mutation.addedNodes.forEach((node) => {
+            if (node && node.nodeType === Node.ELEMENT_NODE) {
+              discoverDisplays(node as Element);
+              discoverStatusTargets(node as Element);
+            }
+          });
+        }
+      });
+    }
+
+    const target = overlay ?? document.body ?? document.documentElement;
+    if (observer && target) {
+      observer.observe(target, { childList: true, subtree: true });
+    }
+
+    // Ensure the overlay immediately adopts reasoning mode before any snapshots arrive
+    resetReasoningStreamState();
+    hasStreamingUpdates = false;
+    activateReasoningMode();
+    discoverStatusTargets(overlay ?? document);
+    discoverDisplays(overlay ?? document);
+
+    source.addEventListener("reasoning", (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const text = typeof data?.text === "string" ? data.text : "";
+        if (!text.trim()) return;
+        const kind = typeof data?.kind === "string" ? data.kind : "thinking";
+        if (kind === "summary") {
+          streamState.summaryBuffer = appendToBuffer(
+            streamState.summaryBuffer,
+            text
+          );
+        } else {
+          streamState.liveBuffer = appendToBuffer(streamState.liveBuffer, text);
+        }
+        streamState.finalized = false;
+        hasStreamingUpdates = true;
+        updateDisplays();
+        broadcastStatus(REASONING_STATUS_MESSAGE, true);
+      } catch (error) {
+        console.warn("Failed to parse reasoning event", error);
+      }
+    });
+
+    source.addEventListener("final", (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const details = Array.isArray(data?.details) ? data.details : [];
+        const summaries = Array.isArray(data?.summaries) ? data.summaries : [];
+
+        const detailsText = details
+          .filter(
+            (value: unknown): value is string =>
+              typeof value === "string" && value.trim().length > 0
+          )
+          .join("");
+
+        streamState.finalized = true;
+        streamState.finalText = detailsText
+          ? sanitizeText(detailsText)
+          : sanitizeText(streamState.liveBuffer);
+
+        const parsedSummaries = summaries
+          .filter(
+            (value: unknown): value is string =>
+              typeof value === "string" && value.trim().length > 0
+          )
+          .map((value: string) => sanitizeText(value));
+
+        if (parsedSummaries.length > 0) {
+          streamState.summaryEntries = parsedSummaries.slice(
+            0,
+            SUMMARY_ENTRY_LIMIT
+          );
+        } else if (
+          streamState.summaryBuffer &&
+          streamState.summaryBuffer.trim().length > 0
+        ) {
+          streamState.summaryEntries = [
+            sanitizeText(streamState.summaryBuffer),
+          ];
+        } else {
+          streamState.summaryEntries = [];
+        }
+
+        streamState.summaryBuffer = "";
+        hasStreamingUpdates = true;
+        updateDisplays();
+        broadcastStatus(REASONING_STATUS_MESSAGE, true);
+      } catch (error) {
+        console.warn("Failed to parse final reasoning payload", error);
+      }
+    });
+
+    source.addEventListener("complete", () => {
+      closeStream();
+      if (!streamState.finalized) {
+        streamState.finalized = true;
+        if (
+          streamState.summaryEntries.length === 0 &&
+          streamState.summaryBuffer &&
+          streamState.summaryBuffer.trim().length > 0
+        ) {
+          streamState.summaryEntries = [
+            sanitizeText(streamState.summaryBuffer),
+          ];
+        }
+        if (!streamState.finalText.trim()) {
+          streamState.finalText = sanitizeText(streamState.liveBuffer);
+        }
+        streamState.summaryBuffer = "";
+        updateDisplays();
+      }
+      deactivateReasoningMode();
+      broadcastStatus("Model response ready.");
+    });
+
+    source.addEventListener("error", () => {
+      closeStream();
+      deactivateReasoningMode();
+      if (!hasStreamingUpdates) {
+        broadcastStatus("Awaiting model response…");
+      }
+    });
+
+    window.addEventListener(
+      "vaporvibe:reasoning-hide",
+      () => {
+        closeStream();
+        deactivateReasoningMode();
+      },
+      { once: true }
+    );
+  }
+
+  async function pollForResult(
+    renderUrl: URL,
+    destination: URL,
+    attempt: number
+  ): Promise<void> {
+    const originalPath = `${destination.pathname}${destination.search}${destination.hash}`;
+    try {
+      const response = await fetch(renderUrl.toString(), {
+        method: "GET",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { Accept: "text/html" },
+      });
+      if (response.status === 404) {
+        if (attempt < HYDRATE_MAX_ATTEMPTS) {
+          const delay = Math.round(
+            HYDRATE_RETRY_DELAY_MS * Math.pow(1.2, Math.max(0, attempt - 1))
+          );
+          window.setTimeout(() => {
+            void pollForResult(renderUrl, destination, attempt + 1);
+          }, delay);
+          return;
+        }
+        throw new Error(
+          `Result still pending after ${attempt} attempts (${response.status})`
+        );
+      }
+      if (!response.ok) {
+        throw new Error(`Unexpected status ${response.status}`);
+      }
+      const htmlString = await response.text();
+      try {
+        if (originalPath) {
+          history.replaceState(null, "", originalPath);
+        }
+      } catch (historyError) {
+        console.warn("Failed to update history state", historyError);
+      }
+      if (documentListenersAttached) {
+        document.removeEventListener("click", onDocumentClick, true);
+        document.removeEventListener("submit", onDocumentSubmit);
+        documentListenersAttached = false;
+      }
+      console.debug(
+        "vaporvibe interceptor: writing HTML bytes",
+        htmlString.length
+      );
+      await replaceDocumentWithHtml(htmlString, destination.href);
+      return;
+    } catch (error) {
+      if (attempt < HYDRATE_MAX_ATTEMPTS) {
+        const delay = Math.round(
+          HYDRATE_RETRY_DELAY_MS * Math.pow(1.2, Math.max(0, attempt - 1))
+        );
+        console.warn(
+          `vaporvibe hydrate attempt ${attempt} failed:`,
+          error instanceof Error ? error.message : error
+        );
+        window.setTimeout(() => {
+          void pollForResult(renderUrl, destination, attempt + 1);
+        }, delay);
+        return;
+      }
+      console.error(
+        "vaporvibe hydrate failed, falling back to hard navigation:",
+        error
+      );
+      window.location.href = destination.toString();
+    }
+  }
+
+  function extractRenderLink(header: string | null): string | null {
+    if (!header) return null;
+    const entries = header.split(",");
+    for (const entry of entries) {
+      if (!/rel\s*=\s*"?render"?/i.test(entry)) {
+        continue;
+      }
+      const match = entry.match(/<([^>]+)>/);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+    return null;
+  }
+
+  function prepareHtmlForWrite(html: string, targetHref: string): string {
+    if (!html) return html;
+    const normalizedTarget = normalizeNavigationTarget(targetHref);
+    let prepared = html.replace(
+      /\bconst\s+stateComment\b/g,
+      "var stateComment"
+    );
+    if (normalizedTarget && normalizedTarget.trim().length > 0) {
+      prepared = injectHistoryRestoreSnippet(prepared, normalizedTarget);
+    }
+    return prepared;
+  }
+
+  function normalizeNavigationTarget(targetHref: string): string {
+    if (!targetHref) return targetHref;
+    try {
+      const parsed = new URL(targetHref, window.location.origin);
+      parsed.hash = "";
+      return parsed.toString();
+    } catch {
+      return targetHref;
+    }
+  }
+
+  function injectHistoryRestoreSnippet(
+    html: string,
+    targetHref: string
+  ): string {
+    const snippet = [
+      "<script>",
+      "(function(){",
+      "  try {",
+      `    var nextUrl = ${JSON.stringify(targetHref)};`,
+      '    var currentUrl = String(window.location && window.location.href ? window.location.href : "");',
+      '    if (nextUrl && currentUrl.indexOf("blob:") === 0 && typeof history.replaceState === "function") {',
+      '      history.replaceState(null, "", nextUrl);',
+      "    }",
+      "  } catch (error) {",
+      '    console.warn("vaporvibe interceptor: unable to restore browser URL", error);',
+      "  }",
+      "})();",
+      "</script>",
+    ].join("\n");
+
+    const headMatch = html.match(/<head[^>]*>/i);
+    if (headMatch && headMatch.index !== undefined) {
+      const insertAt = headMatch.index + headMatch[0].length;
+      return html.slice(0, insertAt) + snippet + html.slice(insertAt);
+    }
+
+    return snippet + html;
+  }
+
+  function waitForServiceWorkerController(timeoutMs = 3000): Promise<boolean> {
+    if (!("serviceWorker" in navigator)) {
+      return Promise.resolve(false);
+    }
+    if (navigator.serviceWorker.controller) {
+      return Promise.resolve(true);
+    }
+    return new Promise((resolve) => {
+      let settled = false;
+      const cleanup = (): void => {
+        navigator.serviceWorker.removeEventListener(
+          "controllerchange",
+          onChange
+        );
+        if (timeoutId !== null) {
+          window.clearTimeout(timeoutId);
+        }
+      };
+      const onChange = (): void => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(true);
+      };
+      const timeoutId = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        resolve(Boolean(navigator.serviceWorker.controller));
+      }, timeoutMs);
+      navigator.serviceWorker.addEventListener("controllerchange", onChange, {
+        once: true,
+      });
+    });
+  }
+
+  function ensureNavigationServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+    if (!("serviceWorker" in navigator)) {
+      return Promise.resolve(null);
+    }
+    if (navigationSwRegistrationPromise) {
+      return navigationSwRegistrationPromise;
+    }
+    navigationSwRegistrationPromise = (async () => {
+      try {
+        const registration = await navigator.serviceWorker.register(
+          NAVIGATION_SERVICE_WORKER_SCRIPT,
+          { scope: "/" }
+        );
+        try {
+          await navigator.serviceWorker.ready;
+        } catch {
+          // ignore readiness failures
+        }
+        await waitForServiceWorkerController(5000);
+        return registration;
+      } catch (error) {
+        console.warn(
+          "vaporvibe interceptor: service worker registration failed",
+          error
+        );
+        return null;
+      }
+    })();
+    return navigationSwRegistrationPromise;
+  }
+
+  function postMessageToServiceWorker<T>(
+    payload: unknown,
+    timeoutMs = 5000
+  ): Promise<T | null> {
+    if (
+      !("serviceWorker" in navigator) ||
+      typeof MessageChannel === "undefined"
+    ) {
+      return Promise.resolve(null);
+    }
+    const controller = navigator.serviceWorker.controller;
+    if (!controller) {
+      return Promise.resolve(null);
+    }
+    return new Promise((resolve) => {
+      const channel = new MessageChannel();
+      let settled = false;
+      const finalize = (value: T | null): void => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        channel.port1.onmessage = null;
+        resolve(value);
+      };
+      const timer = window.setTimeout(() => {
+        finalize(null);
+      }, timeoutMs);
+      channel.port1.onmessage = (event) => {
+        finalize((event.data ?? null) as T | null);
+      };
+      try {
+        controller.postMessage(payload, [channel.port2]);
+      } catch (error) {
+        console.warn(
+          "vaporvibe interceptor: failed to message service worker",
+          error
+        );
+        finalize(null);
+      }
+    });
+  }
+
+  async function tryRenderViaServiceWorker(
+    html: string,
+    targetHref: string
+  ): Promise<boolean> {
+    if (!("serviceWorker" in navigator)) {
+      return false;
+    }
+    const registration = await ensureNavigationServiceWorker();
+    if (!registration) {
+      return false;
+    }
+    const controllerReady = await waitForServiceWorkerController(3000);
+    if (!controllerReady || !navigator.serviceWorker.controller) {
+      return false;
+    }
+    const normalizedTarget = normalizeNavigationTarget(targetHref);
+    if (!normalizedTarget) {
+      return false;
+    }
+    const ack = await postMessageToServiceWorker<{ ok?: boolean }>({
+      type: NAVIGATION_CACHE_MESSAGE_TYPE,
+      targetUrl: normalizedTarget,
+      html,
+    });
+    if (!ack || ack.ok !== true) {
+      return false;
+    }
+    try {
+      window.location.replace(normalizedTarget);
+      return true;
+    } catch (error) {
+      console.warn(
+        "vaporvibe interceptor: failed to navigate via service worker",
+        error
+      );
+      return false;
+    }
+  }
+
+  async function replaceDocumentWithHtml(
+    html: string,
+    targetHref: string
+  ): Promise<void> {
+    const htmlToWrite = prepareHtmlForWrite(html, targetHref);
+    globalScope.vaporVibeInterceptorAttached = false;
+    const rendered = await tryRenderViaServiceWorker(htmlToWrite, targetHref);
+    if (rendered) {
+      return;
+    }
+    document.open("text/html", "replace");
+    document.write(htmlToWrite);
+    document.close();
+    reinitializeAfterDocumentWrite();
+  }
+
+  function reinitializeAfterDocumentWrite(): void {
+    statusTargets.length = 0;
+    displays.length = 0;
+    statusRegistry = new WeakSet<HTMLElement>();
+    logRegistry = new WeakSet<HTMLElement>();
+    discoverStatusTargets(document);
+    discoverDisplays(document);
+    attachGlobalListeners();
+    hijackExistingForms();
+    window.setTimeout(() => {
+      try {
+        window.dispatchEvent(new CustomEvent("vaporvibe:instructions-refresh"));
+      } catch {
+        // ignore notification failures
+      }
+      try {
+        hijackExistingForms();
+      } catch {
+        // ignore secondary hijack failures
+      }
+    }, 0);
+  }
+
+  async function performRequest(
+    destination: URL,
+    method: string,
+    body?: FormData | URLSearchParams
+  ): Promise<void> {
+    const upperMethod = method.toUpperCase();
+    const init: RequestInit = {
+      method: upperMethod,
+      credentials: "same-origin",
+      headers: {
+        "X-VaporVibe-Request": "interceptor",
+        Accept: "text/html",
+      },
+    };
+    if (upperMethod !== "GET" && upperMethod !== "HEAD" && body) {
+      if (body instanceof URLSearchParams) {
+        init.body = body;
+        init.headers = {
+          ...init.headers,
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        };
+      } else {
+        init.body = body;
+      }
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(destination.toString(), init);
+    } catch (error) {
+      console.error("vaporvibe navigation failed:", error);
+      window.location.href = destination.href;
+      return;
+    }
+
+    if (response.redirected) {
+      window.location.href = response.url;
+      return;
+    }
+
+    if (response.status >= 300 && response.status < 400) {
+      const locationHeader = response.headers.get("Location");
+      if (locationHeader) {
+        const redirectUrl = new URL(locationHeader, window.location.href);
+        window.location.href = redirectUrl.toString();
+        return;
+      }
+    }
+
+    const reasoningToken = response.headers.get("x-vaporvibe-reasoning");
+    if (reasoningToken) {
+      connectToReasoningStream(
+        reasoningToken,
+        LLM_REASONING_STREAM_ROUTE_PREFIX
+      );
+    }
+
+    const renderLink = extractRenderLink(response.headers.get("Link"));
+    if (renderLink) {
+      const renderUrl = new URL(renderLink, window.location.origin);
+      void pollForResult(renderUrl, destination, 1);
+      return;
+    }
+
+    if (response.status >= 400) {
+      const errorHtml = await response.text();
+      await replaceDocumentWithHtml(errorHtml, destination.href);
+      return;
+    }
+
+    const html = await response.text();
+    if (html && html.trim().length > 0) {
+      await replaceDocumentWithHtml(html, destination.href);
+      return;
+    }
+
+    // Fall back to hard navigation if response body is empty.
+    window.location.href = destination.toString();
   }
 
   const overlayEffectsConfig: NavigationOverlayEffect[] = [
@@ -127,16 +730,27 @@ import {
     "      </div>",
   ].join("\n");
 
+  const DEFAULT_STATUS_MESSAGE = "Summoning your adaptive canvas…";
   const DEFAULT_HINT =
     "Hold tight—we ask your configured model to compose a fresh canvas.";
   const DEMOSCENE_EFFECT_ID = "ansi-demoscene";
   const demosceneMelodyPattern = [330, 392, 415, 440, 494, 523, 494, 440];
   const demosceneBassPattern = [110, 147, 123, 98];
+  const LLM_REASONING_STREAM_ROUTE_PREFIX = "/__vaporvibe/reasoning";
+  const HYDRATE_MAX_ATTEMPTS = 15;
+  const HYDRATE_RETRY_DELAY_MS = 2000;
   const iframeContext = window.frameElement as HTMLIFrameElement | null;
   const activeBranchId = resolveActiveBranchId({
     href: window.location.href,
     frameBranchAttribute: iframeContext?.getAttribute("data-vaporvibe-branch"),
   });
+  const NAVIGATION_CACHE_MESSAGE_TYPE = "vaporvibe-cache-html";
+  const NAVIGATION_SERVICE_WORKER_SCRIPT = "/vaporvibe-interceptor-sw.js";
+  let navigationSwRegistrationPromise: Promise<ServiceWorkerRegistration | null> | null =
+    null;
+  if ("serviceWorker" in navigator) {
+    void ensureNavigationServiceWorker();
+  }
 
   const navigationOverlayEffectStyles = String.raw`
   .effect-ornament {
@@ -2579,6 +3193,28 @@ import {
     "  .vaporvibe-spinner { width: 72px; height: 72px; border-radius: 50%; border: 6px solid rgba(29, 78, 216, 0.2); border-top-color: var(--accent); animation: vaporvibe-spin 1.1s linear infinite; }",
     "  .vaporvibe-title { font: 600 1.1rem/1.3 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:#0f172a; }",
     "  .vaporvibe-status { font: 400 0.95rem/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: var(--muted); min-height:1.2em; }",
+    "  .reasoning-panel { display: none; width: 100%; text-align: left; background: rgba(15, 23, 42, 0.05); border-radius: 18px; padding: 12px 14px; margin: 12px 0 4px; max-height: clamp(160px, 28vh, 280px); overflow: hidden; }",
+    '  .reasoning-panel[data-active="true"] { display: block; }',
+    "  .reasoning-heading { margin: 0 0 8px; font: 600 0.8rem/1.25 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #1f2937; }",
+    "  .reasoning-log { display: flex; flex-direction: column; gap: 6px; max-height: clamp(140px, 24vh, 260px); scrollbar-width: thin; scrollbar-color: transparent transparent; overflow-y: auto; padding-right: 2px; }",
+    "  .reasoning-log:hover { scrollbar-color: rgba(148, 163, 184, 0.3) transparent; }",
+    "  .reasoning-log::-webkit-scrollbar { width: 5px; }",
+    "  .reasoning-log::-webkit-scrollbar-track { background: transparent; }",
+    "  .reasoning-log::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 20px; border: 2px solid transparent; background-clip: content-box; }",
+    "  .reasoning-log:hover::-webkit-scrollbar-thumb { background-color: rgba(148, 163, 184, 0.3); }",
+    "  .reasoning-log::-webkit-scrollbar-thumb:hover { background-color: rgba(148, 163, 184, 0.5); }",
+    "  .reasoning-entry { font: 0.78rem/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #1f2937; padding: 9px 11px; border-radius: 12px; white-space: normal; }",
+    "  .reasoning-entry.reasoning-summary { border-left: 3px solid #1d4ed8; background: rgba(255,255,255,0.45); font-weight: 600; color: #0f172a; font-size: 0.8rem; }",
+    "  .reasoning-entry.reasoning-final { border-left: 3px solid rgba(37, 99, 235, 0.5); }",
+    "  .reasoning-entry.reasoning-live { opacity: 0.9; }",
+    "  .reasoning-entry.reasoning-markdown { display: block; }",
+    "  .reasoning-entry.reasoning-markdown h1, .reasoning-entry.reasoning-markdown h2, .reasoning-entry.reasoning-markdown h3, .reasoning-entry.reasoning-markdown h4 { margin: 0 0 0.35em; font-size: 0.85rem; font-weight: 700; color: #0f172a; }",
+    "  .reasoning-entry.reasoning-markdown p { margin: 0 0 0.45em; }",
+    "  .reasoning-entry.reasoning-markdown ul, .reasoning-entry.reasoning-markdown ol { margin: 0 0 0.45em 1em; padding: 0; }",
+    '  .reasoning-entry.reasoning-markdown code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.78em; background: rgba(148, 163, 184, 0.22); padding: 2px 4px; border-radius: 6px; }',
+    "  .reasoning-entry.reasoning-markdown pre { margin: 0 0 0.45em; background: rgba(15, 23, 42, 0.85); color: #e2e8f0; padding: 10px 12px; border-radius: 10px; overflow-x: auto; font-size: 0.78rem; line-height: 1.35; }",
+    "  .reasoning-entry.reasoning-markdown a { color: #1d4ed8; text-decoration: none; }",
+    "  .reasoning-entry.reasoning-markdown a:hover, .reasoning-entry.reasoning-markdown a:focus { text-decoration: underline; }",
     "  .vaporvibe-hint { font: 400 0.9rem/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: var(--subtle); }",
     "  .vaporvibe-sidekick { display: none; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 14px; border-radius: 18px; background: rgba(15, 23, 42, 0.04); border: 1px solid rgba(148, 163, 184, 0.35); color: #1e293b; font-size: 0.88rem; line-height: 1.4; }",
     "  .vaporvibe-sidekick p { margin: 0; }",
@@ -2618,8 +3254,12 @@ import {
     '  <div class="vaporvibe-stage">',
     '    <div class="vaporvibe-pulse"><div class="vaporvibe-spinner" role="status" aria-live="polite" aria-label="Generating the next view"></div></div>',
     '    <div class="vaporvibe-title">Generating your next view</div>',
-    '    <div class="vaporvibe-status" data-vaporvibe-status></div>',
+    '    <div class="vaporvibe-status" data-vaporvibe-status data-status></div>',
     `    <div class="vaporvibe-hint" data-vaporvibe-hint>${DEFAULT_HINT}</div>`,
+    '    <section class="reasoning-panel" data-reasoning-panel aria-live="polite" aria-label="Model reasoning updates">',
+    '      <div class="reasoning-heading">Model is thinking…</div>',
+    '      <div class="reasoning-log" data-reasoning-log></div>',
+    "    </section>",
     '    <div class="vaporvibe-sidekick" aria-hidden="true">',
     '      <div class="possum">',
     '        <div class="possum-ear left"></div>',
@@ -2703,7 +3343,7 @@ import {
     '            <div class="existential-bridge" data-next="→ rationale"><p>Button?</p><span class="existential-aside">Is it even a button if vibes define affordance?</span></div>',
     '            <div class="existential-bridge" data-next="→ metaphysics"><p>Clickable surface</p><span class="existential-aside">Merely a suggestion of interaction.</span></div>',
     '            <div class="existential-bridge" data-next="→ reality check"><p>Affordance illusion</p><span class="existential-aside">Icon? Gradient? Quantum call-to-action?</span></div>',
-    '          </div>',
+    "          </div>",
     '          <div class="existential-thoughts" data-existential-thoughts><span>"Does the user *really* want a dropdown here?"</span><span>"What if the button is actually a feeling?"</span></div>',
     "        </div>",
     "      </div>",
@@ -2714,7 +3354,7 @@ import {
     '            <path class="patience-path patience-path--complexity" data-patience-path="complexity" d="M6 58 L46 54 L86 46 L126 34 L166 22 L194 14" />',
     '            <circle class="patience-marker patience-marker--patience" data-patience-marker="patience" cx="166" cy="52" r="5" />',
     '            <circle class="patience-marker patience-marker--complexity" data-patience-marker="complexity" cx="166" cy="22" r="5" />',
-    '          </svg>',
+    "          </svg>",
     '          <div class="patience-alert" data-patience-alert><span aria-hidden="true">⚠️</span><span>Lines converging! Deploy delightful copy.</span></div>',
     '          <div class="patience-label patience-label--x">Time elapsed (eternity)</div>',
     '          <div class="patience-label patience-label--y">Hallucination vibes</div>',
@@ -2739,16 +3379,83 @@ import {
   ].join("\n");
 
   const tokenTickerPrimaryPhrases = [
-    ["token", "stream", "synth", "prompt", "delight", "render", "vibe", "debug", "remix"],
-    ["neuron", "flash", "canvas", "layout", "cascade", "portal", "accent", "loop", "spark"],
-    ["semantic", "slot", "aria", "focus", "intent", "gesture", "context", "ux", "magic"],
-    ["prompt", "polish", "hydrate", "compose", "refine", "ship", "iterate", "celebrate", "repeat"],
+    [
+      "token",
+      "stream",
+      "synth",
+      "prompt",
+      "delight",
+      "render",
+      "vibe",
+      "debug",
+      "remix",
+    ],
+    [
+      "neuron",
+      "flash",
+      "canvas",
+      "layout",
+      "cascade",
+      "portal",
+      "accent",
+      "loop",
+      "spark",
+    ],
+    [
+      "semantic",
+      "slot",
+      "aria",
+      "focus",
+      "intent",
+      "gesture",
+      "context",
+      "ux",
+      "magic",
+    ],
+    [
+      "prompt",
+      "polish",
+      "hydrate",
+      "compose",
+      "refine",
+      "ship",
+      "iterate",
+      "celebrate",
+      "repeat",
+    ],
   ];
 
   const tokenTickerSecondaryPhrases = [
-    ["gradient", "carousel", "modal", "breadcrumb", "shimmer", "tooltip", "timeline", "sparkline"],
-    ["dropdown", "spline", "toast", "badge", "slider", "checkbox", "stepper", "accordion"],
-    ["css", "grid", "flex", "shadow", "bezier", "motion", "blend", "neumorphic"],
+    [
+      "gradient",
+      "carousel",
+      "modal",
+      "breadcrumb",
+      "shimmer",
+      "tooltip",
+      "timeline",
+      "sparkline",
+    ],
+    [
+      "dropdown",
+      "spline",
+      "toast",
+      "badge",
+      "slider",
+      "checkbox",
+      "stepper",
+      "accordion",
+    ],
+    [
+      "css",
+      "grid",
+      "flex",
+      "shadow",
+      "bezier",
+      "motion",
+      "blend",
+      "neumorphic",
+    ],
   ];
 
   const tokenTickerCameos = [
@@ -2785,30 +3492,9 @@ import {
   ];
 
   const uiRouletteColumns: string[][] = [
-    [
-      "Button",
-      "Dropdown",
-      "Slider",
-      "Modal",
-      "Checkbox",
-      "Pill",
-    ],
-    [
-      "Tooltip",
-      "Accordion",
-      "Calendar",
-      "Stepper",
-      "Hero",
-      "Snackbar",
-    ],
-    [
-      "Navbar",
-      "Card",
-      "Chip",
-      "Toast",
-      "Form",
-      "Spinner",
-    ],
+    ["Button", "Dropdown", "Slider", "Modal", "Checkbox", "Pill"],
+    ["Tooltip", "Accordion", "Calendar", "Stepper", "Hero", "Snackbar"],
+    ["Navbar", "Card", "Chip", "Toast", "Form", "Spinner"],
   ];
 
   const uiRouletteOddities = [
@@ -2820,19 +3506,19 @@ import {
 
   const promptPolishDrafts: [string, string, string][] = [
     [
-      'Brief: Compose a breezy productivity hub for remote rituals.',
+      "Brief: Compose a breezy productivity hub for remote rituals.",
       'Tone: <span class="prompt-strike">Make it skeuomorphic</span> <span class="prompt-insert">Switch to shimmering glassmorphism</span>.',
       '<span class="prompt-annotation">Focus:</span> playful charts · async rituals · empathetic nudges.',
     ],
     [
-      'Brief: Build a joyful data cockpit for founders-on-the-go.',
+      "Brief: Build a joyful data cockpit for founders-on-the-go.",
       'Visuals: gradients, glass, <span class="prompt-highlight">optimistic microcopy</span>.',
-      'Stretch: inline celebrations + helpful empty states.',
+      "Stretch: inline celebrations + helpful empty states.",
     ],
     [
-      'Brief: Craft a modern co-creation studio with real-time vibes.',
+      "Brief: Craft a modern co-creation studio with real-time vibes.",
       'Tone: <span class="prompt-insert">Confident, witty, but deeply accessible.</span>',
-      'Focus: multiplayer cursors · mood toggles · gentle guardrails.',
+      "Focus: multiplayer cursors · mood toggles · gentle guardrails.",
     ],
   ];
 
@@ -2853,7 +3539,7 @@ import {
       "DESIGN MEMORY: CARD CONSTELLATION",
     ],
     cardUi: [
-      "Wireframe echoes: nav pill · floating CTA · <span class=\"prompt-highlight\">ambient blur</span>",
+      'Wireframe echoes: nav pill · floating CTA · <span class="prompt-highlight">ambient blur</span>',
       "Moodboard murmur: holo forms · breathing gradients · playful badges",
       "UX deja vu: lazy susan tabs · optimistic stats · micro confetti",
     ],
@@ -2865,9 +3551,9 @@ import {
   } as const;
 
   const existentialThoughts = [
-    '“Does the user *really* want a dropdown here?”',
-    '“What if the button is actually a feeling?”',
-    '“Is accessibility the highest form of vibe?”',
+    "“Does the user *really* want a dropdown here?”",
+    "“What if the button is actually a feeling?”",
+    "“Is accessibility the highest form of vibe?”",
   ];
 
   const patienceAlertMessages = [
@@ -2935,8 +3621,8 @@ import {
   const statusMessages: StatusMessage[] = (() => {
     const provided = Array.isArray(globalScope.__vaporVibeStatusMessages)
       ? (globalScope.__vaporVibeStatusMessages as unknown[]).filter(
-          (item): item is StatusMessage => isStatusMessage(item)
-        )
+        (item): item is StatusMessage => isStatusMessage(item)
+      )
       : [];
     return provided.length > 0 ? provided : [];
   })();
@@ -2973,6 +3659,8 @@ import {
     currentScript.id = interceptorScriptId;
   }
 
+  const OVERLAY_SCROLL_TOLERANCE = 28;
+  const REASONING_STATUS_MESSAGE = "Capturing live model reasoning…";
   let overlay: HTMLElement | null = null;
   let overlayMotionNode: HTMLElement | null = null;
   let currentOverlayEffect: string | null = null;
@@ -2984,7 +3672,7 @@ import {
   let overlayStatusInterval: number | null = null;
   const hasDemosceneAudioSupport = Boolean(
     window.AudioContext ||
-      (window as WindowWithWebkitAudioContext).webkitAudioContext
+    (window as WindowWithWebkitAudioContext).webkitAudioContext
   );
   let demosceneAudioContext: AudioContext | null = null;
   let demosceneGainNode: GainNode | null = null;
@@ -3005,6 +3693,635 @@ import {
   let patienceAlertTimer: number | null = null;
   let patienceAlertDelay: number | null = null;
   let existentialQuoteTimer: number | null = null;
+  let overlayStatusLocked = false;
+  let overlayAutoScroll = true;
+  let reasoningActive = false;
+  let suspendedEffectId: string | null = null;
+  let lastBaseStatusMessage = DEFAULT_STATUS_MESSAGE;
+  const statusTargets: HTMLElement[] = [];
+  let statusRegistry = new WeakSet<HTMLElement>();
+
+  interface OverlayDisplayRecord {
+    panel: Element;
+    log: HTMLElement;
+    entry: HTMLElement | null;
+    autoScroll: boolean;
+    userScrolled: boolean;
+  };
+
+  const displays: OverlayDisplayRecord[] = [];
+  let logRegistry = new WeakSet<HTMLElement>();
+
+  const SUMMARY_ENTRY_LIMIT = 3;
+  const READING_CHARS_PER_SECOND = 160;
+  const REASONING_SCROLL_TOLERANCE = 28;
+
+  type ReasoningLogSnapshot = {
+    streaming: boolean;
+    live: string;
+    final: string;
+    summaryPreview: string;
+    summaries: string[];
+    hasContent: boolean;
+  };
+
+  interface StreamState {
+    finalized: boolean;
+    liveBuffer: string;
+    finalText: string;
+    summaryBuffer: string;
+    summaryEntries: string[];
+  }
+
+  const streamState: StreamState = {
+    finalized: false,
+    liveBuffer: "",
+    finalText: "",
+    summaryBuffer: "",
+    summaryEntries: [],
+  };
+
+  interface AnimationState {
+    displayed: string;
+    target: string;
+    queue: string;
+    rafId: number | null;
+    lastTimestamp: number;
+    charAccumulator: number;
+    latestSnapshot: ReasoningLogSnapshot | null;
+  }
+
+  const animationState: AnimationState = {
+    displayed: "",
+    target: "",
+    queue: "",
+    rafId: null,
+    lastTimestamp: 0,
+    charAccumulator: 0,
+    latestSnapshot: null,
+  };
+
+  let latestSnapshot: ReasoningLogSnapshot | null = null;
+  let hasStreamingUpdates = false;
+  let observer: MutationObserver | null = null;
+  let activeReasoningSource: EventSource | null = null;
+  let documentListenersAttached = false;
+  let windowListenersAttached = false;
+
+  function sanitizeText(value: unknown): string {
+    return typeof value === "string" ? value.replace(/\r/g, "") : "";
+  }
+
+  function appendToBuffer(buffer: string, text: string): string {
+    const sanitized = sanitizeText(text);
+    if (!sanitized) return buffer;
+    return buffer ? buffer + sanitized : sanitized;
+  }
+
+  function registerStatusTarget(node: Element | Document): void {
+    if (!node || !(node as Element).hasAttribute) return;
+    const element = node as Element;
+    if (element.hasAttribute("data-status")) {
+      if (!statusRegistry.has(element as HTMLElement)) {
+        statusRegistry.add(element as HTMLElement);
+        statusTargets.push(element as HTMLElement);
+      }
+    }
+  }
+
+  function discoverStatusTargets(
+    root: ParentNode | Document | Element | null
+  ): void {
+    if (!root) return;
+    if (root instanceof Element || root instanceof Document) {
+      registerStatusTarget(root);
+      const candidates = root.querySelectorAll?.("[data-status]") ?? [];
+      candidates.forEach((candidate) => {
+        if (!statusRegistry.has(candidate as HTMLElement)) {
+          statusRegistry.add(candidate as HTMLElement);
+          statusTargets.push(candidate as HTMLElement);
+        }
+      });
+    }
+  }
+
+  function dispatchGlobalEvent(name: string, detail?: unknown): void {
+    try {
+      window.dispatchEvent(new CustomEvent(name, { detail }));
+    } catch {
+      // ignore
+    }
+    if (window.parent && window.parent !== window) {
+      try {
+        window.parent.dispatchEvent(new CustomEvent(name, { detail }));
+      } catch {
+        // ignore cross-window dispatch failures
+      }
+    }
+    if (window.top && window.top !== window && window.top !== window.parent) {
+      try {
+        window.top.dispatchEvent(new CustomEvent(name, { detail }));
+      } catch {
+        // ignore top-level dispatch failures
+      }
+    }
+  }
+
+  function broadcastStatus(message: string, lock?: boolean): void {
+    if (!message) return;
+    for (let index = statusTargets.length - 1; index >= 0; index -= 1) {
+      const node = statusTargets[index];
+      if (!node || !node.isConnected) {
+        statusTargets.splice(index, 1);
+        continue;
+      }
+      node.textContent = message;
+    }
+    dispatchGlobalEvent("vaporvibe:reasoning-status", {
+      message,
+      lock: Boolean(lock),
+    });
+  }
+
+  function registerDisplay(log: HTMLElement): void {
+    if (!log || logRegistry.has(log)) return;
+    const panel = log.closest<HTMLElement>("[data-reasoning-panel]");
+    if (!panel) return;
+    logRegistry.add(log);
+    const record: OverlayDisplayRecord = {
+      panel,
+      log,
+      entry: null,
+      autoScroll: true,
+      userScrolled: false,
+    };
+    attachScrollHandler(record);
+    displays.push(record);
+  }
+
+  function discoverDisplays(
+    root: ParentNode | Document | Element | null
+  ): void {
+    if (!root) return;
+    const elements: Element[] = [];
+    if (root instanceof Element || root instanceof Document) {
+      const candidate =
+        root instanceof Element && root.matches("[data-reasoning-log]")
+          ? (root as Element)
+          : null;
+      if (candidate) {
+        elements.push(candidate);
+      }
+      root.querySelectorAll?.("[data-reasoning-log]")?.forEach((node) => {
+        elements.push(node);
+      });
+    }
+    elements.forEach((element) => {
+      registerDisplay(element as HTMLElement);
+    });
+    discoverStatusTargets(root);
+  }
+
+  function isNearBottom(node: HTMLElement): boolean {
+    const distance = node.scrollHeight - (node.scrollTop + node.clientHeight);
+    return distance <= REASONING_SCROLL_TOLERANCE;
+  }
+
+  function attachScrollHandler(record: OverlayDisplayRecord): void {
+    if (!record || !record.log || record.log.dataset.autoscrollAttached === "true") return;
+    record.log.dataset.autoscrollAttached = "true";
+    // Initialize state
+    record.userScrolled = false;
+
+    record.log.addEventListener(
+      "scroll",
+      () => {
+        if (isNearBottom(record.log)) {
+          // User returned to bottom, resume sticky scrolling
+          record.userScrolled = false;
+        } else {
+          // User scrolled up, disable sticky scrolling
+          record.userScrolled = true;
+        }
+      },
+      { passive: true }
+    );
+  }
+
+  function buildSnapshot(): ReasoningLogSnapshot {
+    const streaming = !streamState.finalized;
+    const live = streaming ? sanitizeText(streamState.liveBuffer) : "";
+    const final = streamState.finalized
+      ? sanitizeText(streamState.finalText)
+      : "";
+    const summaryPreview = streaming
+      ? sanitizeText(streamState.summaryBuffer)
+      : "";
+    const summaries = streamState.finalized
+      ? streamState.summaryEntries
+        .map((entry) => sanitizeText(entry))
+        .filter((entry) => entry && entry.trim().length > 0)
+      : [];
+    const hasContent = Boolean(
+      (summaries && summaries.length > 0) ||
+      (summaryPreview && summaryPreview.trim().length > 0) ||
+      (streaming && live && live.trim().length > 0) ||
+      (!streaming && final && final.trim().length > 0)
+    );
+
+    return {
+      streaming,
+      live,
+      final,
+      summaryPreview,
+      summaries,
+      hasContent,
+    };
+  }
+
+  function snapshotToMarkdown(snapshot: ReasoningLogSnapshot | null): string {
+    if (!snapshot || !snapshot.hasContent) return "";
+    const sections: string[] = [];
+    if (snapshot.summaries && snapshot.summaries.length > 0) {
+      if (snapshot.summaries.length > 1) {
+        snapshot.summaries.forEach((summary, index) => {
+          if (!summary) return;
+          sections.push(`#### Summary ${index + 1}`);
+          sections.push(summary);
+        });
+      } else {
+        sections.push("#### Summary");
+        sections.push(snapshot.summaries[0] ?? "");
+      }
+    } else if (snapshot.summaryPreview && snapshot.summaryPreview.trim()) {
+      sections.push("#### Summary (draft)");
+      sections.push(snapshot.summaryPreview);
+    }
+    if (snapshot.streaming && snapshot.live && snapshot.live.trim()) {
+      sections.push("#### Thinking aloud");
+      sections.push(snapshot.live);
+    }
+    if (!snapshot.streaming && snapshot.final && snapshot.final.trim()) {
+      sections.push("#### Final reasoning");
+      sections.push(snapshot.final);
+    }
+    return sections.join("\n\n");
+  }
+
+  function getCommonPrefixLength(a: string, b: string): number {
+    if (!a || !b) return 0;
+    const max = Math.min(a.length, b.length);
+    let index = 0;
+    while (index < max && a.charCodeAt(index) === b.charCodeAt(index)) {
+      index += 1;
+    }
+    return index;
+  }
+
+  function applyRender(
+    markdown: string,
+    snapshot: ReasoningLogSnapshot | null
+  ): void {
+    const html = markdownToHtml(markdown);
+    const hasContent = Boolean(
+      (snapshot && snapshot.hasContent) ||
+      (markdown && markdown.trim().length > 0)
+    );
+
+    for (let i = displays.length - 1; i >= 0; i -= 1) {
+      const display = displays[i];
+      if (
+        !display ||
+        !display.panel ||
+        !display.log ||
+        !display.panel.isConnected ||
+        !display.log.isConnected
+      ) {
+        displays.splice(i, 1);
+        continue;
+      }
+
+      const { panel, log } = display;
+      if (!hasContent) {
+        panel.removeAttribute("data-active");
+        if (display.entry && display.entry.isConnected) {
+          display.entry.innerHTML = "";
+        }
+        display.entry = null;
+        if (log && log.firstChild) {
+          log.innerHTML = "";
+        }
+        // Reset scroll state when clearing content
+        display.userScrolled = false;
+        continue;
+      }
+
+      panel.setAttribute("data-active", "true");
+      let entry = display.entry;
+      if (!entry || !entry.isConnected) {
+        entry = document.createElement("div");
+        entry.className = "reasoning-entry reasoning-markdown";
+        log.innerHTML = "";
+        log.appendChild(entry);
+        display.entry = entry;
+      }
+
+      // Sticky logic: if user hasn't scrolled up, keep pinning to bottom
+      const shouldPin = !display.userScrolled;
+
+      entry.innerHTML = html;
+
+      if (shouldPin) {
+        log.scrollTop = log.scrollHeight;
+      }
+    }
+  }
+
+  function animationStep(timestamp: number): void {
+    if (!animationState.queue || animationState.queue.length === 0) {
+      animationState.rafId = null;
+      animationState.lastTimestamp = 0;
+      animationState.charAccumulator = 0;
+      return;
+    }
+
+    if (!animationState.lastTimestamp) {
+      animationState.lastTimestamp = timestamp;
+    }
+    let delta = timestamp - animationState.lastTimestamp;
+    animationState.lastTimestamp = timestamp;
+    if (delta < 0) delta = 0;
+
+    let rate = READING_CHARS_PER_SECOND;
+    if (
+      animationState.latestSnapshot &&
+      animationState.latestSnapshot.streaming === false
+    ) {
+      rate = READING_CHARS_PER_SECOND * 1.6;
+    }
+
+    animationState.charAccumulator += (delta / 1000) * rate;
+    let count =
+      animationState.charAccumulator >= 1
+        ? Math.floor(animationState.charAccumulator)
+        : 0;
+
+    if (count <= 0) {
+      animationState.rafId = requestAnimationFrame(animationStep);
+      return;
+    }
+    if (count > animationState.queue.length) {
+      count = animationState.queue.length;
+    }
+
+    animationState.displayed += animationState.queue.slice(0, count);
+    animationState.queue = animationState.queue.slice(count);
+    animationState.charAccumulator -= count;
+
+    applyRender(animationState.displayed, animationState.latestSnapshot);
+
+    if (animationState.queue.length > 0) {
+      animationState.rafId = requestAnimationFrame(animationStep);
+    } else {
+      animationState.rafId = null;
+      animationState.lastTimestamp = 0;
+      animationState.charAccumulator = 0;
+    }
+  }
+
+  function scheduleAnimation(snapshot: ReasoningLogSnapshot): void {
+    const markdown = snapshotToMarkdown(snapshot);
+    animationState.latestSnapshot = snapshot;
+    animationState.target = markdown;
+
+    if (!markdown || markdown.length === 0) {
+      animationState.displayed = "";
+      animationState.queue = "";
+      if (animationState.rafId !== null) {
+        cancelAnimationFrame(animationState.rafId);
+        animationState.rafId = null;
+      }
+      animationState.lastTimestamp = 0;
+      animationState.charAccumulator = 0;
+      applyRender("", snapshot);
+      return;
+    }
+
+    const prefixLength = getCommonPrefixLength(
+      animationState.displayed,
+      markdown
+    );
+    animationState.displayed = markdown.slice(0, prefixLength);
+    animationState.queue = markdown.slice(prefixLength);
+
+    applyRender(animationState.displayed, snapshot);
+
+    if (animationState.queue.length > 0 && animationState.rafId === null) {
+      animationState.lastTimestamp = 0;
+      animationState.charAccumulator = 0;
+      animationState.rafId = requestAnimationFrame(animationStep);
+    }
+  }
+
+  function updateDisplays(): void {
+    const snapshot = buildSnapshot();
+    latestSnapshot = snapshot;
+    scheduleAnimation(snapshot);
+    dispatchGlobalEvent("vaporvibe:reasoning-log", snapshot);
+  }
+
+  function markdownToHtml(markdown: string): string {
+    if (!markdown) return "";
+    const sanitized = String(markdown).replace(/\r/g, "");
+    const lines = sanitized.split("\n");
+    const html: string[] = [];
+    let inList = false;
+    let listTag: "ul" | "ol" = "ul";
+    let inCode = false;
+    let codeLines: string[] = [];
+    let paragraphLines: string[] = [];
+
+    const closeList = () => {
+      if (inList) {
+        html.push(`</${listTag}>`);
+        inList = false;
+        listTag = "ul";
+      }
+    };
+
+    const flushParagraph = () => {
+      if (!paragraphLines.length) return;
+      const rendered: string[] = [];
+      paragraphLines.forEach((line) => {
+        if (!line.trim()) return;
+        rendered.push(applyInlineMarkdown(line));
+      });
+      if (rendered.length > 0) {
+        html.push(`<p>${rendered.join("<br>")}</p>`);
+      }
+      paragraphLines = [];
+    };
+
+    const flushCode = () => {
+      if (!inCode) return;
+      html.push(`<pre><code>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+      codeLines = [];
+      inCode = false;
+    };
+
+    for (let index = 0; index < lines.length; index += 1) {
+      const rawLine = lines[index];
+      const line = rawLine ?? "";
+      if (line.trim().length === 0) {
+        if (inCode) {
+          codeLines.push("");
+        } else {
+          flushParagraph();
+          closeList();
+        }
+        continue;
+      }
+
+      if (line.startsWith("```")) {
+        if (inCode) {
+          flushCode();
+          continue;
+        }
+        flushParagraph();
+        closeList();
+        inCode = true;
+        codeLines = [];
+        continue;
+      }
+
+      if (inCode) {
+        codeLines.push(line);
+        continue;
+      }
+
+      const headingMatch = line.match(/^(#{1,4})\s+(.*)$/);
+      if (headingMatch) {
+        flushParagraph();
+        closeList();
+        const level = Math.min(headingMatch[1].length, 4);
+        const headingText = applyInlineMarkdown(headingMatch[2]);
+        html.push(`<h${level}>${headingText}</h${level}>`);
+        continue;
+      }
+
+      if (/^[-*]\s+/.test(line)) {
+        flushParagraph();
+        if (!inList) {
+          html.push("<ul>");
+          inList = true;
+          listTag = "ul";
+        } else if (listTag !== "ul") {
+          closeList();
+          html.push("<ul>");
+          inList = true;
+          listTag = "ul";
+        }
+        const itemText = line.replace(/^[-*]\s+/, "");
+        html.push(`<li>${applyInlineMarkdown(itemText)}</li>`);
+        continue;
+      }
+
+      if (/^\d+\.\s+/.test(line)) {
+        flushParagraph();
+        if (!inList) {
+          html.push("<ol>");
+          inList = true;
+          listTag = "ol";
+        } else if (listTag !== "ol") {
+          closeList();
+          html.push("<ol>");
+          inList = true;
+          listTag = "ol";
+        }
+        const orderedText = line.replace(/^\d+\.\s+/, "");
+        html.push(`<li>${applyInlineMarkdown(orderedText)}</li>`);
+        continue;
+      }
+
+      paragraphLines.push(line);
+    }
+
+    flushParagraph();
+    flushCode();
+    closeList();
+
+    return html.join("");
+  }
+
+  function escapeHtml(value: unknown): string {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function sanitizeUrl(url: unknown): string {
+    if (typeof url !== "string") return "#";
+    const trimmed = url.trim();
+    if (!trimmed) return "#";
+    if (/^(https?:|mailto:|tel:)/i.test(trimmed)) {
+      return trimmed;
+    }
+    return "#";
+  }
+
+  function applyInlineMarkdown(text: string): string {
+    let escaped = escapeHtml(text);
+    escaped = escaped.replace(/`([^`]+)`/g, (_, code) => {
+      return `<code>${code.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code>`;
+    });
+    escaped = escaped.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    escaped = escaped.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+    escaped = escaped.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    escaped = escaped.replace(/_([^_]+)_/g, "<em>$1</em>");
+    escaped = escaped.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, href) => {
+      const safeHref = sanitizeUrl(href);
+      return `<a href="${safeHref}" target="_blank" rel="noreferrer noopener">${label}</a>`;
+    });
+    return escaped;
+  }
+
+  function resetReasoningStreamState(): void {
+    streamState.finalized = false;
+    streamState.liveBuffer = "";
+    streamState.finalText = "";
+    streamState.summaryBuffer = "";
+    streamState.summaryEntries = [];
+    animationState.displayed = "";
+    animationState.target = "";
+    animationState.queue = "";
+    animationState.charAccumulator = 0;
+    animationState.lastTimestamp = 0;
+    if (animationState.rafId !== null) {
+      cancelAnimationFrame(animationState.rafId);
+      animationState.rafId = null;
+    }
+    latestSnapshot = null;
+    updateDisplays();
+  }
+
+  function activateReasoningMode(): void {
+    if (reasoningActive) return;
+    reasoningActive = true;
+    suspendOverlayEffects();
+    discoverDisplays(overlay ?? document);
+    discoverStatusTargets(overlay ?? document);
+    dispatchGlobalEvent("vaporvibe:reasoning-active", { active: true });
+  }
+
+  function deactivateReasoningMode(): void {
+    if (!reasoningActive) return;
+    reasoningActive = false;
+    resumeOverlayEffects();
+    dispatchGlobalEvent("vaporvibe:reasoning-active", { active: false });
+  }
 
   function clearLabSceneTimers(): void {
     const clearTimer = (handle: number | null, fn: typeof clearInterval) => {
@@ -3027,71 +4344,70 @@ import {
     existentialQuoteTimer = clearTimer(existentialQuoteTimer, clearInterval);
 
     const glitch = overlay?.querySelector<HTMLElement>(
-      '[data-token-ticker-glitch]'
+      "[data-token-ticker-glitch]"
     );
-    glitch?.classList.remove('is-visible');
+    glitch?.classList.remove("is-visible");
 
     const tagStage = overlay?.querySelector<HTMLElement>(
-      '[data-tag-improv-stage]'
+      "[data-tag-improv-stage]"
     );
-    if (tagStage) tagStage.innerHTML = '';
+    if (tagStage) tagStage.innerHTML = "";
 
-    overlay
-      ?.querySelectorAll<HTMLElement>('[data-ui-reel]')
-      .forEach((reel) => {
-        reel.classList.remove('is-spinning');
-        reel.innerHTML = '';
-        reel.style.removeProperty('--spin-duration');
-      });
-    const rouletteResult = overlay?.querySelector<HTMLElement>('[data-ui-result]');
+    overlay?.querySelectorAll<HTMLElement>("[data-ui-reel]").forEach((reel) => {
+      reel.classList.remove("is-spinning");
+      reel.innerHTML = "";
+      reel.style.removeProperty("--spin-duration");
+    });
+    const rouletteResult =
+      overlay?.querySelector<HTMLElement>("[data-ui-result]");
     if (rouletteResult) {
-      rouletteResult.textContent = 'Spinning delightful chaos…';
+      rouletteResult.textContent = "Spinning delightful chaos…";
     }
 
     overlay
-      ?.querySelectorAll<HTMLElement>('[data-prompt-lines] .prompt-polish-line')
+      ?.querySelectorAll<HTMLElement>("[data-prompt-lines] .prompt-polish-line")
       .forEach((line) => {
-        line.classList.remove('is-visible');
-        line.textContent = '';
+        line.classList.remove("is-visible");
+        line.textContent = "";
       });
 
     const existentialScene = overlay?.querySelector<HTMLElement>(
-      '[data-existential-scene]'
+      "[data-existential-scene]"
     );
-    existentialScene?.classList.remove('is-questioning');
-    const pulse = overlay?.querySelector<HTMLElement>('.vaporvibe-pulse');
-    pulse?.classList.remove('is-pondering');
+    existentialScene?.classList.remove("is-questioning");
+    const pulse = overlay?.querySelector<HTMLElement>(".vaporvibe-pulse");
+    pulse?.classList.remove("is-pondering");
 
     const thoughtsNode = overlay?.querySelector<HTMLElement>(
-      '[data-existential-thoughts]'
+      "[data-existential-thoughts]"
     );
     if (thoughtsNode) {
       thoughtsNode.innerHTML = `<span>${existentialThoughts[0]}</span>`;
     }
 
     const alertNode = overlay?.querySelector<HTMLElement>(
-      '[data-patience-alert]'
+      "[data-patience-alert]"
     );
-    alertNode?.classList.remove('is-visible');
+    alertNode?.classList.remove("is-visible");
   }
 
   function setupTokenTickerScene(): void {
-    const ticker = overlay?.querySelector<HTMLElement>('[data-token-ticker]');
+    const ticker = overlay?.querySelector<HTMLElement>("[data-token-ticker]");
     if (!ticker) return;
     const streams = Array.from(
-      ticker.querySelectorAll<HTMLElement>('[data-token-ticker-stream]')
+      ticker.querySelectorAll<HTMLElement>("[data-token-ticker-stream]")
     );
     if (!streams.length) return;
 
-    const assignStream = (
-      stream: HTMLElement,
-      source: readonly string[][]
-    ) => {
+    const assignStream = (stream: HTMLElement, source: readonly string[][]) => {
       const phrases = shuffle(randomFrom(source));
-      const doubled = [...phrases, ...phrases.slice(0, Math.max(phrases.length - 3, 1))];
-      stream.textContent = `${doubled.join(' · ')} · `;
+      const doubled = [
+        ...phrases,
+        ...phrases.slice(0, Math.max(phrases.length - 3, 1)),
+      ];
+      stream.textContent = `${doubled.join(" · ")} · `;
       stream.style.setProperty(
-        '--ticker-duration',
+        "--ticker-duration",
         `${(12 + Math.random() * 6).toFixed(2)}s`
       );
     };
@@ -3105,14 +4421,14 @@ import {
     tokenTickerStreamTimer = window.setInterval(refreshStreams, 5400);
 
     const glitchNode = ticker.querySelector<HTMLElement>(
-      '[data-token-ticker-glitch]'
+      "[data-token-ticker-glitch]"
     );
     if (glitchNode) {
       const triggerGlitch = () => {
         glitchNode.textContent = randomFrom(tokenTickerCameos);
-        glitchNode.classList.remove('is-visible');
+        glitchNode.classList.remove("is-visible");
         void glitchNode.offsetWidth;
-        glitchNode.classList.add('is-visible');
+        glitchNode.classList.add("is-visible");
       };
       triggerGlitch();
       tokenTickerGlitchTimer = window.setInterval(triggerGlitch, 6800);
@@ -3120,17 +4436,19 @@ import {
   }
 
   function setupTagImprovScene(): void {
-    const stage = overlay?.querySelector<HTMLElement>('[data-tag-improv-stage]');
+    const stage = overlay?.querySelector<HTMLElement>(
+      "[data-tag-improv-stage]"
+    );
     if (!stage) return;
-    stage.innerHTML = '';
+    stage.innerHTML = "";
     const tags: HTMLElement[] = [];
     const queue = shuffle(tagImprovTagPool);
     const total = 6;
 
     const ensureShadow = (tag: HTMLElement) => {
-      if (!tag.querySelector('.tag-improv-shadow')) {
-        const shadow = document.createElement('span');
-        shadow.className = 'tag-improv-shadow';
+      if (!tag.querySelector(".tag-improv-shadow")) {
+        const shadow = document.createElement("span");
+        shadow.className = "tag-improv-shadow";
         tag.appendChild(shadow);
       }
     };
@@ -3142,13 +4460,19 @@ import {
       tag.style.top = `${y}%`;
       tag.dataset.x = x.toFixed(1);
       tag.dataset.y = y.toFixed(1);
-      tag.style.setProperty('--tag-tilt', `${(Math.random() * 8 - 4).toFixed(1)}deg`);
-      tag.style.setProperty('--float-duration', `${(6 + Math.random() * 4).toFixed(1)}s`);
+      tag.style.setProperty(
+        "--tag-tilt",
+        `${(Math.random() * 8 - 4).toFixed(1)}deg`
+      );
+      tag.style.setProperty(
+        "--float-duration",
+        `${(6 + Math.random() * 4).toFixed(1)}s`
+      );
     };
 
     for (let index = 0; index < total; index += 1) {
-      const tagNode = document.createElement('div');
-      tagNode.className = 'tag-improv-floating';
+      const tagNode = document.createElement("div");
+      tagNode.className = "tag-improv-floating";
       const label = queue[index % queue.length];
       tagNode.appendChild(document.createTextNode(label));
       ensureShadow(tagNode);
@@ -3170,27 +4494,31 @@ import {
 
     const assignBubbles = () => {
       tags.forEach((tag) => {
-        const bubble = tag.querySelector('.tag-improv-bubble');
+        const bubble = tag.querySelector(".tag-improv-bubble");
         if (bubble) bubble.remove();
-        tag.classList.remove('has-bubble', 'bubble-bottom');
+        tag.classList.remove("has-bubble", "bubble-bottom");
       });
 
       shuffle(tags)
         .slice(0, Math.min(2, tags.length))
         .forEach((tag) => {
-          const labelText = (tag.firstChild?.textContent ?? '').trim();
-          const found = tagImprovBubbles.find((bubble) => bubble.tag === labelText);
-          const message = found ? found.line : randomFrom(tagImprovBubbles).line;
-          const bubbleEl = document.createElement('div');
-          bubbleEl.className = 'tag-improv-bubble';
+          const labelText = (tag.firstChild?.textContent ?? "").trim();
+          const found = tagImprovBubbles.find(
+            (bubble) => bubble.tag === labelText
+          );
+          const message = found
+            ? found.line
+            : randomFrom(tagImprovBubbles).line;
+          const bubbleEl = document.createElement("div");
+          bubbleEl.className = "tag-improv-bubble";
           bubbleEl.innerHTML = `<span class="tag-improv-tag">${labelText}</span><span class="tag-improv-line">${message}</span>`;
-          const y = Number(tag.dataset.y ?? '50');
+          const y = Number(tag.dataset.y ?? "50");
           if (y > 55) {
-            tag.classList.add('bubble-bottom');
+            tag.classList.add("bubble-bottom");
           }
           tag.appendChild(bubbleEl);
           requestAnimationFrame(() => {
-            tag.classList.add('has-bubble');
+            tag.classList.add("has-bubble");
           });
         });
     };
@@ -3201,7 +4529,7 @@ import {
         positionTag(tag);
       });
       requestAnimationFrame(() => {
-        tags.forEach((tag) => tag.classList.add('is-visible', 'is-drifting'));
+        tags.forEach((tag) => tag.classList.add("is-visible", "is-drifting"));
       });
       assignBubbles();
     };
@@ -3212,44 +4540,47 @@ import {
   }
 
   function setupUiRouletteScene(): void {
-    const reels = overlay?.querySelectorAll<HTMLElement>('[data-ui-reel]');
+    const reels = overlay?.querySelectorAll<HTMLElement>("[data-ui-reel]");
     if (!reels || reels.length === 0) return;
-    const resultNode = overlay?.querySelector<HTMLElement>('[data-ui-result]');
+    const resultNode = overlay?.querySelector<HTMLElement>("[data-ui-result]");
 
     reels.forEach((reel, columnIndex) => {
-      reel.innerHTML = '';
-      const track = document.createElement('div');
-      track.className = 'ui-roulette-track';
-      const values = shuffle(uiRouletteColumns[columnIndex] ?? uiRouletteColumns[0]);
+      reel.innerHTML = "";
+      const track = document.createElement("div");
+      track.className = "ui-roulette-track";
+      const values = shuffle(
+        uiRouletteColumns[columnIndex] ?? uiRouletteColumns[0]
+      );
       [...values, ...values.slice(0, 2)].forEach((value) => {
-        const slot = document.createElement('span');
+        const slot = document.createElement("span");
         const isBizarre = columnIndex === 1 && Math.random() > 0.75;
-        slot.className = `ui-roulette-slot${isBizarre ? ' is-bizarre' : ''}`;
+        slot.className = `ui-roulette-slot${isBizarre ? " is-bizarre" : ""}`;
         slot.textContent = value;
         track.appendChild(slot);
       });
       reel.appendChild(track);
       const clone = track.cloneNode(true) as HTMLElement;
-      clone.classList.add('ui-roulette-track--clone');
+      clone.classList.add("ui-roulette-track--clone");
       reel.appendChild(clone);
       const duration = 4.2 + columnIndex * 0.45 + Math.random() * 0.6;
-      reel.style.setProperty('--spin-duration', `${duration.toFixed(2)}s`);
+      reel.style.setProperty("--spin-duration", `${duration.toFixed(2)}s`);
       requestAnimationFrame(() => {
-        reel.classList.add('is-spinning');
+        reel.classList.add("is-spinning");
       });
     });
 
     const updateResult = () => {
       const picks = Array.from(reels).map((reel) => {
         const slots = Array.from(
-          reel.querySelectorAll<HTMLElement>('.ui-roulette-slot')
+          reel.querySelectorAll<HTMLElement>(".ui-roulette-slot")
         );
         const slot = slots.length ? randomFrom(slots) : null;
-        return slot?.textContent ?? '';
+        return slot?.textContent ?? "";
       });
-      const oddity = Math.random() > 0.7 ? ` + ${randomFrom(uiRouletteOddities)}` : '';
+      const oddity =
+        Math.random() > 0.7 ? ` + ${randomFrom(uiRouletteOddities)}` : "";
       if (resultNode) {
-        resultNode.innerHTML = `<strong>${picks.join(' • ')}</strong>${oddity}`;
+        resultNode.innerHTML = `<strong>${picks.join(" • ")}</strong>${oddity}`;
       }
     };
 
@@ -3258,10 +4589,12 @@ import {
   }
 
   function setupPromptPolishScene(): void {
-    const linesContainer = overlay?.querySelector<HTMLElement>('[data-prompt-lines]');
+    const linesContainer = overlay?.querySelector<HTMLElement>(
+      "[data-prompt-lines]"
+    );
     if (!linesContainer) return;
     const lines = Array.from(
-      linesContainer.querySelectorAll<HTMLElement>('.prompt-polish-line')
+      linesContainer.querySelectorAll<HTMLElement>(".prompt-polish-line")
     );
     if (!lines.length) return;
     let draftIndex = 0;
@@ -3269,10 +4602,10 @@ import {
     const showDraft = () => {
       const draft = promptPolishDrafts[draftIndex % promptPolishDrafts.length];
       lines.forEach((line, index) => {
-        line.classList.remove('is-visible');
-        line.innerHTML = draft[index] ?? '';
+        line.classList.remove("is-visible");
+        line.innerHTML = draft[index] ?? "";
         setTimeout(() => {
-          line.classList.add('is-visible');
+          line.classList.add("is-visible");
         }, 180 * (index + 1));
       });
       draftIndex = (draftIndex + 1) % promptPolishDrafts.length;
@@ -3283,20 +4616,26 @@ import {
   }
 
   function setupTrainingDreamScene(): void {
-    const dream = overlay?.querySelector<HTMLElement>('[data-training-dream]');
+    const dream = overlay?.querySelector<HTMLElement>("[data-training-dream]");
     if (!dream) return;
 
     const applyDream = () => {
-      const uiEcho = dream.querySelector<HTMLElement>('.dream-echo--ui');
-      const codeEcho = dream.querySelector<HTMLElement>('.dream-echo--code');
-      const patternEcho = dream.querySelector<HTMLElement>('.dream-echo--pattern');
+      const uiEcho = dream.querySelector<HTMLElement>(".dream-echo--ui");
+      const codeEcho = dream.querySelector<HTMLElement>(".dream-echo--code");
+      const patternEcho = dream.querySelector<HTMLElement>(
+        ".dream-echo--pattern"
+      );
       const uiCard = dream.querySelector<HTMLElement>('[data-dream-card="ui"]');
-      const codeCard = dream.querySelector<HTMLElement>('[data-dream-card="code"]');
+      const codeCard = dream.querySelector<HTMLElement>(
+        '[data-dream-card="code"]'
+      );
       if (uiEcho) uiEcho.textContent = randomFrom(trainingDreamEchoes.ui);
       if (codeEcho) codeEcho.textContent = randomFrom(trainingDreamEchoes.code);
-      if (patternEcho) patternEcho.textContent = randomFrom(trainingDreamEchoes.pattern);
+      if (patternEcho)
+        patternEcho.textContent = randomFrom(trainingDreamEchoes.pattern);
       if (uiCard) uiCard.innerHTML = randomFrom(trainingDreamEchoes.cardUi);
-      if (codeCard) codeCard.innerHTML = randomFrom(trainingDreamEchoes.cardCode);
+      if (codeCard)
+        codeCard.innerHTML = randomFrom(trainingDreamEchoes.cardCode);
     };
 
     applyDream();
@@ -3304,43 +4643,51 @@ import {
   }
 
   function setupExistentialScene(): void {
-    const scene = overlay?.querySelector<HTMLElement>('[data-existential-scene]');
+    const scene = overlay?.querySelector<HTMLElement>(
+      "[data-existential-scene]"
+    );
     if (!scene) return;
-    const pulse = overlay?.querySelector<HTMLElement>('.vaporvibe-pulse');
-    const thoughtsNode = scene.querySelector<HTMLElement>('[data-existential-thoughts]');
+    const pulse = overlay?.querySelector<HTMLElement>(".vaporvibe-pulse");
+    const thoughtsNode = scene.querySelector<HTMLElement>(
+      "[data-existential-thoughts]"
+    );
 
     const rotateThought = () => {
       if (thoughtsNode) {
-        thoughtsNode.innerHTML = `<span>${randomFrom(existentialThoughts)}</span>`;
+        thoughtsNode.innerHTML = `<span>${randomFrom(
+          existentialThoughts
+        )}</span>`;
       }
     };
 
     existentialTimer = window.setTimeout(() => {
-      scene.classList.add('is-questioning');
-      pulse?.classList.add('is-pondering');
+      scene.classList.add("is-questioning");
+      pulse?.classList.add("is-pondering");
       rotateThought();
       existentialQuoteTimer = window.setInterval(rotateThought, 5200);
     }, 1600);
   }
 
   function setupPatienceScene(): void {
-    const alertNode = overlay?.querySelector<HTMLElement>('[data-patience-alert]');
+    const alertNode = overlay?.querySelector<HTMLElement>(
+      "[data-patience-alert]"
+    );
     if (!alertNode) return;
-    const messageNode = alertNode.querySelector<HTMLElement>('span:last-child');
+    const messageNode = alertNode.querySelector<HTMLElement>("span:last-child");
 
     overlay
-      ?.querySelectorAll<SVGPathElement>('[data-patience-path]')
+      ?.querySelectorAll<SVGPathElement>("[data-patience-path]")
       .forEach((path) => {
-        path.style.animation = 'none';
+        path.style.animation = "none";
         void path.getTotalLength();
-        path.style.animation = '';
+        path.style.animation = "";
       });
 
     const showAlert = () => {
       if (messageNode) {
         messageNode.textContent = randomFrom(patienceAlertMessages);
       }
-      alertNode.classList.add('is-visible');
+      alertNode.classList.add("is-visible");
     };
 
     patienceAlertDelay = window.setTimeout(() => {
@@ -3352,25 +4699,25 @@ import {
   function activateLabScene(effectId: string): void {
     clearLabSceneTimers();
     switch (effectId) {
-      case 'token-ticker-tangent':
+      case "token-ticker-tangent":
         setupTokenTickerScene();
         break;
-      case 'html-tag-improv':
+      case "html-tag-improv":
         setupTagImprovScene();
         break;
-      case 'ui-element-roulette':
+      case "ui-element-roulette":
         setupUiRouletteScene();
         break;
-      case 'prompt-polish-loop':
+      case "prompt-polish-loop":
         setupPromptPolishScene();
         break;
-      case 'training-data-dream':
+      case "training-data-dream":
         setupTrainingDreamScene();
         break;
-      case 'ai-existential-spinner':
+      case "ai-existential-spinner":
         setupExistentialScene();
         break;
-      case 'user-patience-graph':
+      case "user-patience-graph":
         setupPatienceScene();
         break;
       default:
@@ -3668,6 +5015,22 @@ import {
     syncDemosceneAudioState();
   }
 
+  function suspendOverlayEffects(): void {
+    if (suspendedEffectId !== null) return;
+    suspendedEffectId = currentOverlayEffect;
+    applyOverlayEffectById(null);
+  }
+
+  function resumeOverlayEffects(): void {
+    const targetEffect = suspendedEffectId;
+    suspendedEffectId = null;
+    if (targetEffect) {
+      maybeApplyRandomEffect(targetEffect);
+    } else {
+      maybeApplyRandomEffect(null);
+    }
+  }
+
   function applyOverlayEffectById(effectId: string | null): void {
     if (!overlayEffectsConfig.length || !overlay) return;
 
@@ -3712,6 +5075,10 @@ import {
       applyOverlayEffectById(null);
       return;
     }
+    if (reasoningActive && !forceEffectId) {
+      applyOverlayEffectById(null);
+      return;
+    }
 
     if (forceEffectId) {
       const forced = overlayEffectsConfig.find(
@@ -3733,7 +5100,7 @@ import {
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const candidate =
         overlayEffectsConfig[
-          Math.floor(Math.random() * overlayEffectsConfig.length)
+        Math.floor(Math.random() * overlayEffectsConfig.length)
         ];
       if (
         !candidate ||
@@ -3749,7 +5116,7 @@ import {
     if (!chosen) {
       chosen =
         overlayEffectsConfig[
-          Math.floor(Math.random() * overlayEffectsConfig.length)
+        Math.floor(Math.random() * overlayEffectsConfig.length)
         ];
     }
     applyOverlayEffectById(chosen ? chosen.id : null);
@@ -3798,6 +5165,174 @@ import {
     updateDemosceneUi();
   }
 
+  const onDocumentClick = (event: MouseEvent): void => {
+    if (event.defaultPrevented) return;
+    if (
+      event.button !== 0 ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.altKey ||
+      event.shiftKey
+    )
+      return;
+
+    let node = event.target as Node | null;
+    while (node && node.nodeType !== Node.ELEMENT_NODE) {
+      node = node.parentNode;
+    }
+    const el = node as HTMLElement | null;
+    const anchor = el?.closest<HTMLAnchorElement>("a") ?? null;
+    if (!anchor) return;
+    if (anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+    if (!anchor.href || anchor.href.startsWith("javascript:")) return;
+    if (anchor.origin !== window.location.origin) return;
+
+    try {
+      const parsed = new URL(anchor.href);
+      if (
+        parsed.pathname === window.location.pathname &&
+        parsed.search === window.location.search &&
+        parsed.hash
+      )
+        return;
+
+      if (isRestApiPath(parsed.pathname)) {
+        event.preventDefault();
+        emitRestApiEvent(anchor, { method: "GET", url: parsed.href });
+        return;
+      }
+    } catch {
+      // ignore malformed URLs
+    }
+
+    event.preventDefault();
+    handleRequest(new URL(anchor.href), { method: "GET" });
+  };
+
+  const onDocumentSubmit = (event: SubmitEvent): void => {
+    let node = event.target as Node | null;
+    while (node && node.nodeType !== Node.ELEMENT_NODE) node = node.parentNode;
+    const form =
+      (node as HTMLElement | null)?.closest<HTMLFormElement>("form") ?? null;
+    if (!form || form.target === "_blank") return;
+
+    if (event.defaultPrevented) return;
+
+    const method = (form.getAttribute("method") || "GET").toUpperCase();
+    const destination = new URL(form.action || window.location.href);
+
+    if (isRestApiPath(destination.pathname)) {
+      event.preventDefault();
+      emitRestApiEvent(form, { method, url: destination.href });
+      return;
+    }
+
+    if (method === "GET") {
+      event.preventDefault();
+      showOverlay();
+
+      const url = new URL(destination.toString());
+      try {
+        const submitter = (event as SubmitEvent).submitter as
+          | HTMLButtonElement
+          | HTMLInputElement
+          | null;
+        let formData: FormData;
+        try {
+          formData = submitter
+            ? new FormData(form, submitter)
+            : new FormData(form);
+        } catch {
+          formData = new FormData(form);
+          if (submitter && submitter.name) {
+            formData.append(submitter.name, submitter.value);
+          }
+        }
+        formData.forEach((value, key) => {
+          if (value instanceof File) return;
+          url.searchParams.append(key, String(value));
+        });
+      } catch (error) {
+        console.warn("vaporvibe form encoding failed:", error);
+      }
+      applyBranchToUrl(activeBranchId, url);
+      handleRequest(url, { method: "GET" });
+      return;
+    }
+
+    ensureBranchField(activeBranchId, form, document);
+    const existingMarker = form.querySelector<HTMLInputElement>(
+      'input[name="__vaporvibe"][value="interceptor"]'
+    );
+    if (!existingMarker) {
+      const marker = document.createElement("input");
+      marker.type = "hidden";
+      marker.name = "__vaporvibe";
+      marker.value = "interceptor";
+      form.appendChild(marker);
+    }
+
+    const submitter = (event as SubmitEvent).submitter as
+      | HTMLButtonElement
+      | HTMLInputElement
+      | null;
+
+    let formData: FormData;
+    try {
+      formData = submitter ? new FormData(form, submitter) : new FormData(form);
+    } catch {
+      formData = new FormData(form);
+      if (submitter && submitter.name) {
+        formData.append(submitter.name, submitter.value);
+      }
+    }
+
+    const encoding = (form.getAttribute("enctype") || form.enctype || "")
+      .toLowerCase()
+      .trim();
+    let body: FormData | URLSearchParams;
+    const needsMultipart =
+      encoding === "multipart/form-data" ||
+      Array.from(formData.values()).some((value) => value instanceof File);
+
+    if (needsMultipart) {
+      body = formData;
+    } else {
+      const payload = new URLSearchParams();
+      formData.forEach((value, key) => {
+        payload.append(key, String(value));
+      });
+      body = payload;
+    }
+
+    event.preventDefault();
+    handleRequest(destination, { method, body });
+  };
+
+  function attachGlobalListeners(): void {
+    if (documentListenersAttached) return;
+    document.addEventListener("click", onDocumentClick, true);
+    document.addEventListener("submit", onDocumentSubmit);
+    documentListenersAttached = true;
+  }
+
+  function hijackExistingForms(): void {
+    const forms = document.querySelectorAll<HTMLFormElement>("form");
+    forms.forEach((form) => {
+      ensureBranchField(activeBranchId, form, document);
+      const marker = form.querySelector<HTMLInputElement>(
+        'input[name="__vaporvibe"][value="interceptor"]'
+      );
+      if (!marker) {
+        const hidden = document.createElement("input");
+        hidden.type = "hidden";
+        hidden.name = "__vaporvibe";
+        hidden.value = "interceptor";
+        form.appendChild(hidden);
+      }
+    });
+  }
+
   function shuffleStatuses(messages: StatusMessage[]): StatusMessage[] {
     const scrambled = [...messages];
     for (let i = scrambled.length - 1; i > 0; i -= 1) {
@@ -3818,6 +5353,9 @@ import {
       createOverlay();
     }
     if (!overlay) return;
+
+    discoverStatusTargets(overlay);
+    discoverDisplays(overlay);
 
     overlay.style.pointerEvents = "auto";
     ensureOverlayMotionNode();
@@ -3952,7 +5490,10 @@ import {
     // ignore URL parsing errors
   }
 
-  function handleRequest(url: URL | string, options: { method: string }): void {
+  function handleRequest(
+    url: URL | string,
+    options: { method: string; body?: FormData | URLSearchParams | null }
+  ): void {
     const destination =
       url instanceof URL ? url : new URL(url, window.location.origin);
     applyBranchToUrl(activeBranchId, destination);
@@ -3973,138 +5514,30 @@ import {
     }
 
     showOverlay();
-    try {
-      const nav = addBypassParam(destination);
-      if (
-        typeof console !== "undefined" &&
-        typeof console.debug === "function"
-      ) {
-        console.debug("vaporvibe navigation via interceptor", nav.toString());
-      }
-      window.location.assign(nav.toString());
-    } catch (error) {
-      console.error("vaporvibe navigation failed:", error);
-      window.location.href = destination.href;
+    if (options.method.toUpperCase() === "GET") {
+      void performRequest(destination, options.method);
+      return;
     }
+    void performRequest(destination, options.method, options.body ?? undefined);
   }
 
   window.addEventListener("resize", () => {
     if (currentOverlayEffect === "dvd-bounce") startDvdAnimation();
   });
 
-  document.addEventListener(
-    "click",
-    (event) => {
-      if (
-        event.button !== 0 ||
-        event.ctrlKey ||
-        event.metaKey ||
-        event.altKey ||
-        event.shiftKey
-      )
-        return;
-
-      let node = event.target as Node | null;
-      while (node && node.nodeType !== Node.ELEMENT_NODE) {
-        node = node.parentNode;
-      }
-      const el = node as HTMLElement | null;
-      const anchor = el?.closest<HTMLAnchorElement>("a") ?? null;
-      if (!anchor) return;
-      if (anchor.target === "_blank" || anchor.hasAttribute("download")) return;
-      if (!anchor.href || anchor.href.startsWith("javascript:")) return;
-      if (anchor.origin !== window.location.origin) return;
-
-      try {
-        const parsed = new URL(anchor.href);
-        if (
-          parsed.pathname === window.location.pathname &&
-          parsed.search === window.location.search &&
-          parsed.hash
-        )
-          return;
-
-        if (isRestApiPath(parsed.pathname)) {
-          event.preventDefault();
-          emitRestApiEvent(anchor, { method: "GET", url: parsed.href });
-          return;
-        }
-      } catch {
-        // ignore malformed URLs
-      }
-
-      event.preventDefault();
-      handleRequest(new URL(anchor.href), { method: "GET" });
-    },
-    true
-  );
-
-  document.addEventListener("submit", (event) => {
-    let node = event.target as Node | null;
-    while (node && node.nodeType !== Node.ELEMENT_NODE) node = node.parentNode;
-    const form =
-      (node as HTMLElement | null)?.closest<HTMLFormElement>("form") ?? null;
-    if (!form || form.target === "_blank") return;
-
-    if (event.defaultPrevented) return;
-
-    const method = (form.getAttribute("method") || "GET").toUpperCase();
-    const destination = new URL(form.action || window.location.href);
-
-    if (isRestApiPath(destination.pathname)) {
-      event.preventDefault();
-      emitRestApiEvent(form, { method, url: destination.href });
-      return;
-    }
-
-    if (method === "GET") {
-      event.preventDefault();
-      showOverlay();
-
-      const url = new URL(destination.toString());
-      try {
-        const submitter = (event as SubmitEvent).submitter as
-          | HTMLButtonElement
-          | HTMLInputElement
-          | null;
-        let formData: FormData;
-        try {
-          formData = submitter
-            ? new FormData(form, submitter)
-            : new FormData(form);
-        } catch {
-          formData = new FormData(form);
-          if (submitter && submitter.name) {
-            formData.append(submitter.name, submitter.value);
-          }
-        }
-        formData.forEach((value, key) => {
-          if (value instanceof File) return;
-          url.searchParams.append(key, String(value));
-        });
-      } catch (error) {
-        console.warn("vaporvibe form encoding failed:", error);
-      }
-      applyBranchToUrl(activeBranchId, url);
-      handleRequest(url, { method: "GET" });
-      return;
-    }
-
-    ensureBranchField(activeBranchId, form, document);
-    showOverlay();
-    const existingMarker = form.querySelector<HTMLInputElement>(
-      'input[name="__vaporvibe"][value="interceptor"]'
-    );
-    if (!existingMarker) {
-      const marker = document.createElement("input");
-      marker.type = "hidden";
-      marker.name = "__vaporvibe";
-      marker.value = "interceptor";
-      form.appendChild(marker);
-    }
-  });
+  attachGlobalListeners();
+  hijackExistingForms();
 
   window.addEventListener("popstate", () => {
+    const current = new URL(window.location.href);
+    if (
+      current.pathname === initialUrl.pathname &&
+      current.search === initialUrl.search &&
+      current.origin === initialUrl.origin
+    ) {
+      return;
+    }
+
     logDebug("popstate triggered", window.location.href);
     showOverlay("Loading previous view…");
     window.setTimeout(() => {

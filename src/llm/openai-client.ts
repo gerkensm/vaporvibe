@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import type { ChatMessage, LlmReasoningTrace, LlmUsageMetrics, ProviderSettings, VerificationResult } from "../types.js";
-import type { LlmClient, LlmResult } from "./client.js";
+import type { LlmClient, LlmResult, LlmGenerateOptions } from "./client.js";
 import { logger } from "../logger.js";
 
 type InputContentPart =
@@ -27,7 +27,10 @@ export class OpenAiClient implements LlmClient {
     }
   }
 
-  async generateHtml(messages: ChatMessage[]): Promise<LlmResult> {
+  async generateHtml(
+    messages: ChatMessage[],
+    options: LlmGenerateOptions = {}
+  ): Promise<LlmResult> {
     const input: InputMessage[] = messages.map((message) => {
       const content: InputContentPart[] = [
         { type: "input_text", text: message.content },
@@ -65,9 +68,56 @@ export class OpenAiClient implements LlmClient {
       };
     }
 
-    const response = await this.client.responses.create(request as never);
+    const observer = options.streamObserver;
+    const stream = this.client.responses.stream({ ...request, stream: true } as never);
 
-    const html = extractHtml(response);
+    let streamedHtml = "";
+    const reasoningBuffers: Record<"thinking" | "summary", string> = {
+      thinking: "",
+      summary: "",
+    };
+
+    const emitReasoningChunk = (
+      kind: "thinking" | "summary",
+      value: unknown
+    ): void => {
+      if (!observer) return;
+      const currentBuffer = reasoningBuffers[kind];
+      const normalized = normalizeReasoningChunk(currentBuffer, value);
+      if (!normalized) return;
+
+      // Use merge logic to determine if we need to insert extra newlines
+      const merged = mergeOpenAiReasoning(currentBuffer, normalized);
+
+      // Calculate the actual delta to emit
+      const delta = merged.slice(currentBuffer.length);
+
+      if (delta.length > 0) {
+        observer.onReasoningEvent({ kind, text: delta });
+        reasoningBuffers[kind] = merged;
+      }
+    };
+
+    if (observer) {
+      stream.on("response.reasoning_text.delta", (event: any) => {
+        emitReasoningChunk("thinking", event?.delta);
+      });
+      stream.on("response.reasoning_summary_text.delta", (event: any) => {
+        emitReasoningChunk("summary", event?.delta);
+      });
+    }
+
+    stream.on("response.output_text.delta", (event: any) => {
+      if (typeof event?.snapshot === "string") {
+        streamedHtml = event.snapshot;
+      } else if (typeof event?.delta === "string") {
+        streamedHtml += event.delta;
+      }
+    });
+
+    const response = await stream.finalResponse();
+
+    const html = streamedHtml.trim().length > 0 ? streamedHtml : extractHtml(response);
     const reasoning = extractReasoning(response, this.settings.reasoningMode, this.settings.reasoningTokens);
 
     return {
@@ -133,10 +183,10 @@ function extractReasoning(
     if (reasoningSummaries.length > 0 || reasoningTextBlocks.length > 0) {
       let message = header;
       if (reasoningSummaries.length > 0) {
-        message += `\nSummary:\n${reasoningSummaries.join("\n\n")}`;
+        message += `\n${reasoningSummaries.join("\n\n")}`;
       }
       if (reasoningTextBlocks.length > 0) {
-        message += `\nReasoning text:\n${reasoningTextBlocks.join("\n\n")}`;
+        message += `\n${reasoningTextBlocks.join("\n\n")}`;
       }
       logger.debug(message);
       return {
@@ -224,4 +274,49 @@ function extractStatus(error: unknown): number | undefined {
   }
   const maybeString = typeof statusValue === "string" ? Number.parseInt(statusValue, 10) : undefined;
   return Number.isFinite(maybeString) ? maybeString : undefined;
+}
+
+export function normalizeReasoningChunk(previous: string, raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  // Don't strip carriage returns blindly if they are part of a valid sequence, but usually safe to remove
+  const sanitized = raw.replace(/\r/g, "");
+
+  if (sanitized.length === 0) {
+    return null;
+  }
+  return sanitized;
+}
+
+export function mergeOpenAiReasoning(
+  existing: string,
+  incoming: string
+): string {
+  if (!existing) {
+    return incoming;
+  }
+
+  // If existing ends with a newline or incoming starts with one, we might be okay, 
+  // but let's ensure at least 2 newlines if it looks like a new paragraph.
+
+  const existingEndsWithNewline = existing.endsWith("\n");
+  const incomingStartsWithNewline = incoming.startsWith("\n");
+
+  // Heuristic: If existing ends with punctuation and incoming starts with a Markdown block indicator,
+  // and there is NO newline, force a double newline.
+  // We avoid splitting sentences by checking for specific markdown markers instead of just capital letters.
+  const existingEndsWithPunctuation = /[.!?)]$/.test(existing.trimEnd());
+
+  // Matches:
+  // **Bold**
+  // ## Header
+  // * List item
+  // - List item
+  // 1. List item
+  const incomingIsMarkdownBlock = /^(\*\*|#{1,6} |[\*-] |\d+\. )/.test(incoming.trimStart());
+
+  if (existingEndsWithPunctuation && incomingIsMarkdownBlock && !existingEndsWithNewline && !incomingStartsWithNewline) {
+    return existing + "\n\n" + incoming;
+  }
+
+  return existing + incoming;
 }
