@@ -3193,11 +3193,17 @@ import {
     "  .vaporvibe-spinner { width: 72px; height: 72px; border-radius: 50%; border: 6px solid rgba(29, 78, 216, 0.2); border-top-color: var(--accent); animation: vaporvibe-spin 1.1s linear infinite; }",
     "  .vaporvibe-title { font: 600 1.1rem/1.3 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:#0f172a; }",
     "  .vaporvibe-status { font: 400 0.95rem/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: var(--muted); min-height:1.2em; }",
-    "  .reasoning-panel { display: none; width: 100%; text-align: left; background: rgba(15, 23, 42, 0.05); border-radius: 18px; padding: 12px 14px; margin: 12px 0 4px; border: 1px solid rgba(148, 163, 184, 0.35); max-height: clamp(160px, 28vh, 280px); overflow: hidden; }",
+    "  .reasoning-panel { display: none; width: 100%; text-align: left; background: rgba(15, 23, 42, 0.05); border-radius: 18px; padding: 12px 14px; margin: 12px 0 4px; max-height: clamp(160px, 28vh, 280px); overflow: hidden; }",
     '  .reasoning-panel[data-active="true"] { display: block; }',
     "  .reasoning-heading { margin: 0 0 8px; font: 600 0.8rem/1.25 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #1f2937; }",
-    "  .reasoning-log { display: flex; flex-direction: column; gap: 6px; max-height: clamp(140px, 24vh, 260px); overflow-y: auto; padding-right: 2px; }",
-    "  .reasoning-entry { font: 0.78rem/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #1f2937; padding: 9px 11px; border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(148,163,184,0.22); white-space: normal; }",
+    "  .reasoning-log { display: flex; flex-direction: column; gap: 6px; max-height: clamp(140px, 24vh, 260px); scrollbar-width: thin; scrollbar-color: transparent transparent; overflow-y: auto; padding-right: 2px; }",
+    "  .reasoning-log:hover { scrollbar-color: rgba(148, 163, 184, 0.3) transparent; }",
+    "  .reasoning-log::-webkit-scrollbar { width: 5px; }",
+    "  .reasoning-log::-webkit-scrollbar-track { background: transparent; }",
+    "  .reasoning-log::-webkit-scrollbar-thumb { background-color: transparent; border-radius: 20px; border: 2px solid transparent; background-clip: content-box; }",
+    "  .reasoning-log:hover::-webkit-scrollbar-thumb { background-color: rgba(148, 163, 184, 0.3); }",
+    "  .reasoning-log::-webkit-scrollbar-thumb:hover { background-color: rgba(148, 163, 184, 0.5); }",
+    "  .reasoning-entry { font: 0.78rem/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #1f2937; padding: 9px 11px; border-radius: 12px; white-space: normal; }",
     "  .reasoning-entry.reasoning-summary { border-left: 3px solid #1d4ed8; background: rgba(255,255,255,0.45); font-weight: 600; color: #0f172a; font-size: 0.8rem; }",
     "  .reasoning-entry.reasoning-final { border-left: 3px solid rgba(37, 99, 235, 0.5); }",
     "  .reasoning-entry.reasoning-live { opacity: 0.9; }",
@@ -3695,11 +3701,12 @@ import {
   const statusTargets: HTMLElement[] = [];
   let statusRegistry = new WeakSet<HTMLElement>();
 
-  type OverlayDisplayRecord = {
-    panel: HTMLElement;
+  interface OverlayDisplayRecord {
+    panel: Element;
     log: HTMLElement;
     entry: HTMLElement | null;
     autoScroll: boolean;
+    userScrolled: boolean;
   };
 
   const displays: OverlayDisplayRecord[] = [];
@@ -3846,6 +3853,7 @@ import {
       log,
       entry: null,
       autoScroll: true,
+      userScrolled: false,
     };
     attachScrollHandler(record);
     displays.push(record);
@@ -3880,16 +3888,20 @@ import {
   }
 
   function attachScrollHandler(record: OverlayDisplayRecord): void {
-    const { log } = record;
-    if (!log || log.dataset.autoscrollAttached === "true") return;
-    log.dataset.autoscrollAttached = "true";
-    log.addEventListener(
+    if (!record || !record.log || record.log.dataset.autoscrollAttached === "true") return;
+    record.log.dataset.autoscrollAttached = "true";
+    // Initialize state
+    record.userScrolled = false;
+
+    record.log.addEventListener(
       "scroll",
       () => {
-        if (isNearBottom(log)) {
-          record.autoScroll = true;
+        if (isNearBottom(record.log)) {
+          // User returned to bottom, resume sticky scrolling
+          record.userScrolled = false;
         } else {
-          record.autoScroll = false;
+          // User scrolled up, disable sticky scrolling
+          record.userScrolled = true;
         }
       },
       { passive: true }
@@ -3996,10 +4008,11 @@ import {
           display.entry.innerHTML = "";
         }
         display.entry = null;
-        if (log.firstChild) {
+        if (log && log.firstChild) {
           log.innerHTML = "";
         }
-        display.autoScroll = true;
+        // Reset scroll state when clearing content
+        display.userScrolled = false;
         continue;
       }
 
@@ -4013,19 +4026,13 @@ import {
         display.entry = entry;
       }
 
-      const wasPinned = display.autoScroll || isNearBottom(log);
-      const previousScrollTop = log.scrollTop;
+      // Sticky logic: if user hasn't scrolled up, keep pinning to bottom
+      const shouldPin = !display.userScrolled;
+
       entry.innerHTML = html;
 
-      if (display.autoScroll || wasPinned) {
-        display.autoScroll = true;
+      if (shouldPin) {
         log.scrollTop = log.scrollHeight;
-      } else {
-        const maxScroll = Math.max(0, log.scrollHeight - log.clientHeight);
-        log.scrollTop = Math.min(previousScrollTop, maxScroll);
-        if (isNearBottom(log)) {
-          display.autoScroll = true;
-        }
       }
     }
   }

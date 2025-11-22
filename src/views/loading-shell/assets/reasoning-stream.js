@@ -422,7 +422,8 @@
         if (log && log.firstChild) {
           log.innerHTML = "";
         }
-        display.autoScroll = true;
+        // Reset scroll state when clearing content
+        display.userScrolled = false;
         continue;
       }
 
@@ -436,20 +437,13 @@
         display.entry = entry;
       }
 
-      var wasPinned = display.autoScroll || isNearBottom(log);
-      var previousScrollTop = log.scrollTop;
+      // Sticky logic: if user hasn't scrolled up, keep pinning to bottom
+      var shouldPin = !display.userScrolled;
 
       entry.innerHTML = html;
 
-      if (display.autoScroll || wasPinned) {
-        display.autoScroll = true;
+      if (shouldPin) {
         log.scrollTop = log.scrollHeight;
-      } else {
-        var maxScroll = Math.max(0, log.scrollHeight - log.clientHeight);
-        log.scrollTop = Math.min(previousScrollTop, maxScroll);
-        if (isNearBottom(log)) {
-          display.autoScroll = true;
-        }
       }
     }
   }
@@ -463,14 +457,18 @@
   function attachScrollHandler(record) {
     if (!record || !record.log || record.log.dataset.autoscrollAttached === "true") return;
     record.log.dataset.autoscrollAttached = "true";
+    // Initialize state
+    record.userScrolled = false;
+
     record.log.addEventListener(
       "scroll",
       function () {
-        var distance = record.log.scrollHeight - (record.log.scrollTop + record.log.clientHeight);
-        if (distance <= 28) {
-          record.autoScroll = true;
+        if (isNearBottom(record.log)) {
+          // User returned to bottom, resume sticky scrolling
+          record.userScrolled = false;
         } else {
-          record.autoScroll = false;
+          // User scrolled up, disable sticky scrolling
+          record.userScrolled = true;
         }
       },
       { passive: true }
