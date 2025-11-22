@@ -357,6 +357,23 @@ gerkensm-vaporvibe/
 - **Focused Test Suite**: A Vitest suite now covers config loading, prompt compilation, the session store, and key utilities. It runs fast but doesn't yet exercise every provider path, so keep testing manually when touching network integrations or the SPA.
 - **macOS-Centric Builds**: `scripts/` contains complex logic for macOS `.app` and DMG creation/notarization.
 - **Inconsistent Reasoning APIs**: OpenAI/Grok use `reasoningMode`, while Anthropic/Gemini use `reasoningTokens`. Backend logic handles normalization.
+  
+  **Gemini Reasoning Architecture** (critical implementation details):
+  
+  - **Model Type Split**: Gemini has two distinct reasoning APIs:
+    - `gemini-3-pro`: Uses `thinkingLevel` (LOW/HIGH) via `reasoningMode` setting
+    - Flash models: Use `thinkingBudget` (token count or -1 for Auto) via `reasoningTokens` setting
+  
+  - **Auto Mode (`-1`)**: For Flash models, `reasoningTokensEnabled: false` means "Auto mode":
+    - Client omits `thinkingBudget` entirely (not `-1`) to let API use defaults
+    - Backend must NOT force `reasoningTokensEnabled: true` when toggle isn't user-controllable
+    - Frontend must NOT clamp `-1` to `min` value (e.g., `0`) in `TokenBudgetControl`
+    - `shouldEnableGeminiThoughts()` ignores `reasoningMode` for Flash (only checks tokens)
+  
+  - **Stream Observer Creation**: `isReasoningStreamEnabled()` must call `shouldEnableGeminiThoughts()` for Gemini models to ensure the stream observer is created for Auto mode, otherwise reasoning won't display in UI even though it's being generated.
+  
+  - **State Management**: Frontend's `sanitizeReasoningTokens()` must return `-1` immediately for Gemini without clamping to prevent UI toggle bugs.
+
 - **Embrace the Chaos**: Guide the LLM's creativity, don't force deterministic output. Minor variations are expected.
 
 ### Contribution Workflow

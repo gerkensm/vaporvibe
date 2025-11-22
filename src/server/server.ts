@@ -62,6 +62,7 @@ import { renderOverlayDebugPage } from "../views/overlay-debug.js";
 import { logger } from "../logger.js";
 import { AdminController } from "./admin-controller.js";
 import { createLlmClient } from "../llm/factory.js";
+import { shouldEnableGeminiThoughts } from "../llm/gemini-client.js";
 import { getCredentialStore } from "../utils/credential-store.js";
 import { RestApiController } from "./rest-api-controller.js";
 import { selectHistoryForPrompt } from "./history-utils.js";
@@ -732,6 +733,13 @@ function isReasoningStreamEnabled(settings: ProviderSettings): boolean {
   if (!settings) {
     return false;
   }
+
+  // For Gemini, check if thoughts should be enabled (handles Auto mode)
+  if (settings.provider === "gemini") {
+    return shouldEnableGeminiThoughts(settings);
+  }
+
+  // For other providers, check reasoningMode or manual reasoning tokens
   if (settings.reasoningMode && settings.reasoningMode !== "none") {
     return true;
   }
@@ -917,8 +925,8 @@ export function createServerState(
 
   const verifiedProviders: Partial<Record<ModelProvider, boolean>> = snapshot
     ? (Object.fromEntries(snapshot.verifiedProviders) as Partial<
-        Record<ModelProvider, boolean>
-      >)
+      Record<ModelProvider, boolean>
+    >)
     : providerState.apiKey && providerState.apiKey.trim().length > 0
       ? { [providerState.provider]: Boolean(config.llmClient) }
       : {};
@@ -945,11 +953,11 @@ export function createServerState(
     verifiedProviders,
     pendingHtml: snapshot
       ? new Map(
-          snapshot.pendingHtml.map(([id, entry]) => [
-            id,
-            { html: entry.html, expiresAt: entry.expiresAt },
-          ])
-        )
+        snapshot.pendingHtml.map(([id, entry]) => [
+          id,
+          { html: entry.html, expiresAt: entry.expiresAt },
+        ])
+      )
       : new Map(),
     reasoningStreams: new Map(),
   };
@@ -1004,9 +1012,8 @@ export function createServer(options: ServerOptions): http.Server {
     const routedByDevServer = Boolean(
       devServer && shouldDelegateToDevServer(context.path)
     );
-    const logMessage = `Incoming request ${context.method} ${context.path} from ${
-      req.socket.remoteAddress ?? "unknown"
-    }`;
+    const logMessage = `Incoming request ${context.method} ${context.path} from ${req.socket.remoteAddress ?? "unknown"
+      }`;
     if (routedByDevServer) {
       reqLogger.debug(logMessage);
     } else {
@@ -1055,8 +1062,7 @@ export function createServer(options: ServerOptions): http.Server {
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.end(html);
       reqLogger.info(
-        `Overlay debug page served with status ${res.statusCode} in ${
-          Date.now() - requestStart
+        `Overlay debug page served with status ${res.statusCode} in ${Date.now() - requestStart
         } ms`
       );
       return;
@@ -1078,8 +1084,7 @@ export function createServer(options: ServerOptions): http.Server {
 
       if (handlePendingHtmlRequest(context, state, reqLogger)) {
         reqLogger.info(
-          `Pending render delivered with status ${res.statusCode} in ${
-            Date.now() - requestStart
+          `Pending render delivered with status ${res.statusCode} in ${Date.now() - requestStart
           } ms`
         );
         return;
@@ -1092,8 +1097,7 @@ export function createServer(options: ServerOptions): http.Server {
       );
       if (handledByAdmin) {
         reqLogger.info(
-          `Admin handler completed with status ${res.statusCode} in ${
-            Date.now() - requestStart
+          `Admin handler completed with status ${res.statusCode} in ${Date.now() - requestStart
           } ms`
         );
         return;
@@ -1102,8 +1106,7 @@ export function createServer(options: ServerOptions): http.Server {
       const handledByRest = await restApiController.handle(context, reqLogger);
       if (handledByRest) {
         reqLogger.info(
-          `REST handler completed with status ${res.statusCode} in ${
-            Date.now() - requestStart
+          `REST handler completed with status ${res.statusCode} in ${Date.now() - requestStart
           } ms`
         );
         return;
@@ -1157,8 +1160,7 @@ export function createServer(options: ServerOptions): http.Server {
       ) {
         await serveSpaShell(context, reqLogger, devServer);
         reqLogger.info(
-          `SPA shell served with status ${res.statusCode} in ${
-            Date.now() - requestStart
+          `SPA shell served with status ${res.statusCode} in ${Date.now() - requestStart
           } ms`
         );
         return;
@@ -1167,8 +1169,7 @@ export function createServer(options: ServerOptions): http.Server {
       if (context.path.startsWith(ADMIN_ROUTE_PREFIX)) {
         await serveSpaShell(context, reqLogger, devServer);
         reqLogger.info(
-          `SPA shell served with status ${res.statusCode} in ${
-            Date.now() - requestStart
+          `SPA shell served with status ${res.statusCode} in ${Date.now() - requestStart
           } ms`
         );
         return;
@@ -1182,8 +1183,7 @@ export function createServer(options: ServerOptions): http.Server {
         requestStart
       );
       reqLogger.info(
-        `Completed with status ${res.statusCode} in ${
-          Date.now() - requestStart
+        `Completed with status ${res.statusCode} in ${Date.now() - requestStart
         } ms`
       );
     } catch (error) {
@@ -1196,8 +1196,7 @@ export function createServer(options: ServerOptions): http.Server {
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       res.end(renderErrorPage(error));
       reqLogger.warn(
-        `Completed with error status ${res.statusCode} in ${
-          Date.now() - requestStart
+        `Completed with error status ${res.statusCode} in ${Date.now() - requestStart
         } ms`
       );
     }
@@ -1556,15 +1555,15 @@ async function handleLlmRequest(
       messages,
       reasoningStreamController
         ? {
-            streamObserver: {
-              onReasoningEvent: (event) => {
-                reasoningStreamController.emit("reasoning", {
-                  kind: event.kind,
-                  text: event.text,
-                });
-              },
+          streamObserver: {
+            onReasoningEvent: (event) => {
+              reasoningStreamController.emit("reasoning", {
+                kind: event.kind,
+                text: event.text,
+              });
             },
-          }
+          },
+        }
         : undefined
     );
     const durationMs = Date.now() - requestStart;
@@ -1677,9 +1676,9 @@ async function handleLlmRequest(
         forkActive: Boolean(activeForkSummary),
         forkInstructions: activeForkSummary
           ? activeForkSummary.branches.map((branch) => ({
-              label: branch.label,
-              instructions: branch.instructions,
-            }))
+            label: branch.label,
+            instructions: branch.instructions,
+          }))
           : [],
       });
       if (/<\/body\s*>/i.test(renderedHtml)) {
@@ -1762,9 +1761,9 @@ async function handleLlmRequest(
     if (reasoningStreamController) {
       const finalPayload = result.reasoning
         ? {
-            summaries: result.reasoning.summaries,
-            details: result.reasoning.details,
-          }
+          summaries: result.reasoning.summaries,
+          details: result.reasoning.details,
+        }
         : undefined;
       reasoningStreamController.close(finalPayload);
     }

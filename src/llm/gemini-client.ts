@@ -82,6 +82,13 @@ export class GeminiClient implements LlmClient {
       };
     }
     const includeThoughts = shouldEnableGeminiThoughts(this.settings);
+    logger.debug({
+      includeThoughts,
+      reasoningTokensEnabled: this.settings.reasoningTokensEnabled,
+      reasoningTokens: this.settings.reasoningTokens,
+      reasoningMode: this.settings.reasoningMode
+    }, "GeminiClient: includeThoughts calculation");
+
     if (includeThoughts) {
       if (this.settings.model.includes("gemini-3-pro")) {
         config.thinkingConfig = {
@@ -89,14 +96,26 @@ export class GeminiClient implements LlmClient {
           thinkingLevel: this.settings.reasoningMode === "low" ? ThinkingLevel.LOW : ThinkingLevel.HIGH,
         };
       } else {
+        const budget =
+          this.settings.reasoningTokensEnabled === false
+            ? -1
+            : this.settings.reasoningTokens ?? -1;
+
+        const clampedBudget = clampGeminiBudget(
+          budget,
+          this.settings.maxOutputTokens,
+          this.settings.model,
+        );
+
         config.thinkingConfig = {
           includeThoughts: true,
-          thinkingBudget: clampGeminiBudget(
-            this.settings.reasoningTokens ?? -1,
-            this.settings.maxOutputTokens,
-            this.settings.model,
-          ),
         };
+
+        if (clampedBudget > 0) {
+          config.thinkingConfig.thinkingBudget = clampedBudget;
+        }
+
+        logger.debug({ thinkingConfig: config.thinkingConfig }, "Gemini thinking config");
       }
     }
 
@@ -142,6 +161,16 @@ export class GeminiClient implements LlmClient {
         streamedThoughtSnapshots,
         observer
       );
+    }
+
+    // If we have thoughts but the observer never received them during streaming,
+    // send them now (this happens with some Flash models)
+    if (includeThoughts && observer && streamedThoughtSummaries.length > 0) {
+      const thoughtsText = streamedThoughtSummaries.join("\n\n");
+      observer.onReasoningEvent({
+        kind: "summary",
+        text: thoughtsText + "\n\n",
+      });
     }
 
     const reasoning = includeThoughts
@@ -419,10 +448,10 @@ function extractGeminiThinking(
       usage?.thoughtsTokenCount ?? usage?.thoughts_token_count;
 
     const budgetLabel =
-      typeof settings.reasoningTokens === "number"
-        ? settings.reasoningTokens
-        : settings.reasoningTokensEnabled === false
-          ? "disabled"
+      settings.reasoningTokensEnabled === false
+        ? "auto"
+        : typeof settings.reasoningTokens === "number"
+          ? settings.reasoningTokens
           : "auto";
     const header = `Gemini thinking (mode=${settings.reasoningMode}, budget=${budgetLabel}, thoughtTokens=${thoughtsTokenCount ?? "n/a"})`;
     if (thoughtSummaries.length > 0) {
@@ -450,16 +479,30 @@ function extractGeminiThinking(
   }
 }
 
-function shouldEnableGeminiThoughts(settings: ProviderSettings): boolean {
-  if (settings.reasoningTokensEnabled === false) {
-    return false;
-  }
-  if (settings.reasoningMode && settings.reasoningMode !== "none") {
+export function shouldEnableGeminiThoughts(settings: ProviderSettings): boolean {
+  // For gemini-3-pro and similar models that use thinkingLevel (reasoningMode)
+  if (settings.model.includes("gemini-3-pro")) {
+    // These models use reasoningMode (low/high/none)
+    if (settings.reasoningMode === "none") {
+      return false;
+    }
     return true;
   }
+
+  // For other Gemini models (like Flash) that use thinkingBudget (reasoningTokens)
+  // These models don't have a reasoningMode concept, so we ignore that setting
+
+  // If manual budget is disabled (reasoningTokensEnabled: false), we assume Auto (enabled)
+  if (settings.reasoningTokensEnabled === false) {
+    return true;
+  }
+
+  // If manual budget is enabled, check if tokens > 0
   if (typeof settings.reasoningTokens === "number") {
     return settings.reasoningTokens !== 0;
   }
+
+  // Default to enabled
   return true;
 }
 

@@ -619,15 +619,15 @@ export class AdminController {
       const envKey = lookupEnvApiKey(p);
       const hasKey = Boolean(
         (storedKey && storedKey.trim().length > 0) ||
-          (envKey && envKey.trim().length > 0)
+        (envKey && envKey.trim().length > 0)
       );
 
       const isCurrentProvider = p === this.state.provider.provider;
       const currentVerified = Boolean(
         isCurrentProvider &&
-          this.state.providerReady &&
-          this.state.provider.apiKey &&
-          this.state.provider.apiKey.trim().length > 0
+        this.state.providerReady &&
+        this.state.provider.apiKey &&
+        this.state.provider.apiKey.trim().length > 0
       );
       const previouslyVerified = Boolean(this.state.verifiedProviders[p]);
       const startupVerified = this.state.providersWithKeys.has(p) && hasKey;
@@ -929,8 +929,8 @@ export class AdminController {
       tokensSupported && modelMetadata && modelReasoningTokens?.supported
         ? modelReasoningTokens
         : tokensSupported
-        ? providerGuidance
-        : undefined;
+          ? providerGuidance
+          : undefined;
     const toggleAllowed =
       Boolean(tokenGuidance?.allowDisable !== false) && tokensSupported;
 
@@ -970,27 +970,27 @@ export class AdminController {
 
     const fallbackTokens =
       this.state.provider.provider === provider &&
-      typeof this.state.provider.reasoningTokens === "number"
+        typeof this.state.provider.reasoningTokens === "number"
         ? this.state.provider.reasoningTokens
         : tokenGuidance?.default;
 
     const parsedReasoningTokens =
       tokensSupported && nextReasoningTokensEnabled
         ? parseReasoningTokensValue(
-            data.reasoningTokens,
-            provider,
-            fallbackTokens,
-            tokenGuidance
-          )
+          data.reasoningTokens,
+          provider,
+          fallbackTokens,
+          tokenGuidance
+        )
         : undefined;
 
     const sanitizedReasoningTokens =
       tokensSupported && nextReasoningTokensEnabled
         ? clampReasoningTokens(
-            parsedReasoningTokens,
-            provider,
-            tokenGuidance
-          )
+          parsedReasoningTokens,
+          provider,
+          tokenGuidance
+        )
         : undefined;
     if (
       reasoningModesSupported &&
@@ -1007,14 +1007,11 @@ export class AdminController {
     const storedReasoningTokensEnabled = tokensSupported
       ? toggleAllowed
         ? nextReasoningTokensEnabled
-        : true
+        : (typeof data.reasoningTokensEnabled === "boolean" ? data.reasoningTokensEnabled : false)
       : undefined;
     const finalReasoningTokens =
       storedReasoningTokensEnabled === true ? sanitizedReasoningTokens : undefined;
 
-    if (storedReasoningTokensEnabled === false) {
-      normalizedReasoningMode = "none";
-    }
 
     const newApiKey = typeof data.apiKey === "string" ? data.apiKey.trim() : "";
     const previousProvider = this.state.provider.provider;
@@ -1662,8 +1659,8 @@ export class AdminController {
       : undefined;
     const attachments = entry.briefAttachments?.length
       ? entry.briefAttachments.map((attachment) =>
-          this.toAdminBriefAttachment(attachment)
-        )
+        this.toAdminBriefAttachment(attachment)
+      )
       : undefined;
     const restMutations =
       entry.entryKind === "html" && entry.restMutations?.length
@@ -1720,11 +1717,11 @@ export class AdminController {
       deleteUrl: `/api/admin/history/${encodeURIComponent(entry.id)}`,
       forkInfo: entry.forkInfo
         ? {
-            forkId: entry.forkInfo.forkId,
-            branchId: entry.forkInfo.branchId,
-            label: entry.forkInfo.label,
-            status: entry.forkInfo.status,
-          }
+          forkId: entry.forkInfo.forkId,
+          branchId: entry.forkInfo.branchId,
+          label: entry.forkInfo.label,
+          status: entry.forkInfo.status,
+        }
         : undefined,
     };
   }

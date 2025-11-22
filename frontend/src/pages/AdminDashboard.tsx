@@ -1703,9 +1703,14 @@ function ProviderPanel({
         return guidance.reasoningTokensGuidance?.default;
       }
       let value = Math.floor(numeric);
+
       if (target === "gemini") {
         if (value < -1) {
           value = -1;
+        }
+        // Don't clamp -1 for Gemini - it's the Auto mode value
+        if (value === -1) {
+          return -1;
         }
       } else if (value < 0) {
         value = 0;

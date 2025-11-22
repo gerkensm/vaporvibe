@@ -152,7 +152,9 @@ export function TokenBudgetControl({
                 const numeric = Number(key);
                 if (Number.isFinite(numeric)) {
                   setManual(String(numeric));
-                  onChange(clamp(numeric, min, max));
+                  // Don't clamp special values - let the parent handle them
+                  // (e.g., Gemini's -1 for Auto mode shouldn't be clamped to min=0)
+                  onChange(numeric);
                 }
               }}
             >
