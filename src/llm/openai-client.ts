@@ -82,10 +82,20 @@ export class OpenAiClient implements LlmClient {
       value: unknown
     ): void => {
       if (!observer) return;
-      const normalized = normalizeReasoningChunk(reasoningBuffers[kind], value);
+      const currentBuffer = reasoningBuffers[kind];
+      const normalized = normalizeReasoningChunk(currentBuffer, value);
       if (!normalized) return;
-      observer.onReasoningEvent({ kind, text: normalized });
-      reasoningBuffers[kind] += normalized;
+
+      // Use merge logic to determine if we need to insert extra newlines
+      const merged = mergeOpenAiReasoning(currentBuffer, normalized);
+
+      // Calculate the actual delta to emit
+      const delta = merged.slice(currentBuffer.length);
+
+      if (delta.length > 0) {
+        observer.onReasoningEvent({ kind, text: delta });
+        reasoningBuffers[kind] = merged;
+      }
     };
 
     if (observer) {
@@ -173,10 +183,10 @@ function extractReasoning(
     if (reasoningSummaries.length > 0 || reasoningTextBlocks.length > 0) {
       let message = header;
       if (reasoningSummaries.length > 0) {
-        message += `\nSummary:\n${reasoningSummaries.join("\n\n")}`;
+        message += `\n${reasoningSummaries.join("\n\n")}`;
       }
       if (reasoningTextBlocks.length > 0) {
-        message += `\nReasoning text:\n${reasoningTextBlocks.join("\n\n")}`;
+        message += `\n${reasoningTextBlocks.join("\n\n")}`;
       }
       logger.debug(message);
       return {
@@ -266,17 +276,47 @@ function extractStatus(error: unknown): number | undefined {
   return Number.isFinite(maybeString) ? maybeString : undefined;
 }
 
-function normalizeReasoningChunk(previous: string, raw: unknown): string | null {
+export function normalizeReasoningChunk(previous: string, raw: unknown): string | null {
   if (typeof raw !== "string") return null;
+  // Don't strip carriage returns blindly if they are part of a valid sequence, but usually safe to remove
   const sanitized = raw.replace(/\r/g, "");
-  if (sanitized.trim().length === 0) {
+
+  if (sanitized.length === 0) {
     return null;
   }
-  const trimmedStart = sanitized.trimStart();
-  if (/^#{1,6}\s/.test(trimmedStart) && !/\n\s*$/.test(previous)) {
-    if (!sanitized.startsWith("\n")) {
-      return `\n${sanitized}`;
-    }
-  }
   return sanitized;
+}
+
+export function mergeOpenAiReasoning(
+  existing: string,
+  incoming: string
+): string {
+  if (!existing) {
+    return incoming;
+  }
+
+  // If existing ends with a newline or incoming starts with one, we might be okay, 
+  // but let's ensure at least 2 newlines if it looks like a new paragraph.
+
+  const existingEndsWithNewline = existing.endsWith("\n");
+  const incomingStartsWithNewline = incoming.startsWith("\n");
+
+  // Heuristic: If existing ends with punctuation and incoming starts with a Markdown block indicator,
+  // and there is NO newline, force a double newline.
+  // We avoid splitting sentences by checking for specific markdown markers instead of just capital letters.
+  const existingEndsWithPunctuation = /[.!?)]$/.test(existing.trimEnd());
+
+  // Matches:
+  // **Bold**
+  // ## Header
+  // * List item
+  // - List item
+  // 1. List item
+  const incomingIsMarkdownBlock = /^(\*\*|#{1,6} |[\*-] |\d+\. )/.test(incoming.trimStart());
+
+  if (existingEndsWithPunctuation && incomingIsMarkdownBlock && !existingEndsWithNewline && !incomingStartsWithNewline) {
+    return existing + "\n\n" + incoming;
+  }
+
+  return existing + incoming;
 }

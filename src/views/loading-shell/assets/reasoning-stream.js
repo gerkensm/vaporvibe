@@ -83,12 +83,12 @@
     });
   }
 
-var displays = [];
-var logRegistry = new WeakSet();
+  var displays = [];
+  var logRegistry = new WeakSet();
 
-var READING_CHARS_PER_SECOND = 80;
-var animationState = {
-  displayed: "",
+  var READING_CHARS_PER_SECOND = 150;
+  var animationState = {
+    displayed: "",
     target: "",
     queue: "",
     rafId: null,
@@ -97,19 +97,19 @@ var animationState = {
     latestSnapshot: null,
   };
 
-function registerDisplay(log) {
-  if (!log || logRegistry.has(log)) return;
-  var panel = null;
-  if (log.closest instanceof Function) {
-    panel = log.closest("[data-reasoning-panel]");
+  function registerDisplay(log) {
+    if (!log || logRegistry.has(log)) return;
+    var panel = null;
+    if (log.closest instanceof Function) {
+      panel = log.closest("[data-reasoning-panel]");
+    }
+    if (!panel) return;
+    logRegistry.add(log);
+    var record = { panel: panel, log: log, entry: null, autoScroll: true };
+    attachScrollHandler(record);
+    displays.push(record);
+    updateDisplays();
   }
-  if (!panel) return;
-  logRegistry.add(log);
-  var record = { panel: panel, log: log, entry: null, autoScroll: true };
-  attachScrollHandler(record);
-  displays.push(record);
-  updateDisplays();
-}
 
   function discoverDisplays(root) {
     if (!root) return;
@@ -180,19 +180,19 @@ function registerDisplay(log) {
     var finalText = streamState.finalized ? sanitizeText(streamState.finalText) : "";
     var summaries = streamState.finalized
       ? streamState.summaryEntries
-          .map(function (value) {
-            return sanitizeText(value);
-          })
-          .filter(function (value) {
-            return value && value.trim().length > 0;
-          })
+        .map(function (value) {
+          return sanitizeText(value);
+        })
+        .filter(function (value) {
+          return value && value.trim().length > 0;
+        })
       : [];
     var summaryPreview = !streamState.finalized ? sanitizeText(streamState.summaryBuffer) : "";
     var hasContent = Boolean(
       (summaries && summaries.length > 0) ||
-        (summaryPreview && summaryPreview.trim().length > 0) ||
-        (streaming && liveText && liveText.trim().length > 0) ||
-        (!streaming && finalText && finalText.trim().length > 0)
+      (summaryPreview && summaryPreview.trim().length > 0) ||
+      (streaming && liveText && liveText.trim().length > 0) ||
+      (!streaming && finalText && finalText.trim().length > 0)
     );
     return {
       streaming: streaming,
@@ -487,15 +487,12 @@ function registerDisplay(log) {
         for (var i = 0; i < snapshot.summaries.length; i += 1) {
           var summary = snapshot.summaries[i];
           if (!summary) continue;
-          sections.push("#### Summary " + (i + 1));
           sections.push(summary);
         }
       } else {
-        sections.push("#### Summary");
         sections.push(snapshot.summaries[0]);
       }
     } else if (snapshot.summaryPreview && snapshot.summaryPreview.trim()) {
-      sections.push("#### Summary (draft)");
       sections.push(snapshot.summaryPreview);
     }
     if (snapshot.streaming && snapshot.live && snapshot.live.trim()) {
@@ -556,8 +553,8 @@ function registerDisplay(log) {
       if (!inCode) return;
       html.push(
         "<pre><code>" +
-          escapeHtml(codeLines.join("\n")) +
-          "</code></pre>"
+        escapeHtml(codeLines.join("\n")) +
+        "</code></pre>"
       );
       codeLines = [];
       inCode = false;

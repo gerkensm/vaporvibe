@@ -326,7 +326,7 @@ function collectGeminiThoughtSummaries(
   }
 }
 
-function mergeGeminiThoughtSummary(
+export function mergeGeminiThoughtSummary(
   existing: string | undefined,
   incoming: string
 ): string {
@@ -348,7 +348,10 @@ function mergeGeminiThoughtSummary(
   if (existing.endsWith(incoming)) {
     return existing;
   }
-  return incoming.length >= existing.length ? incoming : existing;
+  const existingNewlines = existing.match(/\n+$/)?.[0].length || 0;
+  const incomingNewlines = incoming.match(/^\n+/)?.[0].length || 0;
+  const needed = Math.max(0, 2 - existingNewlines - incomingNewlines);
+  return existing + "\n".repeat(needed) + incoming;
 }
 
 function extractUsage(response: any): LlmUsageMetrics | undefined {
