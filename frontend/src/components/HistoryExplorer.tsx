@@ -425,17 +425,25 @@ export function HistoryExplorer({
                   <div className="history-item__section">
                     <div className="history-item__label">Reasoning details</div>
                     <div className="history-item__reasoning-details">
-                      {item.reasoningDetails.map((detail, idx) => (
-                        <details
-                          key={idx}
-                          className="history-item__reasoning-detail"
-                        >
-                          <summary>{`Step ${idx + 1}`}</summary>
+                      {item.reasoningDetails.length === 1 ? (
+                        <div className="history-item__reasoning-inline">
                           <ReactMarkdown remarkPlugins={markdownPlugins}>
-                            {detail}
+                            {item.reasoningDetails[0]}
                           </ReactMarkdown>
-                        </details>
-                      ))}
+                        </div>
+                      ) : (
+                        item.reasoningDetails.map((detail, idx) => (
+                          <details
+                            key={idx}
+                            className="history-item__reasoning-detail"
+                          >
+                            <summary>{`Step ${idx + 1}`}</summary>
+                            <ReactMarkdown remarkPlugins={markdownPlugins}>
+                              {detail}
+                            </ReactMarkdown>
+                          </details>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}

@@ -86,10 +86,8 @@ export class GroqClient implements LlmClient {
     const htmlChunks: string[] = [];
     const observer = options.streamObserver;
     const streamingTracker: StreamingReasoningTracker = {
-      summarySet: new Set<string>(),
-      detailSet: new Set<string>(),
-      lastSummary: "",
-      lastDetail: "",
+      summaryBuffer: "",
+      detailBuffer: "",
     };
     for await (const chunk of stream) {
       const delta = chunk?.choices?.[0]?.delta;
@@ -125,18 +123,13 @@ export class GroqClient implements LlmClient {
       this.settings.reasoningMode,
       this.settings.model
     );
-    const streamingSummaries = normalizeReasoningEntries(
-      streamingTracker.summarySet
-    );
-    const streamingDetails = normalizeReasoningEntries(
-      streamingTracker.detailSet
-    );
+
     const reasoning = mergeReasoningTraces(
       reasoningFromResponse,
-      streamingSummaries,
-      streamingDetails
+      streamingTracker.summaryBuffer,
+      streamingTracker.detailBuffer
     );
-    logger.info(`Reasoning: ${mergeReasoningTraces}`);
+    logger.info(`Reasoning: ${JSON.stringify(reasoning)}`);
 
     return {
       html,
@@ -376,8 +369,7 @@ function extractReasoningFromChat(
     };
   } catch (err) {
     logger.warn(
-      `Failed to capture Groq reasoning metadata (chat): ${
-        (err as Error).message
+      `Failed to capture Groq reasoning metadata (chat): ${(err as Error).message
       }`
     );
     return undefined;
@@ -451,10 +443,8 @@ function collectReasoningContent(
 }
 
 interface StreamingReasoningTracker {
-  summarySet: Set<string>;
-  detailSet: Set<string>;
-  lastSummary: string;
-  lastDetail: string;
+  summaryBuffer: string;
+  detailBuffer: string;
 }
 
 function processStreamingReasoningDelta(
@@ -468,51 +458,20 @@ function processStreamingReasoningDelta(
     details: new Set<string>(),
   };
   collectReasoningContent(input, scratch, "reasoning");
-  scratch.summaries.forEach((value) => {
-    emitStreamingReasoning("summary", value, tracker, observer);
-  });
-  scratch.details.forEach((value) => {
-    emitStreamingReasoning("thinking", value, tracker, observer);
-  });
-}
 
-function emitStreamingReasoning(
-  kind: "summary" | "thinking",
-  text: string,
-  tracker: StreamingReasoningTracker,
-  observer?: LlmStreamObserver
-): void {
-  const trimmed = typeof text === "string" ? text : "";
-  if (!trimmed) return;
-  if (kind === "summary") {
-    if (trimmed === tracker.lastSummary) return;
+  scratch.summaries.forEach((value) => {
+    tracker.summaryBuffer += value;
     if (observer) {
-      let emission: string | null = trimmed;
-      if (tracker.lastSummary && trimmed.startsWith(tracker.lastSummary)) {
-        const delta = trimmed.slice(tracker.lastSummary.length);
-        emission = delta.length > 0 ? delta : null;
-      }
-      if (emission) {
-        observer.onReasoningEvent({ kind: "summary", text: emission });
-      }
+      observer.onReasoningEvent({ kind: "summary", text: value });
     }
-    tracker.lastSummary = trimmed;
-    tracker.summarySet.add(trimmed);
-  } else {
-    if (trimmed === tracker.lastDetail) return;
+  });
+
+  scratch.details.forEach((value) => {
+    tracker.detailBuffer += value;
     if (observer) {
-      let emission: string | null = trimmed;
-      if (tracker.lastDetail && trimmed.startsWith(tracker.lastDetail)) {
-        const delta = trimmed.slice(tracker.lastDetail.length);
-        emission = delta.length > 0 ? delta : null;
-      }
-      if (emission) {
-        observer.onReasoningEvent({ kind: "thinking", text: emission });
-      }
+      observer.onReasoningEvent({ kind: "thinking", text: value });
     }
-    tracker.lastDetail = trimmed;
-    tracker.detailSet.add(trimmed);
-  }
+  });
 }
 
 function normalizeReasoningEntries(values: Iterable<string>): string[] {
@@ -521,7 +480,8 @@ function normalizeReasoningEntries(values: Iterable<string>): string[] {
   for (const value of values) {
     const trimmed = typeof value === "string" ? value : "";
     if (!trimmed) continue;
-    if (/^\.+$/.test(trimmed)) continue;
+    // Filter out strings that are just dots or whitespace (e.g. ".\n\n" or "...")
+    if (/^[\s\.]+$/.test(trimmed)) continue;
     if (seen.has(trimmed)) continue;
     seen.add(trimmed);
     result.push(trimmed);
@@ -531,25 +491,60 @@ function normalizeReasoningEntries(values: Iterable<string>): string[] {
 
 function mergeReasoningTraces(
   base: LlmReasoningTrace | undefined,
-  streamingSummaries: string[],
-  streamingDetails: string[]
+  streamingSummary: string,
+  streamingDetail: string
 ): LlmReasoningTrace | undefined {
-  const combinedSummaries = normalizeReasoningEntries([
-    ...(base?.summaries ?? []),
-    ...streamingSummaries,
-  ]);
-  const combinedDetails = normalizeReasoningEntries([
-    ...(base?.details ?? []),
-    ...streamingDetails,
-  ]);
+  // 1. Prepare streaming parts (normalized)
+  const normStreamingSummary = normalizeReasoningEntries(
+    streamingSummary ? [streamingSummary] : []
+  );
+  const normStreamingDetail = normalizeReasoningEntries(
+    streamingDetail ? [streamingDetail] : []
+  );
 
-  if (!combinedSummaries.length && !combinedDetails.length) {
+  // 2. Prepare base parts (normalized)
+  const baseSummaries = normalizeReasoningEntries(base?.summaries ?? []);
+  const baseDetails = normalizeReasoningEntries(base?.details ?? []);
+
+  // 3. Merge Logic
+  // If we have a substantial streaming detail, we prioritize it to avoid
+  // the "final reasoning" fragment often seen with Groq.
+  let finalDetails: string[] = [];
+
+  if (normStreamingDetail.length > 0) {
+    finalDetails = [...normStreamingDetail];
+    // Only append base details if they are significantly different and not just a subset/noise
+    for (const bd of baseDetails) {
+      const isSubset = normStreamingDetail.some(sd => sd.includes(bd) || bd.includes(sd));
+      if (!isSubset) {
+        finalDetails.push(bd);
+      }
+    }
+  } else {
+    finalDetails = baseDetails;
+  }
+
+  // Same logic for summaries
+  let finalSummaries: string[] = [];
+  if (normStreamingSummary.length > 0) {
+    finalSummaries = [...normStreamingSummary];
+    for (const bs of baseSummaries) {
+      const isSubset = normStreamingSummary.some(ss => ss.includes(bs) || bs.includes(ss));
+      if (!isSubset) {
+        finalSummaries.push(bs);
+      }
+    }
+  } else {
+    finalSummaries = baseSummaries;
+  }
+
+  if (!finalSummaries.length && !finalDetails.length) {
     return base;
   }
 
   return {
-    summaries: combinedSummaries.length ? combinedSummaries : undefined,
-    details: combinedDetails.length ? combinedDetails : undefined,
+    summaries: finalSummaries.length ? finalSummaries : undefined,
+    details: finalDetails.length ? finalDetails : undefined,
     raw: base?.raw,
   };
 }
