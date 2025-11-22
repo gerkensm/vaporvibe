@@ -70,19 +70,19 @@ function resolveOptions(options: LoadingShellOptions = {}): ResolvedLoadingShell
       : DEFAULT_ORIGINAL_PATH;
   const resultRoutePrefix =
     typeof options.resultRoutePrefix === "string" &&
-    options.resultRoutePrefix.trim().length > 0
+      options.resultRoutePrefix.trim().length > 0
       ? options.resultRoutePrefix
       : DEFAULT_RESULT_PREFIX;
 
   const reasoningStreamToken =
     typeof options.reasoningStreamToken === "string" &&
-    options.reasoningStreamToken.trim().length > 0
+      options.reasoningStreamToken.trim().length > 0
       ? options.reasoningStreamToken.trim()
       : null;
 
   const reasoningStreamRoutePrefix =
     typeof options.reasoningStreamRoutePrefix === "string" &&
-    options.reasoningStreamRoutePrefix.trim().length > 0
+      options.reasoningStreamRoutePrefix.trim().length > 0
       ? options.reasoningStreamRoutePrefix
       : DEFAULT_REASONING_PREFIX;
 
@@ -142,20 +142,20 @@ export function renderLoadingShell(options: LoadingShellOptions = {}): string {
   );
   const reasoningScript = resolved.reasoningStreamToken
     ? renderReasoningStreamScript(
-        resolved.reasoningStreamToken,
-        resolved.reasoningStreamRoutePrefix
-      )
+      resolved.reasoningStreamToken,
+      resolved.reasoningStreamRoutePrefix
+    )
     : "";
   const scriptContent = `${statusScript}${reasoningScript}${hydrationScript}`;
 
   const reasoningSection = resolved.reasoningStreamToken
     ? [
-        `    <section class="reasoning-panel" data-reasoning-panel aria-live="polite" aria-label="Model reasoning updates">`,
-        `      <h2 class="reasoning-heading">Model is thinking…</h2>`,
-        `      <div class="reasoning-log" data-reasoning-log></div>`,
-        `    </section>`,
-        ``
-      ].join("\n")
+      `    <section class="reasoning-panel" data-reasoning-panel aria-live="polite" aria-label="Model reasoning updates">`,
+      `      <div class="reasoning-heading">Model is thinking…</div>`,
+      `      <div class="reasoning-log" data-reasoning-log></div>`,
+      `    </section>`,
+      ``
+    ].join("\n")
     : "";
 
   // Intentionally omit closing </body>/<html> so later chunks can append hydration scripts before finishing the document.
@@ -175,14 +175,14 @@ ${styles}
       <div class="pulse">
         <div class="spinner" role="status" aria-live="polite" aria-label="Generating the next view"></div>
       </div>
+      <h1>Generating your next view</h1>
+      <p class="status" data-status>${resolved.message}</p>
+      <p class="hint">Hold tight—we ask your configured model to compose a fresh canvas. This usually lands within a minute.</p>
+${reasoningSection}      <footer>
+        <span>vaporvibe keeps the last brief and request context warm.</span>
+        <span>We’ll swap in the live page as soon as it arrives.</span>
+      </footer>
     </div>
-    <h1>Generating your next view</h1>
-    <p class="status" data-status>${resolved.message}</p>
-    <p class="hint">Hold tight—we ask your configured model to compose a fresh canvas. This usually lands within a minute.</p>
-${reasoningSection}  <footer>
-      <span>vaporvibe keeps the last brief and request context warm.</span>
-      <span>We’ll swap in the live page as soon as it arrives.</span>
-    </footer>
   </main>
   <script>
 ${scriptContent}
