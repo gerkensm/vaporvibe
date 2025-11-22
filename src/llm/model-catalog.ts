@@ -247,6 +247,54 @@ const MODEL_COMPOSITE_SCORES: Record<string, ModelCompositeScores> = {
     responsiveness: 42.4,
     valueForMoney: 92.26,
   },
+  "openai:gpt-5.1": {
+    reasoning: 70,
+    codingSkill: 95,
+    responsiveness: 35,
+    valueForMoney: 52,
+  },
+  "openai:gpt-5.1-codex-max": {
+    reasoning: 72,
+    codingSkill: 100,
+    responsiveness: 22,
+    valueForMoney: 48,
+  },
+  "openai:gpt-5.1-codex-mini": {
+    reasoning: 66,
+    codingSkill: 88,
+    responsiveness: 40,
+    valueForMoney: 82,
+  },
+  "openai:gpt-4o": {
+    reasoning: 62,
+    codingSkill: 48,
+    responsiveness: 52,
+    valueForMoney: 42,
+  },
+  "gemini:gemini-3-pro-preview": {
+    reasoning: 75,
+    codingSkill: 85,
+    responsiveness: 28,
+    valueForMoney: 35,
+  },
+  "anthropic:claude-haiku-4-5": {
+    reasoning: 58,
+    codingSkill: 45,
+    responsiveness: 72,
+    valueForMoney: 88,
+  },
+  "grok:grok-3": {
+    reasoning: 55,
+    codingSkill: 42,
+    responsiveness: 48,
+    valueForMoney: 45,
+  },
+  "groq:qwen/qwen3-32b": {
+    reasoning: 48,
+    codingSkill: 35,
+    responsiveness: 78,
+    valueForMoney: 92,
+  },
 };
 
 function normalizeModelReasoningTokens(
@@ -348,6 +396,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         supportsReasoningMode: true,
         reasoningModes: ["none", "low", "medium", "high"],
         cost: usdCost({ input: 1.25, output: 10 }),
+        compositeScores: compositeScoresFor("openai:gpt-5.1"),
         reasoningModeNotes:
           "Supports 'none' for no reasoning (fastest), and low/medium/high for adaptive reasoning.",
       },
@@ -669,6 +718,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         },
         supportsReasoningMode: false,
         cost: usdCost({ input: 2.5, output: 10 }),
+        compositeScores: compositeScoresFor("openai:gpt-4o"),
         reasoningModeNotes: "Reasoning modes are not available for GPT-4o.",
       },
       {
@@ -1239,6 +1289,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         supportsReasoningMode: true,
         reasoningModes: ["low", "high"],
         cost: usdCost({ input: 2.00, output: 12.00 }),
+        compositeScores: compositeScoresFor("gemini:gemini-3-pro-preview"),
         reasoningModeNotes:
           "Supports 'low' (fast) and 'high' (thorough) reasoning levels. Legacy token budgets are not supported. Pricing shown is for prompts <= 200k tokens; > 200k tokens: $4.00 input / $18.00 output.",
         reasoningTokens: {
@@ -1340,12 +1391,15 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
           default: 65_535,
           max: 65_535,
           description:
-            "Pro runs share the 65,535 token output cap for standard calls.",
+            "Pro runs share the 65_535 token output cap for standard calls.",
         },
         supportsReasoningMode: false,
-        cost: usdCost({ input: 1.25, output: 10 }),
-        reasoningModeNotes:
-          "Pricing shown is for prompts up to 200K tokens; requests above that tier increase to $2.50 input / $15 output per 1M tokens.",
+        cost: usdCost({
+          input: 2.0,
+          output: 12.0,
+          notes:
+            "Pricing for prompts \u2264 200k tokens. For > 200k, costs are $4.00 input / $18.00 output per 1M tokens.",
+        }),
         reasoningTokens: {
           min: 128,
           max: 32_768,
@@ -1647,6 +1701,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
             "Leave the default for balanced latency; dial it up for heavier troubleshooting or synthesis tasks.",
         },
         cost: usdCost({ input: 1, output: 5 }),
+        compositeScores: compositeScoresFor("anthropic:claude-haiku-4-5"),
       },
       {
         value: "claude-3-5-haiku-latest",
@@ -1797,6 +1852,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
             "Outputs land around 131,072 tokens for the Grok 3 family.",
         },
         cost: usdCost({ input: 3, output: 15 }),
+        compositeScores: compositeScoresFor("grok:grok-3"),
         supportsReasoningMode: true,
         reasoningModeNotes:
           "Grok 3 offers optional deliberate traces, but the tokens budget stays provider-managed with no manual knob.",
@@ -2084,6 +2140,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
             "Groq supports up to 16,384 output tokens for Qwen 3 32B.",
         },
         cost: usdCost({ input: 0.25, output: 0.25 }),
+        compositeScores: compositeScoresFor("groq:qwen/qwen3-32b"),
         supportsReasoningMode: true,
         reasoningModeNotes:
           "Supports 'default' and 'none' reasoning effort via the API, but does not expose qualitative low/medium/high modes.",
