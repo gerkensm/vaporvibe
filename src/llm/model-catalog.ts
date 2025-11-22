@@ -52,6 +52,7 @@ export interface ModelMetadata {
   readonly compositeScores?: ModelCompositeScores;
   readonly supportsReasoningMode?: boolean;
   readonly reasoningModes?: ReasoningMode[];
+  readonly defaultReasoningMode?: ReasoningMode;
 }
 
 type RawModelReasoningTokens =
@@ -308,7 +309,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
     description:
       "OpenAI’s studio is the crowd favorite for polished UX, rich reasoning, and plug-and-play integrations.",
     placeholder: "sk-...",
-    defaultModel: "gpt-5",
+    defaultModel: "gpt-5.1",
     defaultReasoningMode: "none",
     reasoningModes: ["none", "low", "medium", "high"],
     maxOutputTokens: {
@@ -319,6 +320,85 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         "Most GPT and o-series models support 128K outputs, while GPT-4.1 variants stretch up to roughly 1.05M tokens.",
     },
     models: [
+      {
+        value: "gpt-5.1",
+        label: "GPT-5.1",
+        tagline: "Smarter, faster, more conversational",
+        description:
+          "The next model in the GPT-5 series, balancing intelligence and speed. Features adaptive reasoning that dynamically adjusts thinking time based on task complexity.",
+        recommendedFor:
+          "Agentic workflows, coding tasks, and conversational applications requiring a balance of speed and intelligence.",
+        highlights: [
+          "Adaptive reasoning",
+          "Faster on simple tasks",
+          "More conversational tone",
+        ],
+        release: "2025-11-13",
+        contextWindow: 400_000,
+        contextWindowUnit: "tokens",
+        featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 128_000,
+          max: 128_000,
+          description: "GPT-5.1 supports up to 128K output tokens.",
+        },
+        supportsReasoningMode: true,
+        reasoningModes: ["none", "low", "medium", "high"],
+        cost: usdCost({ input: 1.25, output: 10 }),
+        reasoningModeNotes:
+          "Supports 'none' for no reasoning (fastest), and low/medium/high for adaptive reasoning.",
+      },
+      {
+        value: "gpt-5.1-codex",
+        label: "GPT-5.1 Codex",
+        tagline: "Legacy agentic coding",
+        description:
+          "Optimized for long-running, agentic coding tasks. Succeeded by GPT-5.1 Codex Max.",
+        recommendedFor: "Legacy workflows requiring the original Codex model.",
+        highlights: ["Legacy model", "Agentic coding", "Stable"],
+        release: "2025-11-19",
+        contextWindow: 400_000,
+        contextWindowUnit: "tokens",
+        featured: false,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 128_000,
+          max: 128_000,
+          description: "GPT-5.1 Codex supports up to 128K output tokens.",
+        },
+        supportsReasoningMode: true,
+        reasoningModes: ["low", "medium", "high"],
+        cost: usdCost({ input: 1.25, output: 10 }),
+      },
+      {
+        value: "gpt-5.1-codex-mini",
+        label: "GPT-5.1 Codex Mini",
+        tagline: "Efficient agentic coding",
+        description:
+          "Smaller, more cost-effective version of GPT-5.1 Codex. Great for high-volume tasks.",
+        recommendedFor: "High-volume coding tasks, automated code reviews.",
+        highlights: ["Cost-effective", "Agentic capabilities", "High volume"],
+        release: "2025-11-19",
+        contextWindow: 400_000,
+        contextWindowUnit: "tokens",
+        featured: false,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 128_000,
+          max: 128_000,
+          description: "GPT-5.1 Codex Mini supports up to 128K output tokens.",
+        },
+        supportsReasoningMode: true,
+        reasoningModes: ["low", "medium", "high"],
+        cost: usdCost({ input: 0.25, output: 2.0 }),
+      },
       {
         value: "gpt-5",
         label: "GPT-5",
@@ -401,9 +481,13 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
           description:
             "Matches GPT-5’s 128K output ceiling in a smaller footprint.",
         },
-        supportsReasoningMode: false,
+        supportsReasoningMode: true,
+        reasoningModes: ["none", "low", "medium", "high"],
+        defaultReasoningMode: "medium",
         cost: usdCost({ input: 0.25, output: 2 }),
         compositeScores: compositeScoresFor("openai:gpt-5-mini"),
+        reasoningModeNotes:
+          "GPT-5 mini supports reasoning tokens for deeper analysis while maintaining fast performance.",
       },
       {
         value: "gpt-5-mini-2025-08-07",
@@ -459,7 +543,11 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
           description:
             "Shares GPT-5’s 128K output token limit in a nano-sized package.",
         },
-        supportsReasoningMode: false,
+        supportsReasoningMode: true,
+        reasoningModes: ["none", "low", "medium", "high"],
+        defaultReasoningMode: "medium",
+        reasoningModeNotes:
+          "GPT-5 nano supports reasoning tokens for deeper analysis while maintaining fast performance.",
         cost: usdCost({ input: 0.05, output: 0.4 }),
         compositeScores: compositeScoresFor("openai:gpt-5-nano"),
       },
@@ -1150,9 +1238,9 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         },
         supportsReasoningMode: true,
         reasoningModes: ["low", "high"],
-        cost: usdCost({ input: 1.25, output: 10 }),
+        cost: usdCost({ input: 2.00, output: 12.00 }),
         reasoningModeNotes:
-          "Supports 'low' (fast) and 'high' (thorough) reasoning levels. Legacy token budgets are not supported.",
+          "Supports 'low' (fast) and 'high' (thorough) reasoning levels. Legacy token budgets are not supported. Pricing shown is for prompts <= 200k tokens; > 200k tokens: $4.00 input / $18.00 output.",
         reasoningTokens: {
           helper:
             "Gemini 3 Pro uses 'low' or 'high' reasoning levels instead of a token budget. Use the Reasoning Effort dropdown.",
@@ -1942,6 +2030,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
           helper:
             "Groq handles the GPT-OSS thinking budget automatically—reasoning sliders stay hidden while modes remain available.",
         },
+        defaultReasoningMode: "medium",
       },
       {
         value: "openai/gpt-oss-20b",
@@ -1971,6 +2060,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
           helper:
             "Groq manages GPT-OSS thinking tokens internally, so only the reasoning mode toggle appears.",
         },
+        defaultReasoningMode: "medium",
       },
       {
         value: "qwen/qwen3-32b",
