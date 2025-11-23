@@ -25,6 +25,7 @@
     "dev:be": "tsx src/dev/backend-dev-server.ts",
     "dev:fe": "cd frontend && npm run dev",
     "gen:codebase-map": "node scripts/generate-codebase-map.mjs",
+    "update-rules": "python3 scripts/update_rules.py",
     "build:macos:sea": "scripts/build-macos-sea.sh",
     "build:macos:sea:signed": "NOTARIZE=true scripts/build-macos-sea.sh",
     "build:macos:sea:submit": "scripts/notarize-macos-sea.sh",
