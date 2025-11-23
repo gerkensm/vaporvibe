@@ -2,6 +2,14 @@
 
 Welcome! This guide provides the high-level context, architectural details, and philosophical principles needed to understand and contribute to the `VaporVibe` repository. 🤖
 
+> [!IMPORTANT]
+> **READ THIS FIRST**: Before starting any task, you MUST read the [Architecture Guide](docs/ARCHITECTURE.md) and the [Codebase Map](docs/CODEBASE_MAP.md) to understand the system structure and core concepts.
+
+## 📚 Documentation Index
+-   **[Architecture Guide](docs/ARCHITECTURE.md)**: High-level concepts (A/B Testing, Virtual REST API, etc.).
+-   **[Codebase Map](docs/CODEBASE_MAP.md)**: File structure and dependency graph.
+-   **[Module Docs](docs/modules/)**: Deep-dives into specific files.
+
 ---
 
 ## 1. Core Concept & Purpose
@@ -190,6 +198,106 @@ The admin UI is functional but has some minor inconsistencies the LLM should _no
 - **Purpose**: Shows a loading overlay during LLM generation instead of a blank screen.
 - **Mechanism**: The backend injects `<script src="/vaporvibe/assets/vaporvibe-interceptor.js">` into every LLM-generated HTML response. This script intercepts `<a>` clicks and `<form>` submissions, displays the overlay, and re-initiates the request, adding a marker (`__vaporvibe=interceptor`) so the server knows to send back the final HTML directly (or handle API calls).
 - **Source**: The interceptor logic lives in `frontend/src/interceptor.ts` and is bundled by Vite.
+- **Navigation Methods**:
+  - **Fetch-based navigation**: Uses `performRequest()` to fetch HTML, then `replaceDocumentWithHtml()` for in-place document replacement
+  - **Form handling**: Supports both GET (URL params) and POST (FormData/URLSearchParams) submissions
+  - **History management**: Preserves browser history state across client-side navigations
+  - **Poll-for-result**: Handles async rendering via `Link` headers with exponential backoff retry
+
+### Reasoning Stream Display (Live Model Thinking)
+
+VaporVibe displays **live reasoning streams** from LLMs that support extended thinking (Anthropic, Gemini, Groq, OpenAI o-series). The reasoning visualization appears in **two contexts**:
+
+#### A. Navigation Interceptor Overlay (`frontend/src/interceptor.ts`)
+
+**For client-side SPA navigation:**
+- Glassmorphism reasoning panel integrated into the loading overlay
+- Real-time EventSource connection to `/__vaporvibe/reasoning/{token}`
+- Markdown rendering with syntax highlighting, code blocks, lists, links
+- Streaming character-by-character animation (~160 chars/sec)
+- Sticky scrolling (auto-scroll unless user scrolls up)
+- Transparent scrollbars that appear on hover
+
+#### B. Server-Rendered Transition Page (`src/views/loading-shell/`)
+
+**For server-rendered loading pages:**
+- **`reasoning-stream.js`**: Handles EventSource connection, delta accumulation, markdown rendering, sticky scrolling
+- **`styles.css`**: Reasoning panel styling matching interceptor aesthetic
+- **`loading-shell.ts`**: HTML structure with reasoning panel elements
+
+**Shared Features Across Both Implementations:**
+- Real-time delta accumulation from `/__vaporvibe/reasoning/{token}` SSE endpoint
+- Support for summaries, live thoughts, and final reasoning traces
+- Unified "Thinking aloud" (streaming) / "Final reasoning" (complete) headers
+- Markdown rendering: headings, lists, code blocks, inline formatting, links
+- Sticky scrolling: auto-scroll to bottom unless user manually scrolls up
+- Character-by-character streaming animation for smooth reveal
+
+#### Stream Architecture
+
+**Backend (`src/server/server.ts`):**
+1. `isReasoningStreamEnabled()` checks if model supports reasoning and creates stream observer
+2. Attaches `LlmStreamObserver` to LLM client when generating HTML
+3. Observer receives `onReasoningEvent({ kind: "thinking" | "summary", text })` callbacks
+4. Stream controller (`src/server/reasoning-stream-controller.ts`) manages SSE connections
+5. Emits deltas as `event: reasoning` with JSON payloads: `{ kind, text }`
+6. Sends final trace as `event: final` with `{ summaries, details }`
+7. Closes stream with `event: complete`
+
+**LLM Client Integration:**
+- All clients now accept `LlmGenerateOptions` with optional `streamObserver`
+- During streaming, clients call `observer.onReasoningEvent()` for each delta
+- **Anthropic**: Emits thinking deltas from stream events
+- **Gemini**: Handles Pro (thinkingLevel) vs Flash (thinkingBudget) split, emits thoughts
+- **Groq**: Uses string buffers (`summaryBuffer`, `detailBuffer`) to accumulate deltas and prevent fragmentation
+- **OpenAI o-series**: Future support placeholder
+
+**Frontend Rendering:**
+- `buildSnapshot()`: Constructs reasoning log state from accumulated buffers
+- `snapshotToMarkdown()`: Converts state to markdown with headers
+- `markdownToHtml()`: Renders markdown to HTML with syntax highlighting
+- `scheduleAnimation()`: Queues character-by-character reveal using `requestAnimationFrame`
+- `animationStep()`: Progressive rendering at ~160 chars/sec (faster when finalized)
+
+**Sticky Scrolling Pattern:**
+- `userScrolled` flag tracks manual scroll-up
+- `isNearBottom()` checks if scroll position is within `REASONING_SCROLL_TOLERANCE` (28px)
+- Auto-scroll resumes when user scrolls back to bottom
+- Respects user intent: no forced scrolling while exploring earlier content
+
+#### Groq-Specific Reasoning Behavior
+
+**Challenge**: Groq's API streams reasoning deltas token-by-token, which would create fragmented "Step 1", "Step 2" entries if treated naively.
+
+**Solution** (`src/llm/groq-client.ts`):
+- Uses **string buffers** (`summaryBuffer`, `detailBuffer`) instead of arrays
+- `processStreamingReasoningDelta()` appends incoming text to buffers
+- `normalizeReasoningEntries()` filters noise using `/^[\s\.]+$/` regex
+- `mergeReasoningTraces()` intelligently merges streaming buffers with final response
+- Constructs `raw` field from streaming buffers for clean history JSON
+
+**Result**: Reasoning displays as a single coherent block instead of fragmenting into multiple steps.
+
+### Service Worker for Navigation Caching
+
+**Purpose**: Enable seamless client-side navigation without full page reload.
+
+**Implementation** (`frontend/public/vaporvibe-interceptor-sw.js`):
+- Intercepts navigation requests in service worker
+- Caches HTML responses in memory (90s TTL)
+- MessageChannel communication between interceptor and worker
+- Navigates via `window.location.replace()` after caching
+
+**Lifecycle**:
+1. Interceptor calls `ensureNavigationServiceWorker()` on load
+2. Waits for service worker controller activation
+3. On navigation: sends HTML via `postMessage({ type: "vaporvibe-cache-html", targetUrl, html })`
+4. Service worker caches payload and acknowledges
+5. Interceptor navigates to target URL
+6. Service worker intercepts fetch, serves cached HTML
+7. Browser renders instantly without server round-trip
+
+**Fallback**: If service worker fails, falls back to `document.open()` / `document.write()` for in-place replacement.
 
 ### Instructions Panel
 
@@ -380,9 +488,18 @@ gerkensm-vaporvibe/
 
 1.  Make changes in `src/` (backend) or `frontend/src/` (frontend).
 2.  Use `npm run dev` for live reloading during development.
-3.  **Manually test** thoroughly with relevant providers (`OPENAI_API_KEY`, `GEMINI_API_KEY`, etc. set). Check core flows, admin UI, setup, history, reasoning traces.
-4.  Run `npm run build` to ensure both frontend and backend compile successfully and assets are updated.
-5.  Commit changes, including the updated `dist/` and `frontend/dist/` directories.
+3.  **Run tests** to ensure nothing is broken:
+    ```bash
+    npm test
+    ```
+4.  **Manually test** thoroughly with relevant providers (`OPENAI_API_KEY`, `GEMINI_API_KEY`, etc. set). Check core flows, admin UI, setup, history, reasoning traces.
+5.  Run `npm run build` to ensure both frontend and backend compile successfully and assets are updated.
+6.  **Regenerate the codebase map** after making structural changes (new files, imports, exports):
+    ```bash
+    npm run gen:codebase-map
+    ```
+    This keeps `docs/CODEBASE_MAP.md` up to date with current import/export relationships for future LLM agents.
+7.  Commit changes, including the updated `dist/`, `frontend/dist/`, and `docs/CODEBASE_MAP.md` directories.
 
 ---
 
