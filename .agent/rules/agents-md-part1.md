@@ -3,7 +3,6 @@ trigger: always_on
 globs: **/*
 ---
 
-
 # Content from AGENTS.md
 
 # Agent Onboarding Guide: VaporVibe

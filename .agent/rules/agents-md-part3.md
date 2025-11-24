@@ -3,7 +3,6 @@ trigger: always_on
 globs: **/*
 ---
 
-
 - `/api/admin/*`: JSON API endpoints for the Admin SPA. Handled by `AdminController` (`src/server/admin-controller.ts`).
   - `GET /api/admin/state`: Get current app config, provider status, model catalogs.
   - `POST /api/admin/brief`: Update brief and attachments.

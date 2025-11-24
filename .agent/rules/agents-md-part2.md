@@ -3,7 +3,6 @@ trigger: always_on
 globs: **/*
 ---
 
-
   - **Placement:** Group actions logically, often at the bottom of a form or card section.
   - _Reference:_ `.admin-primary`, `.admin-secondary`, `.admin-danger` styles.
 - **Navigation/Tabs:** For secondary navigation within a view, use tab patterns with clear active states (e.g., background color change, shadow).

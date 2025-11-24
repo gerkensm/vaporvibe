@@ -3,7 +3,6 @@ trigger: always_on
 globs: **/*
 ---
 
-
 - **Focused Test Suite**: A Vitest suite now covers config loading, prompt compilation, the session store, and key utilities. It runs fast but doesn't yet exercise every provider path, so keep testing manually when touching network integrations or the SPA.
 - **macOS-Centric Builds**: `scripts/` contains complex logic for macOS `.app` and DMG creation/notarization.
 - **Inconsistent Reasoning APIs**: OpenAI/Grok use `reasoningMode`, while Anthropic/Gemini use `reasoningTokens`. Backend logic handles normalization.

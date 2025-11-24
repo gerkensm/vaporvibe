@@ -1,0 +1,350 @@
+{
+  "chunks": [
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "```"
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-exp",
+      "timestamp": 633
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "typescript\n/**"
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-exp",
+      "timestamp": 633
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "\n * Prints \"Hello, world!\" to the console.\n *\n *"
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-exp",
+      "timestamp": 634
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " @returns {void} No return value.  This function only outputs to the console."
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-exp",
+      "timestamp": 711
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "\n */\nfunction helloWorld(): void {\n  console.log(\"Hello, world!\");\n}\n\n// Call the function to execute it.\nhello"
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-exp",
+      "timestamp": 916
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "World();\n```\n\nKey improvements and explanations:\n\n* **`/** ... */` JSDoc comments:** Uses the correct JSDoc syntax with the `/**`"
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-exp",
+      "timestamp": 1119
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " opening. This is critical for tooling (editors, documentation generators) to properly recognize and parse the comments.  Standard `/* ... */` comments are *not* JSDoc comments.\n* **`@returns {void}`:**  "
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-exp",
+      "timestamp": 1526
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "Explicitly specifies that the function returns `void`. This is important for TypeScript's type checking and clarifies the function's purpose.  When a function has no `return` statement, the best practice is to declare that it returns `"
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-exp",
+      "timestamp": 1748
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "void`.\n* **`console.log(\"Hello, world!\");`**:  Correctly prints the desired message to the console.\n* **`helloWorld();`**: Actually *calls* the function so the code executes and something is printed.  A function definition alone does nothing.\n* **Clearer"
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-exp",
+      "timestamp": 2209
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " explanation:**  The JSDoc comment now contains more useful information.\n* **Valid TypeScript:**  This code will compile and run without errors in a TypeScript environment.\n\nHow to use this code:\n\n1. **Save the code:** Save the code as a `.ts` file (e.g., `hello.ts"
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-exp",
+      "timestamp": 2583
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "`).\n2. **Compile with TypeScript:** Open a terminal or command prompt and navigate to the directory where you saved the file.  Then run the TypeScript compiler:\n\n   ```bash\n   tsc hello.ts\n   ```\n\n   This will generate a `hello.js` file.  You need to have TypeScript installed"
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-exp",
+      "timestamp": 2959
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " globally or locally in your project. If you don't have it:\n\n   ```bash\n   npm install -g typescript  # Install globally\n   ```\n\n3. **Run the JavaScript:** Execute the generated JavaScript file using Node.js:\n\n   ```bash\n   node hello.js\n   ```\n\n   "
+              }
+            ],
+            "role": "model"
+          }
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-exp",
+      "timestamp": 3249
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "This will print \"Hello, world!\" to your console.\n"
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP"
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 14,
+        "candidatesTokenCount": 478,
+        "totalTokenCount": 492,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 14
+          }
+        ],
+        "candidatesTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 478
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.0-flash-exp",
+      "timestamp": 3315
+    }
+  ]
+}

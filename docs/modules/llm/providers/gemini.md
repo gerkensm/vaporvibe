@@ -31,8 +31,8 @@ The client implements a sophisticated logic to configure "Thinking" (reasoning) 
 ### 3. Stream Processing
 The client handles Gemini's unique stream format, where "thoughts" and "content" can be interleaved or delivered in separate chunks.
 -   **Thought Collection**: Aggregates `part.thought` fields from the stream.
--   **Snapshotting**: Maintains a snapshot of thought blocks to detect and merge updates (Gemini sometimes re-sends the whole block).
--   **Observer**: Emits `summary` events for thoughts and `text` events for final content.
+-   **Events**: Emits `thinking` events for thought chunks. (Note: Previous versions emitted `summary`, which caused UI issues).
+-   **Final Trace**: Populates `LlmReasoningTrace.details` with the full array of thought chunks. `summaries` is deprecated for this provider.
 
 ## Configuration (`ProviderSettings`)
 -   **`apiKey`**: Required.

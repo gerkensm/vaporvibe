@@ -1,0 +1,4741 @@
+{
+  "chunks": [
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "role": "assistant",
+            "content": ""
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 83
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "The",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 89
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " user",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 91
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " asks",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 93
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ":",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 96
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " \"",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 97
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "Write",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 100
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " a",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 101
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " simple",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 103
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " hello",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 105
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " world",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 108
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " function",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 110
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " in",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 112
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " Type",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 114
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "Script",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 117
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " with",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 119
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " J",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 120
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "SD",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 122
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "oc",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 125
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " comments",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 127
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".\"\n\n",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 129
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "We",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 131
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " need",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 132
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " to",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 136
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " produce",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 137
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " Type",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 139
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "Script",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 143
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " code",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 143
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " with",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 145
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " J",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 148
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "SD",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 150
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "oc",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 152
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 154
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " Provide",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 156
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " a",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 157
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " simple",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 160
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " function",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 162
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " that",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 164
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " logs",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 168
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " \"",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 168
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "Hello",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 171
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ",",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 172
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " World",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 175
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "!\"",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 176
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " or",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 178
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " returns",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 182
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " string",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 183
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 186
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " Provide",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 188
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " J",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 190
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "SD",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 191
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "oc",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 194
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " describing",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 196
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " parameters",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 198
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ",",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 200
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " return",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 201
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ",",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 204
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " etc",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 206
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 207
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " Should",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 210
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " be",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 214
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " straightforward",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 214
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 216
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " Provide",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 219
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " code",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 221
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " block",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 223
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 226
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " Also",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 226
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " maybe",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 229
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " explain",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 232
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 233
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " The",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 236
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " user",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 237
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " didn't",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 239
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " ask",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 241
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " for",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 243
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " explanation",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 247
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " but",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 247
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " just",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 250
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " code",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 252
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 254
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " We",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 256
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " can",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 258
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " give",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 260
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " code",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 262
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " with",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 264
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " comments",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 267
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".\n\n",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 268
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "We",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 270
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " need",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 273
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " to",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 274
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " ensure",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 277
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " no",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 279
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " dis",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 281
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "allowed",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 283
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " content",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 284
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 287
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " It's",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 290
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " fine",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 292
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".\n\n",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 293
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "Thus",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 296
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " final",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 298
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " answer",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 300
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ":",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 302
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " a",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 305
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " TS",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 307
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " function",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 309
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " hello",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 310
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "World",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 312
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "():",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 315
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " string",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 318
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " or",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 318
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " void",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 321
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 322
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " Provide",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 325
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": " J",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 327
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "SD",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 329
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "oc",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 331
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".\n\n",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 333
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": "Proceed",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 335
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "reasoning": ".",
+            "channel": "analysis"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 339
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "Here"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 352
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "’s"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 354
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " a"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 356
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " minimal"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 358
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " **"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 360
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "Type"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 362
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "Script"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 364
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "**"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 367
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " example"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 368
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " that"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 370
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " prints"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 372
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " “"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 374
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "Hello"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 376
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": ","
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 379
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " World"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 381
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "!”"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 383
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " to"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 386
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " the"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 388
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " console"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 389
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "."
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 391
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "  \n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 395
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "The"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 396
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " function"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 398
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " is"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 400
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " documented"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 402
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " with"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 403
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " **"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 406
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "J"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 408
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "SD"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 411
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "oc"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 412
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "**"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 415
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " so"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 417
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " tools"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 419
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " ("
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 420
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "e"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 423
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": ".g"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 426
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": ".,"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 427
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " IDE"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 429
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "s"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 432
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": ","
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 433
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " Type"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 435
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "Doc"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 437
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": ")"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 439
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " can"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 441
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " generate"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 446
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " helpful"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 448
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " documentation"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 450
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " and"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 452
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " provide"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 454
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " type"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 457
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "‑"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 458
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "checking"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 461
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " assistance"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 463
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": ".\n\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 465
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "```"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 466
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "typescript"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 469
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 472
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "/**\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 473
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " *"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 476
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " Prints"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 477
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " a"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 479
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " greeting"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 481
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " message"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 483
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " to"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 486
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " the"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 488
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " console"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 493
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": ".\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 493
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " *\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 493
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " *"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 496
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " @"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 498
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "example"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 500
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 502
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " *"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 504
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " //"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 507
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " Logs"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 509
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": ":"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 510
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " \""
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 512
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "Hello"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 515
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": ","
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 517
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " World"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 519
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "!\"\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 520
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " *"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 524
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " hello"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 525
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "World"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 527
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "();\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 528
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " *\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 531
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " *"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 533
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " @"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 536
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "returns"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 537
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " {"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 540
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "void"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 542
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "}\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 544
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " */\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 546
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "function"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 548
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " hello"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 550
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "World"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 552
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "():"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 556
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " void"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 556
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " {\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 558
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " "
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 560
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " console"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 562
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": ".log"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 564
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "('"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 566
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "Hello"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 568
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": ","
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 571
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " World"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 573
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "!');\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 575
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "}\n\n//"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 578
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " Call"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 579
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " the"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 582
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " function"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 583
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 585
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "hello"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 587
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "World"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 589
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "();\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 591
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "``"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 593
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "`\n\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 596
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "**"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 598
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "Explanation"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 600
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " of"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 602
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " the"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 604
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " J"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 606
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "SD"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 610
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "oc"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 610
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " tags"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 613
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "**\n\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 614
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "|"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 616
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " Tag"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 619
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "         "
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 620
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " |"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 623
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " Purpose"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 626
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " |\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 626
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "|"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 628
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "--------------"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 631
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "|"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 632
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "---------"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 635
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "|\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 637
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "|"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 639
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " `"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 641
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "@"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 643
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "example"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 645
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "`"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 647
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "  "
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 649
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " |"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 652
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " Shows"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 654
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " a"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 655
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " short"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 658
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " usage"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 660
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " example"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 662
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " that"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 664
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " will"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 667
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " appear"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 668
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " in"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 671
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " generated"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 673
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " docs"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 676
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "."
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 677
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " |\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 678
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "|"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 680
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " `"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 683
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "@"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 685
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "returns"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 688
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "`"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 689
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "  "
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 691
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " |"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 693
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " Documents"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 696
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " the"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 697
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " return"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 700
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " type"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 703
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " (`"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 703
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "void"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 706
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "`"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 708
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " here"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 709
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": ","
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 712
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " because"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 715
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " the"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 716
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " function"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 718
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " only"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 720
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " logs"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 722
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": ")."
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 726
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " |\n\n"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 727
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "You"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 728
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " can"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 731
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " copy"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 734
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " this"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 736
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " directly"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 737
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " into"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 739
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " a"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 741
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " `."
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 743
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "ts"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 745
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "`"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 748
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " file"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 750
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " and"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 752
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " run"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 754
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " it"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 755
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " with"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 758
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " `"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 759
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "ts"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 762
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "-node"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 763
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "`"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 766
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " or"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 768
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " compile"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 771
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " it"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 772
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " with"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 774
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": " `"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 777
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "ts"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 778
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "c"
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 780
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {
+            "content": "`."
+          },
+          "logprobs": null,
+          "finish_reason": null
+        }
+      ],
+      "timestamp": 782
+    },
+    {
+      "id": "chatcmpl-11804a59-0744-4fd1-aa6e-6c0c4c1e4aa8",
+      "choices": [
+        {
+          "index": 0,
+          "delta": {},
+          "logprobs": null,
+          "finish_reason": "stop"
+        }
+      ],
+      "usage": {
+        "queue_time": 0.038306202,
+        "prompt_tokens": 86,
+        "prompt_time": 0.003218251,
+        "completion_tokens": 337,
+        "completion_time": 0.703949549,
+        "total_tokens": 423,
+        "total_time": 0.7071678,
+        "completion_tokens_details": {
+          "reasoning_tokens": 121
+        }
+      },
+      "timestamp": 785
+    }
+  ]
+}

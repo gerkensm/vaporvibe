@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/views/loading-shell/**, **/frontend/public/vaporvibe-interceptor-sw.js, **/frontend/src/interceptor.ts
 ---
-
 
 # Content from docs/architecture/transition-ux.md
 

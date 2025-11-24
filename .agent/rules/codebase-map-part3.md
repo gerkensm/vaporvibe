@@ -1,8 +1,9 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+#### `components/ABWorkspaceShell.tsx`
 
 **Internal Imports:**
 

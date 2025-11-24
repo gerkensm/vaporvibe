@@ -1,0 +1,437 @@
+{
+  "events": [
+    {
+      "type": "message_start",
+      "timestamp": 739
+    },
+    {
+      "type": "content_block_start",
+      "timestamp": 739
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "#"
+      },
+      "timestamp": 801
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " TypeScript Hello World Function with"
+      },
+      "timestamp": 847
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " JSDoc\n\n```typescript\n/**\n *"
+      },
+      "timestamp": 876
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " Prints a greeting message to the console."
+      },
+      "timestamp": 925
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n * @param name - The name of"
+      },
+      "timestamp": 954
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " the person to greet\n *"
+      },
+      "timestamp": 1011
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " @returns A greeting string"
+      },
+      "timestamp": 1057
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n */\nfunction h"
+      },
+      "timestamp": 1084
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "elloWorld(name: string): string"
+      },
+      "timestamp": 1164
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " {\n  const greeting = `Hello, ${name}"
+      },
+      "timestamp": 1189
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "!`;\n  console"
+      },
+      "timestamp": 1217
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": ".log(greeting);\n  return"
+      },
+      "timestamp": 1241
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " greeting;\n}\n\n// Usage"
+      },
+      "timestamp": 1328
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\nhelloWorld(\"World\");\n```"
+      },
+      "timestamp": 1372
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n\n## Alternative:"
+      },
+      "timestamp": 1424
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " Arrow Function Version\n\n```typescript\n/**"
+      },
+      "timestamp": 1455
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n * Gr"
+      },
+      "timestamp": 1512
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "eets a person by"
+      },
+      "timestamp": 1577
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " name.\n * @param name"
+      },
+      "timestamp": 1582
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " - The name of the person to greet\n *"
+      },
+      "timestamp": 1659
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " @returns A formatted greeting message\n */\nconst h"
+      },
+      "timestamp": 1666
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "elloWorld = (name: string):"
+      },
+      "timestamp": 1722
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " string => {\n  return `Hello, ${name}!`;"
+      },
+      "timestamp": 1746
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n};\n\n// Usage\nconsole."
+      },
+      "timestamp": 1768
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "log(helloWorld(\"World\"));"
+      },
+      "timestamp": 1823
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n```\n\n## With More"
+      },
+      "timestamp": 1901
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " Detailed JSDoc\n\n```typescript\n/**\n "
+      },
+      "timestamp": 1987
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "* Outputs a personalized greeting message.\n * "
+      },
+      "timestamp": 2010
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n * @param name - The"
+      },
+      "timestamp": 2033
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " name of the person to greet"
+      },
+      "timestamp": 2066
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n * @returns A greeting string in"
+      },
+      "timestamp": 2112
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " the format \"Hello, {"
+      },
+      "timestamp": 2172
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "name}!\"\n * @example"
+      },
+      "timestamp": 2189
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n * const result = hello"
+      },
+      "timestamp": 2243
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "World(\"TypeScript\");\n * console.log"
+      },
+      "timestamp": 2273
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "(result); // Output"
+      },
+      "timestamp": 2293
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": ": \"Hello, TypeScript!\""
+      },
+      "timestamp": 2322
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n */\nfunction helloWorld("
+      },
+      "timestamp": 2349
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "name: string): string {\n  "
+      },
+      "timestamp": 2402
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "return `Hello, ${name}!`;"
+      },
+      "timestamp": 2457
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n}\n```\n\nThe"
+      },
+      "timestamp": 2555
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " JSDoc comments include:\n- **`@param`"
+      },
+      "timestamp": 2586
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "** - describes"
+      },
+      "timestamp": 2618
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " function parameters\n- **`@returns`"
+      },
+      "timestamp": 2644
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "** - describes the return value\n-"
+      },
+      "timestamp": 2668
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " **`@example`** - shows"
+      },
+      "timestamp": 2743
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " usage examples (in the"
+      },
+      "timestamp": 2845
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " detailed version)"
+      },
+      "timestamp": 2845
+    },
+    {
+      "type": "content_block_stop",
+      "timestamp": 2867
+    },
+    {
+      "type": "message_delta",
+      "delta": {
+        "stop_reason": "end_turn",
+        "stop_sequence": null
+      },
+      "timestamp": 2868
+    },
+    {
+      "type": "message_stop",
+      "timestamp": 2872
+    }
+  ],
+  "finalMessage": {
+    "model": "claude-haiku-4-5-20251001",
+    "id": "msg_018o9fhSmmhWbuH4HuzVMUEE",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "# TypeScript Hello World Function with JSDoc\n\n```typescript\n/**\n * Prints a greeting message to the console.\n * @param name - The name of the person to greet\n * @returns A greeting string\n */\nfunction helloWorld(name: string): string {\n  const greeting = `Hello, ${name}!`;\n  console.log(greeting);\n  return greeting;\n}\n\n// Usage\nhelloWorld(\"World\");\n```\n\n## Alternative: Arrow Function Version\n\n```typescript\n/**\n * Greets a person by name.\n * @param name - The name of the person to greet\n * @returns A formatted greeting message\n */\nconst helloWorld = (name: string): string => {\n  return `Hello, ${name}!`;\n};\n\n// Usage\nconsole.log(helloWorld(\"World\"));\n```\n\n## With More Detailed JSDoc\n\n```typescript\n/**\n * Outputs a personalized greeting message.\n * \n * @param name - The name of the person to greet\n * @returns A greeting string in the format \"Hello, {name}!\"\n * @example\n * const result = helloWorld(\"TypeScript\");\n * console.log(result); // Output: \"Hello, TypeScript!\"\n */\nfunction helloWorld(name: string): string {\n  return `Hello, ${name}!`;\n}\n```\n\nThe JSDoc comments include:\n- **`@param`** - describes function parameters\n- **`@returns`** - describes the return value\n- **`@example`** - shows usage examples (in the detailed version)"
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "usage": {
+      "input_tokens": 21,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 377,
+      "service_tier": "standard"
+    }
+  }
+}

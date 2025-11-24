@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/server/admin-controller.ts, **/src/types/admin-api.ts, **/frontend/src/api/admin.ts, **/frontend/src/pages/AdminDashboard.tsx
 ---
-
 
 # Content from docs/architecture/admin-api.md
 

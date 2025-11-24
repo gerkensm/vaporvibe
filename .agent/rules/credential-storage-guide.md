@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/utils/credential-store.ts, **/src/server/server.ts, **/src/config/runtime-config.ts
 ---
-
 
 # Content from docs/CREDENTIAL_STORAGE.md
 

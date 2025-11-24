@@ -3,7 +3,6 @@ trigger: always_on
 globs: **/*
 ---
 
-
 # Content from docs/ARCHITECTURE.md
 
 # VaporVibe System Architecture

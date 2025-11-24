@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/package.json, **/src/**, **/frontend/src/**
 ---
-
 
 - From `../constants.js`: `ADMIN_ROUTE_PREFIX`, `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`
 - From `../constants/providers.js`: `PROVIDER_CHOICES`, `PROVIDER_LABELS`, `PROVIDER_PLACEHOLDERS`, `PROVIDER_REASONING_CAPABILITIES`, `PROVIDER_REASONING_MODES`, `PROVIDER_TOKEN_GUIDANCE`, `DEFAULT_MODEL_BY_PROVIDER`, `DEFAULT_MAX_TOKENS_BY_PROVIDER`, `REASONING_MODE_CHOICES`, `getModelOptions`, `getModelMetadata`, `getFeaturedModels`, `PROVIDER_MODEL_METADATA`, `CUSTOM_MODEL_DESCRIPTION`
@@ -375,5 +374,3 @@ _No imports_
 **External Imports:**
 
 - From `react-router-dom`: `BrowserRouter`, `Navigate`, `Route`, `Routes`
-
-#### `components/ABWorkspaceShell.tsx`

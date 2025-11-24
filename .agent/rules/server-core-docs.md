@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/server/server.ts, **/src/index.ts
 ---
-
 
 # Content from docs/modules/server/server.md
 

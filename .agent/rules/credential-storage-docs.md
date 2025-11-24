@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/utils/credential-store.ts
 ---
-
 
 # Content from docs/modules/utils/credential-store.md
 

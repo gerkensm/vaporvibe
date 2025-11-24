@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/server/session-store.ts, **/src/server/admin-controller.ts, **/frontend/src/components/ABWorkspaceShell.tsx, **/frontend/src/pages/AbTestWorkspacePage.tsx, **/frontend/src/interceptor*.ts
 ---
-
 
 # Content from docs/architecture/ab-testing.md
 

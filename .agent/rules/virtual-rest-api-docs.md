@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/server/rest-api-controller.ts, **/src/types.ts
 ---
-
 
 # Content from docs/architecture/virtual-rest-api.md
 

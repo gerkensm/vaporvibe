@@ -1,0 +1,338 @@
+{
+  "events": [
+    {
+      "type": "message_start",
+      "timestamp": 1058
+    },
+    {
+      "type": "content_block_start",
+      "timestamp": 1058
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "The user wants a simple \"hello"
+      },
+      "timestamp": 1168
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " world\" function in TypeScript with JSDoc comments. I'll create a basic"
+      },
+      "timestamp": 1187
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " function that demonstrates:\n1. TypeScript syntax\n2. JSDoc comments"
+      },
+      "timestamp": 1317
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " (which includes description, @param, @returns, @example,"
+      },
+      "timestamp": 1391
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " etc.)\n3. A simple hello world implementation"
+      },
+      "timestamp": 1440
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": "\n\nHere's what I'll include:\n-"
+      },
+      "timestamp": 1534
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " A JSDoc comment block with description\n- @param tag"
+      },
+      "timestamp": 1659
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " if there are parameters\n- @returns tag for the"
+      },
+      "timestamp": 1710
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " return value\n- An @example tag to"
+      },
+      "timestamp": 1788
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "thinking_delta",
+        "thinking": " show usage\n- A simple function implementation"
+      },
+      "timestamp": 1864
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "signature_delta",
+        "signature": "EoUFCkYICRgCKkCEzf2kx61K7261BFuuJkHTgvn1Ipdyw13D8lGH5sbqmJxV1hdos6BRJAYXlQGWEAVNnWwMVMR00XWGECVyRrB5EgwOxxCK5AoO9RkmN38aDCbjzrTJahPKZdXVHiIwkof6iSTWgfQrTPAq5884sIAajZZjcAq6BTK7+aWw/c7Y9SDODTMHtphGDZkCYWC3KuwD+OlScfXLe2l1U+IljcFMy/Skp5gPEqVQE84x67z5LzOp1k3fh9aJVaXDiB9HHJOCdFa0r/LXx2t0BDS7mzCmKlgp+nsuqoYorIveOXXDXZkLITmMPCNjOZgD7HxxFpZhWnFiFWhedgERtxzmHEmR4fgegQFKrgp6ncBb5jmVUy9LlLm6CzN4t6SosE8b7GVlKz0iA+vpLsNLaJEitT2WRygDjSprchK5tbezZ4fMuUR6jyUDLIo2Sr5Pb6yMBuwxADBjDohjBmwVpLApF+Z/3s3wLfhX7IowhgceSldH/OqltSFfCsBzKm2O52ah7MD9ctGD0nilwtD1pCgTDmiKWbsZqxup2VgOEMwBdcf1huQsPFu5x2t60Qdt45cRohS22nW4IfGCGAvtpK/vWfZ2F193F0z9QRSmsmBnH/+g3+KWX5tGJPwBrVKNps9f1fVscDXaB6fXj24mrBreHYoCoVuECqwi/OQoZgCHOxkjpC0Dlt6FZwy0gxrx1NQdQbrzy+NVEouRLpmhLll+DzKfEMrlCHZHYJ9xFB/1J8hdWAlDFXV6s2zi61Me5yBbfoJSe/KQAdcVRVQxpgP50wo2D6YMZ98UA63UEjZUE3iGPdq/eByA3wkpis4Zwql+iUymbTRRLFh54ORc0aLiGAE="
+      },
+      "timestamp": 1866
+    },
+    {
+      "type": "content_block_stop",
+      "timestamp": 1867
+    },
+    {
+      "type": "content_block_start",
+      "timestamp": 1867
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "```typescript\n/**\n * Displays a hello world message to the console\n *"
+      },
+      "timestamp": 1933
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " @param name - The name to include in the greeting\n * @returns"
+      },
+      "timestamp": 2022
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " A greeting string\n * @example\n * h"
+      },
+      "timestamp": 2104
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "elloWorld(\"Alice\");\n * // Output"
+      },
+      "timestamp": 2176
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": ": \"Hello, Alice!\"\n */\nfunction helloWorld(name: string"
+      },
+      "timestamp": 2257
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "): string {\n  const message = `Hello, ${name}!"
+      },
+      "timestamp": 2307
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "`;\n  console.log(message);\n  return message;\n}"
+      },
+      "timestamp": 2408
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n\n// Usage\nhelloWorld(\"World\");\n```"
+      },
+      "timestamp": 2563
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n\n**Or as an arrow function:**\n\n```typescript\n/**"
+      },
+      "timestamp": 2586
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n * Displays a hello world message"
+      },
+      "timestamp": 2633
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " to the console\n * @param"
+      },
+      "timestamp": 2664
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " name - The name to include in the"
+      },
+      "timestamp": 2711
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " greeting\n * @returns A greeting string\n */"
+      },
+      "timestamp": 2787
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\nconst helloWorld = (name: string): string => {\n  "
+      },
+      "timestamp": 2840
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "const message = `Hello, ${name}!`;\n  console.log"
+      },
+      "timestamp": 2889
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "(message);\n  return message;\n};"
+      },
+      "timestamp": 2931
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n\nhelloWorld(\"World\");\n```"
+      },
+      "timestamp": 3045
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n\n**Key JSDoc elements used:**\n- `/**  "
+      },
+      "timestamp": 3151
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "*/` - JSDoc comment block"
+      },
+      "timestamp": 3201
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n- `@param` - Documents"
+      },
+      "timestamp": 3247
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " function parameters\n- `@returns` -"
+      },
+      "timestamp": 3284
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " Documents return value\n- `@example"
+      },
+      "timestamp": 3359
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "` - Shows usage examples"
+      },
+      "timestamp": 3360
+    },
+    {
+      "type": "content_block_stop",
+      "timestamp": 3387
+    },
+    {
+      "type": "message_delta",
+      "delta": {
+        "stop_reason": "end_turn",
+        "stop_sequence": null
+      },
+      "timestamp": 3387
+    },
+    {
+      "type": "message_stop",
+      "timestamp": 3387
+    }
+  ],
+  "finalMessage": {
+    "model": "claude-haiku-4-5-20251001",
+    "id": "msg_01HM15dyQbYZQiijfbvA47Pm",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "thinking",
+        "thinking": "",
+        "signature": ""
+      },
+      {
+        "type": "text",
+        "text": "```typescript\n/**\n * Displays a hello world message to the console\n * @param name - The name to include in the greeting\n * @returns A greeting string\n * @example\n * helloWorld(\"Alice\");\n * // Output: \"Hello, Alice!\"\n */\nfunction helloWorld(name: string): string {\n  const message = `Hello, ${name}!`;\n  console.log(message);\n  return message;\n}\n\n// Usage\nhelloWorld(\"World\");\n```\n\n**Or as an arrow function:**\n\n```typescript\n/**\n * Displays a hello world message to the console\n * @param name - The name to include in the greeting\n * @returns A greeting string\n */\nconst helloWorld = (name: string): string => {\n  const message = `Hello, ${name}!`;\n  console.log(message);\n  return message;\n};\n\nhelloWorld(\"World\");\n```\n\n**Key JSDoc elements used:**\n- `/**  */` - JSDoc comment block\n- `@param` - Documents function parameters\n- `@returns` - Documents return value\n- `@example` - Shows usage examples"
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "usage": {
+      "input_tokens": 50,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 393,
+      "service_tier": "standard"
+    }
+  }
+}

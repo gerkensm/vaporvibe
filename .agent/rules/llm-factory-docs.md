@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/llm/factory.ts
 ---
-
 
 # Content from docs/modules/llm/factory.md
 

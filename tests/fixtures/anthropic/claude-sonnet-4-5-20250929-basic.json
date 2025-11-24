@@ -1,0 +1,493 @@
+{
+  "events": [
+    {
+      "type": "message_start",
+      "timestamp": 2198
+    },
+    {
+      "type": "content_block_start",
+      "timestamp": 2198
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "```"
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "typescript\n/**\n *"
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " Prints \"Hello, World!\" to the"
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " console."
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n * "
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n * @returns"
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " {voi"
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "d} This function doesn"
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "'t return a"
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " value"
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n *"
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " "
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n * @example\n *"
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " h"
+      },
+      "timestamp": 3014
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "elloWorld();"
+      },
+      "timestamp": 3128
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n * // Output: Hello"
+      },
+      "timestamp": 3194
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": ", World!\n */\nfunction"
+      },
+      "timestamp": 3245
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " helloWorld(): void {\n  "
+      },
+      "timestamp": 3318
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "console.log(\"Hello, World!\");"
+      },
+      "timestamp": 3321
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n}"
+      },
+      "timestamp": 3332
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n\n//"
+      },
+      "timestamp": 3376
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " Call"
+      },
+      "timestamp": 3539
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " the function\nhelloWorld();"
+      },
+      "timestamp": 3539
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n```\n\nOr"
+      },
+      "timestamp": 3566
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " with a"
+      },
+      "timestamp": 3610
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " parameter"
+      },
+      "timestamp": 3775
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": ":\n\n```typescript\n/**\n "
+      },
+      "timestamp": 3776
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "* Prints a"
+      },
+      "timestamp": 3781
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " person"
+      },
+      "timestamp": 3888
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "alized greeting message to"
+      },
+      "timestamp": 4013
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " the console.\n * "
+      },
+      "timestamp": 4019
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n * @param {"
+      },
+      "timestamp": 4124
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "string} name - The name of the"
+      },
+      "timestamp": 4180
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " person to greet\n * @"
+      },
+      "timestamp": 4180
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "returns {string"
+      },
+      "timestamp": 4210
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "} The"
+      },
+      "timestamp": 4351
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " greeting message\n * \n "
+      },
+      "timestamp": 4395
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "* @example\n * const"
+      },
+      "timestamp": 4399
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " message"
+      },
+      "timestamp": 4458
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " = h"
+      },
+      "timestamp": 4523
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "elloWorl"
+      },
+      "timestamp": 4640
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "d(\"Alice\");\n * console"
+      },
+      "timestamp": 4662
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": ".log(message);"
+      },
+      "timestamp": 4764
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n * // Output: Hello,"
+      },
+      "timestamp": 4820
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " Alice!\n */\nfunction h"
+      },
+      "timestamp": 4875
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "elloWorld(name: string): string"
+      },
+      "timestamp": 4879
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " {\n  const"
+      },
+      "timestamp": 4926
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " message = `"
+      },
+      "timestamp": 5065
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "Hello, ${name}!`;"
+      },
+      "timestamp": 5065
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "\n  console"
+      },
+      "timestamp": 5189
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": ".log(message);\n  return"
+      },
+      "timestamp": 5234
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " message;\n}\n\n// Call the"
+      },
+      "timestamp": 5234
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": " function\nh"
+      },
+      "timestamp": 5292
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "elloWorld(\"Worl"
+      },
+      "timestamp": 5380
+    },
+    {
+      "type": "content_block_delta",
+      "delta": {
+        "type": "text_delta",
+        "text": "d\");\n```"
+      },
+      "timestamp": 5380
+    },
+    {
+      "type": "content_block_stop",
+      "timestamp": 5402
+    },
+    {
+      "type": "message_delta",
+      "delta": {
+        "stop_reason": "end_turn",
+        "stop_sequence": null
+      },
+      "timestamp": 5402
+    },
+    {
+      "type": "message_stop",
+      "timestamp": 5403
+    }
+  ],
+  "finalMessage": {
+    "model": "claude-sonnet-4-5-20250929",
+    "id": "msg_017aWEzizBdw7Rh5rttBqpsv",
+    "type": "message",
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "```typescript\n/**\n * Prints \"Hello, World!\" to the console.\n * \n * @returns {void} This function doesn't return a value\n * \n * @example\n * helloWorld();\n * // Output: Hello, World!\n */\nfunction helloWorld(): void {\n  console.log(\"Hello, World!\");\n}\n\n// Call the function\nhelloWorld();\n```\n\nOr with a parameter:\n\n```typescript\n/**\n * Prints a personalized greeting message to the console.\n * \n * @param {string} name - The name of the person to greet\n * @returns {string} The greeting message\n * \n * @example\n * const message = helloWorld(\"Alice\");\n * console.log(message);\n * // Output: Hello, Alice!\n */\nfunction helloWorld(name: string): string {\n  const message = `Hello, ${name}!`;\n  console.log(message);\n  return message;\n}\n\n// Call the function\nhelloWorld(\"World\");\n```"
+      }
+    ],
+    "stop_reason": "end_turn",
+    "stop_sequence": null,
+    "usage": {
+      "input_tokens": 21,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 256,
+      "service_tier": "standard"
+    }
+  }
+}

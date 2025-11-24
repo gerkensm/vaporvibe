@@ -1,0 +1,89 @@
+{
+  "chunks": [
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "```typescript\n/**"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 4,
+        "totalTokenCount": 19,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 567
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "\n * Greets the world with a simple message.\n * This is a classic"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 20,
+        "totalTokenCount": 35,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 567
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " \"Hello, World!\" program.\n *\n * @returns {string} The greeting message \"Hello, World!\".\n */\nfunction helloWorld(): string {\n  return \"Hello, World!\";\n}\n```"
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP",
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 65,
+        "totalTokenCount": 80,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 752
+    }
+  ]
+}

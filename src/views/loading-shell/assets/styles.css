@@ -197,7 +197,7 @@ footer {
 .reasoning-entry.reasoning-markdown h2,
 .reasoning-entry.reasoning-markdown h3,
 .reasoning-entry.reasoning-markdown h4 {
-  margin: 0 0 0.35em;
+  margin: 1.25em 0 0.35em;
   font-size: 0.85rem;
   font-weight: 700;
   color: #0f172a;

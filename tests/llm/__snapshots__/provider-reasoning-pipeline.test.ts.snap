@@ -1,0 +1,2943 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-haiku-4-5-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "eventCount": 53,
+  "hasContent": true,
+  "hasThinking": false,
+  "hasUsage": false,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-haiku-4-5-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 1249,
+  "htmlPreview": "# TypeScript Hello World Function with JSDoc
+
+\`\`\`typescript
+/**
+ * Prints a greeting message to the console.
+ * @param name - The name of the person to greet
+ * @returns A greeting string
+ */
+function",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-haiku-4-5-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-haiku-4-5-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-haiku-4-5-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-haiku-4-5-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": false,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": undefined,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-haiku-4-5-thinking' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "eventCount": 41,
+  "hasContent": true,
+  "hasThinking": true,
+  "hasUsage": false,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-haiku-4-5-thinking' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 900,
+  "htmlPreview": "\`\`\`typescript
+/**
+ * Displays a hello world message to the console
+ * @param name - The name to include in the greeting
+ * @returns A greeting string
+ * @example
+ * helloWorld("Alice");
+ * // Output: ",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-haiku-4-5-thinking' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": true,
+  "hasReasoning": true,
+  "rawType": "object",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-haiku-4-5-thinking' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 10,
+  "firstEventPreview": "The user wants a simple "hello",
+  "totalChars": 478,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-haiku-4-5-thinking' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 10,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-haiku-4-5-thinking' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": false,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": undefined,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-opus-4-1-20250805-th…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "eventCount": 96,
+  "hasContent": true,
+  "hasThinking": true,
+  "hasUsage": false,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-opus-4-1-20250805-th…' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 1137,
+  "htmlPreview": "Here's a simple hello world function in TypeScript with JSDoc comments:
+
+\`\`\`typescript
+/**
+ * Generates a greeting message.
+ * 
+ * @param {string} [name="World"] - The name to greet (optional, default",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-opus-4-1-20250805-th…' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": true,
+  "hasReasoning": true,
+  "rawType": "object",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-opus-4-1-20250805-th…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 25,
+  "firstEventPreview": "I need to write a simple hello",
+  "totalChars": 486,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-opus-4-1-20250805-th…' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 25,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-opus-4-1-20250805-th…' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": false,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": undefined,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-5-20250929-…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "eventCount": 60,
+  "hasContent": true,
+  "hasThinking": false,
+  "hasUsage": false,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-5-20250929-…' > Stage 1: Raw API Response Structure > raw-api-structure 2`] = `
+{
+  "eventCount": 109,
+  "hasContent": true,
+  "hasThinking": true,
+  "hasUsage": false,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-5-20250929-…' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 776,
+  "htmlPreview": "\`\`\`typescript
+/**
+ * Prints "Hello, World!" to the console.
+ * 
+ * @returns {void} This function doesn't return a value
+ * 
+ * @example
+ * helloWorld();
+ * // Output: Hello, World!
+ */
+function helloW",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-5-20250929-…' > Stage 2: Client Content Extraction > content-extraction 2`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 1147,
+  "htmlPreview": "\`\`\`typescript
+/**
+ * Prints "Hello, World!" to the console.
+ * 
+ * @returns {void} This function doesn't return a value
+ * @example
+ * helloWorld(); // Output: Hello, World!
+ */
+function helloWorld():",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-5-20250929-…' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-5-20250929-…' > Stage 3: Client Reasoning Trace > reasoning-trace 2`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": true,
+  "hasReasoning": true,
+  "rawType": "object",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-5-20250929-…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-5-20250929-…' > Stage 4: Stream Observer Events > stream-observer-events 2`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 19,
+  "firstEventPreview": "The user wants a simple "",
+  "totalChars": 264,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-5-20250929-…' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-5-20250929-…' > Stage 5: SSE Event Format > sse-event-format 2`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 19,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-5-20250929-…' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": false,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": undefined,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-5-20250929-…' > Stage 6: Usage Metadata Propagation > usage-metadata 2`] = `
+{
+  "hasUsage": false,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": undefined,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-20250514-ba…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "eventCount": 111,
+  "hasContent": true,
+  "hasThinking": false,
+  "hasUsage": false,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-20250514-ba…' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 1622,
+  "htmlPreview": "Here's a simple "Hello World" function in TypeScript with JSDoc comments:
+
+\`\`\`typescript
+/**
+ * Prints a greeting message to the console
+ * @function helloWorld
+ * @returns {void} This function doesn'",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-20250514-ba…' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-20250514-ba…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-20250514-ba…' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-20250514-ba…' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": false,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": undefined,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-20250514-th…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "eventCount": 159,
+  "hasContent": true,
+  "hasThinking": true,
+  "hasUsage": false,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-20250514-th…' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 1688,
+  "htmlPreview": "Here's a simple "Hello World" function in TypeScript with JSDoc comments:
+
+\`\`\`typescript
+/**
+ * Prints a "Hello World" message to the console
+ * 
+ * @description This function demonstrates a basic Typ",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-20250514-th…' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": true,
+  "hasReasoning": true,
+  "rawType": "object",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-20250514-th…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 27,
+  "firstEventPreview": "The user wants a simple "",
+  "totalChars": 368,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-20250514-th…' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 27,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-20250514-th…' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": false,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": undefined,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "eventCount": 97,
+  "hasContent": true,
+  "hasThinking": false,
+  "hasUsage": false,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 1381,
+  "htmlPreview": "\`\`\`typescript
+/**
+ * Prints a greeting message to the console.
+ * 
+ * This function displays "Hello, World!" followed by an optional name
+ * if provided, otherwise displays the default greeting.
+ * 
+ ",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": false,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": undefined,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-thinking' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "eventCount": 172,
+  "hasContent": true,
+  "hasThinking": true,
+  "hasUsage": false,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-thinking' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 2441,
+  "htmlPreview": "Here's a simple "Hello World" function in TypeScript with JSDoc comments:
+
+\`\`\`typescript
+/**
+ * A simple function that returns a greeting message
+ * @returns {string} A "Hello, World!" greeting messag",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-thinking' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": true,
+  "hasReasoning": true,
+  "rawType": "object",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-thinking' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 27,
+  "firstEventPreview": "The user wants a simple "Hello",
+  "totalChars": 405,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-thinking' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 27,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'anthropic/claude-sonnet-4-thinking' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": false,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": undefined,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-exp-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 13,
+  "finalUsage": {
+    "candidatesTokenCount": 478,
+    "candidatesTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 478,
+      },
+    ],
+    "promptTokenCount": 14,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 14,
+      },
+    ],
+    "totalTokenCount": 492,
+  },
+  "hasContent": true,
+  "hasThinking": false,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-exp-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 48,
+  "htmlPreview": "This will print "Hello, world!" to your console.",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-exp-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-exp-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-exp-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-exp-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 14,
+  "outputTokens": 478,
+  "reasoningTokens": undefined,
+  "totalTokens": 492,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-thinking-exp-…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 6,
+  "finalUsage": {
+    "candidatesTokenCount": 251,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 61,
+    "totalTokenCount": 327,
+  },
+  "hasContent": true,
+  "hasThinking": false,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-thinking-exp-…' > Stage 1: Raw API Response Structure > raw-api-structure 2`] = `
+{
+  "chunkCount": 17,
+  "finalUsage": {
+    "candidatesTokenCount": 580,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 1007,
+    "totalTokenCount": 1602,
+  },
+  "hasContent": true,
+  "hasThinking": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-thinking-exp-…' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 30,
+  "htmlPreview": "console.log(helloWorld());
+\`\`\`",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-thinking-exp-…' > Stage 2: Client Content Extraction > content-extraction 2`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 184,
+  "htmlPreview": "core logic of the function, which prints the string to the console.
+7.  **\`sayHelloWorld();\`**: This line actually calls (executes) the function, causing "Hello, World!" to be printed.",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-thinking-exp-…' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": true,
+  "hasReasoning": true,
+  "rawType": "array",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-thinking-exp-…' > Stage 3: Client Reasoning Trace > reasoning-trace 2`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": true,
+  "hasReasoning": true,
+  "rawType": "array",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-thinking-exp-…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-thinking-exp-…' > Stage 4: Stream Observer Events > stream-observer-events 2`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 5,
+  "firstEventPreview": "**Developing the Core Logic**
+
+I'm currently fleshing out the fundamental JavaScript structure of th",
+  "totalChars": 1788,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-thinking-exp-…' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-thinking-exp-…' > Stage 5: SSE Event Format > sse-event-format 2`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 5,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-thinking-exp-…' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 15,
+  "outputTokens": 251,
+  "reasoningTokens": 61,
+  "totalTokens": 327,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.0-flash-thinking-exp-…' > Stage 6: Usage Metadata Propagation > usage-metadata 2`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 15,
+  "outputTokens": 580,
+  "reasoningTokens": 1007,
+  "totalTokens": 1602,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 3,
+  "finalUsage": {
+    "candidatesTokenCount": 65,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "totalTokenCount": 80,
+  },
+  "hasContent": true,
+  "hasThinking": false,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 154,
+  "htmlPreview": ""Hello, World!" program.
+ *
+ * @returns {string} The greeting message "Hello, World!".
+ */
+function helloWorld(): string {
+  return "Hello, World!";
+}
+\`\`\`",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 15,
+  "outputTokens": 65,
+  "reasoningTokens": undefined,
+  "totalTokens": 80,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-lite-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 10,
+  "finalUsage": {
+    "candidatesTokenCount": 424,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "totalTokenCount": 439,
+  },
+  "hasContent": true,
+  "hasThinking": false,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-lite-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 192,
+  "htmlPreview": "of type \`string\`. This is the TypeScript part that provides static typing.
+6.  **\`return "Hello, World!";\`**: The body of the function, which simply returns the string literal "Hello, World!".",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-lite-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-lite-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-lite-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-lite-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 15,
+  "outputTokens": 424,
+  "reasoningTokens": undefined,
+  "totalTokens": 439,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-lite-thinking' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 4,
+  "finalUsage": {
+    "candidatesTokenCount": 87,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 81,
+    "totalTokenCount": 183,
+  },
+  "hasContent": true,
+  "hasThinking": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-lite-thinking' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 140,
+  "htmlPreview": "Hello, World!";
+}
+
+// Example of how to use the function:
+const greeting = helloWorld();
+console.log(greeting); // Output: Hello, World!
+\`\`\`",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-lite-thinking' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": true,
+  "hasReasoning": true,
+  "rawType": "array",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-lite-thinking' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 2,
+  "firstEventPreview": "**Defining a Simple Function**
+
+I'm currently working on defining a basic TypeScript function, \`hell",
+  "totalChars": 606,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-lite-thinking' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 2,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-lite-thinking' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 15,
+  "outputTokens": 87,
+  "reasoningTokens": 81,
+  "totalTokens": 183,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-thinking' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 16,
+  "finalUsage": {
+    "candidatesTokenCount": 514,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 979,
+    "totalTokenCount": 1508,
+  },
+  "hasContent": true,
+  "hasThinking": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-thinking' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 131,
+  "htmlPreview": "sayHello\` but shown in the commented \`greet\` example) Used to document function parameters, including their type and a description.",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-thinking' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": true,
+  "hasReasoning": true,
+  "rawType": "array",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-thinking' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 5,
+  "firstEventPreview": "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in ",
+  "totalChars": 2192,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-thinking' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 5,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-flash-thinking' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 15,
+  "outputTokens": 514,
+  "reasoningTokens": 979,
+  "totalTokens": 1508,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-pro-thinking' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 31,
+  "finalUsage": {
+    "candidatesTokenCount": 591,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 1405,
+    "totalTokenCount": 2011,
+  },
+  "hasContent": true,
+  "hasThinking": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-pro-thinking' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 6,
+  "htmlPreview": "usage.",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-pro-thinking' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": true,
+  "hasReasoning": true,
+  "rawType": "array",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-pro-thinking' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 6,
+  "firstEventPreview": "**Refining the Core Task**
+
+I'm now zeroing in on the precise nature of the user's request. It's a "",
+  "totalChars": 2368,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-pro-thinking' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 6,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-2.5-pro-thinking' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 15,
+  "outputTokens": 591,
+  "reasoningTokens": 1405,
+  "totalTokens": 2011,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-3-pro-preview-thinking-…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 10,
+  "finalUsage": {
+    "candidatesTokenCount": 123,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 735,
+    "totalTokenCount": 873,
+  },
+  "hasContent": true,
+  "hasThinking": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-3-pro-preview-thinking-…' > Stage 1: Raw API Response Structure > raw-api-structure 2`] = `
+{
+  "chunkCount": 9,
+  "finalUsage": {
+    "candidatesTokenCount": 164,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 125,
+    "totalTokenCount": 304,
+  },
+  "hasContent": true,
+  "hasThinking": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-3-pro-preview-thinking-…' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-3-pro-preview-thinking-…' > Stage 2: Client Content Extraction > content-extraction 2`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-3-pro-preview-thinking-…' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": true,
+  "hasReasoning": true,
+  "rawType": "array",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-3-pro-preview-thinking-…' > Stage 3: Client Reasoning Trace > reasoning-trace 2`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": true,
+  "hasReasoning": true,
+  "rawType": "array",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-3-pro-preview-thinking-…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 4,
+  "firstEventPreview": "**Developing a Function**
+
+I've initiated the process by analyzing the request, focusing on the requ",
+  "totalChars": 1342,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-3-pro-preview-thinking-…' > Stage 4: Stream Observer Events > stream-observer-events 2`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 2,
+  "firstEventPreview": "**Considering the Fundamentals**
+
+I've been meticulously analyzing the request. The core is a simple",
+  "totalChars": 524,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-3-pro-preview-thinking-…' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 4,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-3-pro-preview-thinking-…' > Stage 5: SSE Event Format > sse-event-format 2`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 2,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-3-pro-preview-thinking-…' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 15,
+  "outputTokens": 123,
+  "reasoningTokens": 735,
+  "totalTokens": 873,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'gemini/gemini-3-pro-preview-thinking-…' > Stage 6: Usage Metadata Propagation > usage-metadata 2`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 15,
+  "outputTokens": 164,
+  "reasoningTokens": 125,
+  "totalTokens": 304,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/llama-3.3-70b-versatile-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 49,
+  "hasContent": true,
+  "hasReasoning": false,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/llama-3.3-70b-versatile-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 197,
+  "htmlPreview": "\`\`\`typescript
+/**
+ * Prints a hello message to the console.
+ * 
+ * @returns {void} Nothing
+ */
+function helloWorld(): void {
+    console.log("Hello, World!");
+}
+
+// Example usage:
+helloWorld();
+\`\`\`",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/llama-3.3-70b-versatile-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/llama-3.3-70b-versatile-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/llama-3.3-70b-versatile-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/llama-3.3-70b-versatile-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 49,
+  "outputTokens": 48,
+  "reasoningTokens": undefined,
+  "totalTokens": 97,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/meta-llama-llama-4-maverick-17b-…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 40,
+  "hasContent": true,
+  "hasReasoning": false,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/meta-llama-llama-4-maverick-17b-…' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 163,
+  "htmlPreview": "\`\`\`typescript
+/**
+ * Prints "Hello, World!" to the console.
+ */
+function helloWorld(): void {
+  console.log("Hello, World!");
+}
+
+// Example usage
+helloWorld();
+\`\`\`",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/meta-llama-llama-4-maverick-17b-…' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/meta-llama-llama-4-maverick-17b-…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/meta-llama-llama-4-maverick-17b-…' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/meta-llama-llama-4-maverick-17b-…' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 25,
+  "outputTokens": 39,
+  "reasoningTokens": undefined,
+  "totalTokens": 64,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/meta-llama-llama-4-scout-17b-16e…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 155,
+  "hasContent": true,
+  "hasReasoning": false,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/meta-llama-llama-4-scout-17b-16e…' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 653,
+  "htmlPreview": "Here's a simple "Hello, World!" function written in TypeScript, complete with JSDoc comments:
+
+\`\`\`typescript
+/**
+ * Prints a greeting message to the console.
+ *
+ * @param {string} [name="World"] - The",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/meta-llama-llama-4-scout-17b-16e…' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/meta-llama-llama-4-scout-17b-16e…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/meta-llama-llama-4-scout-17b-16e…' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/meta-llama-llama-4-scout-17b-16e…' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 25,
+  "outputTokens": 154,
+  "reasoningTokens": undefined,
+  "totalTokens": 179,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/moonshotai-kimi-k2-instruct-0905…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 50,
+  "hasContent": true,
+  "hasReasoning": false,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/moonshotai-kimi-k2-instruct-0905…' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 191,
+  "htmlPreview": "\`\`\`ts
+/**
+ * Writes a friendly greeting to the console.
+ *
+ * @example
+ * helloWorld(); // Logs: "Hello, World!"
+ */
+export function helloWorld(): void {
+  console.log('Hello, World!');
+}
+\`\`\`",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/moonshotai-kimi-k2-instruct-0905…' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/moonshotai-kimi-k2-instruct-0905…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/moonshotai-kimi-k2-instruct-0905…' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/moonshotai-kimi-k2-instruct-0905…' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 41,
+  "outputTokens": 49,
+  "reasoningTokens": undefined,
+  "totalTokens": 90,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 263,
+  "hasContent": true,
+  "hasReasoning": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 715,
+  "htmlPreview": "Below is a minimal, ready‑to‑copy TypeScript function that returns the classic “Hello, world!” string, complete with JSDoc comments to describe its purpose, return type, and an example of how to call ",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": false,
+  "hasReasoning": true,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 82,
+  "firstEventPreview": "The",
+  "totalChars": 410,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 82,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 86,
+  "outputTokens": 271,
+  "reasoningTokens": undefined,
+  "totalTokens": 357,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-high' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 492,
+  "hasContent": true,
+  "hasReasoning": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-high' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 759,
+  "htmlPreview": "Here’s a tiny TypeScript function that returns a “Hello, World!” message, annotated with full JSDoc comments so IDEs can pick up the types and description automatically:
+
+\`\`\`ts
+/**
+ * Generates a frie",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-high' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": false,
+  "hasReasoning": true,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-high' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 310,
+  "firstEventPreview": "The",
+  "totalChars": 1459,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-high' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 310,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-high' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 86,
+  "outputTokens": 500,
+  "reasoningTokens": undefined,
+  "totalTokens": 586,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-low' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 250,
+  "hasContent": true,
+  "hasReasoning": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-low' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 923,
+  "htmlPreview": "Here’s a minimal **TypeScript** “Hello, World!” function that includes clear JSDoc comments.  
+Feel free to copy it into a \`.ts\` file, compile it with \`tsc\`, and run it with Node or any environment th",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-low' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": false,
+  "hasReasoning": true,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-low' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 16,
+  "firstEventPreview": "Provide",
+  "totalChars": 72,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-low' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 16,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-low' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 86,
+  "outputTokens": 258,
+  "reasoningTokens": undefined,
+  "totalTokens": 344,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-med…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 124,
+  "hasContent": true,
+  "hasReasoning": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-med…' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 167,
+  "htmlPreview": "\`\`\`ts
+/**
+ * Returns a friendly greeting.
+ *
+ * @returns {string} A "Hello, world!" message.
+ */
+export function helloWorld(): string {
+  return 'Hello, world!';
+}
+\`\`\`",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-med…' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": false,
+  "hasReasoning": true,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-med…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 80,
+  "firstEventPreview": "We",
+  "totalChars": 366,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-med…' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 80,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-20b-reasoning-med…' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 86,
+  "outputTokens": 132,
+  "reasoningTokens": undefined,
+  "totalTokens": 218,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 539,
+  "hasContent": true,
+  "hasReasoning": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 2033,
+  "htmlPreview": "Here’s a tiny, self‑contained **TypeScript** example that prints *“Hello, world!”* to the console.  
+The function is fully documented with **JSDoc** comments, so IDEs and tools like TypeDoc can genera",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": false,
+  "hasReasoning": true,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 42,
+  "firstEventPreview": "User",
+  "totalChars": 203,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 42,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 86,
+  "outputTokens": 547,
+  "reasoningTokens": undefined,
+  "totalTokens": 633,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-hi…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 788,
+  "hasContent": true,
+  "hasReasoning": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-hi…' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 1115,
+  "htmlPreview": "Here’s a tiny **Hello World** helper written in TypeScript that includes full JSDoc comments.  
+You can copy‑paste it into a \`.ts\` file and run it with \`ts-node\` or after compiling with \`tsc\`.
+
+\`\`\`ts
+",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-hi…' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": false,
+  "hasReasoning": true,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-hi…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 497,
+  "firstEventPreview": "The",
+  "totalChars": 2257,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-hi…' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 497,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-hi…' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 86,
+  "outputTokens": 796,
+  "reasoningTokens": undefined,
+  "totalTokens": 882,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-low' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 437,
+  "hasContent": true,
+  "hasReasoning": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-low' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 1811,
+  "htmlPreview": "Here’s a tiny, self‑contained **TypeScript** example that prints “Hello, World!” to the console.  
+The function is fully documented with **JSDoc** comments so that editors, IDEs, and documentation gen",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-low' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": false,
+  "hasReasoning": true,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-low' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 11,
+  "firstEventPreview": "Need",
+  "totalChars": 46,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-low' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 11,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-low' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 86,
+  "outputTokens": 445,
+  "reasoningTokens": undefined,
+  "totalTokens": 531,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-me…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 329,
+  "hasContent": true,
+  "hasReasoning": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-me…' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 848,
+  "htmlPreview": "Here’s a minimal **TypeScript** example that prints “Hello, World!” to the console.  
+The function is documented with **JSDoc** so tools (e.g., IDEs, TypeDoc) can generate helpful documentation and pr",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-me…' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "hasRaw": false,
+  "hasReasoning": true,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-me…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 120,
+  "firstEventPreview": "The",
+  "totalChars": 548,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-me…' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 120,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/openai-gpt-oss-120b-reasoning-me…' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 86,
+  "outputTokens": 337,
+  "reasoningTokens": undefined,
+  "totalTokens": 423,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/qwen-qwen3-32b-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 1175,
+  "hasContent": true,
+  "hasReasoning": false,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/qwen-qwen3-32b-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": false,
+  "htmlLength": 5390,
+  "htmlPreview": "<think>
+Okay, I need to write a simple "Hello, World!" function in TypeScript and include JSDoc comments. Let me start by recalling what a basic function looks like in TypeScript. Since TypeScript is ",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/qwen-qwen3-32b-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/qwen-qwen3-32b-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/qwen-qwen3-32b-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'groq/qwen-qwen3-32b-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": 22,
+  "outputTokens": 1174,
+  "reasoningTokens": undefined,
+  "totalTokens": 1196,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-4o-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 130,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-4o-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-4o-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-4o-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-4o-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-4o-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 149,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 86,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 113,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-high' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 92,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-high' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-high' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-high' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-high' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-high' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 209,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-low' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 76,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-low' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-low' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-low' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-low' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-low' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 103,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-medium' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 80,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-medium' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-medium' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-medium' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-medium' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5.1-reasoning-medium' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 122,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 56,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 595,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 108,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 391,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-high' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 122,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-high' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-high' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-high' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-high' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-high' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 1557,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-low' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 148,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-low' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-low' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-low' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-low' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-low' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 303,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-medium' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 91,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-medium' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-medium' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-medium' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-medium' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-mini-reasoning-medium' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 566,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 86,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-basic' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-basic' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-basic' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-basic' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 1009,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-high' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 192,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-high' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-high' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-high' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-high' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-high' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 3996,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-low' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 73,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-low' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-low' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-low' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-low' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-low' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 228,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-medium' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 198,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-medium' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-medium' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-medium' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-medium' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-nano-reasoning-medium' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 1249,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-high' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 80,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-high' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-high' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-high' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-high' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-high' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 1323,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-low' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 87,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-low' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-low' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-low' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-low' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-low' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 306,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-medium' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 39,
+  "hasContent": true,
+  "hasUsage": true,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-medium' > Stage 2: Client Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": false,
+  "containsThinking": false,
+  "htmlLength": 0,
+  "htmlPreview": "",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-medium' > Stage 3: Client Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "hasRaw": false,
+  "hasReasoning": false,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-medium' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-medium' > Stage 5: SSE Event Format > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "messageCount": 0,
+}
+`;
+
+exports[`Provider Reasoning Pipeline > Fixture: 'openai/gpt-5-reasoning-medium' > Stage 6: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasUsage": true,
+  "inputTokens": undefined,
+  "outputTokens": undefined,
+  "reasoningTokens": undefined,
+  "totalTokens": 642,
+}
+`;

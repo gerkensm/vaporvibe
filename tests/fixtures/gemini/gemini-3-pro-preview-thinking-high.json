@@ -1,0 +1,292 @@
+{
+  "chunks": [
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Developing a Function**\n\nI've initiated the process by analyzing the request, focusing on the required language (TypeScript) and the objective (a \"Hello World\" function with JSDoc comments). I'm currently in the code drafting stage, working on the function signature.\n\n\n",
+                "thought": true
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 2362
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Crafting the Implementation**\n\nI've considered options for the \"Hello World\" function, now leaning towards a flexible approach. My draft includes the capability to greet a specific name while also offering a default. I'm focusing on demonstrating TypeScript types with a `string` parameter. I'm refining the code to include clear JSDoc comments to describe the function's purpose, parameters, and return value.\n\n\n",
+                "thought": true
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 4409
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Polishing the Greeting**\n\nI'm now revising the function to prioritize returning a string, which feels more functional. While \"Hello World\" often implies console output, returning a value is generally better practice for reusable code. I'm focusing on crafting a concise and clear function.\n\n\n",
+                "thought": true
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 6544
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Focusing the Presentation**\n\nI'm now thinking about how to present the \"Hello World\" function. I'm prioritizing clarity and readability. The approach I've chosen leans towards returning a string, which makes the code more testable and efficiently demonstrates the TypeScript types. I've included the revised code with clear JSDoc comments to aid understanding.\n\n\n",
+                "thought": true
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7696
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "Here is a simple **Hello World** function in TypeScript that accepts a name parameter and returns a greeting string, including the appropriate JSDoc comments"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 29,
+        "totalTokenCount": 779,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 735
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7715
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": ".\n\n```typescript\n/**\n * Generates a greeting message for the provided name.\n *\n * @param"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 53,
+        "totalTokenCount": 803,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 735
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7762
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " name - The name of the person to greet.\n * @returns A string containing the formatted greeting.\n */\n"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 77,
+        "totalTokenCount": 827,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 735
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7775
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "function helloWorld(name: string): string {\n  return `Hello, ${name}!`;\n}\n\n//"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 101,
+        "totalTokenCount": 851,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 735
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7792
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " Usage example:\nconsole.log(helloWorld(\"World\")); // Output: Hello, World!\n```"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 123,
+        "totalTokenCount": 873,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 735
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7835
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "",
+                "thoughtSignature": "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"
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP",
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 123,
+        "totalTokenCount": 873,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 735
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7859
+    }
+  ]
+}

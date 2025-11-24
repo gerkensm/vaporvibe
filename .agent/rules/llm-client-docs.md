@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/llm/client.ts, **/src/llm/*-client.ts
 ---
-
 
 # Content from docs/modules/llm/client.md
 
@@ -28,7 +27,9 @@ This is the primary abstraction. Any class implementing this can plug into the `
 ### 2. The "Reasoning Stream" Observer Pattern
 To support "thinking" models where the model emits internal reasoning before the final answer, this interface defines a callback mechanism.
 -   **`LlmStreamObserver`**: An interface with `onReasoningEvent(event)`.
--   **Usage**: The server implements this observer and passes it to `generateHtml`. The client implementation is responsible for parsing the provider's specific streaming format (e.g., parsing `<thinking>` tags or special JSON chunks) and calling `onReasoningEvent`.
+-   **Usage**: The server implements this observer and passes it to `generateHtml`. The client implementation is responsible for parsing the provider's specific streaming format and calling `onReasoningEvent`.
+    -   `kind: "thinking"`: For raw reasoning text chunks (e.g., from `<thinking>` tags or Gemini thoughts).
+    -   `kind: "summary"`: For high-level summaries (deprecated/less used now).
 -   **Decoupling**: This decouples the *source* of reasoning (the LLM API) from the *consumer* (the SSE stream to the frontend).
 
 ## Key Interfaces

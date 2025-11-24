@@ -1,0 +1,1828 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`GeminiClient > Data Transformation Pipeline > Flash Lite Model > should extract thinking with potentially smaller budget > flash-lite-thinking-tokens 1`] = `
+{
+  "thinkingTokenCount": 81,
+}
+`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Flash Lite Model > should match snapshot of Flash Lite thinking fixture > flash-lite-thinking-fixture 1`] = `
+{
+  "chunks": [
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Defining a Simple Function**
+
+I'm currently working on defining a basic TypeScript function, \`helloWorld\`, which will simply return "Hello, World!". I'm also adding JSDoc comments to document its purpose. I'm focusing on clarity and conciseness in the function definition and comments.
+
+
+",
+                "thought": true,
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 1306,
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 71,
+        "totalTokenCount": 86,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Implementing the Return Value**
+
+I've got the \`helloWorld\` function structure in place. Now, I'm focusing on the core functionality: returning "Hello, World!". I'm aiming for the most straightforward approach, ensuring the return statement is clean and easy to understand. Next, I'll integrate the JSDoc comments.
+
+
+",
+                "thought": true,
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 1685,
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 81,
+        "totalTokenCount": 96,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "\`\`\`typescript
+/**
+ * A simple function that returns the classic "Hello, World!" greeting.
+ *
+ * @returns {string} The greeting string "Hello, World!".
+ */
+function helloWorld(): string {
+  return "",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 1685,
+      "usageMetadata": {
+        "candidatesTokenCount": 48,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 81,
+        "totalTokenCount": 144,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "Hello, World!";
+}
+
+// Example of how to use the function:
+const greeting = helloWorld();
+console.log(greeting); // Output: Hello, World!
+\`\`\`",
+              },
+            ],
+            "role": "model",
+          },
+          "finishReason": "STOP",
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 1686,
+      "usageMetadata": {
+        "candidatesTokenCount": 87,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 81,
+        "totalTokenCount": 183,
+      },
+    },
+  ],
+}
+`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Flash Model with Thinking > should accumulate thinking text progressively > thinking-accumulation-progression 1`] = `
+[
+  {
+    "accumulated": [
+      "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in TypeScript with JSDoc comments.  The simplicity of the task is driving my design. My current focus is on defining the function signature and the return type.",
+    ],
+    "chunkIndex": 0,
+  },
+  {
+    "accumulated": [
+      "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in TypeScript with JSDoc comments.  The simplicity of the task is driving my design. My current focus is on defining the function signature and the return type.",
+      "**Elaborating the JSDoc**
+
+Now, I'm focusing on crafting the JSDoc comments. Considering the function's purpose, a concise description is essential. I'll include \`@description\` for overall function purpose, perhaps \`@example\` for function call, and \`@returns\` for clarifying the \`void\` return type, even though it's implicit. The structure should be clear and informative.",
+      "**Structuring the Comments**
+
+I'm now zeroing in on the JSDoc structure, aiming for a concise and informative style. The use of \`@example\` feels essential to showcase the function's simplicity. I am deciding whether to include \`@function\` given the clear use case, as IDEs typically render this redundant. I'm focusing on making the documentation immediately useful.
+
+I've moved on to meticulously structuring the JSDoc comments to clearly articulate the function's purpose, usage, and return type. I've decided to provide an \`@example\` to illustrate the function call. The \`@returns {void}\` ensures the \`void\` return type is explicitly stated. I'm prioritizing clarity.",
+      "**Defining the JSDoc**
+
+I've carefully considered the JSDoc details. I've included the \`@returns {void}\` tag for explicitness, and the \`@example\` tag is essential for demonstrating usage. My focus is on ensuring the comments are clear and easy to understand.",
+    ],
+    "chunkIndex": 3,
+  },
+  {
+    "accumulated": [
+      "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in TypeScript with JSDoc comments.  The simplicity of the task is driving my design. My current focus is on defining the function signature and the return type.",
+      "**Elaborating the JSDoc**
+
+Now, I'm focusing on crafting the JSDoc comments. Considering the function's purpose, a concise description is essential. I'll include \`@description\` for overall function purpose, perhaps \`@example\` for function call, and \`@returns\` for clarifying the \`void\` return type, even though it's implicit. The structure should be clear and informative.",
+      "**Structuring the Comments**
+
+I'm now zeroing in on the JSDoc structure, aiming for a concise and informative style. The use of \`@example\` feels essential to showcase the function's simplicity. I am deciding whether to include \`@function\` given the clear use case, as IDEs typically render this redundant. I'm focusing on making the documentation immediately useful.
+
+I've moved on to meticulously structuring the JSDoc comments to clearly articulate the function's purpose, usage, and return type. I've decided to provide an \`@example\` to illustrate the function call. The \`@returns {void}\` ensures the \`void\` return type is explicitly stated. I'm prioritizing clarity.",
+      "**Defining the JSDoc**
+
+I've carefully considered the JSDoc details. I've included the \`@returns {void}\` tag for explicitness, and the \`@example\` tag is essential for demonstrating usage. My focus is on ensuring the comments are clear and easy to understand.",
+      "**Constructing the TS Function**
+
+Now, I'm integrating the JavaScript core with TypeScript syntax. I'm focusing on type annotations, specifically the \`void\` return type for the \`sayHello\` function. I am considering best practices for readability. I've opted for a more concise \`console.log\` example in the documentation block.
+
+I have thoroughly considered the type of the \`sayHello\` function and its return value, choosing the explicitly defined \`void\` type to reflect that the function's output is purely a side effect. I am certain that the function meets the basic requirements and does not need any further modification.",
+    ],
+    "chunkIndex": 15,
+  },
+]
+`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Flash Model with Thinking > should combine all content parts into final HTML > final-combined-content 1`] = `
+"Here's a simple TypeScript "Hello World" function with JSDoc comments.
+
+\`\`\`typescript
+/**
+ * @file This file contains a simple "Hello, World!" function.
+ * @module helloWorld
+ */
+
+/**
+ * Outputs the classic "Hello, World!" message to the console.
+ *
+ * This function serves as a basic example of a TypeScript function
+ * with JSDoc comments, demonstrating how to describe its purpose,
+ * parameters (if any), and return type.
+ *
+ * @function
+ * @returns {void} This function does not return any value; it performs a side effect (console logging).
+ *
+ * @example
+ * // To use this function:
+ * sayHello(); // This will print "Hello, World!" to your console.
+ */
+function sayHello(): void {
+  console.log("Hello, World!");
+}
+
+// --- How to use the function ---
+// Call the function to execute it and see the output in your console.
+sayHello();
+
+// You can also demonstrate a slightly more flexible version,
+// though the request was for "Hello World" specifically.
+// /**
+//  * Greets a user by name.
+//  * @param {string} name - The name of the person to greet.
+//  * @returns {string} A greeting message.
+//  */
+// function greet(name: string): string {
+//   return \`Hello, \${name}!\`;
+// }
+// console.log(greet("TypeScript User"));
+\`\`\`
+
+### Explanation of JSDoc Tags Used:
+
+*   \`/** ... */\`: The standard syntax for JSDoc comments.
+*   \`@file\`: Describes the purpose of the entire file.
+*   \`@module\`: Indicates that this file or section is a module.
+*   \`@function\`: Explicitly declares that the documented item is a function (often inferred but good for clarity).
+*   \`@returns {void}\`: Describes what the function returns. In this case, \`void\` means it doesn't return a value, it just performs an action.
+*   \`@example\`: Provides a code snippet demonstrating how to use the function. This is extremely helpful for other developers.
+*   \`@param {type} name - description\`: (Not used in \`sayHello\` but shown in the commented \`greet\` example) Used to document function parameters, including their type and a description."
+`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Flash Model with Thinking > should emit thinking events with correct structure > emitted-thinking-events 1`] = `
+[
+  {
+    "kind": "thinking",
+    "text": "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in TypeScript with JSDoc comments.  The simplicity of the task is driving my design. My current focus is on defining the function signature and the return type.
+",
+  },
+  {
+    "kind": "thinking",
+    "text": "**Elaborating the JSDoc**
+
+Now, I'm focusing on crafting the JSDoc comments. Considering the function's purpose, a concise description is essential. I'll include \`@description\` for overall function purpose, perhaps \`@example\` for function call, and \`@returns\` for clarifying the \`void\` return type, even though it's implicit. The structure should be clear and informative.
+",
+  },
+  {
+    "kind": "thinking",
+    "text": "**Structuring the Comments**
+
+I'm now zeroing in on the JSDoc structure, aiming for a concise and informative style. The use of \`@example\` feels essential to showcase the function's simplicity. I am deciding whether to include \`@function\` given the clear use case, as IDEs typically render this redundant. I'm focusing on making the documentation immediately useful.
+
+I've moved on to meticulously structuring the JSDoc comments to clearly articulate the function's purpose, usage, and return type. I've decided to provide an \`@example\` to illustrate the function call. The \`@returns {void}\` ensures the \`void\` return type is explicitly stated. I'm prioritizing clarity.
+",
+  },
+  {
+    "kind": "thinking",
+    "text": "**Defining the JSDoc**
+
+I've carefully considered the JSDoc details. I've included the \`@returns {void}\` tag for explicitness, and the \`@example\` tag is essential for demonstrating usage. My focus is on ensuring the comments are clear and easy to understand.
+",
+  },
+]
+`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Flash Model with Thinking > should extract final usage metadata > final-usage-metadata 1`] = `
+{
+  "candidatesTokenCount": 514,
+  "promptTokenCount": 15,
+  "thoughtsTokenCount": 979,
+  "totalTokenCount": 1508,
+}
+`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Flash Model with Thinking > should extract thinking parts from chunks > content-parts-extracted 1`] = `
+[
+  {
+    "text": "Here's a simple TypeScript "Hello World" function with JSDoc comments.
+
+\`\`\`typescript
+/**
+ * @file This file contains a simple "Hello, World!" function.
+ * @module helloWorld
+ */
+
+/**",
+    "timestamp": 5498,
+  },
+  {
+    "text": "
+ * Outputs the classic "Hello, World!" message to the console.
+ *
+ * This function serves as a basic example of a TypeScript function
+ * with JSDoc comments, demonstrating how to describe its purpose,
+ * parameters",
+    "timestamp": 5541,
+  },
+  {
+    "text": " (if any), and return type.
+ *
+ * @function
+ * @returns {void} This function does not return any value; it performs a side effect (console logging).
+ *
+ * @example
+ * // To",
+    "timestamp": 5554,
+  },
+  {
+    "text": " use this function:
+ * sayHello(); // This will print "Hello, World!" to your console.
+ */
+function sayHello(): void {
+  console.log("Hello, World!");
+}
+
+// --- How to use the function",
+    "timestamp": 5566,
+  },
+  {
+    "text": " ---
+// Call the function to execute it and see the output in your console.
+sayHello();
+
+// You can also demonstrate a slightly more flexible version,
+// though the request was for "Hello World" specifically.
+// /**",
+    "timestamp": 5593,
+  },
+  {
+    "text": "
+//  * Greets a user by name.
+//  * @param {string} name - The name of the person to greet.
+//  * @returns {string} A greeting message.
+//  */
+// function greet",
+    "timestamp": 5611,
+  },
+  {
+    "text": "(name: string): string {
+//   return \`Hello, \${name}!\`;
+// }
+// console.log(greet("TypeScript User"));
+\`\`\`
+
+### Explanation of JSDoc Tags Used:
+
+*   \`/** ...",
+    "timestamp": 5628,
+  },
+  {
+    "text": " */\`: The standard syntax for JSDoc comments.
+*   \`@file\`: Describes the purpose of the entire file.
+*   \`@module\`: Indicates that this file or section is a module.
+*   \`@function\`: Explicit",
+    "timestamp": 5715,
+  },
+  {
+    "text": "ly declares that the documented item is a function (often inferred but good for clarity).
+*   \`@returns {void}\`: Describes what the function returns. In this case, \`void\` means it doesn't return a value, it",
+    "timestamp": 5973,
+  },
+  {
+    "text": " just performs an action.
+*   \`@example\`: Provides a code snippet demonstrating how to use the function. This is extremely helpful for other developers.
+*   \`@param {type} name - description\`: (Not used in \`",
+    "timestamp": 6182,
+  },
+  {
+    "text": "sayHello\` but shown in the commented \`greet\` example) Used to document function parameters, including their type and a description.",
+    "timestamp": 6305,
+  },
+]
+`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Flash Model with Thinking > should extract thinking parts from chunks > thinking-parts-extracted 1`] = `
+[
+  {
+    "text": "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in TypeScript with JSDoc comments.  The simplicity of the task is driving my design. My current focus is on defining the function signature and the return type.
+
+
+",
+    "timestamp": 1268,
+    "usage": {
+      "promptTokenCount": 15,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 15,
+        },
+      ],
+      "thoughtsTokenCount": 72,
+      "totalTokenCount": 87,
+    },
+  },
+  {
+    "text": "**Elaborating the JSDoc**
+
+Now, I'm focusing on crafting the JSDoc comments. Considering the function's purpose, a concise description is essential. I'll include \`@description\` for overall function purpose, perhaps \`@example\` for function call, and \`@returns\` for clarifying the \`void\` return type, even though it's implicit. The structure should be clear and informative.
+
+
+",
+    "timestamp": 2394,
+    "usage": {
+      "promptTokenCount": 15,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 15,
+        },
+      ],
+      "thoughtsTokenCount": 369,
+      "totalTokenCount": 384,
+    },
+  },
+  {
+    "text": "**Structuring the Comments**
+
+I'm now zeroing in on the JSDoc structure, aiming for a concise and informative style. The use of \`@example\` feels essential to showcase the function's simplicity. I am deciding whether to include \`@function\` given the clear use case, as IDEs typically render this redundant. I'm focusing on making the documentation immediately useful.
+
+I've moved on to meticulously structuring the JSDoc comments to clearly articulate the function's purpose, usage, and return type. I've decided to provide an \`@example\` to illustrate the function call. The \`@returns {void}\` ensures the \`void\` return type is explicitly stated. I'm prioritizing clarity.
+
+
+",
+    "timestamp": 3827,
+    "usage": {
+      "promptTokenCount": 15,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 15,
+        },
+      ],
+      "thoughtsTokenCount": 662,
+      "totalTokenCount": 677,
+    },
+  },
+  {
+    "text": "**Defining the JSDoc**
+
+I've carefully considered the JSDoc details. I've included the \`@returns {void}\` tag for explicitness, and the \`@example\` tag is essential for demonstrating usage. My focus is on ensuring the comments are clear and easy to understand.
+
+
+",
+    "timestamp": 4493,
+    "usage": {
+      "promptTokenCount": 15,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 15,
+        },
+      ],
+      "thoughtsTokenCount": 954,
+      "totalTokenCount": 969,
+    },
+  },
+  {
+    "text": "**Constructing the TS Function**
+
+Now, I'm integrating the JavaScript core with TypeScript syntax. I'm focusing on type annotations, specifically the \`void\` return type for the \`sayHello\` function. I am considering best practices for readability. I've opted for a more concise \`console.log\` example in the documentation block.
+
+I have thoroughly considered the type of the \`sayHello\` function and its return value, choosing the explicitly defined \`void\` type to reflect that the function's output is purely a side effect. I am certain that the function meets the basic requirements and does not need any further modification.
+
+
+",
+    "timestamp": 5463,
+    "usage": {
+      "promptTokenCount": 15,
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 15,
+        },
+      ],
+      "thoughtsTokenCount": 979,
+      "totalTokenCount": 994,
+    },
+  },
+]
+`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Flash Model with Thinking > should match snapshot of raw fixture structure > raw-fixture 1`] = `
+{
+  "chunks": [
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in TypeScript with JSDoc comments.  The simplicity of the task is driving my design. My current focus is on defining the function signature and the return type.
+
+
+",
+                "thought": true,
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 1268,
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 72,
+        "totalTokenCount": 87,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Elaborating the JSDoc**
+
+Now, I'm focusing on crafting the JSDoc comments. Considering the function's purpose, a concise description is essential. I'll include \`@description\` for overall function purpose, perhaps \`@example\` for function call, and \`@returns\` for clarifying the \`void\` return type, even though it's implicit. The structure should be clear and informative.
+
+
+",
+                "thought": true,
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 2394,
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 369,
+        "totalTokenCount": 384,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Structuring the Comments**
+
+I'm now zeroing in on the JSDoc structure, aiming for a concise and informative style. The use of \`@example\` feels essential to showcase the function's simplicity. I am deciding whether to include \`@function\` given the clear use case, as IDEs typically render this redundant. I'm focusing on making the documentation immediately useful.
+
+I've moved on to meticulously structuring the JSDoc comments to clearly articulate the function's purpose, usage, and return type. I've decided to provide an \`@example\` to illustrate the function call. The \`@returns {void}\` ensures the \`void\` return type is explicitly stated. I'm prioritizing clarity.
+
+
+",
+                "thought": true,
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 3827,
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 662,
+        "totalTokenCount": 677,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Defining the JSDoc**
+
+I've carefully considered the JSDoc details. I've included the \`@returns {void}\` tag for explicitness, and the \`@example\` tag is essential for demonstrating usage. My focus is on ensuring the comments are clear and easy to understand.
+
+
+",
+                "thought": true,
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 4493,
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 954,
+        "totalTokenCount": 969,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Constructing the TS Function**
+
+Now, I'm integrating the JavaScript core with TypeScript syntax. I'm focusing on type annotations, specifically the \`void\` return type for the \`sayHello\` function. I am considering best practices for readability. I've opted for a more concise \`console.log\` example in the documentation block.
+
+I have thoroughly considered the type of the \`sayHello\` function and its return value, choosing the explicitly defined \`void\` type to reflect that the function's output is purely a side effect. I am certain that the function meets the basic requirements and does not need any further modification.
+
+
+",
+                "thought": true,
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 5463,
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 979,
+        "totalTokenCount": 994,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "Here's a simple TypeScript "Hello World" function with JSDoc comments.
+
+\`\`\`typescript
+/**
+ * @file This file contains a simple "Hello, World!" function.
+ * @module helloWorld
+ */
+
+/**",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 5498,
+      "usageMetadata": {
+        "candidatesTokenCount": 43,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 979,
+        "totalTokenCount": 1037,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "
+ * Outputs the classic "Hello, World!" message to the console.
+ *
+ * This function serves as a basic example of a TypeScript function
+ * with JSDoc comments, demonstrating how to describe its purpose,
+ * parameters",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 5541,
+      "usageMetadata": {
+        "candidatesTokenCount": 90,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 979,
+        "totalTokenCount": 1084,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " (if any), and return type.
+ *
+ * @function
+ * @returns {void} This function does not return any value; it performs a side effect (console logging).
+ *
+ * @example
+ * // To",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 5554,
+      "usageMetadata": {
+        "candidatesTokenCount": 138,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 979,
+        "totalTokenCount": 1132,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " use this function:
+ * sayHello(); // This will print "Hello, World!" to your console.
+ */
+function sayHello(): void {
+  console.log("Hello, World!");
+}
+
+// --- How to use the function",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 5566,
+      "usageMetadata": {
+        "candidatesTokenCount": 189,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 979,
+        "totalTokenCount": 1183,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " ---
+// Call the function to execute it and see the output in your console.
+sayHello();
+
+// You can also demonstrate a slightly more flexible version,
+// though the request was for "Hello World" specifically.
+// /**",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 5593,
+      "usageMetadata": {
+        "candidatesTokenCount": 238,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 979,
+        "totalTokenCount": 1232,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "
+//  * Greets a user by name.
+//  * @param {string} name - The name of the person to greet.
+//  * @returns {string} A greeting message.
+//  */
+// function greet",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 5611,
+      "usageMetadata": {
+        "candidatesTokenCount": 288,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 979,
+        "totalTokenCount": 1282,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "(name: string): string {
+//   return \`Hello, \${name}!\`;
+// }
+// console.log(greet("TypeScript User"));
+\`\`\`
+
+### Explanation of JSDoc Tags Used:
+
+*   \`/** ...",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 5628,
+      "usageMetadata": {
+        "candidatesTokenCount": 338,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 979,
+        "totalTokenCount": 1332,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " */\`: The standard syntax for JSDoc comments.
+*   \`@file\`: Describes the purpose of the entire file.
+*   \`@module\`: Indicates that this file or section is a module.
+*   \`@function\`: Explicit",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 5715,
+      "usageMetadata": {
+        "candidatesTokenCount": 389,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 979,
+        "totalTokenCount": 1383,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "ly declares that the documented item is a function (often inferred but good for clarity).
+*   \`@returns {void}\`: Describes what the function returns. In this case, \`void\` means it doesn't return a value, it",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 5973,
+      "usageMetadata": {
+        "candidatesTokenCount": 439,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 979,
+        "totalTokenCount": 1433,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " just performs an action.
+*   \`@example\`: Provides a code snippet demonstrating how to use the function. This is extremely helpful for other developers.
+*   \`@param {type} name - description\`: (Not used in \`",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 6182,
+      "usageMetadata": {
+        "candidatesTokenCount": 488,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 979,
+        "totalTokenCount": 1482,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "sayHello\` but shown in the commented \`greet\` example) Used to document function parameters, including their type and a description.",
+              },
+            ],
+            "role": "model",
+          },
+          "finishReason": "STOP",
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 6305,
+      "usageMetadata": {
+        "candidatesTokenCount": 514,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 979,
+        "totalTokenCount": 1508,
+      },
+    },
+  ],
+}
+`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Flash Model without Thinking > should extract all content directly > basic-content 1`] = `
+"\`\`\`typescript
+/**
+ * Greets the world with a simple message.
+ * This is a classic "Hello, World!" program.
+ *
+ * @returns {string} The greeting message "Hello, World!".
+ */
+function helloWorld(): string {
+  return "Hello, World!";
+}
+\`\`\`"
+`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Flash Model without Thinking > should have no thinking parts > no-thinking-parts 1`] = `[]`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Flash Model without Thinking > should match snapshot of basic (non-thinking) fixture > basic-fixture 1`] = `
+{
+  "chunks": [
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "\`\`\`typescript
+/**",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 567,
+      "usageMetadata": {
+        "candidatesTokenCount": 4,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "totalTokenCount": 19,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "
+ * Greets the world with a simple message.
+ * This is a classic",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 567,
+      "usageMetadata": {
+        "candidatesTokenCount": 20,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "totalTokenCount": 35,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " "Hello, World!" program.
+ *
+ * @returns {string} The greeting message "Hello, World!".
+ */
+function helloWorld(): string {
+  return "Hello, World!";
+}
+\`\`\`",
+              },
+            ],
+            "role": "model",
+          },
+          "finishReason": "STOP",
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-2.5-flash",
+      "timestamp": 752,
+      "usageMetadata": {
+        "candidatesTokenCount": 65,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "totalTokenCount": 80,
+      },
+    },
+  ],
+}
+`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Pro Model with ThinkingLevel > should match snapshot of Pro thinking-high fixture > pro-thinking-high-fixture 1`] = `
+{
+  "chunks": [
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Developing a Function**
+
+I've initiated the process by analyzing the request, focusing on the required language (TypeScript) and the objective (a "Hello World" function with JSDoc comments). I'm currently in the code drafting stage, working on the function signature.
+
+
+",
+                "thought": true,
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 2362,
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "totalTokenCount": 15,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Crafting the Implementation**
+
+I've considered options for the "Hello World" function, now leaning towards a flexible approach. My draft includes the capability to greet a specific name while also offering a default. I'm focusing on demonstrating TypeScript types with a \`string\` parameter. I'm refining the code to include clear JSDoc comments to describe the function's purpose, parameters, and return value.
+
+
+",
+                "thought": true,
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 4409,
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "totalTokenCount": 15,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Polishing the Greeting**
+
+I'm now revising the function to prioritize returning a string, which feels more functional. While "Hello World" often implies console output, returning a value is generally better practice for reusable code. I'm focusing on crafting a concise and clear function.
+
+
+",
+                "thought": true,
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 6544,
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "totalTokenCount": 15,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Focusing the Presentation**
+
+I'm now thinking about how to present the "Hello World" function. I'm prioritizing clarity and readability. The approach I've chosen leans towards returning a string, which makes the code more testable and efficiently demonstrates the TypeScript types. I've included the revised code with clear JSDoc comments to aid understanding.
+
+
+",
+                "thought": true,
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7696,
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "totalTokenCount": 15,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "Here is a simple **Hello World** function in TypeScript that accepts a name parameter and returns a greeting string, including the appropriate JSDoc comments",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7715,
+      "usageMetadata": {
+        "candidatesTokenCount": 29,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 735,
+        "totalTokenCount": 779,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": ".
+
+\`\`\`typescript
+/**
+ * Generates a greeting message for the provided name.
+ *
+ * @param",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7762,
+      "usageMetadata": {
+        "candidatesTokenCount": 53,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 735,
+        "totalTokenCount": 803,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " name - The name of the person to greet.
+ * @returns A string containing the formatted greeting.
+ */
+",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7775,
+      "usageMetadata": {
+        "candidatesTokenCount": 77,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 735,
+        "totalTokenCount": 827,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "function helloWorld(name: string): string {
+  return \`Hello, \${name}!\`;
+}
+
+//",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7792,
+      "usageMetadata": {
+        "candidatesTokenCount": 101,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 735,
+        "totalTokenCount": 851,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " Usage example:
+console.log(helloWorld("World")); // Output: Hello, World!
+\`\`\`",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7835,
+      "usageMetadata": {
+        "candidatesTokenCount": 123,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 735,
+        "totalTokenCount": 873,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "",
+                "thoughtSignature": "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",
+              },
+            ],
+            "role": "model",
+          },
+          "finishReason": "STOP",
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 7859,
+      "usageMetadata": {
+        "candidatesTokenCount": 123,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 735,
+        "totalTokenCount": 873,
+      },
+    },
+  ],
+}
+`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Pro Model with ThinkingLevel > should match snapshot of Pro thinking-low fixture > pro-thinking-low-fixture 1`] = `
+{
+  "chunks": [
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Considering the Fundamentals**
+
+I've been meticulously analyzing the request. The core is a simple "hello world" function, but the use of TypeScript and the requirement for JSDoc comments adds nuance. I'm focusing on crafting a concise, well-documented function that meets all these criteria.
+
+
+",
+                "thought": true,
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 2551,
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "totalTokenCount": 15,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Refining the Approach**
+
+I'm now prioritizing the simplicity of the function despite adding JSDoc comments. I started a TypeScript draft, but want it to be elegant, so I'm deciding if I should console log or return a string.
+
+
+",
+                "thought": true,
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 2919,
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "totalTokenCount": 15,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "Here is a simple Hello World function in TypeScript that includes JSDoc comments.
+
+\`\`\`typescript
+/**
+ * Generates a Hello World greeting message.
+ *
+ * @param {string",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 2980,
+      "usageMetadata": {
+        "candidatesTokenCount": 39,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 125,
+        "totalTokenCount": 179,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "} name - The name of the person to greet. Defaults to "World" if not provided.
+ * @returns {string",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 3008,
+      "usageMetadata": {
+        "candidatesTokenCount": 65,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 125,
+        "totalTokenCount": 205,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "} A personalized greeting string.
+ *
+ * @example
+ * // Returns "Hello, World!"
+ * sayHello();
+",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 3022,
+      "usageMetadata": {
+        "candidatesTokenCount": 92,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 125,
+        "totalTokenCount": 232,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " *
+ * @example
+ * // Returns "Hello, Alice!"
+ * sayHello("Alice");
+ */
+",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 3064,
+      "usageMetadata": {
+        "candidatesTokenCount": 116,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 125,
+        "totalTokenCount": 256,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "function sayHello(name: string = "World"): string {
+  return \`Hello, \${name}!\`;
+",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 3202,
+      "usageMetadata": {
+        "candidatesTokenCount": 140,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 125,
+        "totalTokenCount": 280,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "}
+
+// Usage
+console.log(sayHello());
+console.log(sayHello("TypeScript"));
+\`\`\`",
+              },
+            ],
+            "role": "model",
+          },
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 3395,
+      "usageMetadata": {
+        "candidatesTokenCount": 164,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 125,
+        "totalTokenCount": 304,
+      },
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "",
+                "thoughtSignature": "Et8ECtwEAdHtim+yuSM9rNCek32TkkDIcJbGXWWc9d0wV1t4McdWDvQKVx/xW+bc3LPkfTAOVSJfPuq567s8EWE1fnGXCBG1MPqefg2Tx1SzgshJT0Nxr8JKz7Gk3khww1kiyqNqJybQvHPSn8m8AzGkGARbmGS78VxU9SaIGY+3Md+9GoayyPersF35SyG7DKUxBY8pkAmbFodIsRhohxWazlSAG5IOLCSu0nxIGWPyudx2YpUGubM6gDop5ncFIRKOvtdBCWjdIpLU5pU4EcVzRsLn6UdbBkF9oz9+vQHNfiYhL1/9oBWhfL2ZeOmjoQzzTulEP+AUrv9UUsvEQVyaTIeiK6q28Mynr2oDt2btElmMoBO6BXeSXEC0BKePHPKlF9W5/lmf8UAj9fbPdY/XNa2fyhARMJfkZKqxgz5QtfKjH+JC7WKnkzoyWX3UmDWa41JWfOOQ+yAN9/prNfUUR4frfgjCqVfj08t7PK9N3la4Y5WVli+34DIlmU8Ez834Xr4dMonZ0nLo8I2oexqdnXOcXgR99+LXU1u+bOwjn879QNFXpn6txug7oq++yLknjyGW0h5XiGGNa1TFiCq4XZSeRWqO7Kp3673Bv9902p+WdNbca1928mAKRhwi3FIOcCg683s1AjqMqWwOkPngeWuQEa9Dqt14BJENUPMYx5Rc9OtLbzxyjePwjEp4z0Fe5k1v3mD6GfCOuTacuBY5e7dZnt9J1QuyzfrheqVYZFtr/3rmfl793QEo0viDx89Fpj43yZebr6G2QHY69Dh3dn1pj/7tLF8BNYErfeRt2w==",
+              },
+            ],
+            "role": "model",
+          },
+          "finishReason": "STOP",
+          "index": 0,
+        },
+      ],
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 3398,
+      "usageMetadata": {
+        "candidatesTokenCount": 164,
+        "promptTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15,
+          },
+        ],
+        "thoughtsTokenCount": 125,
+        "totalTokenCount": 304,
+      },
+    },
+  ],
+}
+`;
+
+exports[`GeminiClient > Data Transformation Pipeline > Pro Model with ThinkingLevel > should show difference in thinking verbosity between high and low > thinking-verbosity-comparison 1`] = `
+{
+  "difference": 820,
+  "high": 1346,
+  "low": 526,
+}
+`;

@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/server/admin-controller.ts
 ---
-
 
 # Content from docs/modules/server/admin-controller.md
 

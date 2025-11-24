@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/scripts/macos-app/**, **/scripts/*.sh, **/scripts/entitlements.plist
 ---
-
 
 # Content from docs/macos-app.md
 

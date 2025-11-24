@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/server/rest-api-controller.ts
 ---
-
 
 # Content from docs/modules/server/rest-api-controller.md
 

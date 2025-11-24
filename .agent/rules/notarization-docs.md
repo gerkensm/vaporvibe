@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/scripts/notarize-macos-sea.sh, **/scripts/verify-notarization.sh, **/scripts/check-notarization-credentials.sh
 ---
-
 
 # Content from docs/NOTARIZATION.md
 

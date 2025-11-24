@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/server/component-cache.ts, **/src/server/server.ts
 ---
-
 
 # Content from docs/modules/server/component-cache.md
 

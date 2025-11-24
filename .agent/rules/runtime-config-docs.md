@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/config/runtime-config.ts, **/src/cli/args.ts
 ---
-
 
 # Content from docs/modules/config/runtime-config.md
 

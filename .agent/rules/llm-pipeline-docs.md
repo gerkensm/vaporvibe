@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/server/server.ts, **/src/llm/client.ts, **/src/views/loading-shell.ts, **/src/views/loading-shell/**/*
 ---
-
 
 # Content from docs/architecture/llm-pipeline.md
 
@@ -79,14 +78,47 @@ interface LlmReasoningStreamEvent {
 ### Step 3: Server-Side Streaming (Side-Channel Architecture)
 The server maintains *two* simultaneous streams for a single user request to decouple generation speed from rendering speed.
 
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant Server
+    participant LLM
+
+    Browser->>Server: POST / (Prompt)
+    Server->>Browser: 200 OK (Loading Shell HTML)
+    Note right of Browser: Shell renders immediately.<br/>Spinner appears.
+
+    par Parallel Streams
+        Server->>LLM: Stream Request
+        
+        loop Reasoning Events
+            LLM->>Server: Chunk (Thinking)
+            Server-->>Browser: SSE Event (id: token)<br/>data: { kind: "thinking", text: "..." }
+            Browser->>Browser: Update "Thinking Process" UI
+        end
+
+        loop Content Events
+            LLM->>Server: Chunk (HTML)
+            Server->>Server: Buffer HTML (pendingHtml)
+        end
+    end
+
+    LLM->>Server: Stream Complete
+    Browser->>Server: Poll /__vaporvibe/result/{token}
+    Server->>Browser: Final HTML
+    Browser->>Browser: Hydrate (Replace DOM)
+```
+
 1.  **The HTTP Response (Loading Shell)**:
     -   The server immediately responds with the `Loading Shell` HTML (200 OK).
-    -   This page contains a client-side script that polls `/__vaporvibe/result/{token}` for the final content.
+    -   This page contains a client-side script (`reasoning-stream.js`) that connects to the SSE endpoint.
+    -   It also contains `hydrate.js` which polls for the final result.
 
 2.  **The SSE Stream (Reasoning)**:
-    -   The Loading Shell *also* connects back to `/__vaporvibe/reasoning/{token}` via Server-Sent Events (SSE).
-    -   **Flow**: `LlmClient` -> `LlmStreamObserver` -> `EventEmitter` -> `res.write("data: ...")`.
-    -   **Benefit**: This allows us to stream "Thinking..." logs in real-time (via SSE) while the main HTTP connection waits for the final HTML payload.
+    -   **Endpoint**: `/__vaporvibe/reasoning/{token}`
+    -   **Mechanism**: Server-Sent Events (SSE).
+    -   **Flow**: `LlmClient` -> `LlmStreamObserver` -> `EventEmitter` -> `res.write("event: reasoning\ndata: ...")`.
+    -   **Buffering**: The server buffers the first ~200 events to ensure the frontend doesn't miss anything if it connects slightly after the stream starts.
 
 ### Step 4: Completion & Storage
 Once the stream finishes:
@@ -107,10 +139,71 @@ Once the stream finishes:
 Different providers handle reasoning differently:
 -   **Explicit Field**: Some APIs (DeepSeek) return a separate `reasoning_content` field.
 -   **Tags**: Others (standard models) might use `<thinking>` tags. We parse these out.
+-   **Gemini**: Returns `part.thought` in chunks. We aggregate these into `thinking` events.
 
-### Display
--   **Streaming**: Reasoning tokens are streamed with `kind: "thinking"`. The frontend displays these in a collapsible "Thinking Process" section.
--   **History**: The full reasoning trace is stored in `HistoryEntry.reasoning` so it can be reviewed later, but it is *not* usually fed back into the context for the next turn (to save tokens), unless specifically configured.
+### Display Logic (Frontend)
+The frontend (`interceptor.ts` and `reasoning-stream.js`) uses a simplified display logic to ensure consistency and prevent flickering.
+
+#### Core Principle: "What you see is what you get"
+-   **During Streaming**: The UI accumulates `thinking` events into a `liveBuffer`.
+-   **On Completion**: The `final` event simply marks the stream as complete. It does **not** replace the content with a separate "final" payload from the backend.
+-   **Result**: The user sees exactly what was streamed, with no jarring content swaps or header changes at the end.
+
+#### Unified Presentation
+-   **No Artificial Headings**: We removed injected headings like "Summary" or "Thinking Process". The UI displays the raw stream content. If the LLM wants structure, it generates markdown headings itself.
+-   **Single Source of Truth**: The streaming buffer is the source of truth for the UI. The `final` event's payload is used only for backend history persistence.
+
+### Reasoning Stream Architecture (Simplified)
+
+```mermaid
+graph LR
+    LLM[LLM Client] -->|onReasoningEvent| Backend[Server]
+    Backend -->|SSE: reasoning| EventSource[EventSource]
+    EventSource -->|kind: thinking| Buffer[liveBuffer +=]
+    EventSource -->|kind: summary| SBuffer[summaryBuffer +=]
+    Buffer --> UI[Update Display]
+    SBuffer --> UI
+```
+
+**Finalization Phase**:
+```mermaid
+graph LR
+    Backend[Server] -->|SSE: final| EventSource[EventSource]
+    EventSource -->|Mark complete| State[streamState.finalized = true]
+    State -->|Copy| Copy[finalText = liveBuffer]
+    Copy --> UI[Update Display]
+    
+    Note[❌ NO replacement<br/>✅ Just mark complete]
+```
+
+## 4. Debugging & Troubleshooting
+
+### Fast Debugging Checklist
+1.  **Enable Debug Logs**: Set `LOG_LEVEL=debug` (or `logger.level = "debug"` in scripts).
+2.  **Check Event Types**: Look for `[StreamEvent] kind=thinking`. If you see `kind=summary` during streaming, it might cause double-rendering.
+3.  **Verify Final Trace**: Ensure `result.reasoning.details` is populated. If it's empty, the history view won't show the thought process.
+
+### Common Issues & Fixes
+
+#### Issue: Reasoning "Flashes" or Disappears
+-   **Symptom**: The "Thinking..." section expands, shows text, then suddenly clears and restarts or changes header.
+-   **Cause**: The frontend logic is switching headers (e.g., "Thinking aloud" -> "Final reasoning") or the backend is emitting a "reset" event (like a redundant `summary` event at the end).
+-   **Fix**:
+    1.  Ensure `LlmClient` only emits `thinking` events for streaming thoughts.
+    2.  Ensure frontend uses a consistent header string (e.g., "Thinking process") for all states.
+
+#### Issue: Gemini Reasoning is Empty
+-   **Symptom**: No reasoning appears in the UI, but the model is working.
+-   **Cause**: Gemini 2.x models require `thinkingBudget` (via `reasoningTokens`). If this is 0 or undefined, reasoning is disabled.
+-   **Fix**: Check `reasoningTokensEnabled: true` and `reasoningTokens > 0` in the request config.
+
+#### Issue: Double Headers in History
+-   **Symptom**: The history view shows "Thinking Process" followed by "Thinking Process" again.
+-   **Cause**: The `raw` reasoning trace contains the header text itself (e.g., `**Thinking Process**\n\n...`).
+-   **Fix**: The `LlmClient` should clean the raw trace before returning it, or the frontend should strip known headers.
+
+### Reproduction Scripts
+Use standalone scripts (like `reproduce-gemini-issue.ts`) to isolate the `LlmClient` from the full server stack. This allows you to inspect the raw event stream without browser interference.
 
 ## Deep Dive: The Loading Shell
 

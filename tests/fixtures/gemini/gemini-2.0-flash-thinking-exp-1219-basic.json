@@ -1,0 +1,179 @@
+{
+  "chunks": [
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "```typescript\n/**\n * Greets a user by name, or a general \"World\" if no name is provided.\n * This is a classic \"Hello, World!\" example function.\n *\n * @param {string}"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 48,
+        "totalTokenCount": 124,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 61
+      },
+      "modelVersion": "models/gemini-2.5-flash-preview-05-20",
+      "timestamp": 888
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " [name='World'] - The optional name of the person to greet. Defaults to 'World'.\n * @returns {string} A greeting message, e.g., \"Hello, John!\" or \"Hello, World!\".\n *\n * @"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 99,
+        "totalTokenCount": 175,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 61
+      },
+      "modelVersion": "models/gemini-2.5-flash-preview-05-20",
+      "timestamp": 979
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "example\n * // Basic usage:\n * console.log(helloWorld(\"Alice\")); // Outputs: \"Hello, Alice!\"\n *\n * @example\n * // Without a name:\n * console.log(helloWorld());"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 147,
+        "totalTokenCount": 223,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 61
+      },
+      "modelVersion": "models/gemini-2.5-flash-preview-05-20",
+      "timestamp": 1203
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "       // Outputs: \"Hello, World!\"\n *\n * @example\n * // With a different name:\n * const myName = \"TypeScript\";\n * console.log(helloWorld(myName)); // Outputs: \"Hello"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 194,
+        "totalTokenCount": 270,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 61
+      },
+      "modelVersion": "models/gemini-2.5-flash-preview-05-20",
+      "timestamp": 1459
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": ", TypeScript!\"\n */\nfunction helloWorld(name: string = 'World'): string {\n  return `Hello, ${name}!`;\n}\n\n// Example usage:\nconsole.log(helloWorld(\"JSDoc\"));\n"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 242,
+        "totalTokenCount": 318,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 61
+      },
+      "modelVersion": "models/gemini-2.5-flash-preview-05-20",
+      "timestamp": 1612
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "console.log(helloWorld());\n```"
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP",
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 251,
+        "totalTokenCount": 327,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 61
+      },
+      "modelVersion": "models/gemini-2.5-flash-preview-05-20",
+      "timestamp": 1635
+    }
+  ]
+}

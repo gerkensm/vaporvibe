@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/server/session-store.ts, **/src/types.ts
 ---
-
 
 # Content from docs/architecture/session-lifecycle.md
 

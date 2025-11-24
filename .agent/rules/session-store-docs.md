@@ -1,8 +1,7 @@
 ---
-trigger: always_on
-globs: **/*
+trigger: glob
+globs: **/src/server/session-store.ts
 ---
-
 
 # Content from docs/modules/server/session-store.md
 
