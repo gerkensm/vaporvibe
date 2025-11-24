@@ -109,7 +109,7 @@ export class GeminiClient implements LlmClient {
 
         config.thinkingConfig = {
           includeThoughts: true,
-          thinkingBudget: clampedBudget,  // Always set budget (including 0)
+          thinkingBudget: clampedBudget,  // Always set budget (including 0) when config is set; for Pro models with allowZero: false, config is omitted entirely when thinking is disabled (see below)
         };
 
         logger.debug({ thinkingConfig: config.thinkingConfig }, "Gemini thinking config");
