@@ -116,12 +116,18 @@ export class GeminiClient implements LlmClient {
       }
     } else {
       // When thinking is disabled, explicitly set budget to 0 to prevent implicit thinking
-      if (!this.settings.model.includes("gemini-3-pro")) {
+      // But only for models that allow zero budget (Flash models)
+      // Pro models (gemini-3-pro, gemini-2.5-pro) reject budget:0, so omit config entirely
+      const limits = getGeminiThinkingLimits(this.settings.model);
+
+      if (limits.allowZero) {
         config.thinkingConfig = {
           includeThoughts: true,
           thinkingBudget: 0,
         };
         logger.debug({ thinkingConfig: config.thinkingConfig }, "Gemini thinking disabled (budget=0)");
+      } else {
+        logger.debug({ model: this.settings.model }, "Gemini thinking disabled (omitting config for Pro model)");
       }
     }
 
