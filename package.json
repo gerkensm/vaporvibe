@@ -59,6 +59,7 @@
     "@types/node": "^22.0.0",
     "chokidar": "^4.0.3",
     "dependency-cruiser": "^17.3.1",
+    "jsdom": "^27.2.0",
     "postject": "^1.0.0-alpha.6",
     "tsx": "^4.16.0",
     "typescript": "^5.4.0",

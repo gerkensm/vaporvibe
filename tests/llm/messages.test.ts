@@ -42,7 +42,7 @@ describe("buildMessages", () => {
     const [system, stable, historyMessage, dynamic] = messages;
 
     expect(system.role).toBe("system");
-    expect(system.content).toContain("SYSTEM — vaporvibe Single-View HTML Generator");
+    expect(system.content).toContain("SYSTEM — Single-View HTML Application Generator");
 
     expect(stable.role).toBe("user");
     expect(stable.attachments).toHaveLength(1);
