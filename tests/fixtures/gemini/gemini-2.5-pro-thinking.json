@@ -1,0 +1,904 @@
+{
+  "chunks": [
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Refining the Core Task**\n\nI'm now zeroing in on the precise nature of the user's request. It's a \"hello world\" function in TypeScript with JSDoc comments, so now I'm deconstructing the parts into their components. I'm focusing on the implementation details: what should the function *do* and what should the comments *say*?  This is to ensure the user gets exactly what they need, but also the most useful example.\n\n\n",
+                "thought": true
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 87,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 72
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 1959
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Developing the Function's Structure**\n\nI'm solidifying the function's structure. It's a `sayHello` function that takes a `name` string and returns a personalized greeting.  The type signatures are locked in, and the implementation is simple: return a template literal. Now the focus is on crafting useful JSDoc comments to guide users.\n\n\n",
+                "thought": true
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 366,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 351
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 4098
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Enhancing the Comments**\n\nI'm now deeply immersed in the JSDoc comments. The core function is finalized; now it's about making the documentation as helpful as possible. I'm focusing on providing clear explanations for the parameters and return value. I'll include examples to make it easy to understand how to use the function.  I'm also considering adding some notes about common usage scenarios.\n\n\n",
+                "thought": true
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 639,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 624
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 6331
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Constructing the Full Snippet**\n\nI'm now integrating the JSDoc-enhanced function into a runnable example.  I'll add a simple `console.log` call to demonstrate its usage.  This provides the user with a complete, ready-to-run snippet, demonstrating how the documented function works in practice. I aim to make it as self-explanatory as possible.\n\n\n",
+                "thought": true
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 940,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 925
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 8298
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Crafting the Complete Solution**\n\nI've finalized the core TypeScript function with its comprehensive JSDoc comments. Now, my focus is on crafting a concise and clear explanation of the code, detailing the purpose of each JSDoc tag and how TypeScript enhances the example.  I'll emphasize the practical benefits of JSDoc for developers and include step-by-step instructions for running the code.\n\n\n",
+                "thought": true
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 1215,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1200
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 10651
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Synthesizing a Comprehensive Response**\n\nMy focus is now on assembling the complete response for the user. I'll structure it to provide immediate value followed by detailed explanations. I'm finalizing the code snippet with its supporting comments and creating a clear, concise explanation of the TypeScript and JSDoc elements. Finally, I will make sure to include easy-to-follow instructions for running the code, making the whole answer an accessible package.\n\n\n",
+                "thought": true
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 1420,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 12394
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "Of course! Here is a simple \"Hello World\" function in TypeScript with clear JSDoc comments.\n\n### The"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 18,
+        "totalTokenCount": 1438,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 12394
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " Code\n\nThis function takes a name as a string and returns a personalized greeting.\n\n```typescript\n/**\n * Generates a"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 44,
+        "totalTokenCount": 1464,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 12394
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " greeting message for a given name.\n *\n * @param {string} name - The name of the person to"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 68,
+        "totalTokenCount": 1488,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 12394
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " greet.\n * @returns {string} A personalized greeting message.\n * @example\n * // returns \"Hello, World"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 94,
+        "totalTokenCount": 1514,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 12397
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "!\"\n * sayHello(\"World\");\n *\n * @example\n * // returns \"Hello, Alice!\"\n *"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 119,
+        "totalTokenCount": 1539,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 12408
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " sayHello(\"Alice\");\n */\nfunction sayHello(name: string): string {\n  return `Hello,"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 143,
+        "totalTokenCount": 1563,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 12423
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " ${name}!`;\n}\n\n// --- Example Usage ---\nconst greeting = sayHello(\"World\");\nconsole."
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 167,
+        "totalTokenCount": 1587,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 12554
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "log(greeting); // Outputs: Hello, World!\n```\n\n### Breakdown\n\n#### TypeScript Parts\n\n*   `function"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 192,
+        "totalTokenCount": 1612,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 12783
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " sayHello(name: string): string { ... }`\n    *   `(name: string)`: This is a"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 217,
+        "totalTokenCount": 1637,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 12984
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " type annotation. It declares that the `name` parameter **must** be a string.\n    *   `: string`: This is"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 244,
+        "totalTokenCount": 1664,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 13185
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " the return type annotation. It declares that the `sayHello` function **must** return a value of type string.\n"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 268,
+        "totalTokenCount": 1688,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 13382
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "    *   `` `Hello, ${name}!` ``: This is a template literal in JavaScript/TypeScript, which makes"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 292,
+        "totalTokenCount": 1712,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 13586
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " it easy to embed variables directly into a string.\n\n#### JSDoc Comments\n\nJSDoc comments start with `/**`"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 318,
+        "totalTokenCount": 1738,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 13764
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " and end with `*/`. They are used to describe what your code does, and modern code editors like VS Code will"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 342,
+        "totalTokenCount": 1762,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 13969
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " use them to provide helpful tooltips and autocompletion.\n\n*   `/** ... */`: This block contains the documentation"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 367,
+        "totalTokenCount": 1787,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 14237
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " for the `sayHello` function.\n*   **`Generates a greeting...`**: The first line is"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 391,
+        "totalTokenCount": 1811,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 14416
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " a brief, one-sentence summary of what the function does.\n*   **`@param {string} name -"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 416,
+        "totalTokenCount": 1836,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 14591
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " The name...`**: This tag documents a parameter.\n    *   `@param`: Indicates a function parameter.\n    "
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 440,
+        "totalTokenCount": 1860,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 14953
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "*   `{string}`: The data type of the parameter.\n    *   `name`: The name of the parameter."
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 467,
+        "totalTokenCount": 1887,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 15030
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "\n    *   `- The name...`: A description of what the parameter is for.\n*   **`@returns"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 490,
+        "totalTokenCount": 1910,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 15260
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " {string} A personalized...`**: This tag documents the return value.\n    *   `@returns`: Indicates the"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 515,
+        "totalTokenCount": 1935,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 15396
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " return value.\n    *   `{string}`: The data type of the returned value.\n    *   `"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 540,
+        "totalTokenCount": 1960,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 15580
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "A personalized...`: A description of what is being returned.\n*   **`@example ...`**: This tag provides"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 565,
+        "totalTokenCount": 1985,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 15738
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " a clear example of how to use the function. It's great for documentation and for other developers to quickly understand its"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 589,
+        "totalTokenCount": 2009,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 15961
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " usage."
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP",
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 591,
+        "totalTokenCount": 2011,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 1405
+      },
+      "modelVersion": "gemini-2.5-pro",
+      "timestamp": 15987
+    }
+  ]
+}

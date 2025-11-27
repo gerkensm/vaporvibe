@@ -1,0 +1,285 @@
+{
+  "chunks": [
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "```typescript\n/**\n *"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 6,
+        "totalTokenCount": 21,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 516
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " A simple function that returns the string \"Hello, World!\".\n *\n * @returns {string}"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 27,
+        "totalTokenCount": 42,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 516
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " The greeting string \"Hello, World!\".\n */\nfunction sayHelloWorld(): string {\n  return \"Hello, World!\";\n}\n\n// Example usage:\nconst greeting = sayHelloWorld();\nconsole.log(greeting); // Output: Hello, World!"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 80,
+        "totalTokenCount": 95,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 525
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "\n```\n\n**Explanation:**\n\n1.  **`/** ... */`**: This is the syntax for a JSDoc comment block.\n2.  **`* A simple function that returns the string \"Hello, World!\"."
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 127,
+        "totalTokenCount": 142,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 661
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "`**: This is the main description of the function. It explains what the function does in plain English.\n3.  **`*`**: Each line within the JSDoc block starts with an asterisk for better readability.\n4.  "
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 176,
+        "totalTokenCount": 191,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 800
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**`* @returns {string} The greeting string \"Hello, World!\".`**: This is a JSDoc tag.\n    *   **`@returns`**: This tag indicates that the comment describes the return value of the"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 224,
+        "totalTokenCount": 239,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 907
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " function.\n    *   **`{string}`**: This specifies the expected type of the return value. TypeScript uses this to provide type checking.\n    *   **`The greeting string \"Hello, World!\".`**: This is a description of what the"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 277,
+        "totalTokenCount": 292,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 1041
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " function returns.\n5.  **`function sayHelloWorld(): string { ... }`**: This is the TypeScript function definition.\n    *   **`function sayHelloWorld`**: Declares a function named `sayHelloWorld`.\n    *   **`"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 329,
+        "totalTokenCount": 344,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 1195
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "(): string`**: This is the function signature.\n        *   `()`: Indicates that the function takes no arguments.\n        *   `: string`: This is the return type annotation. It explicitly states that this function will return a value"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 378,
+        "totalTokenCount": 393,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 1308
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " of type `string`. This is the TypeScript part that provides static typing.\n6.  **`return \"Hello, World!\";`**: The body of the function, which simply returns the string literal \"Hello, World!\"."
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP",
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 424,
+        "totalTokenCount": 439,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-2.5-flash-lite",
+      "timestamp": 1482
+    }
+  ]
+}

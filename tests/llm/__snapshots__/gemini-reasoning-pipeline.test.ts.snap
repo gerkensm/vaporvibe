@@ -1,0 +1,885 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Gemini Reasoning Pipeline > Cross-Fixture Comparisons > Thinking vs Basic: should show difference in reasoning output > thinking-vs-basic-comparison 1`] = `[]`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-exp-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 13,
+  "finalUsage": {
+    "candidatesTokenCount": 478,
+    "candidatesTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 478,
+      },
+    ],
+    "promptTokenCount": 14,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 14,
+      },
+    ],
+    "totalTokenCount": 492,
+  },
+  "hasContent": true,
+  "hasThinking": false,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-exp-basic' > Stage 2: GeminiClient Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": true,
+  "htmlLength": 1913,
+  "htmlPreview": "\`\`\`typescript
+/**
+ * Prints "Hello, world!" to the console.
+ *
+ * @returns {void} No return value.  This function only outputs to the console.
+ */
+function helloWorld(): void {
+  console.log("Hello, w",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-exp-basic' > Stage 3: GeminiClient Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "firstDetailPreview": null,
+  "hasReasoning": false,
+  "rawLength": 0,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-exp-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-exp-basic' > Stage 5: SSE Event Format (Server-Sent Events) > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "firstMessagePreview": null,
+  "messageCount": 0,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-exp-basic' > Stage 6: Frontend Display Logic (markdown rendering) > frontend-display-state 1`] = `
+{
+  "finalTraceLength": 0,
+  "hasCodeBlocks": false,
+  "hasMarkdownHeaders": false,
+  "streamedTextLength": 0,
+  "streamedTextPreview": "",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-exp-basic' > Stage 7: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasReasoningTokens": false,
+  "inputTokens": 14,
+  "outputTokens": 478,
+  "reasoningTokens": undefined,
+  "totalTokens": 492,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-ba…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 6,
+  "finalUsage": {
+    "candidatesTokenCount": 251,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 61,
+    "totalTokenCount": 327,
+  },
+  "hasContent": true,
+  "hasThinking": false,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-ba…' > Stage 2: GeminiClient Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": true,
+  "htmlLength": 844,
+  "htmlPreview": "\`\`\`typescript
+/**
+ * Greets a user by name, or a general "World" if no name is provided.
+ * This is a classic "Hello, World!" example function.
+ *
+ * @param {string} [name='World'] - The optional name",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-ba…' > Stage 3: GeminiClient Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "firstDetailPreview": "Gemini generated 61 reasoning tokens (thought text unavailable).",
+  "hasReasoning": true,
+  "rawLength": 1,
+  "rawType": "array",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-ba…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-ba…' > Stage 5: SSE Event Format (Server-Sent Events) > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "firstMessagePreview": null,
+  "messageCount": 0,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-ba…' > Stage 6: Frontend Display Logic (markdown rendering) > frontend-display-state 1`] = `
+{
+  "finalTraceLength": 64,
+  "hasCodeBlocks": false,
+  "hasMarkdownHeaders": false,
+  "streamedTextLength": 0,
+  "streamedTextPreview": "",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-ba…' > Stage 7: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasReasoningTokens": true,
+  "inputTokens": 15,
+  "outputTokens": 251,
+  "reasoningTokens": 61,
+  "totalTokens": 327,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-th…' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 17,
+  "finalUsage": {
+    "candidatesTokenCount": 580,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 1007,
+    "totalTokenCount": 1602,
+  },
+  "hasContent": true,
+  "hasThinking": true,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-th…' > Stage 2: GeminiClient Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": true,
+  "htmlLength": 2323,
+  "htmlPreview": "Here's a simple "Hello World" function in TypeScript with JSDoc comments.
+
+\`\`\`typescript
+/**
+ * Prints the classic "Hello, World!" message to the console.
+ * This is a fundamental example demonstratin",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-th…' > Stage 3: GeminiClient Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "firstDetailPreview": "**Developing the Core Logic**
+
+I'm currently fleshing out the fundamental JavaScript structure of th",
+  "hasReasoning": true,
+  "rawLength": 1,
+  "rawType": "array",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-th…' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 5,
+  "firstEventPreview": "**Developing the Core Logic**
+
+I'm currently fleshing out the fundamental JavaScript structure of th",
+  "totalChars": 1788,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-th…' > Stage 5: SSE Event Format (Server-Sent Events) > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "firstMessagePreview": "event: reasoning
+data: {"kind":"thinking","text":"**Developing the Core Logic**\\n\\nI'm currently fleshing out the fundamental JavaScript structure of ",
+  "messageCount": 5,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-th…' > Stage 6: Frontend Display Logic (markdown rendering) > frontend-display-state 1`] = `
+{
+  "finalTraceLength": 1786,
+  "hasCodeBlocks": true,
+  "hasMarkdownHeaders": true,
+  "streamedTextLength": 1788,
+  "streamedTextPreview": "**Developing the Core Logic**
+
+I'm currently fleshing out the fundamental JavaScript structure of the function. The goal is a straightforward "Hello, World!" with explicit type annotations. I'm focusi",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.0-flash-thinking-exp-1219-th…' > Stage 7: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasReasoningTokens": true,
+  "inputTokens": 15,
+  "outputTokens": 580,
+  "reasoningTokens": 1007,
+  "totalTokens": 1602,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 3,
+  "finalUsage": {
+    "candidatesTokenCount": 65,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "totalTokenCount": 80,
+  },
+  "hasContent": true,
+  "hasThinking": false,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-basic' > Stage 2: GeminiClient Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": true,
+  "htmlLength": 236,
+  "htmlPreview": "\`\`\`typescript
+/**
+ * Greets the world with a simple message.
+ * This is a classic "Hello, World!" program.
+ *
+ * @returns {string} The greeting message "Hello, World!".
+ */
+function helloWorld(): stri",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-basic' > Stage 3: GeminiClient Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "firstDetailPreview": null,
+  "hasReasoning": false,
+  "rawLength": 0,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-basic' > Stage 5: SSE Event Format (Server-Sent Events) > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "firstMessagePreview": null,
+  "messageCount": 0,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-basic' > Stage 6: Frontend Display Logic (markdown rendering) > frontend-display-state 1`] = `
+{
+  "finalTraceLength": 0,
+  "hasCodeBlocks": false,
+  "hasMarkdownHeaders": false,
+  "streamedTextLength": 0,
+  "streamedTextPreview": "",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-basic' > Stage 7: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasReasoningTokens": false,
+  "inputTokens": 15,
+  "outputTokens": 65,
+  "reasoningTokens": undefined,
+  "totalTokens": 80,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-basic' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 10,
+  "finalUsage": {
+    "candidatesTokenCount": 424,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "totalTokenCount": 439,
+  },
+  "hasContent": true,
+  "hasThinking": false,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-basic' > Stage 2: GeminiClient Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": true,
+  "htmlLength": 1700,
+  "htmlPreview": "\`\`\`typescript
+/**
+ * A simple function that returns the string "Hello, World!".
+ *
+ * @returns {string} The greeting string "Hello, World!".
+ */
+function sayHelloWorld(): string {
+  return "Hello, Wor",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-basic' > Stage 3: GeminiClient Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "firstDetailPreview": null,
+  "hasReasoning": false,
+  "rawLength": 0,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-basic' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-basic' > Stage 5: SSE Event Format (Server-Sent Events) > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "firstMessagePreview": null,
+  "messageCount": 0,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-basic' > Stage 6: Frontend Display Logic (markdown rendering) > frontend-display-state 1`] = `
+{
+  "finalTraceLength": 0,
+  "hasCodeBlocks": false,
+  "hasMarkdownHeaders": false,
+  "streamedTextLength": 0,
+  "streamedTextPreview": "",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-basic' > Stage 7: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasReasoningTokens": false,
+  "inputTokens": 15,
+  "outputTokens": 424,
+  "reasoningTokens": undefined,
+  "totalTokens": 439,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-thinking' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 4,
+  "finalUsage": {
+    "candidatesTokenCount": 87,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 81,
+    "totalTokenCount": 183,
+  },
+  "hasContent": true,
+  "hasThinking": true,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-thinking' > Stage 2: GeminiClient Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": true,
+  "htmlLength": 337,
+  "htmlPreview": "\`\`\`typescript
+/**
+ * A simple function that returns the classic "Hello, World!" greeting.
+ *
+ * @returns {string} The greeting string "Hello, World!".
+ */
+function helloWorld(): string {
+  return "Hel",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-thinking' > Stage 3: GeminiClient Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "firstDetailPreview": "**Defining a Simple Function**
+
+I'm currently working on defining a basic TypeScript function, \`hell",
+  "hasReasoning": true,
+  "rawLength": 1,
+  "rawType": "array",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-thinking' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 2,
+  "firstEventPreview": "**Defining a Simple Function**
+
+I'm currently working on defining a basic TypeScript function, \`hell",
+  "totalChars": 606,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-thinking' > Stage 5: SSE Event Format (Server-Sent Events) > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "firstMessagePreview": "event: reasoning
+data: {"kind":"thinking","text":"**Defining a Simple Function**\\n\\nI'm currently working on defining a basic TypeScript function, \`he",
+  "messageCount": 2,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-thinking' > Stage 6: Frontend Display Logic (markdown rendering) > frontend-display-state 1`] = `
+{
+  "finalTraceLength": 604,
+  "hasCodeBlocks": true,
+  "hasMarkdownHeaders": true,
+  "streamedTextLength": 606,
+  "streamedTextPreview": "**Defining a Simple Function**
+
+I'm currently working on defining a basic TypeScript function, \`helloWorld\`, which will simply return "Hello, World!". I'm also adding JSDoc comments to document its pu",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-lite-thinking' > Stage 7: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasReasoningTokens": true,
+  "inputTokens": 15,
+  "outputTokens": 87,
+  "reasoningTokens": 81,
+  "totalTokens": 183,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-thinking' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 16,
+  "finalUsage": {
+    "candidatesTokenCount": 514,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 979,
+    "totalTokenCount": 1508,
+  },
+  "hasContent": true,
+  "hasThinking": true,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-thinking' > Stage 2: GeminiClient Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": true,
+  "htmlLength": 2020,
+  "htmlPreview": "Here's a simple TypeScript "Hello World" function with JSDoc comments.
+
+\`\`\`typescript
+/**
+ * @file This file contains a simple "Hello, World!" function.
+ * @module helloWorld
+ */
+
+/**
+ * Outputs the c",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-thinking' > Stage 3: GeminiClient Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "firstDetailPreview": "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in ",
+  "hasReasoning": true,
+  "rawLength": 1,
+  "rawType": "array",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-thinking' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 5,
+  "firstEventPreview": "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in ",
+  "totalChars": 2192,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-thinking' > Stage 5: SSE Event Format (Server-Sent Events) > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "firstMessagePreview": "event: reasoning
+data: {"kind":"thinking","text":"**Comprehending the Task**\\n\\nI'm focusing on the core requirement: a basic \\"Hello World\\" function",
+  "messageCount": 5,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-thinking' > Stage 6: Frontend Display Logic (markdown rendering) > frontend-display-state 1`] = `
+{
+  "finalTraceLength": 2190,
+  "hasCodeBlocks": true,
+  "hasMarkdownHeaders": true,
+  "streamedTextLength": 2192,
+  "streamedTextPreview": "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in TypeScript with JSDoc comments.  The simplicity of the task is driving my design. My current focus i",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-flash-thinking' > Stage 7: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasReasoningTokens": true,
+  "inputTokens": 15,
+  "outputTokens": 514,
+  "reasoningTokens": 979,
+  "totalTokens": 1508,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-pro-thinking' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 31,
+  "finalUsage": {
+    "candidatesTokenCount": 591,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 1405,
+    "totalTokenCount": 2011,
+  },
+  "hasContent": true,
+  "hasThinking": true,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-pro-thinking' > Stage 2: GeminiClient Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": true,
+  "htmlLength": 2320,
+  "htmlPreview": "Of course! Here is a simple "Hello World" function in TypeScript with clear JSDoc comments.
+
+### The Code
+
+This function takes a name as a string and returns a personalized greeting.
+
+\`\`\`typescript
+/*",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-pro-thinking' > Stage 3: GeminiClient Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 0,
+  "firstDetailPreview": null,
+  "hasReasoning": false,
+  "rawLength": 0,
+  "rawType": "undefined",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-pro-thinking' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 0,
+  "firstEventPreview": null,
+  "totalChars": 0,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-pro-thinking' > Stage 5: SSE Event Format (Server-Sent Events) > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "firstMessagePreview": null,
+  "messageCount": 0,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-pro-thinking' > Stage 6: Frontend Display Logic (markdown rendering) > frontend-display-state 1`] = `
+{
+  "finalTraceLength": 0,
+  "hasCodeBlocks": false,
+  "hasMarkdownHeaders": false,
+  "streamedTextLength": 0,
+  "streamedTextPreview": "",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-2.5-pro-thinking' > Stage 7: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasReasoningTokens": true,
+  "inputTokens": 15,
+  "outputTokens": 591,
+  "reasoningTokens": 1405,
+  "totalTokens": 2011,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-high' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 10,
+  "finalUsage": {
+    "candidatesTokenCount": 123,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 735,
+    "totalTokenCount": 873,
+  },
+  "hasContent": true,
+  "hasThinking": true,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-high' > Stage 2: GeminiClient Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": true,
+  "htmlLength": 501,
+  "htmlPreview": "Here is a simple **Hello World** function in TypeScript that accepts a name parameter and returns a greeting string, including the appropriate JSDoc comments.
+
+\`\`\`typescript
+/**
+ * Generates a greetin",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-high' > Stage 3: GeminiClient Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "firstDetailPreview": "**Developing a Function**
+
+I've initiated the process by analyzing the request, focusing on the requ",
+  "hasReasoning": true,
+  "rawLength": 1,
+  "rawType": "array",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-high' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 4,
+  "firstEventPreview": "**Developing a Function**
+
+I've initiated the process by analyzing the request, focusing on the requ",
+  "totalChars": 1342,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-high' > Stage 5: SSE Event Format (Server-Sent Events) > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "firstMessagePreview": "event: reasoning
+data: {"kind":"thinking","text":"**Developing a Function**\\n\\nI've initiated the process by analyzing the request, focusing on the re",
+  "messageCount": 4,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-high' > Stage 6: Frontend Display Logic (markdown rendering) > frontend-display-state 1`] = `
+{
+  "finalTraceLength": 1340,
+  "hasCodeBlocks": true,
+  "hasMarkdownHeaders": true,
+  "streamedTextLength": 1342,
+  "streamedTextPreview": "**Developing a Function**
+
+I've initiated the process by analyzing the request, focusing on the required language (TypeScript) and the objective (a "Hello World" function with JSDoc comments). I'm cur",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-high' > Stage 7: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasReasoningTokens": true,
+  "inputTokens": 15,
+  "outputTokens": 123,
+  "reasoningTokens": 735,
+  "totalTokens": 873,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-low' > Stage 1: Raw API Response Structure > raw-api-structure 1`] = `
+{
+  "chunkCount": 9,
+  "finalUsage": {
+    "candidatesTokenCount": 164,
+    "promptTokenCount": 15,
+    "promptTokensDetails": [
+      {
+        "modality": "TEXT",
+        "tokenCount": 15,
+      },
+    ],
+    "thoughtsTokenCount": 125,
+    "totalTokenCount": 304,
+  },
+  "hasContent": true,
+  "hasThinking": true,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-low' > Stage 2: GeminiClient Content Extraction > content-extraction 1`] = `
+{
+  "containsCodeBlock": true,
+  "containsThinking": true,
+  "htmlLength": 586,
+  "htmlPreview": "Here is a simple Hello World function in TypeScript that includes JSDoc comments.
+
+\`\`\`typescript
+/**
+ * Generates a Hello World greeting message.
+ *
+ * @param {string} name - The name of the person to",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-low' > Stage 3: GeminiClient Reasoning Trace > reasoning-trace 1`] = `
+{
+  "detailsCount": 1,
+  "firstDetailPreview": "**Considering the Fundamentals**
+
+I've been meticulously analyzing the request. The core is a simple",
+  "hasReasoning": true,
+  "rawLength": 1,
+  "rawType": "array",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-low' > Stage 4: Stream Observer Events > stream-observer-events 1`] = `
+{
+  "allEndWithNewline": true,
+  "allKindThinking": true,
+  "eventCount": 2,
+  "firstEventPreview": "**Considering the Fundamentals**
+
+I've been meticulously analyzing the request. The core is a simple",
+  "totalChars": 524,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-low' > Stage 5: SSE Event Format (Server-Sent Events) > sse-event-format 1`] = `
+{
+  "allContainData": true,
+  "allStartWithEvent": true,
+  "firstMessagePreview": "event: reasoning
+data: {"kind":"thinking","text":"**Considering the Fundamentals**\\n\\nI've been meticulously analyzing the request. The core is a simp",
+  "messageCount": 2,
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-low' > Stage 6: Frontend Display Logic (markdown rendering) > frontend-display-state 1`] = `
+{
+  "finalTraceLength": 522,
+  "hasCodeBlocks": false,
+  "hasMarkdownHeaders": true,
+  "streamedTextLength": 524,
+  "streamedTextPreview": "**Considering the Fundamentals**
+
+I've been meticulously analyzing the request. The core is a simple "hello world" function, but the use of TypeScript and the requirement for JSDoc comments adds nuanc",
+}
+`;
+
+exports[`Gemini Reasoning Pipeline > Fixture: 'gemini-3-pro-preview-thinking-low' > Stage 7: Usage Metadata Propagation > usage-metadata 1`] = `
+{
+  "hasReasoningTokens": true,
+  "inputTokens": 15,
+  "outputTokens": 164,
+  "reasoningTokens": 125,
+  "totalTokens": 304,
+}
+`;

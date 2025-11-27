@@ -1,0 +1,431 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`GeminiClient Integration > Reasoning Trace Structure > should create properly structured reasoning trace for history > reasoning-trace-structure 1`] = `
+{
+  "details": [
+    "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in TypeScript with JSDoc comments.  The simplicity of the task is driving my design. My current focus is on defining the function signature and the return type.
+
+**Elaborating the JSDoc**
+
+Now, I'm focusing on crafting the JSDoc comments. Considering the function's purpose, a concise description is essential. I'll include \`@description\` for overall function purpose, perhaps \`@example\` for function call, and \`@returns\` for clarifying the \`void\` return type, even though it's implicit. The structure should be clear and informative.
+
+**Structuring the Comments**
+
+I'm now zeroing in on the JSDoc structure, aiming for a concise and informative style. The use of \`@example\` feels essential to showcase the function's simplicity. I am deciding whether to include \`@function\` given the clear use case, as IDEs typically render this redundant. I'm focusing on making the documentation immediately useful.
+
+I've moved on to meticulously structuring the JSDoc comments to clearly articulate the function's purpose, usage, and return type. I've decided to provide an \`@example\` to illustrate the function call. The \`@returns {void}\` ensures the \`void\` return type is explicitly stated. I'm prioritizing clarity.
+
+**Defining the JSDoc**
+
+I've carefully considered the JSDoc details. I've included the \`@returns {void}\` tag for explicitness, and the \`@example\` tag is essential for demonstrating usage. My focus is on ensuring the comments are clear and easy to understand.
+
+**Constructing the TS Function**
+
+Now, I'm integrating the JavaScript core with TypeScript syntax. I'm focusing on type annotations, specifically the \`void\` return type for the \`sayHello\` function. I am considering best practices for readability. I've opted for a more concise \`console.log\` example in the documentation block.
+
+I have thoroughly considered the type of the \`sayHello\` function and its return value, choosing the explicitly defined \`void\` type to reflect that the function's output is purely a side effect. I am certain that the function meets the basic requirements and does not need any further modification.",
+  ],
+  "raw": [
+    "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in TypeScript with JSDoc comments.  The simplicity of the task is driving my design. My current focus is on defining the function signature and the return type.
+
+**Elaborating the JSDoc**
+
+Now, I'm focusing on crafting the JSDoc comments. Considering the function's purpose, a concise description is essential. I'll include \`@description\` for overall function purpose, perhaps \`@example\` for function call, and \`@returns\` for clarifying the \`void\` return type, even though it's implicit. The structure should be clear and informative.
+
+**Structuring the Comments**
+
+I'm now zeroing in on the JSDoc structure, aiming for a concise and informative style. The use of \`@example\` feels essential to showcase the function's simplicity. I am deciding whether to include \`@function\` given the clear use case, as IDEs typically render this redundant. I'm focusing on making the documentation immediately useful.
+
+I've moved on to meticulously structuring the JSDoc comments to clearly articulate the function's purpose, usage, and return type. I've decided to provide an \`@example\` to illustrate the function call. The \`@returns {void}\` ensures the \`void\` return type is explicitly stated. I'm prioritizing clarity.
+
+**Defining the JSDoc**
+
+I've carefully considered the JSDoc details. I've included the \`@returns {void}\` tag for explicitness, and the \`@example\` tag is essential for demonstrating usage. My focus is on ensuring the comments are clear and easy to understand.
+
+**Constructing the TS Function**
+
+Now, I'm integrating the JavaScript core with TypeScript syntax. I'm focusing on type annotations, specifically the \`void\` return type for the \`sayHello\` function. I am considering best practices for readability. I've opted for a more concise \`console.log\` example in the documentation block.
+
+I have thoroughly considered the type of the \`sayHello\` function and its return value, choosing the explicitly defined \`void\` type to reflect that the function's output is purely a side effect. I am certain that the function meets the basic requirements and does not need any further modification.",
+  ],
+}
+`;
+
+exports[`GeminiClient Integration > Stream Observer Events > should emit correctly formatted events during streaming > stream-observer-events 1`] = `
+[
+  {
+    "kind": "thinking",
+    "text": "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in TypeScript with JSDoc comments.  The simplicity of the task is driving my design. My current focus is on defining the function signature and the return type.
+
+",
+  },
+  {
+    "kind": "thinking",
+    "text": "**Elaborating the JSDoc**
+
+Now, I'm focusing on crafting the JSDoc comments. Considering the function's purpose, a concise description is essential. I'll include \`@description\` for overall function purpose, perhaps \`@example\` for function call, and \`@returns\` for clarifying the \`void\` return type, even though it's implicit. The structure should be clear and informative.
+
+",
+  },
+  {
+    "kind": "thinking",
+    "text": "**Structuring the Comments**
+
+I'm now zeroing in on the JSDoc structure, aiming for a concise and informative style. The use of \`@example\` feels essential to showcase the function's simplicity. I am deciding whether to include \`@function\` given the clear use case, as IDEs typically render this redundant. I'm focusing on making the documentation immediately useful.
+
+I've moved on to meticulously structuring the JSDoc comments to clearly articulate the function's purpose, usage, and return type. I've decided to provide an \`@example\` to illustrate the function call. The \`@returns {void}\` ensures the \`void\` return type is explicitly stated. I'm prioritizing clarity.
+
+",
+  },
+  {
+    "kind": "thinking",
+    "text": "**Defining the JSDoc**
+
+I've carefully considered the JSDoc details. I've included the \`@returns {void}\` tag for explicitness, and the \`@example\` tag is essential for demonstrating usage. My focus is on ensuring the comments are clear and easy to understand.
+
+",
+  },
+  {
+    "kind": "thinking",
+    "text": "**Constructing the TS Function**
+
+Now, I'm integrating the JavaScript core with TypeScript syntax. I'm focusing on type annotations, specifically the \`void\` return type for the \`sayHello\` function. I am considering best practices for readability. I've opted for a more concise \`console.log\` example in the documentation block.
+
+I have thoroughly considered the type of the \`sayHello\` function and its return value, choosing the explicitly defined \`void\` type to reflect that the function's output is purely a side effect. I am certain that the function meets the basic requirements and does not need any further modification.
+
+",
+  },
+]
+`;
+
+exports[`GeminiClient Integration > Stream Observer Events > should show progressive accumulation of thinking text > thinking-text-progression 1`] = `
+[
+  {
+    "eventIndex": 0,
+    "textLength": 259,
+    "textPreview": "ning the function signature and the return type.
+
+",
+  },
+  {
+    "eventIndex": 1,
+    "textLength": 633,
+    "textPreview": ". The structure should be clear and informative.
+
+",
+  },
+  {
+    "eventIndex": 2,
+    "textLength": 1305,
+    "textPreview": " is explicitly stated. I'm prioritizing clarity.
+
+",
+  },
+  {
+    "eventIndex": 3,
+    "textLength": 1565,
+    "textPreview": "g the comments are clear and easy to understand.
+
+",
+  },
+  {
+    "eventIndex": 4,
+    "textLength": 2192,
+    "textPreview": "ents and does not need any further modification.
+
+",
+  },
+]
+`;
+
+exports[`GeminiClient Integration > Thinking Extraction and Transformation > should compare thinking verbosity between HIGH and LOW > gemini-pro-verbosity-comparison 1`] = `
+{
+  "difference": {
+    "details": 0,
+    "rawChars": 0,
+    "tokens": 610,
+  },
+  "high": {
+    "detailsCount": 1,
+    "rawLength": 1,
+    "thoughtTokens": 735,
+  },
+  "low": {
+    "detailsCount": 1,
+    "rawLength": 1,
+    "thoughtTokens": 125,
+  },
+}
+`;
+
+exports[`GeminiClient Integration > Thinking Extraction and Transformation > should transform Flash basic stream (no thinking) into LlmResult > gemini-flash-basic-result 1`] = `
+{
+  "html": "\`\`\`typescript
+/**
+ * Greets the world with a simple message.
+ * This is a classic "Hello, World!" program.
+ *
+ * @returns {string} The greeting message "Hello, World!".
+ */
+function helloWorld(): string {
+  return "Hello, World!";
+}
+\`\`\`",
+  "reasoning": undefined,
+  "usage": {
+    "inputTokens": 15,
+    "outputTokens": 65,
+    "providerMetrics": {
+      "candidatesTokenCount": 65,
+      "promptTokenCount": 15,
+      "totalTokenCount": 80,
+    },
+    "totalTokens": 80,
+  },
+}
+`;
+
+exports[`GeminiClient Integration > Thinking Extraction and Transformation > should transform Flash thinking stream into LlmResult with reasoning trace > gemini-flash-thinking-events 1`] = `
+[
+  {
+    "kind": "thinking",
+    "text": "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in TypeScript with JSDoc comments.  The simplicity of the task is driving my design. My current focus is on defining the function signature and the return type.
+
+",
+  },
+  {
+    "kind": "thinking",
+    "text": "**Elaborating the JSDoc**
+
+Now, I'm focusing on crafting the JSDoc comments. Considering the function's purpose, a concise description is essential. I'll include \`@description\` for overall function purpose, perhaps \`@example\` for function call, and \`@returns\` for clarifying the \`void\` return type, even though it's implicit. The structure should be clear and informative.
+
+",
+  },
+  {
+    "kind": "thinking",
+    "text": "**Structuring the Comments**
+
+I'm now zeroing in on the JSDoc structure, aiming for a concise and informative style. The use of \`@example\` feels essential to showcase the function's simplicity. I am deciding whether to include \`@function\` given the clear use case, as IDEs typically render this redundant. I'm focusing on making the documentation immediately useful.
+
+I've moved on to meticulously structuring the JSDoc comments to clearly articulate the function's purpose, usage, and return type. I've decided to provide an \`@example\` to illustrate the function call. The \`@returns {void}\` ensures the \`void\` return type is explicitly stated. I'm prioritizing clarity.
+
+",
+  },
+  {
+    "kind": "thinking",
+    "text": "**Defining the JSDoc**
+
+I've carefully considered the JSDoc details. I've included the \`@returns {void}\` tag for explicitness, and the \`@example\` tag is essential for demonstrating usage. My focus is on ensuring the comments are clear and easy to understand.
+
+",
+  },
+  {
+    "kind": "thinking",
+    "text": "**Constructing the TS Function**
+
+Now, I'm integrating the JavaScript core with TypeScript syntax. I'm focusing on type annotations, specifically the \`void\` return type for the \`sayHello\` function. I am considering best practices for readability. I've opted for a more concise \`console.log\` example in the documentation block.
+
+I have thoroughly considered the type of the \`sayHello\` function and its return value, choosing the explicitly defined \`void\` type to reflect that the function's output is purely a side effect. I am certain that the function meets the basic requirements and does not need any further modification.
+
+",
+  },
+]
+`;
+
+exports[`GeminiClient Integration > Thinking Extraction and Transformation > should transform Flash thinking stream into LlmResult with reasoning trace > gemini-flash-thinking-result 1`] = `
+{
+  "html": "Here's a simple TypeScript "Hello World" function with JSDoc comments.
+
+\`\`\`typescript
+/**
+ * @file This file contains a simple "Hello, World!" function.
+ * @module helloWorld
+ */
+
+/**
+ * Outputs the classic "Hello, World!" message to the console.
+ *
+ * This function serves as a basic example of a TypeScript function
+ * with JSDoc comments, demonstrating how to describe its purpose,
+ * parameters (if any), and return type.
+ *
+ * @function
+ * @returns {void} This function does not return any value; it performs a side effect (console logging).
+ *
+ * @example
+ * // To use this function:
+ * sayHello(); // This will print "Hello, World!" to your console.
+ */
+function sayHello(): void {
+  console.log("Hello, World!");
+}
+
+// --- How to use the function ---
+// Call the function to execute it and see the output in your console.
+sayHello();
+
+// You can also demonstrate a slightly more flexible version,
+// though the request was for "Hello World" specifically.
+// /**
+//  * Greets a user by name.
+//  * @param {string} name - The name of the person to greet.
+//  * @returns {string} A greeting message.
+//  */
+// function greet(name: string): string {
+//   return \`Hello, \${name}!\`;
+// }
+// console.log(greet("TypeScript User"));
+\`\`\`
+
+### Explanation of JSDoc Tags Used:
+
+*   \`/** ... */\`: The standard syntax for JSDoc comments.
+*   \`@file\`: Describes the purpose of the entire file.
+*   \`@module\`: Indicates that this file or section is a module.
+*   \`@function\`: Explicitly declares that the documented item is a function (often inferred but good for clarity).
+*   \`@returns {void}\`: Describes what the function returns. In this case, \`void\` means it doesn't return a value, it just performs an action.
+*   \`@example\`: Provides a code snippet demonstrating how to use the function. This is extremely helpful for other developers.
+*   \`@param {type} name - description\`: (Not used in \`sayHello\` but shown in the commented \`greet\` example) Used to document function parameters, including their type and a description.",
+  "reasoning": {
+    "details": [
+      "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in TypeScript with JSDoc comments.  The simplicity of the task is driving my design. My current focus is on defining the function signature and the return type.
+
+**Elaborating the JSDoc**
+
+Now, I'm focusing on crafting the JSDoc comments. Considering the function's purpose, a concise description is essential. I'll include \`@description\` for overall function purpose, perhaps \`@example\` for function call, and \`@returns\` for clarifying the \`void\` return type, even though it's implicit. The structure should be clear and informative.
+
+**Structuring the Comments**
+
+I'm now zeroing in on the JSDoc structure, aiming for a concise and informative style. The use of \`@example\` feels essential to showcase the function's simplicity. I am deciding whether to include \`@function\` given the clear use case, as IDEs typically render this redundant. I'm focusing on making the documentation immediately useful.
+
+I've moved on to meticulously structuring the JSDoc comments to clearly articulate the function's purpose, usage, and return type. I've decided to provide an \`@example\` to illustrate the function call. The \`@returns {void}\` ensures the \`void\` return type is explicitly stated. I'm prioritizing clarity.
+
+**Defining the JSDoc**
+
+I've carefully considered the JSDoc details. I've included the \`@returns {void}\` tag for explicitness, and the \`@example\` tag is essential for demonstrating usage. My focus is on ensuring the comments are clear and easy to understand.
+
+**Constructing the TS Function**
+
+Now, I'm integrating the JavaScript core with TypeScript syntax. I'm focusing on type annotations, specifically the \`void\` return type for the \`sayHello\` function. I am considering best practices for readability. I've opted for a more concise \`console.log\` example in the documentation block.
+
+I have thoroughly considered the type of the \`sayHello\` function and its return value, choosing the explicitly defined \`void\` type to reflect that the function's output is purely a side effect. I am certain that the function meets the basic requirements and does not need any further modification.",
+    ],
+    "raw": [
+      "**Comprehending the Task**
+
+I'm focusing on the core requirement: a basic "Hello World" function in TypeScript with JSDoc comments.  The simplicity of the task is driving my design. My current focus is on defining the function signature and the return type.
+
+**Elaborating the JSDoc**
+
+Now, I'm focusing on crafting the JSDoc comments. Considering the function's purpose, a concise description is essential. I'll include \`@description\` for overall function purpose, perhaps \`@example\` for function call, and \`@returns\` for clarifying the \`void\` return type, even though it's implicit. The structure should be clear and informative.
+
+**Structuring the Comments**
+
+I'm now zeroing in on the JSDoc structure, aiming for a concise and informative style. The use of \`@example\` feels essential to showcase the function's simplicity. I am deciding whether to include \`@function\` given the clear use case, as IDEs typically render this redundant. I'm focusing on making the documentation immediately useful.
+
+I've moved on to meticulously structuring the JSDoc comments to clearly articulate the function's purpose, usage, and return type. I've decided to provide an \`@example\` to illustrate the function call. The \`@returns {void}\` ensures the \`void\` return type is explicitly stated. I'm prioritizing clarity.
+
+**Defining the JSDoc**
+
+I've carefully considered the JSDoc details. I've included the \`@returns {void}\` tag for explicitness, and the \`@example\` tag is essential for demonstrating usage. My focus is on ensuring the comments are clear and easy to understand.
+
+**Constructing the TS Function**
+
+Now, I'm integrating the JavaScript core with TypeScript syntax. I'm focusing on type annotations, specifically the \`void\` return type for the \`sayHello\` function. I am considering best practices for readability. I've opted for a more concise \`console.log\` example in the documentation block.
+
+I have thoroughly considered the type of the \`sayHello\` function and its return value, choosing the explicitly defined \`void\` type to reflect that the function's output is purely a side effect. I am certain that the function meets the basic requirements and does not need any further modification.",
+    ],
+  },
+  "usage": {
+    "inputTokens": 15,
+    "outputTokens": 514,
+    "providerMetrics": {
+      "candidatesTokenCount": 514,
+      "promptTokenCount": 15,
+      "thoughtsTokenCount": 979,
+      "totalTokenCount": 1508,
+    },
+    "reasoningTokens": 979,
+    "totalTokens": 1508,
+  },
+}
+`;
+
+exports[`GeminiClient Integration > Thinking Extraction and Transformation > should transform Pro HIGH thinking into verbose reasoning trace > gemini-pro-high-result 1`] = `
+{
+  "html": "Here is a simple **Hello World** function in TypeScript that accepts a name parameter and returns a greeting string, including the appropriate JSDoc comments.
+
+\`\`\`typescript
+/**
+ * Generates a greeting message for the provided name.
+ *
+ * @param name - The name of the person to greet.
+ * @returns A string containing the formatted greeting.
+ */
+function helloWorld(name: string): string {
+  return \`Hello, \${name}!\`;
+}
+
+// Usage example:
+console.log(helloWorld("World")); // Output: Hello, World!
+\`\`\`",
+  "reasoningRawLength": 1,
+  "reasoningSummariesCount": undefined,
+  "usage": {
+    "inputTokens": 15,
+    "outputTokens": 123,
+    "providerMetrics": {
+      "candidatesTokenCount": 123,
+      "promptTokenCount": 15,
+      "thoughtsTokenCount": 735,
+      "totalTokenCount": 873,
+    },
+    "reasoningTokens": 735,
+    "totalTokens": 873,
+  },
+}
+`;
+
+exports[`GeminiClient Integration > Thinking Extraction and Transformation > should transform Pro LOW thinking into concise reasoning trace > gemini-pro-low-result 1`] = `
+{
+  "reasoningRawLength": 1,
+  "reasoningSummariesCount": undefined,
+  "usage": {
+    "inputTokens": 15,
+    "outputTokens": 164,
+    "providerMetrics": {
+      "candidatesTokenCount": 164,
+      "promptTokenCount": 15,
+      "thoughtsTokenCount": 125,
+      "totalTokenCount": 304,
+    },
+    "reasoningTokens": 125,
+    "totalTokens": 304,
+  },
+}
+`;
+
+exports[`GeminiClient Integration > Usage Metadata Transformation > should correctly extract and transform usage metadata > transformed-usage-metadata 1`] = `
+{
+  "inputTokens": 15,
+  "outputTokens": 514,
+  "providerMetrics": {
+    "candidatesTokenCount": 514,
+    "promptTokenCount": 15,
+    "thoughtsTokenCount": 979,
+    "totalTokenCount": 1508,
+  },
+  "reasoningTokens": 979,
+  "totalTokens": 1508,
+}
+`;

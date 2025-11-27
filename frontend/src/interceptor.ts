@@ -133,54 +133,23 @@ import {
       }
     });
 
-    source.addEventListener("final", (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        const details = Array.isArray(data?.details) ? data.details : [];
-        const summaries = Array.isArray(data?.summaries) ? data.summaries : [];
 
-        const detailsText = details
-          .filter(
-            (value: unknown): value is string =>
-              typeof value === "string" && value.trim().length > 0
-          )
-          .join("");
+    source.addEventListener("final", () => {
+      // Mark the stream as finalized - don't replace what we already streamed
+      streamState.finalized = true;
 
-        streamState.finalized = true;
-        streamState.finalText = detailsText
-          ? sanitizeText(detailsText)
-          : sanitizeText(streamState.liveBuffer);
+      // Use whatever we accumulated during streaming
+      streamState.finalText = sanitizeText(streamState.liveBuffer);
 
-        const parsedSummaries = summaries
-          .filter(
-            (value: unknown): value is string =>
-              typeof value === "string" && value.trim().length > 0
-          )
-          .map((value: string) => sanitizeText(value));
-
-        if (parsedSummaries.length > 0) {
-          streamState.summaryEntries = parsedSummaries.slice(
-            0,
-            SUMMARY_ENTRY_LIMIT
-          );
-        } else if (
-          streamState.summaryBuffer &&
-          streamState.summaryBuffer.trim().length > 0
-        ) {
-          streamState.summaryEntries = [
-            sanitizeText(streamState.summaryBuffer),
-          ];
-        } else {
-          streamState.summaryEntries = [];
-        }
-
-        streamState.summaryBuffer = "";
-        hasStreamingUpdates = true;
-        updateDisplays();
-        broadcastStatus(REASONING_STATUS_MESSAGE, true);
-      } catch (error) {
-        console.warn("Failed to parse final reasoning payload", error);
+      // Finalize summaries from what was streamed
+      if (streamState.summaryBuffer && streamState.summaryBuffer.trim().length > 0) {
+        streamState.summaryEntries = [sanitizeText(streamState.summaryBuffer)];
       }
+      streamState.summaryBuffer = "";
+
+      hasStreamingUpdates = true;
+      updateDisplays();
+      broadcastStatus(REASONING_STATUS_MESSAGE, true);
     });
 
     source.addEventListener("complete", () => {
@@ -3208,7 +3177,7 @@ import {
     "  .reasoning-entry.reasoning-final { border-left: 3px solid rgba(37, 99, 235, 0.5); }",
     "  .reasoning-entry.reasoning-live { opacity: 0.9; }",
     "  .reasoning-entry.reasoning-markdown { display: block; }",
-    "  .reasoning-entry.reasoning-markdown h1, .reasoning-entry.reasoning-markdown h2, .reasoning-entry.reasoning-markdown h3, .reasoning-entry.reasoning-markdown h4 { margin: 0 0 0.35em; font-size: 0.85rem; font-weight: 700; color: #0f172a; }",
+    "  .reasoning-entry.reasoning-markdown h1, .reasoning-entry.reasoning-markdown h2, .reasoning-entry.reasoning-markdown h3, .reasoning-entry.reasoning-markdown h4 { margin: 1.25em 0 0.35em; font-size: 0.85rem; font-weight: 700; color: #0f172a; }",
     "  .reasoning-entry.reasoning-markdown p { margin: 0 0 0.45em; }",
     "  .reasoning-entry.reasoning-markdown ul, .reasoning-entry.reasoning-markdown ol { margin: 0 0 0.45em 1em; padding: 0; }",
     '  .reasoning-entry.reasoning-markdown code { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.78em; background: rgba(148, 163, 184, 0.22); padding: 2px 4px; border-radius: 6px; }',
@@ -3942,29 +3911,25 @@ import {
   function snapshotToMarkdown(snapshot: ReasoningLogSnapshot | null): string {
     if (!snapshot || !snapshot.hasContent) return "";
     const sections: string[] = [];
+
+    // Add summaries (if finalized)
     if (snapshot.summaries && snapshot.summaries.length > 0) {
-      if (snapshot.summaries.length > 1) {
-        snapshot.summaries.forEach((summary, index) => {
-          if (!summary) return;
-          sections.push(`#### Summary ${index + 1}`);
+      snapshot.summaries.forEach((summary) => {
+        if (summary && summary.trim()) {
           sections.push(summary);
-        });
-      } else {
-        sections.push("#### Summary");
-        sections.push(snapshot.summaries[0] ?? "");
-      }
+        }
+      });
     } else if (snapshot.summaryPreview && snapshot.summaryPreview.trim()) {
-      sections.push("#### Summary (draft)");
+      // Add summary preview (if still streaming)
       sections.push(snapshot.summaryPreview);
     }
-    if (snapshot.streaming && snapshot.live && snapshot.live.trim()) {
-      sections.push("#### Thinking aloud");
-      sections.push(snapshot.live);
+
+    // Add thinking content (live or final)
+    const content = snapshot.streaming ? snapshot.live : snapshot.final;
+    if (content && content.trim()) {
+      sections.push(content);
     }
-    if (!snapshot.streaming && snapshot.final && snapshot.final.trim()) {
-      sections.push("#### Final reasoning");
-      sections.push(snapshot.final);
-    }
+
     return sections.join("\n\n");
   }
 

@@ -1,0 +1,1887 @@
+{
+  "generated": "2025-11-24T22:37:57.478Z",
+  "backend": {
+    "basePath": "src",
+    "totalModules": 43,
+    "externalPackages": 18,
+    "modules": {
+      "cli/args.ts": {
+        "imports": {
+          "internal": {
+            "../types.js": [
+              "ModelProvider"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "config/runtime-config.ts",
+          "index.ts"
+        ],
+        "importCount": 1
+      },
+      "config/runtime-config.ts": {
+        "imports": {
+          "internal": {
+            "../constants.js": [
+              "DEFAULT_GEMINI_MODEL",
+              "DEFAULT_GROK_MODEL",
+              "DEFAULT_GROQ_MODEL",
+              "DEFAULT_MAX_OUTPUT_TOKENS",
+              "DEFAULT_OPENAI_MODEL",
+              "DEFAULT_PORT",
+              "DEFAULT_ANTHROPIC_MODEL",
+              "DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS",
+              "DEFAULT_HISTORY_LIMIT",
+              "DEFAULT_HISTORY_MAX_BYTES",
+              "DEFAULT_REASONING_TOKENS",
+              "LOOPBACK_HOST",
+              "SETUP_ROUTE"
+            ],
+            "../utils/credential-store.js": [
+              "getCredentialStore"
+            ],
+            "../logger.js": [
+              "logger"
+            ],
+            "../types.js": [
+              "AppConfig",
+              "ModelProvider",
+              "ProviderSettings",
+              "ReasoningMode",
+              "RuntimeConfig"
+            ],
+            "../cli/args.js": [
+              "CliOptions"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "index.ts"
+        ],
+        "importCount": 5
+      },
+      "constants.ts": {
+        "imports": {
+          "internal": {
+            "./llm/model-catalog.js": [
+              "PROVIDER_METADATA"
+            ],
+            "./types.js": [
+              "ModelProvider"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "config/runtime-config.ts",
+          "constants/providers.ts",
+          "server/admin-controller.ts",
+          "server/server.ts",
+          "utils/frontend-assets.ts",
+          "utils/instructions-panel.ts",
+          "views/loading-shell.ts"
+        ],
+        "importCount": 2
+      },
+      "constants/providers.ts": {
+        "imports": {
+          "internal": {
+            "../llm/model-catalog.js": [
+              "PROVIDER_METADATA",
+              "type ProviderMetadata",
+              "type ModelMetadata",
+              "getModelOptions",
+              "getModelMetadata",
+              "getFeaturedModels"
+            ],
+            "../constants.js": [
+              "DEFAULT_REASONING_TOKENS"
+            ],
+            "../types.js": [
+              "ModelProvider",
+              "ReasoningMode"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/admin-controller.ts",
+          "server/server.ts",
+          "types/admin-api.ts"
+        ],
+        "importCount": 3
+      },
+      "dev/backend-dev-server.ts": {
+        "imports": {
+          "internal": {
+            "../logger.js": [
+              "logger"
+            ],
+            "../index.js": [
+              "startVaporVibe",
+              "type StartOptions",
+              "type StartResult"
+            ],
+            "../server/server.js": [
+              "snapshotServerState",
+              "type ServerStateSnapshot",
+              "DevFrontendServer"
+            ],
+            "../server/session-store.js": [
+              "SessionStoreSnapshot"
+            ]
+          },
+          "external": {
+            "node:url": [
+              "fileURLToPath"
+            ],
+            "node:module": [
+              "createRequire"
+            ],
+            "node:path": [
+              "default as path"
+            ],
+            "node:process": [
+              "default as process"
+            ],
+            "chokidar": [
+              "default as chokidar"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 9
+      },
+      "index.ts": {
+        "imports": {
+          "internal": {
+            "./cli/args.js": [
+              "parseCliArgs"
+            ],
+            "./config/runtime-config.js": [
+              "resolveAppConfig"
+            ],
+            "./llm/factory.js": [
+              "createLlmClient"
+            ],
+            "./server/session-store.js": [
+              "SessionStore",
+              "type SessionStoreSnapshot"
+            ],
+            "./server/server.js": [
+              "createServer",
+              "createServerState",
+              "ensureFrontendAssetsOnce",
+              "type MutableServerState",
+              "type ServerStateConfig",
+              "type ServerStateSnapshot",
+              "DevFrontendServer"
+            ],
+            "./logger.js": [
+              "logger"
+            ],
+            "./types.js": [
+              "AppConfig"
+            ]
+          },
+          "external": {
+            "node:url": [
+              "fileURLToPath"
+            ],
+            "node:process": [
+              "default as process"
+            ],
+            "open": [
+              "default as open"
+            ]
+          }
+        },
+        "importedBy": [
+          "dev/backend-dev-server.ts"
+        ],
+        "importCount": 10
+      },
+      "llm/anthropic-client.ts": {
+        "imports": {
+          "internal": {
+            "../logger.js": [
+              "logger"
+            ],
+            "../types.js": [
+              "BriefAttachment",
+              "CacheControlSettings",
+              "ChatMessage",
+              "LlmReasoningTrace",
+              "LlmUsageMetrics",
+              "ProviderSettings",
+              "VerificationResult"
+            ],
+            "./client.js": [
+              "LlmClient",
+              "LlmGenerateOptions",
+              "LlmResult",
+              "LlmStreamObserver"
+            ]
+          },
+          "external": {
+            "@anthropic-ai/sdk": [
+              "default as Anthropic"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 4
+      },
+      "llm/capabilities.ts": {
+        "imports": {
+          "internal": {
+            "../types.js": [
+              "ModelProvider"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/rest-api-controller.ts",
+          "server/server.ts"
+        ],
+        "importCount": 1
+      },
+      "llm/client.ts": {
+        "imports": {
+          "internal": {
+            "../types.js": [
+              "ChatMessage",
+              "LlmReasoningTrace",
+              "LlmUsageMetrics",
+              "ProviderSettings"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/rest-api-controller.ts",
+          "server/server.ts"
+        ],
+        "importCount": 1
+      },
+      "llm/factory.ts": {
+        "imports": {
+          "internal": {
+            "./openai-client.js": [
+              "OpenAiClient"
+            ],
+            "./gemini-client.js": [
+              "GeminiClient"
+            ],
+            "./anthropic-client.js": [
+              "AnthropicClient"
+            ],
+            "./grok-client.js": [
+              "GrokClient"
+            ],
+            "./groq-client.js": [
+              "GroqClient"
+            ],
+            "../types.js": [
+              "ProviderSettings"
+            ],
+            "./client.js": [
+              "LlmClient"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "index.ts",
+          "server/admin-controller.ts",
+          "server/server.ts"
+        ],
+        "importCount": 7
+      },
+      "llm/gemini-client.ts": {
+        "imports": {
+          "internal": {
+            "../logger.js": [
+              "logger"
+            ],
+            "../types.js": [
+              "ChatMessage",
+              "LlmReasoningTrace",
+              "LlmUsageMetrics",
+              "ProviderSettings",
+              "VerificationResult"
+            ],
+            "./client.js": [
+              "LlmClient",
+              "LlmResult",
+              "LlmGenerateOptions",
+              "LlmStreamObserver"
+            ]
+          },
+          "external": {
+            "@google/genai": [
+              "GoogleGenAI",
+              "GenerateContentConfig",
+              "ThinkingLevel"
+            ]
+          }
+        },
+        "importedBy": [
+          "server/server.ts"
+        ],
+        "importCount": 4
+      },
+      "llm/grok-client.ts": {
+        "imports": {
+          "internal": {
+            "../logger.js": [
+              "logger"
+            ],
+            "../types.js": [
+              "ChatMessage",
+              "LlmReasoningTrace",
+              "LlmUsageMetrics",
+              "ProviderSettings",
+              "VerificationResult"
+            ],
+            "./client.js": [
+              "LlmClient",
+              "LlmResult",
+              "LlmGenerateOptions"
+            ]
+          },
+          "external": {
+            "openai": [
+              "default as OpenAI"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 4
+      },
+      "llm/groq-client.ts": {
+        "imports": {
+          "internal": {
+            "../logger.js": [
+              "logger"
+            ],
+            "./capabilities.js": [
+              "supportsImageInput"
+            ],
+            "../types.js": [
+              "ChatMessage",
+              "LlmReasoningTrace",
+              "LlmUsageMetrics",
+              "ProviderSettings",
+              "VerificationResult",
+              "ReasoningMode"
+            ],
+            "./client.js": [
+              "LlmClient",
+              "LlmResult",
+              "LlmGenerateOptions",
+              "LlmStreamObserver"
+            ]
+          },
+          "external": {
+            "openai": [
+              "default as OpenAI"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 5
+      },
+      "llm/messages.ts": {
+        "imports": {
+          "internal": {
+            "../types.js": [
+              "BriefAttachment",
+              "ChatMessage",
+              "HistoryEntry"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/rest-api-controller.ts",
+          "server/server.ts"
+        ],
+        "importCount": 1
+      },
+      "llm/model-catalog.ts": {
+        "imports": {
+          "internal": {
+            "../types.js": [
+              "ModelProvider",
+              "ReasoningMode"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "constants.ts",
+          "constants/providers.ts",
+          "types/admin-api.ts"
+        ],
+        "importCount": 1
+      },
+      "llm/openai-client.ts": {
+        "imports": {
+          "internal": {
+            "../logger.js": [
+              "logger"
+            ],
+            "../types.js": [
+              "ChatMessage",
+              "LlmReasoningTrace",
+              "LlmUsageMetrics",
+              "ProviderSettings",
+              "VerificationResult"
+            ],
+            "./client.js": [
+              "LlmClient",
+              "LlmResult",
+              "LlmGenerateOptions"
+            ]
+          },
+          "external": {
+            "openai": [
+              "default as OpenAI"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 4
+      },
+      "llm/verification.ts": {
+        "imports": {
+          "internal": {
+            "./openai-client.js": [
+              "verifyOpenAiApiKey"
+            ],
+            "./gemini-client.js": [
+              "verifyGeminiApiKey"
+            ],
+            "./anthropic-client.js": [
+              "verifyAnthropicApiKey"
+            ],
+            "./grok-client.js": [
+              "verifyGrokApiKey"
+            ],
+            "./groq-client.js": [
+              "verifyGroqApiKey"
+            ],
+            "../types.js": [
+              "ModelProvider",
+              "VerificationResult"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/admin-controller.ts"
+        ],
+        "importCount": 6
+      },
+      "logger.ts": {
+        "imports": {
+          "internal": {},
+          "external": {
+            "pino": [
+              "default as pino"
+            ]
+          }
+        },
+        "importedBy": [
+          "config/runtime-config.ts",
+          "dev/backend-dev-server.ts",
+          "index.ts",
+          "llm/anthropic-client.ts",
+          "llm/gemini-client.ts",
+          "llm/grok-client.ts",
+          "llm/groq-client.ts",
+          "llm/openai-client.ts",
+          "server/server.ts",
+          "utils/credential-store.ts"
+        ],
+        "importCount": 1
+      },
+      "server/admin-controller.ts": {
+        "imports": {
+          "internal": {
+            "../constants.js": [
+              "ADMIN_ROUTE_PREFIX",
+              "HISTORY_LIMIT_MIN",
+              "HISTORY_LIMIT_MAX",
+              "HISTORY_MAX_BYTES_MIN",
+              "HISTORY_MAX_BYTES_MAX"
+            ],
+            "../constants/providers.js": [
+              "PROVIDER_CHOICES",
+              "PROVIDER_LABELS",
+              "PROVIDER_PLACEHOLDERS",
+              "PROVIDER_REASONING_CAPABILITIES",
+              "PROVIDER_REASONING_MODES",
+              "PROVIDER_TOKEN_GUIDANCE",
+              "DEFAULT_MODEL_BY_PROVIDER",
+              "DEFAULT_MAX_TOKENS_BY_PROVIDER",
+              "REASONING_MODE_CHOICES",
+              "getModelOptions",
+              "getModelMetadata",
+              "getFeaturedModels",
+              "PROVIDER_MODEL_METADATA",
+              "CUSTOM_MODEL_DESCRIPTION"
+            ],
+            "../llm/factory.js": [
+              "createLlmClient"
+            ],
+            "../llm/verification.js": [
+              "verifyProviderApiKey"
+            ],
+            "../utils/body.js": [
+              "readBody",
+              "ParsedFile"
+            ],
+            "../utils/cookies.js": [
+              "parseCookies"
+            ],
+            "../utils/sensitive.js": [
+              "maskSensitive"
+            ],
+            "../utils/history-export.js": [
+              "createHistorySnapshot",
+              "createPromptMarkdown"
+            ],
+            "./session-store.js": [
+              "SessionStore"
+            ],
+            "../utils/credential-store.js": [
+              "getCredentialStore"
+            ],
+            "./brief-attachments.js": [
+              "processBriefAttachmentFiles"
+            ],
+            "../types.js": [
+              "BriefAttachment",
+              "HistoryEntry",
+              "ProviderSettings",
+              "ReasoningMode",
+              "ModelProvider",
+              "RestMutationRecord",
+              "RestQueryRecord"
+            ],
+            "./server.js": [
+              "MutableServerState",
+              "RequestContext"
+            ],
+            "../types/admin-api.js": [
+              "AdminActiveForkSummary",
+              "AdminBriefAttachment",
+              "AdminHistoryItem",
+              "AdminHistoryResponse",
+              "AdminProviderInfo",
+              "AdminRestItem",
+              "AdminRestMutationItem",
+              "AdminRestQueryItem",
+              "AdminRuntimeInfo",
+              "AdminStateResponse",
+              "AdminUpdateResponse"
+            ]
+          },
+          "external": {
+            "node:http": [
+              "ServerResponse"
+            ],
+            "pino": [
+              "Logger"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 16
+      },
+      "server/brief-attachments.ts": {
+        "imports": {
+          "internal": {
+            "../types.js": [
+              "BriefAttachment"
+            ],
+            "../utils/body.js": [
+              "ParsedFile"
+            ]
+          },
+          "external": {
+            "node:crypto": [
+              "randomUUID"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 3
+      },
+      "server/component-cache.ts": {
+        "imports": {
+          "internal": {},
+          "external": {
+            "node-html-parser": [
+              "parse",
+              "HTMLElement"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 1
+      },
+      "server/history-utils.ts": {
+        "imports": {
+          "internal": {
+            "../types.js": [
+              "HistoryEntry"
+            ]
+          },
+          "external": {
+            "node:buffer": [
+              "Buffer"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 2
+      },
+      "server/rest-api-controller.ts": {
+        "imports": {
+          "internal": {
+            "../llm/capabilities.js": [
+              "supportsImageInput"
+            ],
+            "../llm/messages.js": [
+              "buildMessages"
+            ],
+            "../utils/cookies.js": [
+              "parseCookies"
+            ],
+            "../utils/body.js": [
+              "readBody"
+            ],
+            "./history-utils.js": [
+              "selectHistoryForPrompt"
+            ],
+            "./session-store.js": [
+              "SessionStore"
+            ],
+            "../llm/client.js": [
+              "LlmClient"
+            ],
+            "../types.js": [
+              "BriefAttachment",
+              "HistoryEntry",
+              "RestMutationRecord",
+              "RestQueryRecord",
+              "RuntimeConfig"
+            ],
+            "./server.js": [
+              "RequestContext"
+            ]
+          },
+          "external": {
+            "node:crypto": [
+              "randomUUID"
+            ],
+            "pino": [
+              "Logger"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 11
+      },
+      "server/server.ts": {
+        "imports": {
+          "internal": {
+            "../constants.js": [
+              "ADMIN_ROUTE_PREFIX",
+              "AUTO_IGNORED_PATHS",
+              "BRIEF_FORM_ROUTE",
+              "INSTRUCTIONS_FIELD",
+              "SETUP_ROUTE",
+              "OVERLAY_DEBUG_ROUTE",
+              "SETUP_VERIFY_ROUTE",
+              "DEFAULT_OPENAI_MODEL",
+              "DEFAULT_GEMINI_MODEL",
+              "DEFAULT_ANTHROPIC_MODEL",
+              "DEFAULT_GROK_MODEL",
+              "DEFAULT_GROQ_MODEL",
+              "DEFAULT_MAX_OUTPUT_TOKENS",
+              "DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS",
+              "DEFAULT_REASONING_TOKENS",
+              "LLM_RESULT_ROUTE_PREFIX",
+              "LLM_REASONING_STREAM_ROUTE_PREFIX"
+            ],
+            "../constants/providers.js": [
+              "DEFAULT_MAX_TOKENS_BY_PROVIDER",
+              "PROVIDER_REASONING_CAPABILITIES"
+            ],
+            "../llm/messages.js": [
+              "buildMessages"
+            ],
+            "../llm/capabilities.js": [
+              "supportsImageInput"
+            ],
+            "../utils/cookies.js": [
+              "parseCookies"
+            ],
+            "../utils/body.js": [
+              "readBody"
+            ],
+            "../utils/html.js": [
+              "ensureHtmlDocument",
+              "escapeHtml"
+            ],
+            "./session-store.js": [
+              "SessionStore"
+            ],
+            "./component-cache.js": [
+              "applyReusablePlaceholders",
+              "prepareReusableCaches"
+            ],
+            "../utils/navigation-interceptor.js": [
+              "getNavigationInterceptorScript"
+            ],
+            "../utils/instructions-panel.js": [
+              "getInstructionsPanelScript"
+            ],
+            "../views/loading-shell.js": [
+              "renderLoadingShell",
+              "renderResultHydrationScript",
+              "renderLoaderErrorScript"
+            ],
+            "../views/overlay-debug.js": [
+              "renderOverlayDebugPage"
+            ],
+            "../logger.js": [
+              "logger"
+            ],
+            "./admin-controller.js": [
+              "AdminController"
+            ],
+            "../llm/factory.js": [
+              "createLlmClient"
+            ],
+            "../llm/gemini-client.js": [
+              "shouldEnableGeminiThoughts"
+            ],
+            "../utils/credential-store.js": [
+              "getCredentialStore"
+            ],
+            "./rest-api-controller.js": [
+              "RestApiController"
+            ],
+            "./history-utils.js": [
+              "selectHistoryForPrompt"
+            ],
+            "../types.js": [
+              "BriefAttachment",
+              "ChatMessage",
+              "HistoryEntry",
+              "RuntimeConfig",
+              "ProviderSettings",
+              "ReasoningMode",
+              "ModelProvider"
+            ],
+            "../llm/client.js": [
+              "LlmClient"
+            ]
+          },
+          "external": {
+            "node:buffer": [
+              "Buffer"
+            ],
+            "node:crypto": [
+              "randomUUID"
+            ],
+            "node:fs": [
+              "existsSync",
+              "readFileSync",
+              "statSync"
+            ],
+            "node:fs/promises": [
+              "readFile"
+            ],
+            "node:path": [
+              "dirname",
+              "extname",
+              "resolve"
+            ],
+            "node:url": [
+              "URL",
+              "fileURLToPath"
+            ],
+            "node:child_process": [
+              "spawnSync"
+            ],
+            "node:stream": [
+              "Duplex"
+            ],
+            "pino": [
+              "Logger"
+            ]
+          }
+        },
+        "importedBy": [
+          "dev/backend-dev-server.ts",
+          "index.ts"
+        ],
+        "importCount": 31
+      },
+      "server/session-store.ts": {
+        "imports": {
+          "internal": {
+            "../utils/cookies.js": [
+              "setCookie"
+            ],
+            "../utils/html.js": [
+              "escapeHtml"
+            ],
+            "../types.js": [
+              "BranchState",
+              "ForkState",
+              "HistoryEntry",
+              "HistoryForkInfo",
+              "LlmReasoningTrace",
+              "LlmUsageMetrics",
+              "RestMutationRecord",
+              "RestQueryRecord"
+            ]
+          },
+          "external": {
+            "node:http": [
+              "ServerResponse"
+            ],
+            "node:crypto": [
+              "default as crypto"
+            ]
+          }
+        },
+        "importedBy": [
+          "dev/backend-dev-server.ts",
+          "index.ts"
+        ],
+        "importCount": 5
+      },
+      "types.ts": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [
+          "cli/args.ts",
+          "config/runtime-config.ts",
+          "constants.ts",
+          "constants/providers.ts",
+          "index.ts",
+          "llm/anthropic-client.ts",
+          "llm/capabilities.ts",
+          "llm/client.ts",
+          "llm/factory.ts",
+          "llm/gemini-client.ts",
+          "llm/grok-client.ts",
+          "llm/groq-client.ts",
+          "llm/messages.ts",
+          "llm/model-catalog.ts",
+          "llm/openai-client.ts",
+          "llm/verification.ts",
+          "server/admin-controller.ts",
+          "server/brief-attachments.ts",
+          "server/history-utils.ts",
+          "server/rest-api-controller.ts",
+          "server/server.ts",
+          "server/session-store.ts",
+          "types/admin-api.ts",
+          "utils/credential-store.ts",
+          "utils/history-export.ts",
+          "utils/instructions-panel.ts"
+        ],
+        "importCount": 0
+      },
+      "types/admin-api.ts": {
+        "imports": {
+          "internal": {
+            "../types.js": [
+              "HistoryEntryKind",
+              "HistoryForkInfo",
+              "ModelProvider",
+              "ReasoningMode",
+              "RestHistoryMetadata"
+            ],
+            "../constants/providers.js": [
+              "ProviderChoice",
+              "ProviderTokenGuidance"
+            ],
+            "../llm/model-catalog.js": [
+              "ModelMetadata"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/admin-controller.ts"
+        ],
+        "importCount": 3
+      },
+      "types/anthropic-sdk.d.ts": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 0
+      },
+      "utils/body.ts": {
+        "imports": {
+          "internal": {},
+          "external": {
+            "node:http": [
+              "IncomingMessage"
+            ],
+            "node:querystring": [
+              "default as querystring"
+            ]
+          }
+        },
+        "importedBy": [
+          "server/admin-controller.ts",
+          "server/brief-attachments.ts",
+          "server/rest-api-controller.ts",
+          "server/server.ts"
+        ],
+        "importCount": 2
+      },
+      "utils/cookies.ts": {
+        "imports": {
+          "internal": {},
+          "external": {
+            "node:http": [
+              "ServerResponse"
+            ]
+          }
+        },
+        "importedBy": [
+          "server/admin-controller.ts",
+          "server/rest-api-controller.ts",
+          "server/server.ts",
+          "server/session-store.ts"
+        ],
+        "importCount": 1
+      },
+      "utils/credential-store.ts": {
+        "imports": {
+          "internal": {
+            "../logger.js": [
+              "logger"
+            ],
+            "../types.js": [
+              "ModelProvider"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "config/runtime-config.ts",
+          "server/admin-controller.ts",
+          "server/server.ts"
+        ],
+        "importCount": 2
+      },
+      "utils/frontend-assets.ts": {
+        "imports": {
+          "internal": {
+            "../constants.js": [
+              "ADMIN_ROUTE_PREFIX"
+            ]
+          },
+          "external": {
+            "node:fs": [
+              "existsSync"
+            ],
+            "node:path": [
+              "dirname",
+              "resolve"
+            ],
+            "node:url": [
+              "fileURLToPath"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 4
+      },
+      "utils/history-export.ts": {
+        "imports": {
+          "internal": {
+            "./sensitive.js": [
+              "maskSensitive"
+            ],
+            "../types.js": [
+              "BriefAttachment",
+              "HistoryEntry",
+              "HistorySnapshot",
+              "ProviderSettings",
+              "ProviderSettingsSummary",
+              "RuntimeConfig"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/admin-controller.ts"
+        ],
+        "importCount": 2
+      },
+      "utils/html.ts": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [
+          "server/server.ts",
+          "server/session-store.ts",
+          "views/overlay-debug.ts"
+        ],
+        "importCount": 0
+      },
+      "utils/instructions-panel.ts": {
+        "imports": {
+          "internal": {
+            "../constants.js": [
+              "ADMIN_ROUTE_PREFIX",
+              "INSTRUCTIONS_FIELD"
+            ],
+            "./frontend-assets.js": [
+              "resolveScriptSource"
+            ],
+            "../types.js": [
+              "BranchLabel"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/server.ts"
+        ],
+        "importCount": 3
+      },
+      "utils/navigation-interceptor.ts": {
+        "imports": {
+          "internal": {
+            "../views/loading-shell/status-messages.js": [
+              "getStatusMessages"
+            ],
+            "./frontend-assets.js": [
+              "resolveScriptSource"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/server.ts",
+          "views/overlay-debug.ts"
+        ],
+        "importCount": 2
+      },
+      "utils/sensitive.ts": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [
+          "server/admin-controller.ts"
+        ],
+        "importCount": 0
+      },
+      "views/loading-shell.ts": {
+        "imports": {
+          "internal": {
+            "./loading-shell/status-messages.js": [
+              "getStatusMessages"
+            ],
+            "../constants.js": [
+              "LLM_REASONING_STREAM_ROUTE_PREFIX"
+            ]
+          },
+          "external": {
+            "node:fs": [
+              "existsSync",
+              "readFileSync"
+            ],
+            "node:path": [
+              "dirname",
+              "resolve"
+            ],
+            "node:url": [
+              "fileURLToPath"
+            ]
+          }
+        },
+        "importedBy": [
+          "server/server.ts"
+        ],
+        "importCount": 5
+      },
+      "views/loading-shell/assets/hydrate.js": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 0
+      },
+      "views/loading-shell/assets/reasoning-stream.js": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 0
+      },
+      "views/loading-shell/assets/status-rotation.js": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 0
+      },
+      "views/loading-shell/status-messages.ts": {
+        "imports": {
+          "internal": {},
+          "external": {
+            "node:fs": [
+              "existsSync",
+              "readFileSync"
+            ],
+            "node:path": [
+              "dirname",
+              "resolve"
+            ],
+            "node:url": [
+              "fileURLToPath"
+            ]
+          }
+        },
+        "importedBy": [
+          "utils/navigation-interceptor.ts"
+        ],
+        "importCount": 3
+      },
+      "views/overlay-debug.ts": {
+        "imports": {
+          "internal": {
+            "../utils/html.js": [
+              "escapeHtml"
+            ],
+            "../utils/navigation-interceptor.js": [
+              "getNavigationInterceptorScript"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/server.ts"
+        ],
+        "importCount": 2
+      }
+    },
+    "externalDependencies": {
+      "node:url": {
+        "usedBy": [
+          "dev/backend-dev-server.ts",
+          "index.ts",
+          "server/server.ts",
+          "utils/frontend-assets.ts",
+          "views/loading-shell.ts",
+          "views/loading-shell/status-messages.ts"
+        ],
+        "count": 6
+      },
+      "node:module": {
+        "usedBy": [
+          "dev/backend-dev-server.ts"
+        ],
+        "count": 1
+      },
+      "node:path": {
+        "usedBy": [
+          "dev/backend-dev-server.ts",
+          "server/server.ts",
+          "utils/frontend-assets.ts",
+          "views/loading-shell.ts",
+          "views/loading-shell/status-messages.ts"
+        ],
+        "count": 5
+      },
+      "node:process": {
+        "usedBy": [
+          "dev/backend-dev-server.ts",
+          "index.ts"
+        ],
+        "count": 2
+      },
+      "chokidar": {
+        "usedBy": [
+          "dev/backend-dev-server.ts"
+        ],
+        "count": 1
+      },
+      "open": {
+        "usedBy": [
+          "index.ts"
+        ],
+        "count": 1
+      },
+      "@anthropic-ai/sdk": {
+        "usedBy": [
+          "llm/anthropic-client.ts"
+        ],
+        "count": 1
+      },
+      "@google/genai": {
+        "usedBy": [
+          "llm/gemini-client.ts"
+        ],
+        "count": 1
+      },
+      "openai": {
+        "usedBy": [
+          "llm/grok-client.ts",
+          "llm/groq-client.ts",
+          "llm/openai-client.ts"
+        ],
+        "count": 3
+      },
+      "pino": {
+        "usedBy": [
+          "logger.ts",
+          "server/admin-controller.ts",
+          "server/rest-api-controller.ts",
+          "server/server.ts"
+        ],
+        "count": 4
+      },
+      "node:http": {
+        "usedBy": [
+          "server/admin-controller.ts",
+          "server/session-store.ts",
+          "utils/body.ts",
+          "utils/cookies.ts"
+        ],
+        "count": 4
+      },
+      "node:crypto": {
+        "usedBy": [
+          "server/brief-attachments.ts",
+          "server/rest-api-controller.ts",
+          "server/server.ts",
+          "server/session-store.ts"
+        ],
+        "count": 4
+      },
+      "node-html-parser": {
+        "usedBy": [
+          "server/component-cache.ts"
+        ],
+        "count": 1
+      },
+      "node:buffer": {
+        "usedBy": [
+          "server/history-utils.ts",
+          "server/server.ts"
+        ],
+        "count": 2
+      },
+      "node:fs": {
+        "usedBy": [
+          "server/server.ts",
+          "utils/frontend-assets.ts",
+          "views/loading-shell.ts",
+          "views/loading-shell/status-messages.ts"
+        ],
+        "count": 4
+      },
+      "node:child_process": {
+        "usedBy": [
+          "server/server.ts"
+        ],
+        "count": 1
+      },
+      "node:stream": {
+        "usedBy": [
+          "server/server.ts"
+        ],
+        "count": 1
+      },
+      "node:querystring": {
+        "usedBy": [
+          "utils/body.ts"
+        ],
+        "count": 1
+      }
+    }
+  },
+  "frontend": {
+    "basePath": "frontend/src",
+    "totalModules": 24,
+    "externalPackages": 5,
+    "modules": {
+      "api/admin.ts": {
+        "imports": {
+          "internal": {
+            "./types": [
+              "AdminHistoryResponse",
+              "AdminStateResponse",
+              "AdminUpdateResponse"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "components/ABWorkspaceShell.tsx",
+          "components/SnapshotImportForm.tsx",
+          "pages/AdminDashboard.tsx"
+        ],
+        "importCount": 1
+      },
+      "api/types.ts": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [
+          "components/ABWorkspaceShell.tsx",
+          "components/HistoryExplorer.tsx",
+          "components/HistorySnapshotControls.tsx",
+          "components/ModelInspector.tsx",
+          "components/ModelSelector.tsx",
+          "components/ResumeSessionCallout.tsx",
+          "components/SnapshotImportForm.tsx",
+          "pages/AdminDashboard.tsx"
+        ],
+        "importCount": 0
+      },
+      "App.tsx": {
+        "imports": {
+          "internal": {
+            "./components/Notifications": [
+              "NotificationsProvider"
+            ],
+            "./pages/AdminDashboard": [
+              "default as AdminDashboard"
+            ],
+            "./pages/AbTestWorkspacePage": [
+              "default as AbTestWorkspacePage"
+            ],
+            "./pages/SetupWizard": [
+              "default as SetupWizard"
+            ]
+          },
+          "external": {
+            "react-router-dom": [
+              "BrowserRouter",
+              "Navigate",
+              "Route",
+              "Routes"
+            ]
+          }
+        },
+        "importedBy": [
+          "main.tsx"
+        ],
+        "importCount": 5
+      },
+      "components/ABWorkspaceShell.tsx": {
+        "imports": {
+          "internal": {
+            "../api/admin": [
+              "discardAbFork",
+              "fetchAdminState",
+              "keepAbForkVersion"
+            ],
+            "./Notifications": [
+              "useNotifications"
+            ],
+            "../api/types": [
+              "AdminActiveForkSummary"
+            ],
+            "./ConfirmationModal": [
+              "default as ConfirmationModal"
+            ]
+          },
+          "external": {
+            "react": [
+              "useCallback",
+              "useEffect",
+              "useMemo",
+              "useRef",
+              "useState",
+              "MouseEvent as ReactMouseEvent"
+            ]
+          }
+        },
+        "importedBy": [
+          "pages/AbTestWorkspacePage.tsx"
+        ],
+        "importCount": 5
+      },
+      "components/AttachmentUploader.tsx": {
+        "imports": {
+          "internal": {},
+          "external": {
+            "react": [
+              "useCallback",
+              "useEffect",
+              "useMemo",
+              "useRef",
+              "useState",
+              "type ChangeEvent",
+              "type ClipboardEvent",
+              "type DragEvent",
+              "type KeyboardEvent",
+              "type MutableRefObject",
+              "type ReactNode"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 1
+      },
+      "components/ConfirmationModal.tsx": {
+        "imports": {
+          "internal": {},
+          "external": {
+            "react": [
+              "type ReactNode",
+              "useEffect"
+            ],
+            "react-dom": [
+              "createPortal"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 2
+      },
+      "components/HistoryExplorer.tsx": {
+        "imports": {
+          "internal": {
+            "../api/types": [
+              "AdminHistoryItem"
+            ]
+          },
+          "external": {
+            "react": [
+              "useCallback",
+              "useEffect",
+              "useMemo",
+              "useState",
+              "MouseEvent",
+              "ReactNode"
+            ],
+            "react-markdown": [
+              "default as ReactMarkdown"
+            ],
+            "remark-gfm": [
+              "default as remarkGfm"
+            ]
+          }
+        },
+        "importedBy": [
+          "pages/AdminDashboard.tsx"
+        ],
+        "importCount": 4
+      },
+      "components/HistorySnapshotControls.tsx": {
+        "imports": {
+          "internal": {
+            "../api/types": [
+              "AdminStateResponse"
+            ],
+            "./SnapshotImportForm": [
+              "default as SnapshotImportForm"
+            ]
+          },
+          "external": {
+            "react": [
+              "useCallback",
+              "useEffect",
+              "useMemo",
+              "useState",
+              "DragEvent",
+              "MouseEvent"
+            ]
+          }
+        },
+        "importedBy": [
+          "pages/AdminDashboard.tsx"
+        ],
+        "importCount": 3
+      },
+      "components/index.ts": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 0
+      },
+      "components/ModelInspector.tsx": {
+        "imports": {
+          "internal": {
+            "../api/types": [
+              "ModelCompositeScores",
+              "ModelMetadata",
+              "ModelReasoningTokens",
+              "ProviderTokenGuidanceEntry"
+            ]
+          },
+          "external": {
+            "react": [
+              "forwardRef",
+              "ChangeEvent",
+              "ForwardedRef"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 2
+      },
+      "components/ModelSelector.tsx": {
+        "imports": {
+          "internal": {
+            "../api/types": [
+              "ModelMetadata",
+              "ProviderTokenGuidanceEntry"
+            ]
+          },
+          "external": {
+            "react": [
+              "useEffect",
+              "useMemo",
+              "useRef",
+              "useState"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 2
+      },
+      "components/Notifications.tsx": {
+        "imports": {
+          "internal": {},
+          "external": {
+            "react": [
+              "createContext",
+              "useCallback",
+              "useContext",
+              "useEffect",
+              "useMemo",
+              "useRef",
+              "useState",
+              "type ReactNode"
+            ]
+          }
+        },
+        "importedBy": [
+          "App.tsx",
+          "pages/AdminDashboard.tsx"
+        ],
+        "importCount": 1
+      },
+      "components/ResumeSessionCallout.tsx": {
+        "imports": {
+          "internal": {
+            "../api/types": [
+              "AdminStateResponse"
+            ],
+            "./SnapshotImportForm": [
+              "default as SnapshotImportForm"
+            ]
+          },
+          "external": {
+            "react": [
+              "useCallback",
+              "useState",
+              "DragEvent"
+            ]
+          }
+        },
+        "importedBy": [
+          "pages/AdminDashboard.tsx"
+        ],
+        "importCount": 3
+      },
+      "components/SnapshotImportForm.tsx": {
+        "imports": {
+          "internal": {
+            "../api/admin": [
+              "submitHistoryImport"
+            ],
+            "./AttachmentUploader": [
+              "AttachmentUploader"
+            ],
+            "./Notifications": [
+              "useNotifications"
+            ],
+            "../api/types": [
+              "AdminStateResponse"
+            ]
+          },
+          "external": {
+            "react": [
+              "useCallback",
+              "useEffect",
+              "useState"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 5
+      },
+      "components/TokenBudgetControl.tsx": {
+        "imports": {
+          "internal": {},
+          "external": {
+            "react": [
+              "useEffect",
+              "useMemo",
+              "useState"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 1
+      },
+      "constants/runtime.ts": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [
+          "pages/AdminDashboard.tsx"
+        ],
+        "importCount": 0
+      },
+      "instructions-panel.ts": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 0
+      },
+      "interceptor-branch-utils.ts": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [
+          "interceptor.ts"
+        ],
+        "importCount": 0
+      },
+      "interceptor.ts": {
+        "imports": {
+          "internal": {
+            "./interceptor-branch-utils": [
+              "BRANCH_FIELD",
+              "resolveActiveBranchId",
+              "applyBranchToUrl",
+              "ensureBranchField"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 1
+      },
+      "main.tsx": {
+        "imports": {
+          "internal": {
+            "./App": [
+              "default as App"
+            ]
+          },
+          "external": {
+            "react": [
+              "default as React"
+            ],
+            "react-dom/client": [
+              "default as ReactDOM"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 3
+      },
+      "pages/AbTestWorkspacePage.tsx": {
+        "imports": {
+          "internal": {
+            "../components/ABWorkspaceShell": [
+              "default as ABWorkspaceShell"
+            ]
+          },
+          "external": {
+            "react-router-dom": [
+              "Navigate",
+              "useParams",
+              "useSearchParams"
+            ]
+          }
+        },
+        "importedBy": [
+          "App.tsx"
+        ],
+        "importCount": 2
+      },
+      "pages/AdminDashboard.tsx": {
+        "imports": {
+          "internal": {
+            "../components": [
+              "AttachmentUploader",
+              "ModelSelector",
+              "TokenBudgetControl",
+              "CustomModelConfig"
+            ],
+            "../api/admin": [
+              "fetchAdminState",
+              "fetchAdminHistory",
+              "deleteHistoryEntry",
+              "deleteAllHistoryEntries",
+              "submitBriefUpdate",
+              "submitProviderUpdate",
+              "submitRuntimeUpdate",
+              "verifyProviderKey",
+              "type ProviderUpdatePayload"
+            ],
+            "../constants/runtime": [
+              "HISTORY_LIMIT_MIN",
+              "HISTORY_LIMIT_MAX",
+              "HISTORY_MAX_BYTES_MIN",
+              "HISTORY_MAX_BYTES_MAX",
+              "DEFAULT_HISTORY_MAX_BYTES"
+            ],
+            "../components/Notifications": [
+              "useNotifications"
+            ],
+            "../api/types": [
+              "AdminBriefAttachment",
+              "AdminHistoryItem",
+              "AdminStateResponse"
+            ],
+            "../components/HistoryExplorer": [
+              "default as HistoryExplorer"
+            ],
+            "../components/HistorySnapshotControls": [
+              "default as HistorySnapshotControls"
+            ],
+            "../components/ResumeSessionCallout": [
+              "default as ResumeSessionCallout"
+            ],
+            "../assets/vaporvibe-icon-both.svg": [
+              "default as vaporvibeLogoUrl"
+            ]
+          },
+          "external": {
+            "react": [
+              "useCallback",
+              "useEffect",
+              "useMemo",
+              "useRef",
+              "useState",
+              "ReactNode"
+            ],
+            "react-router-dom": [
+              "useLocation",
+              "useNavigate"
+            ]
+          }
+        },
+        "importedBy": [
+          "App.tsx"
+        ],
+        "importCount": 11
+      },
+      "pages/SetupWizard.tsx": {
+        "imports": {
+          "internal": {
+            "./AdminDashboard": [
+              "default as AdminDashboard"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "App.tsx"
+        ],
+        "importCount": 1
+      },
+      "vite-env.d.ts": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 0
+      }
+    },
+    "externalDependencies": {
+      "react-router-dom": {
+        "usedBy": [
+          "App.tsx",
+          "pages/AbTestWorkspacePage.tsx",
+          "pages/AdminDashboard.tsx"
+        ],
+        "count": 3
+      },
+      "react": {
+        "usedBy": [
+          "components/ABWorkspaceShell.tsx",
+          "components/AttachmentUploader.tsx",
+          "components/ConfirmationModal.tsx",
+          "components/HistoryExplorer.tsx",
+          "components/HistorySnapshotControls.tsx",
+          "components/ModelInspector.tsx",
+          "components/ModelSelector.tsx",
+          "components/Notifications.tsx",
+          "components/ResumeSessionCallout.tsx",
+          "components/SnapshotImportForm.tsx",
+          "components/TokenBudgetControl.tsx",
+          "main.tsx",
+          "pages/AdminDashboard.tsx"
+        ],
+        "count": 13
+      },
+      "react-dom": {
+        "usedBy": [
+          "components/ConfirmationModal.tsx",
+          "main.tsx"
+        ],
+        "count": 2
+      },
+      "react-markdown": {
+        "usedBy": [
+          "components/HistoryExplorer.tsx"
+        ],
+        "count": 1
+      },
+      "remark-gfm": {
+        "usedBy": [
+          "components/HistoryExplorer.tsx"
+        ],
+        "count": 1
+      }
+    }
+  }
+}

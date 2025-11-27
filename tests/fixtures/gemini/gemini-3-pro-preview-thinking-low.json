@@ -1,0 +1,265 @@
+{
+  "chunks": [
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Considering the Fundamentals**\n\nI've been meticulously analyzing the request. The core is a simple \"hello world\" function, but the use of TypeScript and the requirement for JSDoc comments adds nuance. I'm focusing on crafting a concise, well-documented function that meets all these criteria.\n\n\n",
+                "thought": true
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 2551
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "**Refining the Approach**\n\nI'm now prioritizing the simplicity of the function despite adding JSDoc comments. I started a TypeScript draft, but want it to be elegant, so I'm deciding if I should console log or return a string.\n\n\n",
+                "thought": true
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "totalTokenCount": 15,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ]
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 2919
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "Here is a simple Hello World function in TypeScript that includes JSDoc comments.\n\n```typescript\n/**\n * Generates a Hello World greeting message.\n *\n * @param {string"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 39,
+        "totalTokenCount": 179,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 125
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 2980
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "} name - The name of the person to greet. Defaults to \"World\" if not provided.\n * @returns {string"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 65,
+        "totalTokenCount": 205,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 125
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 3008
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "} A personalized greeting string.\n *\n * @example\n * // Returns \"Hello, World!\"\n * sayHello();\n"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 92,
+        "totalTokenCount": 232,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 125
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 3022
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": " *\n * @example\n * // Returns \"Hello, Alice!\"\n * sayHello(\"Alice\");\n */\n"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 116,
+        "totalTokenCount": 256,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 125
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 3064
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "function sayHello(name: string = \"World\"): string {\n  return `Hello, ${name}!`;\n"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 140,
+        "totalTokenCount": 280,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 125
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 3202
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "}\n\n// Usage\nconsole.log(sayHello());\nconsole.log(sayHello(\"TypeScript\"));\n```"
+              }
+            ],
+            "role": "model"
+          },
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 164,
+        "totalTokenCount": 304,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 125
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 3395
+    },
+    {
+      "candidates": [
+        {
+          "content": {
+            "parts": [
+              {
+                "text": "",
+                "thoughtSignature": "Et8ECtwEAdHtim+yuSM9rNCek32TkkDIcJbGXWWc9d0wV1t4McdWDvQKVx/xW+bc3LPkfTAOVSJfPuq567s8EWE1fnGXCBG1MPqefg2Tx1SzgshJT0Nxr8JKz7Gk3khww1kiyqNqJybQvHPSn8m8AzGkGARbmGS78VxU9SaIGY+3Md+9GoayyPersF35SyG7DKUxBY8pkAmbFodIsRhohxWazlSAG5IOLCSu0nxIGWPyudx2YpUGubM6gDop5ncFIRKOvtdBCWjdIpLU5pU4EcVzRsLn6UdbBkF9oz9+vQHNfiYhL1/9oBWhfL2ZeOmjoQzzTulEP+AUrv9UUsvEQVyaTIeiK6q28Mynr2oDt2btElmMoBO6BXeSXEC0BKePHPKlF9W5/lmf8UAj9fbPdY/XNa2fyhARMJfkZKqxgz5QtfKjH+JC7WKnkzoyWX3UmDWa41JWfOOQ+yAN9/prNfUUR4frfgjCqVfj08t7PK9N3la4Y5WVli+34DIlmU8Ez834Xr4dMonZ0nLo8I2oexqdnXOcXgR99+LXU1u+bOwjn879QNFXpn6txug7oq++yLknjyGW0h5XiGGNa1TFiCq4XZSeRWqO7Kp3673Bv9902p+WdNbca1928mAKRhwi3FIOcCg683s1AjqMqWwOkPngeWuQEa9Dqt14BJENUPMYx5Rc9OtLbzxyjePwjEp4z0Fe5k1v3mD6GfCOuTacuBY5e7dZnt9J1QuyzfrheqVYZFtr/3rmfl793QEo0viDx89Fpj43yZebr6G2QHY69Dh3dn1pj/7tLF8BNYErfeRt2w=="
+              }
+            ],
+            "role": "model"
+          },
+          "finishReason": "STOP",
+          "index": 0
+        }
+      ],
+      "usageMetadata": {
+        "promptTokenCount": 15,
+        "candidatesTokenCount": 164,
+        "totalTokenCount": 304,
+        "promptTokensDetails": [
+          {
+            "modality": "TEXT",
+            "tokenCount": 15
+          }
+        ],
+        "thoughtsTokenCount": 125
+      },
+      "modelVersion": "gemini-3-pro-preview",
+      "timestamp": 3398
+    }
+  ]
+}

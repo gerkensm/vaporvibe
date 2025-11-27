@@ -1,6 +1,6 @@
 {
   "name": "vaporvibe",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Sourcecodeless web app server powered by LLMs.",
   "type": "module",
   "main": "dist/index.js",
@@ -24,6 +24,8 @@
     "build:fe": "cd frontend && npm install && npm run build",
     "dev:be": "tsx src/dev/backend-dev-server.ts",
     "dev:fe": "cd frontend && npm run dev",
+    "gen:codebase-map": "node scripts/generate-codebase-map.mjs",
+    "update-rules": "tsx scripts/update-rules.ts",
     "build:macos:sea": "scripts/build-macos-sea.sh",
     "build:macos:sea:signed": "NOTARIZE=true scripts/build-macos-sea.sh",
     "build:macos:sea:submit": "scripts/notarize-macos-sea.sh",
@@ -56,6 +58,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "chokidar": "^4.0.3",
+    "dependency-cruiser": "^17.3.1",
     "postject": "^1.0.0-alpha.6",
     "tsx": "^4.16.0",
     "typescript": "^5.4.0",

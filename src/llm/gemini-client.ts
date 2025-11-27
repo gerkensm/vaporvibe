@@ -109,13 +109,25 @@ export class GeminiClient implements LlmClient {
 
         config.thinkingConfig = {
           includeThoughts: true,
+          thinkingBudget: clampedBudget,  // Always set budget (including 0) when config is set; for Pro models with allowZero: false, config is omitted entirely when thinking is disabled (see below)
         };
 
-        if (clampedBudget > 0) {
-          config.thinkingConfig.thinkingBudget = clampedBudget;
-        }
-
         logger.debug({ thinkingConfig: config.thinkingConfig }, "Gemini thinking config");
+      }
+    } else {
+      // When thinking is disabled, explicitly set budget to 0 to prevent implicit thinking
+      // But only for models that allow zero budget (Flash models)
+      // Pro models (gemini-3-pro, gemini-2.5-pro) reject budget:0, so omit config entirely
+      const limits = getGeminiThinkingLimits(this.settings.model);
+
+      if (limits.allowZero) {
+        config.thinkingConfig = {
+          includeThoughts: true,
+          thinkingBudget: 0,
+        };
+        logger.debug({ thinkingConfig: config.thinkingConfig }, "Gemini thinking disabled (budget=0)");
+      } else {
+        logger.debug({ model: this.settings.model }, "Gemini thinking disabled (omitting config for Pro model)");
       }
     }
 
@@ -161,16 +173,6 @@ export class GeminiClient implements LlmClient {
         streamedThoughtSnapshots,
         observer
       );
-    }
-
-    // If we have thoughts but the observer never received them during streaming,
-    // send them now (this happens with some Flash models)
-    if (includeThoughts && observer && streamedThoughtSummaries.length > 0) {
-      const thoughtsText = streamedThoughtSummaries.join("\n\n");
-      observer.onReasoningEvent({
-        kind: "summary",
-        text: thoughtsText + "\n\n",
-      });
     }
 
     const reasoning = includeThoughts
@@ -345,7 +347,7 @@ function collectGeminiThoughtSummaries(
         const emission = delta.length > 0 ? delta : normalized;
         if (emission.length > 0) {
           observer.onReasoningEvent({
-            kind: "summary",
+            kind: "thinking",
             text: emission + "\n\n",
           });
         }
@@ -457,7 +459,7 @@ function extractGeminiThinking(
     if (thoughtSummaries.length > 0) {
       logger.debug(`${header}\n${thoughtSummaries.join("\n\n")}`);
       return {
-        summaries: thoughtSummaries,
+        details: thoughtSummaries,
         raw: thoughtSummaries,
       };
     }
@@ -465,7 +467,7 @@ function extractGeminiThinking(
       const fallback = `Gemini generated ${thoughtsTokenCount} reasoning tokens (thought text unavailable).`;
       logger.debug(`${header} — ${fallback}`);
       return {
-        summaries: [fallback],
+        details: [fallback],
         raw: [fallback],
       };
     }
