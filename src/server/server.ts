@@ -1562,6 +1562,13 @@ async function handleLlmRequest(
                 text: event.text,
               });
             },
+            onTokenDelta: (delta) => {
+              reasoningStreamController.emit("progress", {
+                produced: delta.produced,
+                maxOutputTokens:
+                  delta.maxOutputTokens ?? llmClient.settings.maxOutputTokens,
+              });
+            },
           },
         }
         : undefined
@@ -1759,6 +1766,11 @@ async function handleLlmRequest(
     }
 
     if (reasoningStreamController) {
+      const finalProgress = {
+        produced: llmClient.settings.maxOutputTokens,
+        maxOutputTokens: llmClient.settings.maxOutputTokens,
+      };
+      reasoningStreamController.emit("progress", finalProgress);
       const finalPayload = result.reasoning
         ? {
           summaries: result.reasoning.summaries,
@@ -1780,6 +1792,10 @@ async function handleLlmRequest(
     );
 
     if (reasoningStreamController) {
+      reasoningStreamController.emit("progress", {
+        produced: llmClient.settings.maxOutputTokens,
+        maxOutputTokens: llmClient.settings.maxOutputTokens,
+      });
       const streamMessage =
         error instanceof Error
           ? error.message

@@ -131,6 +131,10 @@ function renderReasoningStreamScript(
   return `window.__vaporVibeReasoningStream = ${config};\n${script}`;
 }
 
+function renderProgressScript(): string {
+  return readAsset("token-progress.js");
+}
+
 export function renderLoadingShell(options: LoadingShellOptions = {}): string {
   const resolved = resolveOptions(options);
   const styles = renderStyles(resolved.accent);
@@ -146,7 +150,8 @@ export function renderLoadingShell(options: LoadingShellOptions = {}): string {
       resolved.reasoningStreamRoutePrefix
     )
     : "";
-  const scriptContent = `${statusScript}${reasoningScript}${hydrationScript}`;
+  const progressScript = renderProgressScript();
+  const scriptContent = `${statusScript}${progressScript}${reasoningScript}${hydrationScript}`;
 
   const reasoningSection = resolved.reasoningStreamToken
     ? [
@@ -177,6 +182,9 @@ ${styles}
       </div>
       <h1>Generating your next view</h1>
       <p class="status" data-status>${resolved.message}</p>
+      <div class="token-progress" data-token-progress aria-hidden="true">
+        <div class="token-progress-bar" data-token-progress-bar></div>
+      </div>
       <p class="hint">Hold tight—we ask your configured model to compose a fresh canvas. This usually lands within a minute.</p>
 ${reasoningSection}      <footer>
         <span>vaporvibe keeps the last brief and request context warm.</span>

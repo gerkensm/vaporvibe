@@ -141,6 +141,7 @@
 
   var hasStreamingUpdates = false;
   var latestSnapshot = null;
+  var latestProgress = null;
 
   discoverDisplays(document);
 
@@ -260,6 +261,28 @@
     }
   });
 
+  source.addEventListener("progress", function (event) {
+    try {
+      var data = JSON.parse(event.data);
+      var produced = Number(data && data.produced);
+      var maxOutputTokens = data && Number(data.maxOutputTokens);
+      if (!Number.isFinite(produced) || produced < 0) return;
+      latestProgress = {
+        produced: produced,
+        maxOutputTokens:
+          Number.isFinite(maxOutputTokens) && maxOutputTokens > 0
+            ? Number(maxOutputTokens)
+            : undefined,
+      };
+      dispatchGlobalEvent("vaporvibe:token-progress", {
+        produced: produced,
+        maxOutputTokens: latestProgress.maxOutputTokens,
+      });
+    } catch (error) {
+      console.warn("Failed to parse token progress event", error);
+    }
+  });
+
   source.addEventListener("final", function (event) {
     try {
       // Mark the stream as finalized - don't replace what we already streamed
@@ -281,6 +304,21 @@
   });
 
   source.addEventListener("complete", function () {
+    if (latestProgress) {
+      dispatchGlobalEvent("vaporvibe:token-progress", {
+        produced:
+          latestProgress.maxOutputTokens !== undefined
+            ? latestProgress.maxOutputTokens
+            : latestProgress.produced,
+        maxOutputTokens: latestProgress.maxOutputTokens,
+        complete: true,
+      });
+    } else {
+      dispatchGlobalEvent("vaporvibe:token-progress", {
+        complete: true,
+        produced: 0,
+      });
+    }
     closeStream();
     if (!hasStreamingUpdates) {
       broadcastStatus("Model response ready.");

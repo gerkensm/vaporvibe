@@ -133,6 +133,28 @@ import {
       }
     });
 
+    source.addEventListener("progress", (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const produced = Number(data?.produced);
+        const maxOutputTokens = Number(data?.maxOutputTokens);
+        if (!Number.isFinite(produced) || produced < 0) return;
+        latestProgress = {
+          produced,
+          maxOutputTokens:
+            Number.isFinite(maxOutputTokens) && maxOutputTokens > 0
+              ? maxOutputTokens
+              : undefined,
+        };
+        dispatchGlobalEvent("vaporvibe:token-progress", {
+          produced,
+          maxOutputTokens: latestProgress.maxOutputTokens,
+        });
+      } catch (error) {
+        console.warn("Failed to parse token progress event", error);
+      }
+    });
+
 
     source.addEventListener("final", () => {
       // Mark the stream as finalized - don't replace what we already streamed
@@ -153,6 +175,21 @@ import {
     });
 
     source.addEventListener("complete", () => {
+      if (latestProgress) {
+        dispatchGlobalEvent("vaporvibe:token-progress", {
+          produced:
+            latestProgress.maxOutputTokens !== undefined
+              ? latestProgress.maxOutputTokens
+              : latestProgress.produced,
+          maxOutputTokens: latestProgress.maxOutputTokens,
+          complete: true,
+        });
+      } else {
+        dispatchGlobalEvent("vaporvibe:token-progress", {
+          complete: true,
+          produced: 0,
+        });
+      }
       closeStream();
       if (!streamState.finalized) {
         streamState.finalized = true;
@@ -3162,6 +3199,9 @@ import {
     "  .vaporvibe-spinner { width: 72px; height: 72px; border-radius: 50%; border: 6px solid rgba(29, 78, 216, 0.2); border-top-color: var(--accent); animation: vaporvibe-spin 1.1s linear infinite; }",
     "  .vaporvibe-title { font: 600 1.1rem/1.3 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color:#0f172a; }",
     "  .vaporvibe-status { font: 400 0.95rem/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: var(--muted); min-height:1.2em; }",
+    "  .token-progress { width: 100%; height: 6px; background: rgba(15, 23, 42, 0.06); border-radius: 999px; overflow: hidden; border: 1px solid rgba(148, 163, 184, 0.35); margin: 2px 0 6px; opacity: 0; transform: translateY(-2px); transition: opacity 0.3s ease, transform 0.3s ease; }",
+    '  .token-progress[data-active="true"] { opacity: 1; transform: translateY(0); }',
+    "  .token-progress-bar { width: 100%; height: 100%; background: linear-gradient(90deg, var(--accent) 0%, #60a5fa 65%, #93c5fd 100%); transform-origin: left center; transform: scaleX(0.05); transition: transform 0.18s ease-out; will-change: transform; }",
     "  .reasoning-panel { display: none; width: 100%; text-align: left; background: rgba(15, 23, 42, 0.05); border-radius: 18px; padding: 12px 14px; margin: 12px 0 4px; max-height: clamp(160px, 28vh, 280px); overflow: hidden; }",
     '  .reasoning-panel[data-active="true"] { display: block; }',
     "  .reasoning-heading { margin: 0 0 8px; font: 600 0.8rem/1.25 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #1f2937; }",
@@ -3224,6 +3264,7 @@ import {
     '    <div class="vaporvibe-pulse"><div class="vaporvibe-spinner" role="status" aria-live="polite" aria-label="Generating the next view"></div></div>',
     '    <div class="vaporvibe-title">Generating your next view</div>',
     '    <div class="vaporvibe-status" data-vaporvibe-status data-status></div>',
+    '    <div class="token-progress" data-token-progress aria-hidden="true"><div class="token-progress-bar" data-token-progress-bar></div></div>',
     `    <div class="vaporvibe-hint" data-vaporvibe-hint>${DEFAULT_HINT}</div>`,
     '    <section class="reasoning-panel" data-reasoning-panel aria-live="polite" aria-label="Model reasoning updates">',
     '      <div class="reasoning-heading">Model is thinking…</div>',
@@ -3669,6 +3710,12 @@ import {
   let lastBaseStatusMessage = DEFAULT_STATUS_MESSAGE;
   const statusTargets: HTMLElement[] = [];
   let statusRegistry = new WeakSet<HTMLElement>();
+  let progressTrack: HTMLElement | null = null;
+  let progressBar: HTMLElement | null = null;
+  let progressRaf: number | null = null;
+  let progressCurrent = 0;
+  let progressTarget = 0;
+  let progressLastTimestamp = 0;
 
   interface OverlayDisplayRecord {
     panel: Element;
@@ -3709,6 +3756,9 @@ import {
     summaryBuffer: "",
     summaryEntries: [],
   };
+
+  let latestProgress: { produced: number; maxOutputTokens?: number } | null =
+    null;
 
   interface AnimationState {
     displayed: string;
@@ -3811,6 +3861,124 @@ import {
       lock: Boolean(lock),
     });
   }
+
+  function ensureProgressElements(scope?: ParentNode | null): boolean {
+    if (progressTrack && progressBar && progressTrack.isConnected) return true;
+    const searchRoot =
+      scope ?? overlay ?? (document.body as ParentNode | null) ?? document;
+    if (!searchRoot) return false;
+    const candidate =
+      searchRoot instanceof Element || searchRoot instanceof Document
+        ? searchRoot.querySelector<HTMLElement>("[data-token-progress]")
+        : null;
+    progressTrack = candidate ?? null;
+    progressBar =
+      candidate?.querySelector<HTMLElement>("[data-token-progress-bar]") ?? null;
+    return Boolean(progressTrack && progressBar);
+  }
+
+  function renderProgress(value: number): void {
+    if (!progressBar) return;
+    const clamped = Math.max(0.02, Math.min(1, value));
+    progressBar.style.transform = `scaleX(${clamped})`;
+  }
+
+  function setProgressVisibility(active: boolean): void {
+    if (!progressTrack) return;
+    if (active) {
+      progressTrack.setAttribute("data-active", "true");
+    } else {
+      progressTrack.removeAttribute("data-active");
+    }
+  }
+
+  function progressStep(timestamp: number): void {
+    if (!progressTrack || !progressBar) {
+      progressRaf = null;
+      return;
+    }
+    if (!progressLastTimestamp) {
+      progressLastTimestamp = timestamp;
+    }
+    const delta = timestamp - progressLastTimestamp;
+    progressLastTimestamp = timestamp;
+    let eased =
+      progressCurrent + (progressTarget - progressCurrent) * Math.min(0.45, delta / 140);
+    if (Math.abs(eased - progressTarget) < 0.002) {
+      eased = progressTarget;
+    }
+    progressCurrent = eased;
+    renderProgress(progressCurrent);
+    if (progressCurrent < progressTarget - 0.001) {
+      progressRaf = requestAnimationFrame(progressStep);
+    } else {
+      progressRaf = null;
+    }
+  }
+
+  function scheduleProgressAnimation(): void {
+    if (progressRaf !== null) return;
+    progressRaf = requestAnimationFrame(progressStep);
+  }
+
+  function resetProgressBar(): void {
+    progressTarget = 0;
+    progressCurrent = 0;
+    progressLastTimestamp = 0;
+    if (progressRaf !== null) {
+      cancelAnimationFrame(progressRaf);
+      progressRaf = null;
+    }
+    if (ensureProgressElements(overlay ?? document)) {
+      renderProgress(0);
+      setProgressVisibility(false);
+    }
+  }
+
+  function applyTokenProgress(detail: {
+    produced?: number;
+    maxOutputTokens?: number;
+    complete?: boolean;
+  }): void {
+    const produced = Number(detail?.produced);
+    const maxOutputTokens = Number(detail?.maxOutputTokens);
+    const isComplete = Boolean(detail?.complete);
+
+    if (isComplete) {
+      progressTarget = 1;
+      if (ensureProgressElements(overlay ?? document)) {
+        setProgressVisibility(true);
+        scheduleProgressAnimation();
+      }
+      return;
+    }
+
+    if (!Number.isFinite(produced) || produced < 0) return;
+
+    let nextTarget = progressTarget;
+    if (Number.isFinite(maxOutputTokens) && maxOutputTokens > 0) {
+      nextTarget = Math.min(1, produced / maxOutputTokens);
+    } else {
+      nextTarget = Math.min(progressTarget + 0.015, 0.92);
+    }
+
+    if (nextTarget > progressTarget) {
+      progressTarget = Math.min(1, nextTarget);
+      if (ensureProgressElements(overlay ?? document)) {
+        setProgressVisibility(true);
+        scheduleProgressAnimation();
+      }
+    }
+  }
+
+  window.addEventListener("vaporvibe:token-progress", (event) => {
+    if (!(event instanceof CustomEvent)) return;
+    applyTokenProgress(event.detail ?? {});
+  });
+
+  window.addEventListener("vaporvibe:reasoning-hide", () => {
+    resetProgressBar();
+  });
 
   function registerDisplay(log: HTMLElement): void {
     if (!log || logRegistry.has(log)) return;
@@ -4259,6 +4427,7 @@ import {
     streamState.finalText = "";
     streamState.summaryBuffer = "";
     streamState.summaryEntries = [];
+    latestProgress = null;
     animationState.displayed = "";
     animationState.target = "";
     animationState.queue = "";
@@ -4269,6 +4438,7 @@ import {
       animationState.rafId = null;
     }
     latestSnapshot = null;
+    resetProgressBar();
     updateDisplays();
   }
 
@@ -5112,6 +5282,7 @@ import {
       ".liquidGlass-wrapper"
     );
     document.body.appendChild(overlay);
+    resetProgressBar();
     demosceneToggleButton = overlay.querySelector<HTMLButtonElement>(
       '[data-demoscene-audio="toggle"]'
     );
@@ -5386,6 +5557,7 @@ import {
       clearInterval(overlayStatusInterval);
       overlayStatusInterval = null;
     }
+    resetProgressBar();
     stopDvdAnimation();
     stopDemosceneAudio();
     clearDemosceneTerminalClasses();

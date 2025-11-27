@@ -15,6 +15,7 @@ import type {
 import { logger } from "../logger.js";
 import { GenerateContentConfig } from "@google/genai";
 import { ThinkingLevel } from "@google/genai";
+import { createStreamingTokenTracker } from "./token-tracker.js";
 
 type ContentPart =
   | { text: string }
@@ -142,18 +143,24 @@ export class GeminiClient implements LlmClient {
     const streamedThoughtSummaries: string[] = [];
     const streamedThoughtSnapshots: string[] = [];
     const observer = includeThoughts ? _options.streamObserver : undefined;
+    const tokenTracker = createStreamingTokenTracker(
+      _options.streamObserver,
+      this.settings.maxOutputTokens
+    );
     for await (const chunk of stream) {
       finalResponse = chunk;
       const chunkText = coerceGeminiText(chunk);
       if (typeof chunkText === "string" && chunkText.trim().length > 0) {
         streamedPieces.push(chunkText);
+        tokenTracker.addFromText(chunkText);
       }
       if (includeThoughts) {
         collectGeminiThoughtSummaries(
           chunk,
           streamedThoughtSummaries,
           streamedThoughtSnapshots,
-          observer
+          observer,
+          tokenTracker,
         );
       }
     }
@@ -171,19 +178,26 @@ export class GeminiClient implements LlmClient {
         response,
         streamedThoughtSummaries,
         streamedThoughtSnapshots,
-        observer
+        observer,
+        tokenTracker,
       );
     }
 
     const reasoning = includeThoughts
       ? extractGeminiThinking(response, this.settings, streamedThoughtSummaries)
       : undefined;
+    const usage = extractUsage(response);
+    tokenTracker.finalize(
+      usage?.outputTokens !== undefined || usage?.reasoningTokens !== undefined
+        ? (usage?.outputTokens ?? 0) + (usage?.reasoningTokens ?? 0)
+        : undefined,
+    );
 
     const streamedHtml = streamedPieces.join("").trim();
     if (streamedHtml.length > 0) {
       return {
         html: streamedHtml,
-        usage: extractUsage(response),
+        usage,
         reasoning,
         raw: response,
       };
@@ -193,7 +207,7 @@ export class GeminiClient implements LlmClient {
     if (typeof text === "string" && text.trim().length > 0) {
       return {
         html: text.trim(),
-        usage: extractUsage(response),
+        usage,
         reasoning,
         raw: response,
       };
@@ -209,7 +223,7 @@ export class GeminiClient implements LlmClient {
 
     return {
       html: fallback.trim(),
-      usage: extractUsage(response),
+      usage,
       reasoning,
       raw: response,
     };
@@ -309,7 +323,8 @@ function collectGeminiThoughtSummaries(
   chunk: any,
   aggregate: string[],
   snapshots: string[],
-  observer?: LlmStreamObserver
+  observer?: LlmStreamObserver,
+  tokenTracker?: ReturnType<typeof createStreamingTokenTracker>
 ): void {
   const parts = chunk?.candidates?.[0]?.content?.parts;
   if (!Array.isArray(parts) || parts.length === 0) {
@@ -350,6 +365,7 @@ function collectGeminiThoughtSummaries(
             kind: "thinking",
             text: emission + "\n\n",
           });
+          tokenTracker?.addFromText(emission);
         }
       }
       thoughtIndex += 1;

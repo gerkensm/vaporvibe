@@ -10,8 +10,14 @@ export interface LlmReasoningStreamEvent {
   text: string;
 }
 
+export interface LlmTokenUsageDelta {
+  produced: number;
+  maxOutputTokens?: number;
+}
+
 export interface LlmStreamObserver {
   onReasoningEvent(event: LlmReasoningStreamEvent): void;
+  onTokenDelta?(delta: LlmTokenUsageDelta): void;
 }
 
 export interface LlmGenerateOptions {

@@ -15,6 +15,7 @@ import type {
 } from "./client.js";
 import { logger } from "../logger.js";
 import { supportsImageInput } from "./capabilities.js";
+import { createStreamingTokenTracker } from "./token-tracker.js";
 
 const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
 
@@ -85,6 +86,10 @@ export class GroqClient implements LlmClient {
     const stream = this.client.chat.completions.stream(request);
     const htmlChunks: string[] = [];
     const observer = options.streamObserver;
+    const tokenTracker = createStreamingTokenTracker(
+      observer,
+      this.settings.maxOutputTokens
+    );
     const streamingTracker: StreamingReasoningTracker = {
       summaryBuffer: "",
       detailBuffer: "",
@@ -97,17 +102,20 @@ export class GroqClient implements LlmClient {
           const text = (part as any)?.text;
           if (typeof text === "string") {
             htmlChunks.push(text);
+            tokenTracker.addFromText(text);
           }
         }
       } else if (typeof content === "string") {
         htmlChunks.push(content);
+        tokenTracker.addFromText(content);
       }
       const reasoningDelta = (delta as any)?.reasoning;
       if (reasoningDelta !== undefined) {
         processStreamingReasoningDelta(
           reasoningDelta,
           streamingTracker,
-          observer
+          observer,
+          tokenTracker,
         );
       }
     }
@@ -118,6 +126,11 @@ export class GroqClient implements LlmClient {
     const html =
       htmlFromStream.length > 0 ? htmlFromStream : extractHtmlFromChat(resp);
     const usage = extractUsageFromChat(resp);
+    tokenTracker.finalize(
+      usage?.outputTokens !== undefined || usage?.reasoningTokens !== undefined
+        ? (usage?.outputTokens ?? 0) + (usage?.reasoningTokens ?? 0)
+        : undefined,
+    );
     const reasoningFromResponse = extractReasoningFromChat(
       resp,
       this.settings.reasoningMode,
@@ -295,6 +308,11 @@ function extractUsageFromChat(
   if (Number.isFinite(usage.completion_tokens)) {
     metrics.outputTokens = Number(usage.completion_tokens);
   }
+  if (Number.isFinite(usage.completion_tokens_details?.reasoning_tokens)) {
+    metrics.reasoningTokens = Number(
+      usage.completion_tokens_details.reasoning_tokens,
+    );
+  }
   if (Number.isFinite(usage.total_tokens)) {
     metrics.totalTokens = Number(usage.total_tokens);
   }
@@ -450,7 +468,8 @@ interface StreamingReasoningTracker {
 function processStreamingReasoningDelta(
   input: unknown,
   tracker: StreamingReasoningTracker,
-  observer?: LlmStreamObserver
+  observer?: LlmStreamObserver,
+  tokenTracker?: ReturnType<typeof createStreamingTokenTracker>
 ): void {
   if (input === null || input === undefined) return;
   const scratch: ReasoningAccumulator = {
@@ -461,6 +480,7 @@ function processStreamingReasoningDelta(
 
   scratch.summaries.forEach((value) => {
     tracker.summaryBuffer += value;
+    tokenTracker?.addFromText(value);
     if (observer) {
       observer.onReasoningEvent({ kind: "summary", text: value });
     }
@@ -468,6 +488,7 @@ function processStreamingReasoningDelta(
 
   scratch.details.forEach((value) => {
     tracker.detailBuffer += value;
+    tokenTracker?.addFromText(value);
     if (observer) {
       observer.onReasoningEvent({ kind: "thinking", text: value });
     }

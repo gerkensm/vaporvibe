@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import type { ChatMessage, LlmReasoningTrace, LlmUsageMetrics, ProviderSettings, VerificationResult } from "../types.js";
 import type { LlmClient, LlmResult, LlmGenerateOptions } from "./client.js";
 import { logger } from "../logger.js";
+import { createStreamingTokenTracker } from "./token-tracker.js";
 
 const GROK_BASE_URL = "https://api.x.ai/v1";
 const GROK_TIMEOUT_MS = 360_000;
@@ -65,6 +66,13 @@ export class GrokClient implements LlmClient {
     const stream = this.client.chat.completions.stream(request);
 
     const htmlChunks: string[] = [];
+    const tokenTracker = createStreamingTokenTracker(
+      _options.streamObserver,
+      this.settings.maxOutputTokens
+        + (Number.isFinite(this.settings.reasoningTokens)
+          ? (this.settings.reasoningTokens as number)
+          : 0),
+    );
     for await (const chunk of stream) {
       const delta = chunk?.choices?.[0]?.delta;
       const content = delta?.content;
@@ -73,10 +81,20 @@ export class GrokClient implements LlmClient {
           const text = (part as any)?.text;
           if (typeof text === "string") {
             htmlChunks.push(text);
+            tokenTracker.addFromText(text);
           }
         }
       } else if (typeof content === "string") {
         htmlChunks.push(content);
+        tokenTracker.addFromText(content);
+      }
+      const reasoningDelta = (delta as any)?.reasoning;
+      if (typeof reasoningDelta === "string" && reasoningDelta.length > 0) {
+        tokenTracker.addFromText(reasoningDelta);
+        _options.streamObserver?.onReasoningEvent?.({
+          kind: "thinking",
+          text: reasoningDelta,
+        });
       }
     }
 
@@ -85,10 +103,16 @@ export class GrokClient implements LlmClient {
     const htmlFromStream = htmlChunks.join("").trim();
     const html = htmlFromStream.length > 0 ? htmlFromStream : extractHtml(response);
     const reasoning = extractReasoning(response, this.settings.reasoningMode);
+    const usage = extractUsage(response);
+    tokenTracker.finalize(
+      usage?.outputTokens !== undefined || usage?.reasoningTokens !== undefined
+        ? (usage?.outputTokens ?? 0) + (usage?.reasoningTokens ?? 0)
+        : undefined,
+    );
 
     return {
       html,
-      usage: extractUsage(response),
+      usage,
       reasoning,
       raw: response,
     };

@@ -53,6 +53,34 @@ p {
   min-height: 1.2em;
 }
 
+.token-progress {
+  width: 100%;
+  height: 6px;
+  background: rgba(15, 23, 42, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  margin: 2px 0 6px;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.token-progress[data-active="true"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.token-progress-bar {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, __ACCENT_COLOR__ 0%, #60a5fa 65%, #93c5fd 100%);
+  transform-origin: left center;
+  transform: scaleX(0.05);
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+}
+
 .stage {
   background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(7px);

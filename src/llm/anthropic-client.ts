@@ -15,6 +15,7 @@ import type {
   LlmStreamObserver,
 } from "./client.js";
 import { logger } from "../logger.js";
+import { createStreamingTokenTracker } from "./token-tracker.js";
 
 const ANTHROPIC_MODELS_URL = "https://api.anthropic.com/v1/models";
 const ANTHROPIC_VERSION = "2023-06-01";
@@ -212,11 +213,18 @@ export class AnthropicClient implements LlmClient {
     const diagnostics: StreamEventSnapshot[] = [];
     let accumulated = "";
     let streamedThinking = "";
+    const tokenTracker = createStreamingTokenTracker(
+      observer,
+      thinkingBudget + maxTokens
+    );
     for await (const event of stream) {
-      accumulated += this.extractStreamDelta(event);
+      const delta = this.extractStreamDelta(event);
+      accumulated += delta;
+      tokenTracker.addFromText(delta);
       const thinkingDelta = this.extractThinkingDelta(event);
       if (thinkingDelta) {
         streamedThinking += thinkingDelta;
+        tokenTracker.addFromText(thinkingDelta);
         if (observer) {
           observer.onReasoningEvent({ kind: "thinking", text: thinkingDelta });
         }
@@ -244,6 +252,11 @@ export class AnthropicClient implements LlmClient {
     }
 
     const usage = extractUsage(finalMessage);
+    tokenTracker.finalize(
+      usage?.outputTokens !== undefined || usage?.reasoningTokens !== undefined
+        ? (usage?.outputTokens ?? 0) + (usage?.reasoningTokens ?? 0)
+        : undefined,
+    );
     let reasoning = this.logAndCollectThinking(
       finalMessage,
       thinkingBudget,
