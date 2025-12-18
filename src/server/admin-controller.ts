@@ -6,6 +6,7 @@ import {
   PROVIDER_LABELS,
   PROVIDER_PLACEHOLDERS,
   PROVIDER_REASONING_CAPABILITIES,
+  PROVIDER_MEDIA_RESOLUTION_CAPABILITIES,
   PROVIDER_REASONING_MODES,
   PROVIDER_TOKEN_GUIDANCE,
   DEFAULT_MODEL_BY_PROVIDER,
@@ -766,6 +767,7 @@ export class AdminController {
       featuredModels,
       providerReasoningModes: PROVIDER_REASONING_MODES,
       providerReasoningCapabilities: PROVIDER_REASONING_CAPABILITIES,
+      providerMediaResolutionCapabilities: PROVIDER_MEDIA_RESOLUTION_CAPABILITIES,
       isForkActive: activeForks.length > 0,
       activeForks,
     };

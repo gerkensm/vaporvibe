@@ -103,6 +103,7 @@ export interface ProviderUpdatePayload {
   reasoningMode: string;
   reasoningTokensEnabled?: boolean;
   reasoningTokens?: number | null;
+  mediaResolution?: string;
   apiKey?: string;
 }
 

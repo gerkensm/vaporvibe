@@ -1,5 +1,5 @@
 {
-  "generated": "2025-12-18T00:19:41.212Z",
+  "generated": "2025-12-18T01:20:20.762Z",
   "backend": {
     "basePath": "src",
     "totalModules": 50,
@@ -440,7 +440,8 @@
             "@google/genai": [
               "GoogleGenAI",
               "GenerateContentConfig",
-              "ThinkingLevel"
+              "ThinkingLevel",
+              "MediaResolution"
             ]
           }
         },
@@ -642,6 +643,7 @@
               "PROVIDER_LABELS",
               "PROVIDER_PLACEHOLDERS",
               "PROVIDER_REASONING_CAPABILITIES",
+              "PROVIDER_MEDIA_RESOLUTION_CAPABILITIES",
               "PROVIDER_REASONING_MODES",
               "PROVIDER_TOKEN_GUIDANCE",
               "DEFAULT_MODEL_BY_PROVIDER",

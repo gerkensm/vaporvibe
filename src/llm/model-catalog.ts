@@ -53,6 +53,7 @@ export interface ModelMetadata {
   readonly supportsReasoningMode?: boolean;
   readonly reasoningModes?: ReasoningMode[];
   readonly defaultReasoningMode?: ReasoningMode;
+  readonly supportsMediaResolution?: boolean;
 }
 
 type RawModelReasoningTokens =
@@ -135,7 +136,7 @@ const MODEL_COMPOSITE_SCORES: Record<string, ModelCompositeScores> = {
   },
   "groq:meta-llama/llama-4-scout-17b-16e-instruct": {
     reasoning: 28,
-    codingSkill: 0.26,
+    codingSkill: 30,
     responsiveness: 69.29,
     valueForMoney: 75.71,
   },
@@ -151,12 +152,7 @@ const MODEL_COMPOSITE_SCORES: Record<string, ModelCompositeScores> = {
     responsiveness: 70.95,
     valueForMoney: 85.87,
   },
-  "groq:openai/gpt-oss-20b": {
-    reasoning: 43,
-    codingSkill: 0,
-    responsiveness: 99.23,
-    valueForMoney: 80.7,
-  },
+
   "openai:gpt-5": {
     reasoning: 68,
     codingSkill: 100,
@@ -166,7 +162,7 @@ const MODEL_COMPOSITE_SCORES: Record<string, ModelCompositeScores> = {
   "openai:gpt-5-mini": {
     reasoning: 64,
     codingSkill: 58.64,
-    responsiveness: 1.11,
+    responsiveness: 65,
     valueForMoney: 77.01,
   },
   "openai:gpt-5-nano": {
@@ -184,7 +180,7 @@ const MODEL_COMPOSITE_SCORES: Record<string, ModelCompositeScores> = {
   "openai:gpt-5-mini-2025-08-07": {
     reasoning: 64,
     codingSkill: 58.64,
-    responsiveness: 1.11,
+    responsiveness: 65,
     valueForMoney: 77.01,
   },
   "openai:gpt-5-nano-2025-08-07": {
@@ -199,12 +195,7 @@ const MODEL_COMPOSITE_SCORES: Record<string, ModelCompositeScores> = {
     responsiveness: 24.21,
     valueForMoney: 51.93,
   },
-  "openai:o3-mini": {
-    reasoning: 65,
-    codingSkill: 98.43,
-    responsiveness: 53.55,
-    valueForMoney: 51.06,
-  },
+
   "gemini:gemini-2.5-pro": {
     reasoning: 60,
     codingSkill: 52.36,
@@ -239,7 +230,7 @@ const MODEL_COMPOSITE_SCORES: Record<string, ModelCompositeScores> = {
     reasoning: 59,
     codingSkill: 41.88,
     responsiveness: 21.2,
-    valueForMoney: 0,
+    valueForMoney: 10,
   },
   "grok:grok-4-fast-reasoning": {
     reasoning: 60,
@@ -294,6 +285,195 @@ const MODEL_COMPOSITE_SCORES: Record<string, ModelCompositeScores> = {
     codingSkill: 35,
     responsiveness: 78,
     valueForMoney: 92,
+  },
+  "gemini:gemini-3-flash-preview": {
+    reasoning: 65,
+    codingSkill: 60,
+    responsiveness: 70,
+    valueForMoney: 85,
+  },
+  "openai:chatgpt-4o-latest": {
+    reasoning: 64,
+    codingSkill: 55,
+    responsiveness: 60,
+    valueForMoney: 45,
+  },
+  "openai:gpt-4o-mini": {
+    reasoning: 58,
+    codingSkill: 40,
+    responsiveness: 80,
+    valueForMoney: 90,
+  },
+  "openai:gpt-4.5-preview": {
+    reasoning: 72,
+    codingSkill: 75,
+    responsiveness: 30,
+    valueForMoney: 40,
+  },
+
+  "openai:gpt-4.1": {
+    reasoning: 65,
+    codingSkill: 55,
+    responsiveness: 45,
+    valueForMoney: 50,
+  },
+
+  "gemini:gemini-2.0-pro-exp": {
+    reasoning: 65,
+    codingSkill: 60,
+    responsiveness: 60,
+    valueForMoney: 50,
+  },
+  "gemini:gemini-2.0-flash": {
+    reasoning: 50,
+    codingSkill: 30,
+    responsiveness: 60,
+    valueForMoney: 60,
+  },
+  "groq:openai/gpt-oss-20b": {
+    reasoning: 64,
+    codingSkill: 55,
+    responsiveness: 72,
+    valueForMoney: 77,
+  },
+  "openai:gpt-5.1-codex": {
+    reasoning: 70,
+    codingSkill: 98,
+    responsiveness: 30,
+    valueForMoney: 45,
+  },
+
+  "openai:gpt-4.1-mini": {
+    reasoning: 58,
+    codingSkill: 45,
+    responsiveness: 65,
+    valueForMoney: 75,
+  },
+  "openai:gpt-4.1-nano": {
+    reasoning: 45,
+    codingSkill: 30,
+    responsiveness: 80,
+    valueForMoney: 90,
+  },
+  "openai:gpt-4": {
+    reasoning: 60,
+    codingSkill: 50,
+    responsiveness: 30,
+    valueForMoney: 35,
+  },
+  "openai:gpt-4-32k": {
+    reasoning: 60,
+    codingSkill: 50,
+    responsiveness: 25,
+    valueForMoney: 30,
+  },
+  "openai:gpt-4-turbo": {
+    reasoning: 62,
+    codingSkill: 52,
+    responsiveness: 50,
+    valueForMoney: 50,
+  },
+  "openai:gpt-4-turbo-2024-04-09": {
+    reasoning: 62,
+    codingSkill: 52,
+    responsiveness: 50,
+    valueForMoney: 50,
+  },
+  "openai:gpt-4-1106-preview": {
+    reasoning: 62,
+    codingSkill: 52,
+    responsiveness: 50,
+    valueForMoney: 50,
+  },
+  "openai:gpt-4-0125-preview": {
+    reasoning: 62,
+    codingSkill: 52,
+    responsiveness: 50,
+    valueForMoney: 50,
+  },
+  "openai:gpt-3.5-turbo": {
+    reasoning: 40,
+    codingSkill: 30,
+    responsiveness: 90,
+    valueForMoney: 95,
+  },
+  "openai:gpt-3.5-turbo-16k": {
+    reasoning: 40,
+    codingSkill: 30,
+    responsiveness: 85,
+    valueForMoney: 90,
+  },
+  "openai:o1": {
+    reasoning: 90,
+    codingSkill: 80,
+    responsiveness: 10,
+    valueForMoney: 40,
+  },
+  "openai:o1-2024-12-17": {
+    reasoning: 92,
+    codingSkill: 82,
+    responsiveness: 12,
+    valueForMoney: 42,
+  },
+  "openai:o1-preview": {
+    reasoning: 85,
+    codingSkill: 75,
+    responsiveness: 20,
+    valueForMoney: 50,
+  },
+  "openai:o1-mini": {
+    reasoning: 75,
+    codingSkill: 65,
+    responsiveness: 60,
+    valueForMoney: 80,
+  },
+  "openai:o4-mini": {
+    reasoning: 80,
+    codingSkill: 75,
+    responsiveness: 70,
+    valueForMoney: 85,
+  },
+  "anthropic:claude-3-7-sonnet-latest": {
+    reasoning: 85,
+    codingSkill: 82,
+    responsiveness: 50,
+    valueForMoney: 60,
+  },
+  "anthropic:claude-opus-4-20250514": {
+    reasoning: 88,
+    codingSkill: 80,
+    responsiveness: 20,
+    valueForMoney: 30,
+  },
+  "anthropic:claude-3-5-haiku-latest": {
+    reasoning: 55,
+    codingSkill: 50,
+    responsiveness: 85,
+    valueForMoney: 90,
+  },
+  "grok:grok-4-fast-non-reasoning": {
+    reasoning: 60,
+    codingSkill: 50,
+    responsiveness: 95,
+    valueForMoney: 80,
+  },
+  "grok:grok-4-0709": {
+    reasoning: 65,
+    codingSkill: 55,
+    responsiveness: 70,
+    valueForMoney: 70,
+  },
+  "grok:grok-3-mini": {
+    reasoning: 50,
+    codingSkill: 40,
+    responsiveness: 90,
+    valueForMoney: 85,
+  },
+  "openai:o3-mini": {
+    reasoning: 82,
+    codingSkill: 78,
+    responsiveness: 65,
+    valueForMoney: 85,
   },
 };
 
@@ -1102,6 +1282,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         },
         supportsReasoningMode: true,
         cost: usdCost({ input: 15, output: 60 }),
+        compositeScores: compositeScoresFor("openai:o1"),
       },
       {
         value: "o1-preview",
@@ -1126,6 +1307,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         supportsReasoningMode: true,
         reasoningModeNotes:
           "Reasoning modes are available, but token limits are lower than o1.",
+        compositeScores: compositeScoresFor("openai:o1-preview"),
       },
       {
         value: "o1-mini",
@@ -1149,6 +1331,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         },
         supportsReasoningMode: false,
         reasoningModeNotes: "Reasoning modes are not exposed for o1 Mini.",
+        compositeScores: compositeScoresFor("openai:o1-mini"),
       },
       {
         value: "o3",
@@ -1199,6 +1382,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         supportsReasoningMode: true,
         reasoningModeNotes:
           "Reasoning modes mirror the o3 defaults while keeping spend approachable.",
+        compositeScores: compositeScoresFor("openai:o3-mini"),
       },
       {
         value: "o4-mini",
@@ -1228,6 +1412,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         supportsReasoningMode: true,
         reasoningModeNotes:
           "Pricing is still stabilizing as o4 rolls out—confirm latest rates with OpenAI.",
+        compositeScores: compositeScoresFor("openai:o4-mini"),
       },
     ],
   },
@@ -1239,9 +1424,9 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
     description:
       "Gemini brings Google’s massive context windows and real-time search instincts to your creative studio.",
     placeholder: "AIza...",
-    defaultModel: "gemini-2.5-flash",
+    defaultModel: "gemini-3-flash-preview",
     defaultReasoningMode: "none",
-    reasoningModes: ["none", "low", "high"],
+    reasoningModes: ["none", "low", "medium", "high"],
     maxOutputTokens: {
       default: 65_536,
       max: 65_536,
@@ -1261,42 +1446,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         "Flash and Flash Lite support disabling reasoning with 0. Pro always thinks but lets you set a ceiling or use auto (-1).",
     },
     models: [
-      {
-        value: "gemini-3-pro-preview",
-        label: "Gemini 3 Pro Preview",
-        tagline: "Most powerful agentic and coding model",
-        description:
-          "Gemini 3 Pro is designed to tackle the most challenging agentic problems with strong coding and state-of-the-art reasoning capabilities. It is the best model for complex multimodal understanding.",
-        recommendedFor:
-          "Complex agentic problems, coding tasks, and multimodal understanding.",
-        highlights: [
-          "State-of-the-art reasoning",
-          "Best multimodal understanding",
-          "Strong coding capabilities",
-        ],
-        release: "2025-11-18",
-        contextWindow: 1_000_000,
-        contextWindowUnit: "tokens",
-        featured: true,
-        isMultimodal: true,
-        supportsImageInput: true,
-        supportsPDFInput: true,
-        maxOutputTokens: {
-          default: 64_000,
-          max: 64_000,
-          description: "Output token limit is 64k for Gemini 3 Pro Preview.",
-        },
-        supportsReasoningMode: true,
-        reasoningModes: ["low", "high"],
-        cost: usdCost({ input: 2.00, output: 12.00 }),
-        compositeScores: compositeScoresFor("gemini:gemini-3-pro-preview"),
-        reasoningModeNotes:
-          "Supports 'low' (fast) and 'high' (thorough) reasoning levels. Legacy token budgets are not supported. Pricing shown is for prompts <= 200k tokens; > 200k tokens: $4.00 input / $18.00 output.",
-        reasoningTokens: {
-          helper:
-            "Gemini 3 Pro uses 'low' or 'high' reasoning levels instead of a token budget. Use the Reasoning Effort dropdown.",
-        },
-      },
+
       {
         value: "gemini-2.5-flash",
         label: "Gemini 2.5 Flash",
@@ -1370,6 +1520,86 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
           allowDisable: true,
         },
         compositeScores: compositeScoresFor("gemini:gemini-2.5-flash-lite"),
+      },
+      {
+        value: "gemini-3-flash-preview",
+        label: "Gemini 3 Flash (Preview)",
+        tagline: "Reasoning at Flash speed",
+        description:
+          "Gemini 3 Flash combines Gemini 3 Pro's reasoning capabilities with the Flash line's levels on latency, efficiency, and cost. Designed to tackle complex agentic workflows.",
+        recommendedFor:
+          "Complex agentic workflows, everyday tasks requiring reasoning, and latency-sensitive applications.",
+        highlights: [
+          "Reasoning + Speed",
+          "Multimodal outputs",
+          "Low latency",
+        ],
+        release: "Dec 2025",
+        contextWindow: 1_048_576,
+        contextWindowUnit: "tokens",
+        featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 65_536,
+          max: 65_536,
+          description: "Gemini 3 Flash supports up to 65,536 output tokens.",
+        },
+        supportsReasoningMode: true,
+        reasoningModes: ["none", "low", "medium", "high"],
+        defaultReasoningMode: "low",
+        reasoningTokens: {
+          helper:
+            "Gemini 3 Flash uses 'Thinking Level' (mapped from Reasoning Effort) instead of a raw token budget.",
+        },
+        cost: usdCost({ input: 0.5, output: 3.0, notes: "Preview pricing" }),
+        compositeScores: compositeScoresFor("gemini:gemini-3-flash-preview"),
+        supportsMediaResolution: true,
+        reasoningModeNotes:
+          "Uses Thinking Level: Low (Minimal/Low), Medium, or High.",
+      },
+      {
+        value: "gemini-3-pro-preview",
+        label: "Gemini 3 Pro (Preview)",
+        tagline: "Advanced reasoning & knowledge",
+        description:
+          "The first model in the Gemini 3 series, best for complex tasks requiring broad world knowledge and advanced reasoning across modalities.",
+        recommendedFor:
+          "Complex tasks, advanced reasoning, and broad knowledge requirements.",
+        highlights: [
+          "Advanced Reasoning",
+          "Broad Knowledge",
+          "Multimodal",
+        ],
+        release: "Preview",
+        contextWindow: 1_048_576,
+        contextWindowUnit: "tokens",
+        featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 65_536,
+          max: 65_536,
+          description: "Gemini 3 Pro supports up to 65,536 output tokens.",
+        },
+        supportsReasoningMode: true,
+        reasoningModes: ["none", "low", "medium", "high"],
+        defaultReasoningMode: "medium",
+        supportsMediaResolution: true,
+        reasoningTokens: {
+          helper:
+            "Gemini 3 Pro uses 'Thinking Level' (mapped from Reasoning Effort) instead of a raw token budget.",
+        },
+        cost: usdCost({
+          input: 2.0,
+          output: 12.0,
+          notes: "Preview pricing (<200k input). >200k: $4/$18.",
+        }),
+        compositeScores: compositeScoresFor("gemini:gemini-3-pro-preview"),
+        reasoningModeNotes:
+          "Uses Thinking Level: Low (Minimal/Low), Medium, or High.",
       },
       {
         value: "gemini-2.5-pro",
@@ -1588,6 +1818,9 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         },
         supportsReasoningMode: false,
         cost: usdCost({ input: 3, output: 15 }),
+        compositeScores: compositeScoresFor(
+          "anthropic:claude-3-7-sonnet-latest"
+        ),
         reasoningTokens: {
           min: 0,
           max: 64_000,
@@ -1726,6 +1959,9 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         },
         supportsReasoningMode: false,
         cost: usdCost({ input: 0.8, output: 4 }),
+        compositeScores: compositeScoresFor(
+          "anthropic:claude-3-5-haiku-latest"
+        ),
       },
     ],
   },
@@ -1880,6 +2116,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         supportsReasoningMode: true,
         reasoningModeNotes:
           "Mini inherits Grok's deliberate reasoning options, but xAI still keeps the thinking budget automatic.",
+        compositeScores: compositeScoresFor("grok:grok-3-mini"),
       },
       {
         value: "grok-code-fast-1",

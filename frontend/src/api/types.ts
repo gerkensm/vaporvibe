@@ -82,6 +82,7 @@ export interface ModelMetadata {
   cost?: ModelCostInfo;
   compositeScores?: ModelCompositeScores;
   supportsReasoningMode?: boolean;
+  supportsMediaResolution?: boolean;
 }
 
 export interface AdminProviderInfo {
@@ -92,6 +93,7 @@ export interface AdminProviderInfo {
   reasoningTokensEnabled?: boolean;
   reasoningTokens?: number;
   apiKeyMask: string;
+  mediaResolution?: string;
 }
 
 export interface AdminRuntimeInfo {
@@ -216,6 +218,7 @@ export interface AdminStateResponse {
     string,
     { mode: boolean; tokens: boolean }
   >;
+  providerMediaResolutionCapabilities: Record<string, boolean>;
 }
 
 export interface AdminHistoryResponse {

@@ -20,6 +20,7 @@ export interface AdminProviderInfo {
   reasoningTokensEnabled?: boolean;
   reasoningTokens?: number;
   apiKeyMask: string;
+  mediaResolution?: string;
 }
 
 export interface AdminRuntimeInfo {
@@ -151,6 +152,7 @@ export interface AdminStateResponse {
     ModelProvider,
     { mode: boolean; tokens: boolean }
   >;
+  providerMediaResolutionCapabilities: Record<ModelProvider, boolean>;
 }
 
 export interface AdminHistoryResponse {

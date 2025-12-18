@@ -40,6 +40,7 @@ export interface ProviderSettings {
   reasoningMode: ReasoningMode;
   reasoningTokensEnabled?: boolean;
   reasoningTokens?: number;
+  mediaResolution?: "low" | "medium" | "high" | "ultra_high";
 }
 
 export interface LlmUsageMetrics {
@@ -141,6 +142,7 @@ export interface ProviderSettingsSummary {
   reasoningMode: ReasoningMode;
   reasoningTokensEnabled?: boolean;
   reasoningTokens?: number;
+  mediaResolution?: "low" | "medium" | "high" | "ultra_high";
   apiKeyMask?: string;
 }
 

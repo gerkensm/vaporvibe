@@ -15,11 +15,30 @@ import type {
 import { logger } from "../logger.js";
 import { GenerateContentConfig } from "@google/genai";
 import { ThinkingLevel } from "@google/genai";
+import { MediaResolution } from "@google/genai";
+
 
 type ContentPart =
   | { text: string }
   | { inlineData: { data: string; mimeType: string } };
 type ContentMessage = { role?: string; parts: ContentPart[] };
+
+function mapMediaResolution(
+  resolution: "low" | "medium" | "high" | "ultra_high" | undefined
+): MediaResolution | undefined {
+  if (!resolution) return undefined;
+  switch (resolution) {
+    case "low":
+      return MediaResolution.MEDIA_RESOLUTION_LOW;
+    case "medium":
+      return MediaResolution.MEDIA_RESOLUTION_MEDIUM;
+    case "high":
+    case "ultra_high":
+      return MediaResolution.MEDIA_RESOLUTION_HIGH;
+    default:
+      return undefined;
+  }
+}
 
 
 export class GeminiClient implements LlmClient {
@@ -71,6 +90,13 @@ export class GeminiClient implements LlmClient {
     if (this.settings.maxOutputTokens) {
       config.maxOutputTokens = this.settings.maxOutputTokens;
     }
+
+    const mediaResolution = mapMediaResolution(this.settings.mediaResolution);
+    if (mediaResolution) {
+      // @ts-ignore - mediaResolution is not yet in @google/genai types
+      config.mediaResolution = mediaResolution;
+    }
+
     if (systemMessages.length > 0) {
       config.systemInstruction = {
         role: "system",
@@ -90,10 +116,13 @@ export class GeminiClient implements LlmClient {
     }, "GeminiClient: includeThoughts calculation");
 
     if (includeThoughts) {
-      if (this.settings.model.includes("gemini-3-pro")) {
+      if (this.settings.model.includes("gemini-3") || this.settings.model.includes("gemini-2.0-flash-thinking")) {
         config.thinkingConfig = {
           includeThoughts: true,
-          thinkingLevel: this.settings.reasoningMode === "low" ? ThinkingLevel.LOW : ThinkingLevel.HIGH,
+          thinkingLevel:
+            this.settings.reasoningMode === "low"
+              ? ThinkingLevel.LOW
+              : ThinkingLevel.HIGH,
         };
       } else {
         const budget =
@@ -482,8 +511,8 @@ function extractGeminiThinking(
 }
 
 export function shouldEnableGeminiThoughts(settings: ProviderSettings): boolean {
-  // For gemini-3-pro and similar models that use thinkingLevel (reasoningMode)
-  if (settings.model.includes("gemini-3-pro")) {
+  // For gemini-3-pro, gemini-3-flash and similar models that use thinkingLevel (reasoningMode)
+  if (settings.model.includes("gemini-3")) {
     // These models use reasoningMode (low/high/none)
     if (settings.reasoningMode === "none") {
       return false;

@@ -3,6 +3,7 @@ trigger: always_on
 globs: **/*
 ---
 
+  ___api_admin["admin"] --> components_ABWorkspaceShell_tsx
   __Notifications["Notifications"] --> components_ABWorkspaceShell_tsx
   ___api_types["types"] --> components_ABWorkspaceShell_tsx
   __ConfirmationModal["ConfirmationModal"] --> components_ABWorkspaceShell_tsx
