@@ -63,6 +63,9 @@ export class GeminiClient implements LlmClient {
       const parts: ContentPart[] = [{ text: message.content }];
       if (message.attachments?.length) {
         for (const attachment of message.attachments) {
+          if (!attachment.base64) {
+            continue;
+          }
           if (
             attachment.mimeType.startsWith("image/") ||
             attachment.mimeType === "application/pdf"

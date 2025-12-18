@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { ServerResponse } from "node:http";
+import JSZip from "jszip";
 import type { Logger } from "pino";
 import { ADMIN_ROUTE_PREFIX } from "../constants.js";
 import {
@@ -38,6 +39,7 @@ import type {
   RestMutationRecord,
   RestQueryRecord,
 } from "../types.js";
+import { createHistoryArchiveZip } from "../utils/history-archive.js";
 import { createLlmClient } from "../llm/factory.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
 import { readBody } from "../utils/body.js";
@@ -73,6 +75,7 @@ import type {
 } from "../types/admin-api.js";
 
 const JSON_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.json`;
+const ZIP_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.zip`;
 const MARKDOWN_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history/prompt.md`;
 
 interface AdminControllerOptions {
@@ -141,6 +144,11 @@ export class AdminController {
 
     if (method === "GET" && subPath === "/history.json") {
       this.handleHistoryJson(context);
+      return true;
+    }
+
+    if (method === "GET" && subPath === "/history.zip") {
+      await this.handleHistoryArchive(context, reqLogger);
       return true;
     }
 
@@ -368,7 +376,8 @@ export class AdminController {
         const entries = await this.importHistorySnapshot(
           snapshotInput,
           reqLogger,
-          sid
+          sid,
+          body.files ?? []
         );
         const state = await this.buildAdminStateResponse();
         const payload: AdminUpdateResponse = {
@@ -754,7 +763,7 @@ export class AdminController {
       providerLocked: this.state.providerLocked,
       totalHistoryCount: sortedHistory.length,
       sessionCount,
-      exportJsonUrl: JSON_EXPORT_PATH,
+      exportJsonUrl: ZIP_EXPORT_PATH,
       exportMarkdownUrl: MARKDOWN_EXPORT_PATH,
       providerKeyStatuses: providerKeyStatuses as Record<
         ModelProvider,
@@ -828,6 +837,54 @@ export class AdminController {
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("Content-Disposition", "attachment; filename=history.json");
     res.end(payload);
+  }
+
+  private async handleHistoryArchive(
+    context: RequestContext,
+    reqLogger: Logger
+  ): Promise<void> {
+    const { res } = context;
+    if (this.sessionStore.hasAnyActiveFork()) {
+      this.respondJson(
+        res,
+        {
+          success: false,
+          message: "Cannot export history while an A/B test is active",
+        },
+        409
+      );
+      return;
+    }
+
+    const history = this.sessionStore.exportHistory();
+    const snapshot = createHistorySnapshot({
+      history,
+      brief: this.state.brief,
+      briefAttachments: cloneAttachments(this.state.briefAttachments),
+      runtime: this.state.runtime,
+      provider: this.state.provider,
+    });
+
+    try {
+      const archive = await createHistoryArchiveZip(snapshot);
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=history.zip"
+      );
+      res.end(archive);
+    } catch (error) {
+      reqLogger.error({ err: error }, "Failed to create snapshot archive");
+      this.respondJson(
+        res,
+        {
+          success: false,
+          message: "Failed to export snapshot archive",
+        },
+        500
+      );
+    }
   }
 
   private handlePromptMarkdown(context: RequestContext): void {
@@ -1480,9 +1537,55 @@ export class AdminController {
       : "1:1";
   }
 
+  private hydrateImportedAttachments(
+    attachments: BriefAttachment[] | undefined,
+    assets: Map<string, Buffer>
+  ): BriefAttachment[] {
+    if (!attachments || attachments.length === 0) {
+      return [];
+    }
+
+    return attachments.map((attachment) => {
+      const safeName =
+        (attachment.name || attachment.id || "attachment").replace(
+          /[^a-zA-Z0-9._-]+/g,
+          "-",
+        ) || "attachment";
+
+      const blobName =
+        typeof attachment.blobName === "string" && attachment.blobName.trim().length > 0
+          ? attachment.blobName.trim()
+          : `attachments/${safeName}`;
+
+      const base64FromAssets = (() => {
+        const candidateKeys = [
+          blobName,
+          typeof attachment.blobName === "string" ? attachment.blobName.trim() : undefined,
+          attachment.name ? `attachments/${attachment.name}` : undefined,
+          attachment.id ? `attachments/${attachment.id}` : undefined,
+        ].filter((value): value is string => !!value && value.trim().length > 0);
+
+        for (const key of candidateKeys) {
+          if (assets.has(key)) {
+            return assets.get(key)?.toString("base64");
+          }
+        }
+        return undefined;
+      })();
+
+      const base64 =
+        typeof attachment.base64 === "string" && attachment.base64.trim().length > 0
+          ? attachment.base64.trim()
+          : base64FromAssets;
+
+      return { ...attachment, blobName, base64 };
+    });
+  }
+
   private async hydrateImportedImages(
     historyEntries: HistoryEntry[],
-    reqLogger: Logger
+    reqLogger: Logger,
+    assets: Map<string, Buffer>
   ): Promise<void> {
     const writePromises: Promise<unknown>[] = [];
 
@@ -1508,9 +1611,22 @@ export class AdminController {
           image.url && image.url.trim().length > 0
             ? image.url
             : getGeneratedImagePath(cacheKey).route;
-        const base64 =
-          typeof image.base64 === "string" && image.base64.trim().length > 0
-            ? image.base64.trim()
+        const base64 = (() => {
+          if (typeof image.base64 === "string" && image.base64.trim().length > 0) {
+            return image.base64.trim();
+          }
+          const blobName =
+            typeof image.blobName === "string" && image.blobName.trim().length > 0
+              ? image.blobName.trim()
+              : undefined;
+          if (blobName && assets.has(blobName)) {
+            return assets.get(blobName)?.toString("base64");
+          }
+          return undefined;
+        })();
+        const blobName =
+          typeof image.blobName === "string" && image.blobName.trim().length > 0
+            ? image.blobName.trim()
             : undefined;
 
         if (base64) {
@@ -1533,6 +1649,7 @@ export class AdminController {
           ratio,
           provider,
           modelId,
+          blobName,
           mimeType:
             typeof image.mimeType === "string" && image.mimeType.trim().length > 0
               ? image.mimeType
@@ -1549,6 +1666,71 @@ export class AdminController {
     if (writePromises.length > 0) {
       await Promise.all(writePromises);
     }
+  }
+
+  private async parseSnapshotPayload(
+    snapshotInput: unknown,
+    files: ParsedFile[]
+  ): Promise<{ snapshot: HistorySnapshot; assets: Map<string, Buffer> }> {
+    const assets = new Map<string, Buffer>();
+
+    const primaryFile = files.at(0);
+    if (primaryFile) {
+      const buffer = primaryFile.data;
+      const isZip =
+        primaryFile.mimeType === "application/zip"
+        || (primaryFile.filename?.toLowerCase().endsWith(".zip") ?? false);
+
+      if (isZip) {
+        const archive = await JSZip.loadAsync(buffer);
+        const manifest = archive.file("history.json");
+        if (!manifest) {
+          throw new Error("Snapshot archive is missing history.json");
+        }
+
+        const manifestJson = await manifest.async("string");
+        const snapshot = JSON.parse(manifestJson) as HistorySnapshot;
+
+        const assetEntries = Object.values(archive.files).filter(
+          (file) => !file.dir && file.name !== "history.json"
+        );
+
+        for (const entry of assetEntries) {
+          const content = await entry.async("nodebuffer");
+          assets.set(entry.name, Buffer.from(content));
+        }
+
+        return { snapshot, assets };
+      }
+
+      if (!buffer.length) {
+        throw new Error("History snapshot payload is empty");
+      }
+      const textPayload = buffer.toString("utf8");
+      const snapshot = JSON.parse(textPayload) as HistorySnapshot;
+      return { snapshot, assets };
+    }
+
+    if (typeof snapshotInput === "string") {
+      const trimmed = snapshotInput.trim();
+      if (!trimmed) {
+        throw new Error("History snapshot payload is empty");
+      }
+      try {
+        const snapshot = JSON.parse(trimmed) as HistorySnapshot;
+        return { snapshot, assets };
+      } catch (error) {
+        throw new Error(
+          `Invalid snapshot JSON: ${(error as Error).message ?? String(error)} `
+        );
+      }
+    }
+
+    if (snapshotInput && typeof snapshotInput === "object") {
+      return { snapshot: snapshotInput as HistorySnapshot, assets };
+    }
+
+    throw new Error("Provide a history snapshot JSON payload");
   }
 
   private async handleHistoryImport(
@@ -1570,7 +1752,7 @@ export class AdminController {
     if (snapshotInput == null || (typeof snapshotInput === "string" && !snapshotInput.trim())) {
       this.redirectWithMessage(
         res,
-        "History import failed: no JSON provided",
+        "History import failed: no snapshot provided",
         true
       );
       return;
@@ -1583,7 +1765,8 @@ export class AdminController {
       const entries = await this.importHistorySnapshot(
         snapshotInput,
         reqLogger,
-        sid
+        sid,
+        body.files ?? []
       );
       this.redirectWithMessage(
         res,
@@ -1600,27 +1783,13 @@ export class AdminController {
   private async importHistorySnapshot(
     snapshotInput: unknown,
     reqLogger: Logger,
-    sid: string
+    sid: string,
+    files: ParsedFile[]
   ): Promise<number> {
-    let snapshot: HistorySnapshot;
-
-    if (typeof snapshotInput === "string") {
-      const trimmed = snapshotInput.trim();
-      if (!trimmed) {
-        throw new Error("History snapshot payload is empty");
-      }
-      try {
-        snapshot = JSON.parse(trimmed) as HistorySnapshot;
-      } catch (error) {
-        throw new Error(
-          `Invalid snapshot JSON: ${(error as Error).message ?? String(error)} `
-        );
-      }
-    } else if (snapshotInput && typeof snapshotInput === "object") {
-      snapshot = snapshotInput as HistorySnapshot;
-    } else {
-      throw new Error("Provide a history snapshot JSON payload");
-    }
+    const { snapshot, assets } = await this.parseSnapshotPayload(
+      snapshotInput,
+      files
+    );
 
     if (snapshot.version !== 1) {
       throw new Error("Unsupported snapshot version");
@@ -1636,10 +1805,13 @@ export class AdminController {
       ...entry,
       createdAt: entry.createdAt,
       response: entry.response,
-      briefAttachments: cloneAttachments(entry.briefAttachments),
+      briefAttachments: this.hydrateImportedAttachments(
+        cloneAttachments(entry.briefAttachments),
+        assets
+      ),
     }));
 
-    await this.hydrateImportedImages(historyEntries, reqLogger);
+    await this.hydrateImportedImages(historyEntries, reqLogger, assets);
     this.sessionStore.replaceSessionHistory(sid, historyEntries);
 
     if (typeof snapshot.brief === "string") {
@@ -1648,13 +1820,21 @@ export class AdminController {
       this.state.brief = null;
     }
 
-    if (Array.isArray(snapshot.briefAttachments)) {
-      this.state.briefAttachments = cloneAttachments(
-        snapshot.briefAttachments as BriefAttachment[]
-      );
+    const hydratedAttachments = Array.isArray(snapshot.briefAttachments)
+      ? this.hydrateImportedAttachments(
+          snapshot.briefAttachments as BriefAttachment[],
+          assets
+        )
+      : undefined;
+
+    if (hydratedAttachments) {
+      this.state.briefAttachments = hydratedAttachments;
     } else {
       const latestAttachments = historyEntries.at(-1)?.briefAttachments;
-      this.state.briefAttachments = cloneAttachments(latestAttachments);
+      this.state.briefAttachments = this.hydrateImportedAttachments(
+        cloneAttachments(latestAttachments),
+        assets
+      );
     }
 
     if (snapshot.runtime && typeof snapshot.runtime === "object") {

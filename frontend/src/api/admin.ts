@@ -184,8 +184,26 @@ export async function submitRuntimeUpdate(
 }
 
 export async function submitHistoryImport(
-  snapshot: unknown
+  snapshot: File | string
 ): Promise<AdminUpdateResponse> {
+  if (snapshot instanceof File) {
+    const formData = new FormData();
+    formData.append("snapshotFile", snapshot);
+
+    const response = await fetch("/api/admin/history/import", {
+      method: "POST",
+      credentials: "same-origin",
+      body: formData,
+    });
+
+    const payload = (await response.json()) as AdminUpdateResponse;
+    if (!response.ok || !payload.success) {
+      throw new Error(payload.message || "History import failed");
+    }
+
+    return payload;
+  }
+
   return requestJson<AdminUpdateResponse>(
     "/api/admin/history/import",
     {

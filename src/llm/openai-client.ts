@@ -37,6 +37,9 @@ export class OpenAiClient implements LlmClient {
       ];
       if (message.attachments?.length) {
         for (const attachment of message.attachments) {
+          if (!attachment.base64) {
+            continue;
+          }
           const mimeType = attachment.mimeType.toLowerCase();
           if (mimeType.startsWith("image/")) {
             const imageContent: InputContentPart = {

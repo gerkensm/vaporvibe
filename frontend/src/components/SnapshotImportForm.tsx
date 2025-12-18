@@ -1,3 +1,4 @@
+import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 
 import { submitHistoryImport } from "../api/admin";
@@ -9,14 +10,6 @@ type AsyncStatus = "idle" | "loading" | "success" | "error";
 
 type StatusMessage = { tone: "info" | "error"; message: string } | null;
 
-type SnapshotPreview = {
-  historyCount: number;
-  attachmentCount: number;
-  briefIncluded: boolean;
-  provider?: string;
-  model?: string;
-};
-
 interface SnapshotImportFormProps {
   onState: (state: AdminStateResponse) => void;
   onHistoryRefresh: () => void;
@@ -26,16 +19,6 @@ interface SnapshotImportFormProps {
   onExternalFilesHandled?: () => void;
   standalone?: boolean;
 }
-
-type FileInfo = { name: string; size: number };
-
-type SnapshotCandidate = Record<string, unknown> & {
-  version?: number;
-  history?: unknown;
-  briefAttachments?: unknown;
-  brief?: unknown;
-  llm?: unknown;
-};
 
 export function SnapshotImportForm({
   onState,
@@ -47,10 +30,7 @@ export function SnapshotImportForm({
   standalone = true,
 }: SnapshotImportFormProps) {
   const { notify } = useNotifications();
-  const [inputText, setInputText] = useState("");
-  const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null);
-  const [preview, setPreview] = useState<SnapshotPreview | null>(null);
-  const [parseError, setParseError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [status, setStatus] = useState<StatusMessage>(null);
   const [saving, setSaving] = useState<AsyncStatus>("idle");
 
@@ -59,153 +39,52 @@ export function SnapshotImportForm({
     setSaving("idle");
   }, []);
 
-  const validateSnapshot = useCallback((source: string) => {
-    const trimmed = source.trim();
-    if (!trimmed) {
-      throw new Error("Paste or upload a snapshot JSON file first.");
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(trimmed);
-    } catch (error) {
-      throw new Error(
-        `Failed to parse JSON: ${(error as Error).message ?? String(error)}`
-      );
-    }
-
-    if (!parsed || typeof parsed !== "object") {
-      throw new Error("Snapshot must be a JSON object.");
-    }
-
-    const candidate = parsed as SnapshotCandidate;
-    if (candidate.version !== 1) {
-      throw new Error("Snapshot version must equal 1.");
-    }
-    if (!Array.isArray(candidate.history)) {
-      throw new Error("Snapshot must include a history array.");
-    }
-
-    const historyCount = candidate.history.length;
-    const attachmentCount = Array.isArray(candidate.briefAttachments)
-      ? candidate.briefAttachments.length
-      : 0;
-    const briefIncluded = Boolean(
-      typeof candidate.brief === "string" && candidate.brief.trim().length > 0
-    );
-
-    const llm =
-      candidate.llm && typeof candidate.llm === "object"
-        ? (candidate.llm as Record<string, unknown>)
-        : null;
-
-    const provider =
-      llm && typeof llm.provider === "string" ? (llm.provider as string) : undefined;
-    const model =
-      llm && typeof llm.model === "string" ? (llm.model as string) : undefined;
-
-    return {
-      snapshot: candidate,
-      summary: {
-        historyCount,
-        attachmentCount,
-        briefIncluded,
-        provider,
-        model,
-      } as SnapshotPreview,
-    };
-  }, []);
-
-  const handleFileSelect = useCallback(
-    async (file: File) => {
-      try {
-        const text = await file.text();
-        setInputText(text);
-        setSelectedFile({ name: file.name, size: file.size });
-        const { summary } = validateSnapshot(text);
-        setPreview(summary);
-        setParseError(null);
-        setStatus({
-          tone: "info",
-          message: `Loaded snapshot from ${file.name}`,
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        setPreview(null);
-        setParseError(message);
-        setStatus({ tone: "error", message });
-        notify("error", message);
-      }
-    },
-    [notify, validateSnapshot]
-  );
-
   const handleUploadChange = useCallback(
     (files: File[]) => {
-      if (files.length === 0) {
+      if (!files.length) {
         setSelectedFile(null);
-        setPreview(null);
-        setParseError(null);
         resetStatus();
         return;
       }
 
-      const [file] = files;
-      resetStatus();
-      void handleFileSelect(file);
-    },
-    [handleFileSelect, resetStatus]
-  );
-
-  const handlePreview = useCallback(() => {
-    resetStatus();
-    try {
-      const { summary } = validateSnapshot(inputText);
-      setPreview(summary);
-      setParseError(null);
+      const file = files[0];
+      setSelectedFile(file);
       setStatus({
         tone: "info",
-        message: `Snapshot ready with ${summary.historyCount} entries`,
+        message: `Loaded ${file.name} (${file.size.toLocaleString()} bytes)`,
       });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      setPreview(null);
-      setParseError(message);
-      setStatus({ tone: "error", message });
-      notify("error", message);
-    }
-  }, [inputText, notify, resetStatus, validateSnapshot]);
+    },
+    [resetStatus]
+  );
 
   useEffect(() => {
-    if (!externalFiles || externalFiles.length === 0) {
-      return;
+    if (externalFiles?.length) {
+      handleUploadChange(externalFiles);
+      onExternalFilesHandled?.();
     }
-    resetStatus();
-    handleUploadChange(externalFiles);
-    onExternalFilesHandled?.();
-  }, [externalFiles, handleUploadChange, onExternalFilesHandled, resetStatus]);
+  }, [externalFiles, handleUploadChange, onExternalFilesHandled]);
 
   const handleSubmit = useCallback(
-    async (event?: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
+    async (event?: React.FormEvent<HTMLFormElement> | React.MouseEvent) => {
       event?.preventDefault();
+      if (!selectedFile) {
+        const message = "Choose a snapshot file to import.";
+        setStatus({ tone: "error", message });
+        notify("error", message);
+        return;
+      }
+
       setSaving("loading");
-      setStatus(null);
       try {
-        const { snapshot, summary } = validateSnapshot(inputText);
-        const response = await submitHistoryImport(snapshot);
-        if (!response.success) {
-          throw new Error(response.message || "History import failed");
-        }
+        const response = await submitHistoryImport(selectedFile);
         if (response.state) {
           onState(response.state);
         }
         onHistoryRefresh();
-        setPreview(summary);
-        setParseError(null);
-        setSelectedFile(null);
-        setInputText("");
         setStatus({ tone: "info", message: response.message });
+        notify("info", response.message);
         setSaving("success");
+        setSelectedFile(null);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         setStatus({ tone: "error", message });
@@ -213,17 +92,17 @@ export function SnapshotImportForm({
         setSaving("error");
       }
     },
-    [inputText, notify, onHistoryRefresh, onState, validateSnapshot]
+    [notify, onHistoryRefresh, onState, selectedFile]
   );
 
   const uploaderLabel =
     context === "setup"
       ? "Drop a saved session snapshot"
-      : "Drop or paste a history snapshot";
+      : "Drop or paste a snapshot file";
   const uploaderHint =
     context === "setup"
-      ? "Upload a previous history.json to jump back into that improvisation."
-      : "Drop a saved history.json, paste it from the clipboard, or browse to upload.";
+      ? "Upload a previous snapshot (.zip or .json) to jump back into that improvisation."
+      : "Drop a saved snapshot (.zip recommended) or browse to upload.";
 
   const importButtonProps = standalone
     ? { type: "submit" as const, onClick: undefined }
@@ -244,12 +123,12 @@ export function SnapshotImportForm({
       <AttachmentUploader
         className="admin-import__uploader"
         name="snapshotUpload"
-        accept="application/json,.json"
+        accept="application/json,application/zip,.json,.zip"
         multiple={false}
         label={uploaderLabel}
         hint={uploaderHint}
         browseLabel="Browse snapshot"
-        pasteHint="or paste JSON from your clipboard"
+        pasteHint="or paste a snapshot file"
         variant="history"
         emptyStatus="No snapshot file selected yet."
         onFilesChange={handleUploadChange}
@@ -257,101 +136,42 @@ export function SnapshotImportForm({
 
       {selectedFile ? (
         <p className="admin-import__file" aria-live="polite">
-          Loaded snapshot: {selectedFile.name} · {selectedFile.size.toLocaleString()} bytes
+          Ready to import: {selectedFile.name} · {selectedFile.size.toLocaleString()} bytes
         </p>
       ) : (
         <p className="admin-import__helper">
-          You can also paste the snapshot JSON into the editor below.
+          Drag a snapshot archive (.zip) or JSON export into this panel, or click browse to upload.
         </p>
       )}
 
-      <label className="admin-field snapshot-import__editor">
-        <span className="admin-field__label">Snapshot JSON</span>
-        <textarea
-          className="snapshot-import__textarea"
-          value={inputText}
-          onChange={(event) => {
-            setInputText(event.target.value);
-            setSelectedFile(null);
-            setPreview(null);
-            setParseError(null);
-            resetStatus();
-          }}
-          rows={10}
-          spellCheck={false}
-          placeholder="Paste the JSON snapshot here or drop a file above."
-        />
-        {parseError ? (
-          <p className="admin-field__error" role="alert">
-            {parseError}
-          </p>
-        ) : (
-          <p className="admin-field__helper">
-            You can paste the contents of an exported history snapshot to import without upload.
-          </p>
-        )}
-      </label>
-
       <div className="admin-import__actions">
-        <button type="button" className="admin-secondary" onClick={handlePreview}>
-          Preview snapshot
+        <button type="button" className="admin-secondary" onClick={resetStatus}>
+          Reset
         </button>
         <button
           className="admin-primary"
-          disabled={saving === "loading"}
+          disabled={saving === "loading" || !selectedFile}
           {...importButtonProps}
         >
           {saving === "loading" ? "Importing…" : "Import snapshot"}
         </button>
       </div>
-
-      {preview ? (
-        <div className="admin-import__summary" aria-live="polite">
-          <h3>Snapshot details</h3>
-          <dl className="admin-import__preview">
-            <div>
-              <dt>History entries</dt>
-              <dd>{preview.historyCount.toLocaleString()}</dd>
-            </div>
-            <div>
-              <dt>Attachments</dt>
-              <dd>{preview.attachmentCount}</dd>
-            </div>
-            <div>
-              <dt>Brief included</dt>
-              <dd>{preview.briefIncluded ? "Yes" : "No"}</dd>
-            </div>
-            {preview.provider ? (
-              <div>
-                <dt>Provider</dt>
-                <dd>
-                  {preview.provider}
-                  {preview.model ? ` · ${preview.model}` : ""}
-                </dd>
-              </div>
-            ) : null}
-          </dl>
-        </div>
-      ) : null}
     </>
   );
 
-  if (standalone) {
-    return (
-      <form className={`snapshot-import ${className}`.trim()} onSubmit={handleSubmit}>
-        {content}
-      </form>
-    );
+  if (!standalone) {
+    return content;
   }
 
   return (
-    <div
-      className={`snapshot-import ${className}`.trim()}
-      role="form"
-      aria-label="History snapshot import"
+    <form
+      className={`admin-import ${className}`.trim()}
+      method="post"
+      onSubmit={handleSubmit}
+      aria-live="polite"
     >
       {content}
-    </div>
+    </form>
   );
 }
 

@@ -1,9 +1,9 @@
 {
-  "generated": "2025-12-18T03:18:56.357Z",
+  "generated": "2025-12-18T13:49:14.301Z",
   "backend": {
     "basePath": "src",
-    "totalModules": 50,
-    "externalPackages": 19,
+    "totalModules": 51,
+    "externalPackages": 20,
     "modules": {
       "cli/args.ts": {
         "imports": {
@@ -686,6 +686,9 @@
               "PROVIDER_MODEL_METADATA",
               "CUSTOM_MODEL_DESCRIPTION"
             ],
+            "../utils/history-archive.js": [
+              "createHistoryArchiveZip"
+            ],
             "../llm/factory.js": [
               "createLlmClient"
             ],
@@ -765,11 +768,14 @@
             ],
             "pino": [
               "Logger"
+            ],
+            "jszip": [
+              "default as JSZip"
             ]
           }
         },
         "importedBy": [],
-        "importCount": 20
+        "importCount": 22
       },
       "server/brief-attachments.ts": {
         "imports": {
@@ -1111,6 +1117,7 @@
           "server/session-store.ts",
           "types/admin-api.ts",
           "utils/config-store.ts",
+          "utils/history-archive.ts",
           "utils/history-export.ts",
           "utils/instructions-panel.ts"
         ],
@@ -1253,6 +1260,30 @@
         },
         "importedBy": [],
         "importCount": 4
+      },
+      "utils/history-archive.ts": {
+        "imports": {
+          "internal": {
+            "./history-export.js": [
+              "createHistorySnapshot"
+            ],
+            "../types.js": [
+              "BriefAttachment",
+              "GeneratedImage",
+              "HistoryEntry",
+              "HistorySnapshot"
+            ]
+          },
+          "external": {
+            "jszip": [
+              "default as JSZip"
+            ]
+          }
+        },
+        "importedBy": [
+          "server/admin-controller.ts"
+        ],
+        "importCount": 3
       },
       "utils/history-export.ts": {
         "imports": {
@@ -1531,6 +1562,13 @@
           "server/server.ts"
         ],
         "count": 4
+      },
+      "jszip": {
+        "usedBy": [
+          "server/admin-controller.ts",
+          "utils/history-archive.ts"
+        ],
+        "count": 2
       },
       "node:http": {
         "usedBy": [

@@ -80,9 +80,11 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
       lines.push(`### Attachment ${index + 1}: ${attachment.name}`);
       lines.push(`- MIME Type: ${attachment.mimeType}`);
       lines.push(`- Size: ${attachment.size} bytes`);
-      lines.push("```base64");
-      lines.push(attachment.base64);
-      lines.push("```");
+      if (attachment.base64) {
+        lines.push("```base64");
+        lines.push(attachment.base64);
+        lines.push("```");
+      }
       lines.push("");
     });
   }
@@ -192,9 +194,11 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
         lines.push(
           `- Brief Attachment ${attachmentIndex + 1}: ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes)`
         );
-        lines.push("```base64");
-        lines.push(attachment.base64);
-        lines.push("```");
+        if (attachment.base64) {
+          lines.push("```base64");
+          lines.push(attachment.base64);
+          lines.push("```");
+        }
       });
     }
     lines.push("- Generated HTML:");

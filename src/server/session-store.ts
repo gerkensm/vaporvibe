@@ -1062,6 +1062,10 @@ function normalizeGeneratedImages(
         typeof image.base64 === "string" && image.base64.trim().length > 0
           ? image.base64
           : undefined;
+      const blobName =
+        typeof image.blobName === "string" && image.blobName.trim().length > 0
+          ? image.blobName.trim()
+          : undefined;
       const id =
         typeof image.id === "string" && image.id.trim().length > 0
           ? image.id
@@ -1081,6 +1085,10 @@ function normalizeGeneratedImages(
 
       if (base64) {
         result.base64 = base64;
+      }
+
+      if (blobName) {
+        result.blobName = blobName;
       }
 
       return result;

@@ -3,6 +3,21 @@ trigger: glob
 globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+  components --> Notifications
+  components --> ConfirmationModal
+  components --> SnapshotImportForm
+  components --> AttachmentUploader
+  interceptor_ts --> interceptor_branch_utils
+  main_tsx --> App
+  pages --> components
+  pages --> api
+  pages --> constants
+  pages --> assets
+  pages --> AdminDashboard
+
+  classDef serverNode fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+  classDef llmNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+  classDef viewNode fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
   classDef utilNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px
 ```
 

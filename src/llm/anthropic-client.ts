@@ -55,8 +55,10 @@ type AnthropicStream = AsyncIterable<AnthropicStreamEvent> & {
   close?(): Promise<void>;
 };
 
+type AttachmentWithData = BriefAttachment & { base64: string };
+
 function createAnthropicImageContent(
-  attachment: BriefAttachment,
+  attachment: AttachmentWithData,
 ): AnthropicRequestContent {
   const mediaType = attachment.mimeType?.toLowerCase().startsWith("image/")
     ? attachment.mimeType
@@ -118,9 +120,19 @@ export class AnthropicClient implements LlmClient {
       ];
       if (message.attachments?.length) {
         for (const attachment of message.attachments) {
+          if (!attachment.base64) {
+            continue;
+          }
+          const attachmentWithData: AttachmentWithData = {
+            ...attachment,
+            base64: attachment.base64,
+          };
           if (attachment.mimeType.startsWith("image/")) {
             content.push(
-              applyCacheControl(createAnthropicImageContent(attachment), message.cacheControl)
+              applyCacheControl(
+                createAnthropicImageContent(attachmentWithData),
+                message.cacheControl,
+              )
             );
           } else {
             const descriptor =
@@ -129,7 +141,10 @@ export class AnthropicClient implements LlmClient {
               applyCacheControl({ type: "text", text: descriptor }, message.cacheControl)
             );
             content.push(
-              applyCacheControl({ type: "text", text: attachment.base64 }, message.cacheControl)
+              applyCacheControl(
+                { type: "text", text: attachmentWithData.base64 },
+                message.cacheControl,
+              )
             );
           }
         }

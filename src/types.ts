@@ -19,7 +19,8 @@ export interface BriefAttachment {
   name: string;
   mimeType: string;
   size: number;
-  base64: string;
+  base64?: string;
+  blobName?: string;
 }
 
 export interface CacheControlSettings {
@@ -113,6 +114,7 @@ export interface GeneratedImage {
   modelId: ImageModelId;
   mimeType: string;
   base64?: string;
+  blobName?: string;
   createdAt: string;
 }
 

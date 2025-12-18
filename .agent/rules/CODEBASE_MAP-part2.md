@@ -3,6 +3,11 @@ trigger: always_on
 globs: **/*
 ---
 
+#### `llm/grok-client.ts`
+
+**Internal Imports:**
+
+- From `../logger.js`: `logger`
 - From `../types.js`: `ChatMessage`, `LlmReasoningTrace`, `LlmUsageMetrics`, `ProviderSettings`, `VerificationResult`
 - From `./client.js`: `LlmClient`, `LlmResult`, `LlmGenerateOptions`
 
@@ -70,6 +75,7 @@ globs: **/*
 
 - From `../constants.js`: `ADMIN_ROUTE_PREFIX`, `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`
 - From `../constants/providers.js`: `PROVIDER_CHOICES`, `PROVIDER_LABELS`, `PROVIDER_PLACEHOLDERS`, `PROVIDER_REASONING_CAPABILITIES`, `PROVIDER_MEDIA_RESOLUTION_CAPABILITIES`, `PROVIDER_REASONING_MODES`, `PROVIDER_TOKEN_GUIDANCE`, `DEFAULT_MODEL_BY_PROVIDER`, `DEFAULT_MAX_TOKENS_BY_PROVIDER`, `REASONING_MODE_CHOICES`, `getModelOptions`, `getModelMetadata`, `getFeaturedModels`, `PROVIDER_MODEL_METADATA`, `CUSTOM_MODEL_DESCRIPTION`
+- From `../utils/history-archive.js`: `createHistoryArchiveZip`
 - From `../llm/factory.js`: `createLlmClient`
 - From `../llm/verification.js`: `verifyProviderApiKey`
 - From `../utils/body.js`: `readBody`, `ParsedFile`
@@ -91,6 +97,7 @@ globs: **/*
 - From `node:crypto`: `randomUUID`
 - From `node:http`: `ServerResponse`
 - From `pino`: `Logger`
+- From `jszip`: `default as JSZip`
 
 #### `server/brief-attachments.ts`
 
@@ -256,6 +263,17 @@ _No imports_
 - From `node:path`: `dirname`, `resolve`
 - From `node:url`: `fileURLToPath`
 
+#### `utils/history-archive.ts`
+
+**Internal Imports:**
+
+- From `./history-export.js`: `createHistorySnapshot`
+- From `../types.js`: `BriefAttachment`, `GeneratedImage`, `HistoryEntry`, `HistorySnapshot`
+
+**External Imports:**
+
+- From `jszip`: `default as JSZip`
+
 #### `utils/history-export.ts`
 
 **Internal Imports:**
@@ -353,18 +371,3 @@ graph TD
   components --> ConfirmationModal
   components --> SnapshotImportForm
   components --> AttachmentUploader
-  interceptor_ts --> interceptor_branch_utils
-  main_tsx --> App
-  pages --> components
-  pages --> api
-  pages --> constants
-  pages --> assets
-  pages --> AdminDashboard
-
-  classDef serverNode fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
-  classDef llmNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
-  classDef viewNode fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
-  classDef utilNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-```
-
----

@@ -5,6 +5,7 @@ export interface AdminBriefAttachment {
   size: number;
   dataUrl: string;
   isImage: boolean;
+  blobName?: string;
 }
 
 export interface AdminGeneratedImage {
@@ -17,6 +18,7 @@ export interface AdminGeneratedImage {
   modelId: string;
   mimeType: string;
   createdAt: string;
+  blobName?: string;
 }
 
 export interface AdminRestMutationItem {

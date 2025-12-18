@@ -39,7 +39,9 @@ export function estimateHistoryEntrySize(entry: HistoryEntry): number {
   }
   if (entry.briefAttachments?.length) {
     for (const attachment of entry.briefAttachments) {
-      fragments.push(attachment.base64);
+      if (attachment.base64) {
+        fragments.push(attachment.base64);
+      }
       fragments.push(attachment.name);
       fragments.push(attachment.mimeType);
     }

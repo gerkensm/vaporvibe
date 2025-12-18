@@ -87,7 +87,7 @@ function HistorySnapshotControls({
   const importHint = useMemo(() => {
     return importOpen
       ? "Drop a snapshot anywhere in this panel to load it."
-      : "Drop a history.json here or click to import.";
+      : "Drop a snapshot file here or click to import.";
   }, [importOpen]);
 
   const exportHint = useMemo(() => {
@@ -176,7 +176,7 @@ function HistorySnapshotControls({
               onClick={handleDisabledLink}
               tabIndex={forkActive ? -1 : 0}
             >
-              Download JSON snapshot
+              Download snapshot (.zip)
             </a>
             <a
               className="admin-secondary admin-secondary--link"
