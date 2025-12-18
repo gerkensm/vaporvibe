@@ -1,5 +1,5 @@
 {
-  "generated": "2025-12-18T01:20:20.762Z",
+  "generated": "2025-12-18T02:28:11.833Z",
   "backend": {
     "basePath": "src",
     "totalModules": 50,
@@ -51,6 +51,7 @@
               "AppConfig",
               "ModelProvider",
               "ImageModelId",
+              "ImageGenConfig",
               "ProviderSettings",
               "ReasoningMode",
               "RuntimeConfig"
@@ -1527,7 +1528,7 @@
   },
   "frontend": {
     "basePath": "frontend/src",
-    "totalModules": 24,
+    "totalModules": 25,
     "externalPackages": 5,
     "modules": {
       "api/admin.ts": {
@@ -1557,6 +1558,7 @@
           "components/ABWorkspaceShell.tsx",
           "components/HistoryExplorer.tsx",
           "components/HistorySnapshotControls.tsx",
+          "components/ImageModelSelector.tsx",
           "components/ModelInspector.tsx",
           "components/ModelSelector.tsx",
           "components/ResumeSessionCallout.tsx",
@@ -1721,6 +1723,22 @@
           "pages/AdminDashboard.tsx"
         ],
         "importCount": 3
+      },
+      "components/ImageModelSelector.tsx": {
+        "imports": {
+          "internal": {
+            "../api/types": [
+              "AdminImageGenerationInfo"
+            ]
+          },
+          "external": {
+            "react": [
+              "useMemo"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 2
       },
       "components/index.ts": {
         "imports": {
@@ -1945,6 +1963,7 @@
             "../components": [
               "AttachmentUploader",
               "ModelSelector",
+              "ImageModelSelector",
               "TokenBudgetControl",
               "CustomModelConfig"
             ],
@@ -2047,6 +2066,7 @@
           "components/ConfirmationModal.tsx",
           "components/HistoryExplorer.tsx",
           "components/HistorySnapshotControls.tsx",
+          "components/ImageModelSelector.tsx",
           "components/ModelInspector.tsx",
           "components/ModelSelector.tsx",
           "components/Notifications.tsx",
@@ -2056,7 +2076,7 @@
           "main.tsx",
           "pages/AdminDashboard.tsx"
         ],
-        "count": 13
+        "count": 14
       },
       "react-dom": {
         "usedBy": [

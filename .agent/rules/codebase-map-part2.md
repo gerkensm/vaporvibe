@@ -3,6 +3,7 @@ trigger: glob
 globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+- From `./capabilities.js`: `supportsImageInput`
 - From `../types.js`: `ChatMessage`, `LlmReasoningTrace`, `LlmUsageMetrics`, `ProviderSettings`, `VerificationResult`, `ReasoningMode`
 - From `./client.js`: `LlmClient`, `LlmResult`, `LlmGenerateOptions`, `LlmStreamObserver`
 
@@ -314,7 +315,7 @@ _No imports_
 
 ## Frontend (frontend/src/)
 
-**Total Modules**: 24  
+**Total Modules**: 25  
 **External Packages**: 5
 
 ---
@@ -325,7 +326,7 @@ _No imports_
 graph TD
   root["root/<br/>6 modules"]
   api["api/<br/>2 modules"]
-  components["components/<br/>12 modules"]:::viewNode
+  components["components/<br/>13 modules"]:::viewNode
   constants["constants/<br/>1 modules"]
   pages["pages/<br/>3 modules"]
   App_tsx --> components
@@ -369,4 +370,3 @@ graph LR
   __pages_AdminDashboard["AdminDashboard"] --> App_tsx
   __pages_AbTestWorkspacePage["AbTestWorkspacePage"] --> App_tsx
   __pages_SetupWizard["SetupWizard"] --> App_tsx
-  components_ABWorkspaceShell_tsx["ABWorkspaceShell.tsx"]

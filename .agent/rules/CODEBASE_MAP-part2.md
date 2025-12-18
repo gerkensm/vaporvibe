@@ -314,7 +314,7 @@ _No imports_
 
 ## Frontend (frontend/src/)
 
-**Total Modules**: 24  
+**Total Modules**: 25  
 **External Packages**: 5
 
 ---
@@ -325,7 +325,7 @@ _No imports_
 graph TD
   root["root/<br/>6 modules"]
   api["api/<br/>2 modules"]
-  components["components/<br/>12 modules"]:::viewNode
+  components["components/<br/>13 modules"]:::viewNode
   constants["constants/<br/>1 modules"]
   pages["pages/<br/>3 modules"]
   App_tsx --> components

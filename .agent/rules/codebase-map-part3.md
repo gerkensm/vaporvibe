@@ -3,6 +3,7 @@ trigger: glob
 globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+  components_ABWorkspaceShell_tsx["ABWorkspaceShell.tsx"]
   ___api_admin["admin"] --> components_ABWorkspaceShell_tsx
   __Notifications["Notifications"] --> components_ABWorkspaceShell_tsx
   ___api_types["types"] --> components_ABWorkspaceShell_tsx
@@ -23,8 +24,8 @@ globs: **/package.json, **/src/**, **/frontend/src/**
   main_tsx["main.tsx"]
   __App["App"] --> main_tsx
   components_ConfirmationModal_tsx["ConfirmationModal.tsx"]
-  components_ModelInspector_tsx["ModelInspector.tsx"]
-  ___api_types["types"] --> components_ModelInspector_tsx
+  components_ImageModelSelector_tsx["ImageModelSelector.tsx"]
+  ___api_types["types"] --> components_ImageModelSelector_tsx
 ```
 
 ---
@@ -33,7 +34,7 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 
 #### `react`
 
-Used by 13 module(s)
+Used by 14 module(s)
 
 #### `react-router-dom`
 
@@ -126,6 +127,16 @@ _No imports_
 **External Imports:**
 
 - From `react`: `useCallback`, `useEffect`, `useMemo`, `useState`, `DragEvent`, `MouseEvent`
+
+#### `components/ImageModelSelector.tsx`
+
+**Internal Imports:**
+
+- From `../api/types`: `AdminImageGenerationInfo`
+
+**External Imports:**
+
+- From `react`: `useMemo`
 
 #### `components/index.ts`
 
@@ -230,7 +241,7 @@ _No imports_
 
 **Internal Imports:**
 
-- From `../components`: `AttachmentUploader`, `ModelSelector`, `TokenBudgetControl`, `CustomModelConfig`
+- From `../components`: `AttachmentUploader`, `ModelSelector`, `ImageModelSelector`, `TokenBudgetControl`, `CustomModelConfig`
 - From `../api/admin`: `fetchAdminState`, `fetchAdminHistory`, `deleteHistoryEntry`, `deleteAllHistoryEntries`, `submitBriefUpdate`, `submitProviderUpdate`, `submitRuntimeUpdate`, `verifyProviderKey`, `type ProviderUpdatePayload`, `type RuntimeUpdatePayload`
 - From `../constants/runtime`: `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`, `DEFAULT_HISTORY_MAX_BYTES`
 - From `../components/Notifications`: `useNotifications`
