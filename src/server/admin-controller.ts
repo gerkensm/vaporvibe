@@ -699,21 +699,19 @@ export class AdminController {
       reasoningTokensEnabled: this.state.provider.reasoningTokensEnabled,
       reasoningTokens: this.state.provider.reasoningTokens,
       apiKeyMask: maskSensitive(this.state.provider.apiKey),
+      mediaResolution: this.state.provider.mediaResolution,
+      imageGeneration: {
+        enabled: this.state.provider.imageGeneration.enabled,
+        provider: this.state.provider.imageGeneration.provider,
+        modelId: this.state.provider.imageGeneration.modelId,
+        hasApiKey: await this.hasImageProviderKey(this.state.provider.imageGeneration.provider),
+      },
     };
-
-    const imageProvider = this.state.runtime.imageGeneration.provider;
-    const hasImageKey = await this.hasImageProviderKey(imageProvider);
 
     const runtimeInfo: AdminRuntimeInfo = {
       historyLimit: this.state.runtime.historyLimit,
       historyMaxBytes: this.state.runtime.historyMaxBytes,
       includeInstructionPanel: this.state.runtime.includeInstructionPanel,
-      imageGeneration: {
-        enabled: this.state.runtime.imageGeneration.enabled,
-        provider: imageProvider,
-        modelId: this.state.runtime.imageGeneration.modelId,
-        hasApiKey: hasImageKey,
-      },
     };
 
     const providerKeyStatuses = await this.computeProviderKeyStatuses();
@@ -1083,6 +1081,7 @@ export class AdminController {
       reasoningTokensEnabled: storedReasoningTokensEnabled,
       reasoningTokens: finalReasoningTokens,
       apiKey: apiKeyCandidate,
+      imageGeneration: this.state.provider.imageGeneration,
     };
 
     if (!updatedSettings.apiKey || updatedSettings.apiKey.trim().length === 0) {
@@ -1135,6 +1134,16 @@ export class AdminController {
 
     this.applyProviderEnv(updatedSettings);
 
+    // Handle nested image generation settings if provided
+    const imageGenerationRaw =
+      typeof data.imageGeneration === "object" && data.imageGeneration
+        ? (data.imageGeneration as Record<string, unknown>)
+        : null;
+
+    if (imageGenerationRaw) {
+      await this.applyImageGenerationUpdate(imageGenerationRaw, reqLogger);
+    }
+
     // Persist LLM settings to config store
     const configStore = getConfigStore();
     configStore.setLlmSettings({
@@ -1150,14 +1159,72 @@ export class AdminController {
       }),
     });
 
-
-
     reqLogger.info(
       { provider },
       "Updated LLM provider settings via admin interface"
     );
 
-    return { message: "Provider configuration updated" };
+    return {
+      message: "Provider configuration updated"
+    };
+  }
+
+  private async applyImageGenerationUpdate(
+    data: Record<string, unknown>,
+    reqLogger: Logger
+  ): Promise<void> {
+    const enabled =
+      typeof data.enabled === "boolean"
+        ? data.enabled
+        : this.state.provider.imageGeneration.enabled;
+
+    const allowedImageModels: ImageModelId[] = [
+      "gpt-image-1.5",
+      "dall-e-3",
+      "gemini-2.5-flash-image",
+      "gemini-3-pro-image-preview",
+      "imagen-3.0-generate-002",
+      "imagen-4.0-fast-generate-001",
+    ];
+
+    const modelId =
+      typeof data.modelId === "string" &&
+        allowedImageModels.includes(data.modelId as ImageModelId)
+        ? (data.modelId as ImageModelId)
+        : this.state.provider.imageGeneration.modelId;
+
+    const provider: ImageGenProvider =
+      modelId.startsWith("gemini") || modelId.startsWith("imagen")
+        ? "gemini"
+        : "openai";
+
+    const apiKey = typeof data.apiKey === "string" ? data.apiKey.trim() : "";
+
+    this.state.provider.imageGeneration.enabled = enabled;
+    this.state.provider.imageGeneration.provider = provider;
+    this.state.provider.imageGeneration.modelId = modelId;
+
+    if (apiKey) {
+      await this.credentialStore.saveApiKey(provider, apiKey);
+    }
+
+    // Persist image generation settings to config store
+    const configStore = getConfigStore();
+    configStore.setImageGeneration({
+      enabled,
+      provider,
+      modelId,
+    });
+
+    reqLogger.debug(
+      {
+        enabled,
+        provider,
+        modelId,
+        apiKeyProvided: Boolean(apiKey),
+      },
+      "Updated image generation settings"
+    );
   }
 
   private async applyProviderVerification(
@@ -1272,75 +1339,22 @@ export class AdminController {
       includeInstructionPanel = false;
     }
 
-    const imageGenerationRaw =
-      typeof data.imageGeneration === "object" && data.imageGeneration
-        ? (data.imageGeneration as Record<string, unknown>)
-        : null;
-    const imageGenerationEnabled =
-      typeof imageGenerationRaw?.enabled === "boolean"
-        ? imageGenerationRaw.enabled
-        : this.state.runtime.imageGeneration.enabled;
-    const allowedImageModels: ImageModelId[] = [
-      "gpt-image-1.5",
-      "dall-e-3",
-      "gemini-2.5-flash-image",
-      "gemini-3-pro-image-preview",
-      "imagen-3.0-generate-002",
-      "imagen-4.0-fast-generate-001",
-    ];
-    const imageGenerationModelId =
-      typeof imageGenerationRaw?.modelId === "string" &&
-        allowedImageModels.includes(
-          imageGenerationRaw.modelId as ImageModelId
-        )
-        ? (imageGenerationRaw.modelId as ImageModelId)
-        : this.state.runtime.imageGeneration.modelId;
-    const imageGenerationProvider: ImageGenProvider =
-      imageGenerationModelId.startsWith("gemini") ||
-        imageGenerationModelId.startsWith("imagen")
-        ? "gemini"
-        : "openai";
-    const imageGenerationApiKey =
-      typeof imageGenerationRaw?.apiKey === "string"
-        ? imageGenerationRaw.apiKey.trim()
-        : undefined;
-
     this.state.runtime.historyLimit = historyLimit;
     this.state.runtime.historyMaxBytes = historyMaxBytes;
     this.state.runtime.includeInstructionPanel = includeInstructionPanel;
-    this.state.runtime.imageGeneration.enabled = imageGenerationEnabled;
-    this.state.runtime.imageGeneration.provider = imageGenerationProvider;
-    this.state.runtime.imageGeneration.modelId = imageGenerationModelId;
-
-    if (imageGenerationApiKey) {
-      await this.credentialStore.saveApiKey(
-        imageGenerationProvider,
-        imageGenerationApiKey
-      );
-    }
-
-    // Persist image generation settings to config store
-    const configStore = getConfigStore();
-    configStore.setImageGeneration({
-      enabled: imageGenerationEnabled,
-      provider: imageGenerationProvider,
-      modelId: imageGenerationModelId,
-    });
 
     reqLogger.info(
       {
         historyLimit,
         historyMaxBytes,
         includeInstructionPanel,
-        imageGenerationEnabled,
-        imageGenerationProvider,
-        imageGenerationModelId,
-        imageGenerationApiKeyProvided: Boolean(imageGenerationApiKey),
       },
       "Updated runtime settings via admin interface"
     );
 
-    return { message: "Runtime settings saved" };
+    return {
+      message: "Runtime settings saved"
+    };
   }
 
   private async handleRuntimeUpdate(
@@ -1584,14 +1598,14 @@ export class AdminController {
       }
       if (runtimeData.imageGeneration) {
         if (typeof runtimeData.imageGeneration.enabled === "boolean") {
-          this.state.runtime.imageGeneration.enabled =
+          this.state.provider.imageGeneration.enabled =
             runtimeData.imageGeneration.enabled;
         }
         if (
           runtimeData.imageGeneration.provider === "openai" ||
           runtimeData.imageGeneration.provider === "gemini"
         ) {
-          this.state.runtime.imageGeneration.provider =
+          this.state.provider.imageGeneration.provider =
             runtimeData.imageGeneration.provider;
         }
         if (
@@ -1605,7 +1619,7 @@ export class AdminController {
             "imagen-4.0-fast-generate-001",
           ].includes(runtimeData.imageGeneration.modelId)
         ) {
-          this.state.runtime.imageGeneration.modelId =
+          this.state.provider.imageGeneration.modelId =
             runtimeData.imageGeneration.modelId as ImageModelId;
         }
       }

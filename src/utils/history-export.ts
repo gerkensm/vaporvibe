@@ -36,6 +36,7 @@ export function createHistorySnapshot(context: HistoryExportContext): HistorySna
     reasoningTokensEnabled: provider.reasoningTokensEnabled,
     reasoningTokens: provider.reasoningTokens,
     apiKeyMask: maskSensitive(provider.apiKey),
+    imageGeneration: provider.imageGeneration,
   };
 
   return {
@@ -48,9 +49,11 @@ export function createHistorySnapshot(context: HistoryExportContext): HistorySna
       historyLimit: runtime.historyLimit,
       historyMaxBytes: runtime.historyMaxBytes,
       includeInstructionPanel: runtime.includeInstructionPanel,
-      imageGeneration: runtime.imageGeneration,
     },
-    llm: providerSummary,
+    llm: {
+      ...providerSummary,
+      imageGeneration: provider.imageGeneration,
+    },
   };
 }
 
@@ -92,11 +95,13 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
   lines.push(`- History Limit (prompt context): ${runtime.historyLimit}`);
   lines.push(`- History Byte Budget: ${runtime.historyMaxBytes}`);
   lines.push(`- Instruction Panel Enabled: ${runtime.includeInstructionPanel ? "yes" : "no"}`);
-  lines.push(
-    `- Image Generation: ${runtime.imageGeneration.enabled ? "enabled" : "disabled"}`
-  );
-  lines.push(`- Image Provider: ${runtime.imageGeneration.provider}`);
-  lines.push(`- Image Model: ${runtime.imageGeneration.modelId}`);
+  if (provider.imageGeneration.enabled) {
+    lines.push(
+      `- Image Generation: ${provider.imageGeneration.provider} (${provider.imageGeneration.modelId})`
+    );
+  } else {
+    lines.push(`- Image Generation: disabled`);
+  }
   lines.push("");
 
   history.forEach((entry, index) => {

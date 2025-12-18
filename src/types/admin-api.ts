@@ -21,13 +21,13 @@ export interface AdminProviderInfo {
   reasoningTokens?: number;
   apiKeyMask: string;
   mediaResolution?: string;
+  imageGeneration: AdminImageGenerationInfo;
 }
 
 export interface AdminRuntimeInfo {
   historyLimit: number;
   historyMaxBytes: number;
   includeInstructionPanel: boolean;
-  imageGeneration: AdminImageGenerationInfo;
 }
 
 export interface AdminImageGenerationInfo {

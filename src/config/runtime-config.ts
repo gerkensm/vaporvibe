@@ -17,6 +17,7 @@ import type {
   AppConfig,
   ModelProvider,
   ImageModelId,
+  ImageGenConfig,
   ProviderSettings,
   ReasoningMode,
   RuntimeConfig,
@@ -36,6 +37,7 @@ export async function resolveAppConfig(
   const providerResolution = await determineProvider(options, env);
   const providerSettings = await resolveProviderSettings(
     providerResolution.provider,
+    providerResolution.providersWithKeys,
     options,
     env
   );
@@ -92,23 +94,6 @@ function resolveRuntime(
     parsePositiveInt(env.HISTORY_MAX_BYTES) ??
     DEFAULT_HISTORY_MAX_BYTES;
 
-  // Load persisted settings from config store
-  const configStore = getConfigStore();
-  const persistedImageGenSettings = configStore.getImageGeneration();
-
-  // Image generation: CLI > Env > Persisted > Defaults
-  const imageGenerationEnabled =
-    (env.IMAGE_GENERATION_ENABLED ?? "").toLowerCase() === "true" ||
-    (persistedImageGenSettings?.enabled ?? false);
-  const imageGenerationProvider =
-    (env.IMAGE_GENERATION_PROVIDER as "openai" | "gemini" | undefined) ??
-    persistedImageGenSettings?.provider ??
-    "openai";
-  const imageGenerationModel =
-    (env.IMAGE_GENERATION_MODEL as ImageModelId | undefined) ??
-    persistedImageGenSettings?.modelId ??
-    "gpt-image-1.5";
-
   const runtime: RuntimeConfig = {
     port,
     host,
@@ -119,21 +104,50 @@ function resolveRuntime(
     sessionTtlMs: SESSION_TTL_MS,
     sessionCap: SESSION_CAP,
     includeInstructionPanel: parseInstructionPanelSetting(instructionSetting),
-    imageGeneration: {
-      enabled: imageGenerationEnabled,
-      provider: imageGenerationProvider,
-      modelId: imageGenerationModel,
-    },
   };
-  if (typeof maxOutputTokens === "number") {
-    // Allow runtime override via env even if provider settings pick defaults later
-    // The provider resolver will respect this if present.
-  }
   return runtime;
+}
+
+function resolveImageGenConfig(
+  env: NodeJS.ProcessEnv,
+  detectedProviders: ModelProvider[]
+): ImageGenConfig {
+  const configStore = getConfigStore();
+  const persisted = configStore.getImageGeneration();
+
+  const hasGeminiKey = detectedProviders.includes("gemini");
+  const hasOpenAiKey = detectedProviders.includes("openai");
+
+  // Default provider: use Gemini if only Gemini keys exist, otherwise OpenAI
+  const defaultProvider = hasGeminiKey && !hasOpenAiKey ? "gemini" : "openai";
+  const defaultModel =
+    defaultProvider === "gemini"
+      ? "imagen-3.0-generate-002"
+      : "gpt-image-1.5";
+
+  // Image generation: Env > Persisted > Defaults
+  const enabled =
+    (env.IMAGE_GENERATION_ENABLED ?? "").toLowerCase() === "true" ||
+    (persisted?.enabled ?? false);
+  const provider =
+    (env.IMAGE_GENERATION_PROVIDER as "openai" | "gemini" | undefined) ??
+    persisted?.provider ??
+    defaultProvider;
+  const modelId =
+    (env.IMAGE_GENERATION_MODEL as ImageModelId | undefined) ??
+    persisted?.modelId ??
+    defaultModel;
+
+  return {
+    enabled,
+    provider,
+    modelId,
+  };
 }
 
 async function resolveProviderSettings(
   provider: ModelProvider,
+  detectedProviders: ModelProvider[],
   options: CliOptions,
   env: NodeJS.ProcessEnv
 ): Promise<ProviderSettings> {
@@ -143,6 +157,7 @@ async function resolveProviderSettings(
     parsePositiveInt(env.MAX_OUTPUT_TOKENS) ??
     parsePositiveInt(env.MAX_TOKENS);
   const reasoning = resolveReasoningOptions(options, env);
+  const imageGeneration = resolveImageGenConfig(env, detectedProviders);
 
   // Load persisted settings
   const configStore = getConfigStore();
@@ -183,6 +198,7 @@ async function resolveProviderSettings(
       maxOutputTokens,
       reasoningMode,
       reasoningTokens: undefined,
+      imageGeneration,
     };
   }
 
@@ -226,6 +242,7 @@ async function resolveProviderSettings(
       reasoningMode,
       reasoningTokensEnabled,
       reasoningTokens,
+      imageGeneration,
     };
   }
 
@@ -251,6 +268,7 @@ async function resolveProviderSettings(
       maxOutputTokens,
       reasoningMode,
       reasoningTokens: undefined,
+      imageGeneration,
     };
   }
 
@@ -284,6 +302,7 @@ async function resolveProviderSettings(
       maxOutputTokens,
       reasoningMode,
       reasoningTokens: undefined,
+      imageGeneration,
     };
   }
 
@@ -328,6 +347,7 @@ async function resolveProviderSettings(
     reasoningMode,
     reasoningTokensEnabled,
     reasoningTokens,
+    imageGeneration,
   };
 }
 

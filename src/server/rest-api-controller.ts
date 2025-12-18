@@ -121,7 +121,7 @@ export class RestApiController {
     }
 
     const env = this.getEnvironment();
-    if (!env.runtime.imageGeneration.enabled) {
+    if (!env.provider || !env.provider.imageGeneration?.enabled) {
       res.statusCode = 403;
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.end(JSON.stringify({ success: false, error: "Image generation disabled" }));
@@ -141,8 +141,8 @@ export class RestApiController {
       return;
     }
 
-    const provider: ImageGenProvider = env.runtime.imageGeneration.provider;
-    const modelId = env.runtime.imageGeneration.modelId ?? "gpt-image-1.5";
+    const provider: ImageGenProvider = env.provider.imageGeneration.provider;
+    const modelId = env.provider.imageGeneration.modelId ?? "gpt-image-1.5";
     const hash = createHash("sha256")
       .update(`${provider}:${modelId}:${prompt}:${ratio}`)
       .digest("hex");
@@ -349,7 +349,7 @@ export class RestApiController {
       adminPath: this.adminPath,
       mode: "json-query",
       branchId: normalizedBranchId,
-      imageGenerationEnabled: env.runtime.imageGeneration.enabled,
+      imageGenerationEnabled: env.provider?.imageGeneration?.enabled ?? false,
     });
 
     try {

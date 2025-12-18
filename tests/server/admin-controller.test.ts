@@ -65,6 +65,11 @@ function createState(): MutableServerState {
       reasoningTokensEnabled: false,
       maxOutputTokens: 1024,
       customModel: null,
+      imageGeneration: {
+        enabled: false,
+        provider: "openai",
+        modelId: "gpt-image-1.5",
+      },
     },
     llmClient: null,
     providerReady: false,
@@ -110,7 +115,7 @@ describe("AdminController forks", () => {
     const response = createResponse();
     const sid = sessionStore.getOrCreateSessionId({}, response);
     const entry = createHistoryEntry({
-      id: "origin", 
+      id: "origin",
       response: { html: "<html><body>Base</body></html>" },
     });
     sessionStore.appendHistoryEntry(sid, entry);

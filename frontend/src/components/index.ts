@@ -9,3 +9,6 @@ export type {
 } from "./ModelInspector";
 export { TokenBudgetControl } from "./TokenBudgetControl";
 export type { TokenBudgetControlProps } from "./TokenBudgetControl";
+export { ImageModelSelector } from "./ImageModelSelector";
+export type { ImageModelSelectorProps } from "./ImageModelSelector";
+

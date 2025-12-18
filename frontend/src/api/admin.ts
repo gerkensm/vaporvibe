@@ -105,6 +105,11 @@ export interface ProviderUpdatePayload {
   reasoningTokens?: number | null;
   mediaResolution?: string;
   apiKey?: string;
+  imageGeneration?: {
+    enabled: boolean;
+    modelId: string;
+    apiKey?: string;
+  };
 }
 
 export async function submitProviderUpdate(

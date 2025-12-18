@@ -1088,17 +1088,17 @@ export function createServerState(
   snapshot?: ServerStateSnapshot
 ): MutableServerState {
   const runtimeState: RuntimeConfig = { ...config.runtime };
-  if (!runtimeState.imageGeneration) {
-    runtimeState.imageGeneration = {
+  const providerState: ProviderSettings = { ...config.provider };
+  if (!providerState.imageGeneration) {
+    providerState.imageGeneration = {
       enabled: false,
       provider: "openai",
       modelId: "gpt-image-1.5",
     };
   }
-  if (!runtimeState.imageGeneration.modelId) {
-    runtimeState.imageGeneration.modelId = "gpt-image-1.5";
+  if (!providerState.imageGeneration.modelId) {
+    providerState.imageGeneration.modelId = "gpt-image-1.5";
   }
-  const providerState: ProviderSettings = { ...config.provider };
   const providersWithKeys = new Set<ModelProvider>(
     config.providersWithKeys
   );
@@ -1679,7 +1679,7 @@ async function handleLlmRequest(
     historyByteOmitted: byteOmitted,
     adminPath: ADMIN_ROUTE_PREFIX,
     branchId,
-    imageGenerationEnabled: state.runtime.imageGeneration.enabled,
+    imageGenerationEnabled: state.provider.imageGeneration.enabled,
   });
   reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
 
@@ -1867,7 +1867,7 @@ async function handleLlmRequest(
       renderedHtml = `${renderedHtml}${interceptorScriptTag}`;
     }
 
-    if (state.runtime.imageGeneration.enabled) {
+    if (state.provider.imageGeneration.enabled) {
       const imageRuntimeScript =
         '<script src="/runtime/ai-image.js" defer></script>';
       if (/<\/body\s*>/i.test(renderedHtml)) {

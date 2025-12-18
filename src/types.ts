@@ -41,6 +41,7 @@ export interface ProviderSettings {
   reasoningTokensEnabled?: boolean;
   reasoningTokens?: number;
   mediaResolution?: "low" | "medium" | "high" | "ultra_high";
+  imageGeneration: ImageGenConfig;
 }
 
 export interface LlmUsageMetrics {
@@ -144,6 +145,7 @@ export interface ProviderSettingsSummary {
   reasoningTokens?: number;
   mediaResolution?: "low" | "medium" | "high" | "ultra_high";
   apiKeyMask?: string;
+  imageGeneration?: ImageGenConfig;
 }
 
 export type BranchLabel = "A" | "B";
@@ -187,7 +189,7 @@ export interface HistorySnapshot {
   history: HistoryEntry[];
   runtime: Pick<
     RuntimeConfig,
-    "historyLimit" | "historyMaxBytes" | "includeInstructionPanel" | "imageGeneration"
+    "historyLimit" | "historyMaxBytes" | "includeInstructionPanel"
   >;
   llm: ProviderSettingsSummary;
 }
@@ -202,7 +204,6 @@ export interface RuntimeConfig {
   sessionTtlMs: number;
   sessionCap: number;
   includeInstructionPanel: boolean;
-  imageGeneration: ImageGenConfig;
 }
 
 export interface ImageGenConfig {
