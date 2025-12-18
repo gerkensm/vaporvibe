@@ -33,6 +33,7 @@ The controller acts as a bridge between the HTTP layer and three state systems:
 -   **`MutableServerState`**: Global config (provider settings, brief, runtime config).
 -   **`SessionStore`**: Per-session history and active forks.
 -   **`CredentialStore`**: Secure OS-native storage for API keys.
+-   **`ConfigStore`**: Persistent storage for non-sensitive settings (model, reasoning mode).
 
 ### 3. Provider Configuration Flow
 Updating a provider is complex due to validation rules:
@@ -41,7 +42,8 @@ Updating a provider is complex due to validation rules:
 3.  **Token Clamping**: Enforces min/max token limits based on provider guidance.
 4.  **Key Resolution**: Checks UI input -> CredentialStore -> Env Vars.
 5.  **Verification**: Optionally calls `verifyProviderApiKey` to test the key.
-6.  **Instantiation**: Creates a new `LlmClient` and updates the global state.
+6.  **Persistence**: Saves the new settings (model, tokens) to `ConfigStore` and API key to `CredentialStore` (if verified).
+7.  **Instantiation**: Creates a new `LlmClient` and updates the global state.
 
 ### 4. A/B Testing Lifecycle
 The controller exposes endpoints to manage forks:

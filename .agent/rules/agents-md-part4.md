@@ -3,6 +3,10 @@ trigger: always_on
 globs: **/*
 ---
 
+- **Separation of concerns and maintainability**: Always separate concerns, use different modules and proactively reflect on when a functionality needs to be carved out of a file and given its own module, function or service.
+
+### Areas for Caution ⚠️
+
 - **Focused Test Suite**: A Vitest suite now covers config loading, prompt compilation, the session store, and key utilities. It runs fast but doesn't yet exercise every provider path, so keep testing manually when touching network integrations or the SPA.
 - **macOS-Centric Builds**: `scripts/` contains complex logic for macOS `.app` and DMG creation/notarization.
 - **Inconsistent Reasoning APIs**: OpenAI/Grok use `reasoningMode`, while Anthropic/Gemini use `reasoningTokens`. Backend logic handles normalization.
@@ -24,6 +28,17 @@ globs: **/*
   - **State Management**: Frontend's `sanitizeReasoningTokens()` must return `-1` immediately for Gemini without clamping to prevent UI toggle bugs.
 
 - **Embrace the Chaos**: Guide the LLM's creativity, don't force deterministic output. Minor variations are expected.
+
+### TypeScript & Testing Best Practices
+
+To maintain a clean and error-free codebase, follow these TypeScript and testing guidelines:
+
+- **ESM Import Extensions**: Always include the `.js` file extension in relative imports (e.g., `import { foo } from './bar.js';`). This is required for NodeNext module resolution.
+- **Node.js Built-ins**: Use the `node:` prefix when importing built-in Node.js modules (e.g., `import fs from 'node:fs';`, `import path from 'node:path';`).
+- **Mock Typing**: When creating mock factories for tests (like `getLoggerMock`), return the specialized mock type (e.g., `LoggerMock`) that includes Vitest mock properties (`.mockClear()`, etc.). Cast the mock to its production interface (e.g., `as unknown as Logger`) only at the point of injection into a controller or service.
+- **Vitest 4.x Function Mocks**: Use the newer generic syntax for `vi.fn()`: `vi.fn<(arg: Type) => ReturnType>()`. Avoid the deprecated array-based `vi.fn<[Type], ReturnType>()` syntax.
+- **Provider Settings**: When creating test fixtures for `ProviderSettings`, ensure the `imageGeneration` property is included.
+- **Mandatory Type Checks**: Always run `npm run type-check` before committing. This custom script uses `tsconfig.tests.json` to perform a comprehensive check across both the `src/` and `tests/` directories.
 
 ### Contribution Workflow
 

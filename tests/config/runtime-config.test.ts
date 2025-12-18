@@ -6,7 +6,7 @@ import type { CliOptions } from "../../src/cli/args.js";
 import { getLoggerMock } from "../test-utils/logger.js";
 
 const credentialStoreMock = {
-  getApiKey: vi.fn<[], Promise<string | null>>(),
+  getApiKey: vi.fn<(provider: string) => Promise<string | null>>(),
 };
 
 vi.mock("../../src/utils/credential-store.js", () => ({
@@ -62,7 +62,7 @@ describe("resolveAppConfig", () => {
   });
 
   it("prefers stored credentials when environment lacks keys", async () => {
-    credentialStoreMock.getApiKey.mockImplementation(async (provider) =>
+    credentialStoreMock.getApiKey.mockImplementation(async (provider: string) =>
       provider === "gemini" ? "stored-gemini" : null
     );
 

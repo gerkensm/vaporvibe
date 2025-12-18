@@ -2,6 +2,9 @@ import type {
   HistoryEntryKind,
   HistoryForkInfo,
   ModelProvider,
+  ImageAspectRatio,
+  ImageGenProvider,
+  ImageModelId,
   ReasoningMode,
   RestHistoryMetadata,
 } from "../types.js";
@@ -19,12 +22,21 @@ export interface AdminProviderInfo {
   reasoningTokensEnabled?: boolean;
   reasoningTokens?: number;
   apiKeyMask: string;
+  mediaResolution?: string;
+  imageGeneration: AdminImageGenerationInfo;
 }
 
 export interface AdminRuntimeInfo {
   historyLimit: number;
   historyMaxBytes: number;
   includeInstructionPanel: boolean;
+}
+
+export interface AdminImageGenerationInfo {
+  enabled: boolean;
+  provider?: "openai" | "gemini";
+  modelId: string;
+  hasApiKey: boolean;
 }
 
 export interface AdminBriefAttachment {
@@ -34,6 +46,20 @@ export interface AdminBriefAttachment {
   size: number;
   dataUrl: string;
   isImage: boolean;
+  blobName?: string;
+}
+
+export interface AdminGeneratedImage {
+  id: string;
+  url: string;
+  downloadUrl: string;
+  prompt: string;
+  ratio: ImageAspectRatio;
+  provider: ImageGenProvider;
+  modelId: ImageModelId;
+  mimeType: string;
+  createdAt: string;
+  blobName?: string;
 }
 
 export interface AdminRestItem {
@@ -73,6 +99,7 @@ export interface AdminHistoryItem {
   reasoningDetails?: string[];
   html: string;
   attachments?: AdminBriefAttachment[];
+  generatedImages?: AdminGeneratedImage[];
   entryKind: HistoryEntryKind;
   rest?: AdminRestItem;
   restMutations?: AdminRestMutationItem[];
@@ -142,6 +169,7 @@ export interface AdminStateResponse {
     ModelProvider,
     { mode: boolean; tokens: boolean }
   >;
+  providerMediaResolutionCapabilities: Record<ModelProvider, boolean>;
 }
 
 export interface AdminHistoryResponse {

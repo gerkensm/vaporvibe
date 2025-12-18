@@ -93,6 +93,14 @@ export const PROVIDER_REASONING_CAPABILITIES: Record<ModelProvider, { mode: bool
   }),
 ) as Record<ModelProvider, { mode: boolean; tokens: boolean }>;
 
+export const PROVIDER_MEDIA_RESOLUTION_CAPABILITIES: Record<ModelProvider, boolean> = Object.fromEntries(
+  (Object.keys(PROVIDER_METADATA) as ModelProvider[]).map((provider) => {
+    const metadata = PROVIDER_METADATA[provider];
+    const supports = metadata.models.some((model) => model.supportsMediaResolution);
+    return [provider, supports] as const;
+  }),
+) as Record<ModelProvider, boolean>;
+
 export const PROVIDER_REASONING_MODES: Record<ModelProvider, ReasoningMode[]> = Object.fromEntries(
   (Object.keys(PROVIDER_METADATA) as ModelProvider[]).map((provider) => [
     provider,
@@ -115,14 +123,14 @@ export const PROVIDER_TOKEN_GUIDANCE: Record<ModelProvider, ProviderTokenGuidanc
         },
         reasoningTokens: reasoning
           ? {
-              supported: Boolean(reasoning.supported),
-              min: reasoning.min,
-              max: reasoning.max,
-              default: reasoning.default,
-              description: reasoning.description,
-              helper: reasoning.helper,
-              allowDisable: reasoning.allowDisable,
-            }
+            supported: Boolean(reasoning.supported),
+            min: reasoning.min,
+            max: reasoning.max,
+            default: reasoning.default,
+            description: reasoning.description,
+            helper: reasoning.helper,
+            allowDisable: reasoning.allowDisable,
+          }
           : undefined,
       },
     ] as const;

@@ -103,7 +103,13 @@ export interface ProviderUpdatePayload {
   reasoningMode: string;
   reasoningTokensEnabled?: boolean;
   reasoningTokens?: number | null;
+  mediaResolution?: string;
   apiKey?: string;
+  imageGeneration?: {
+    enabled: boolean;
+    modelId: string;
+    apiKey?: string;
+  };
 }
 
 export async function submitProviderUpdate(
@@ -151,6 +157,12 @@ export interface RuntimeUpdatePayload {
   historyLimit: number;
   historyMaxBytes: number;
   instructionPanel: boolean;
+  imageGeneration?: {
+    enabled: boolean;
+    provider?: "openai" | "gemini";
+    modelId: string;
+    apiKey?: string;
+  };
 }
 
 export async function submitRuntimeUpdate(
@@ -172,8 +184,26 @@ export async function submitRuntimeUpdate(
 }
 
 export async function submitHistoryImport(
-  snapshot: unknown
+  snapshot: File | string
 ): Promise<AdminUpdateResponse> {
+  if (snapshot instanceof File) {
+    const formData = new FormData();
+    formData.append("snapshotFile", snapshot);
+
+    const response = await fetch("/api/admin/history/import", {
+      method: "POST",
+      credentials: "same-origin",
+      body: formData,
+    });
+
+    const payload = (await response.json()) as AdminUpdateResponse;
+    if (!response.ok || !payload.success) {
+      throw new Error(payload.message || "History import failed");
+    }
+
+    return payload;
+  }
+
   return requestJson<AdminUpdateResponse>(
     "/api/admin/history/import",
     {

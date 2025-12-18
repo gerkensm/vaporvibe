@@ -1,5 +1,17 @@
 export type ModelProvider = "openai" | "gemini" | "anthropic" | "grok" | "groq";
 
+export type ImageGenProvider = "openai" | "gemini";
+
+export type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+
+export type ImageModelId =
+  | "gpt-image-1.5"
+  | "dall-e-3"
+  | "gemini-2.5-flash-image"
+  | "gemini-3-pro-image-preview"
+  | "imagen-3.0-generate-002"
+  | "imagen-4.0-fast-generate-001";
+
 export type ReasoningMode = "none" | "low" | "medium" | "high" | "default";
 
 export interface BriefAttachment {
@@ -7,7 +19,8 @@ export interface BriefAttachment {
   name: string;
   mimeType: string;
   size: number;
-  base64: string;
+  base64?: string;
+  blobName?: string;
 }
 
 export interface CacheControlSettings {
@@ -30,6 +43,8 @@ export interface ProviderSettings {
   reasoningMode: ReasoningMode;
   reasoningTokensEnabled?: boolean;
   reasoningTokens?: number;
+  mediaResolution?: "low" | "medium" | "high" | "ultra_high";
+  imageGeneration: ImageGenConfig;
 }
 
 export interface LlmUsageMetrics {
@@ -85,7 +100,22 @@ export interface HistoryEntry {
   rest?: RestHistoryMetadata;
   componentCache?: Record<string, string>;
   styleCache?: Record<string, string>;
+  generatedImages?: GeneratedImage[];
   forkInfo?: HistoryForkInfo;
+}
+
+export interface GeneratedImage {
+  id: string;
+  cacheKey: string;
+  url: string;
+  prompt: string;
+  ratio: ImageAspectRatio;
+  provider: ImageGenProvider;
+  modelId: ImageModelId;
+  mimeType: string;
+  base64?: string;
+  blobName?: string;
+  createdAt: string;
 }
 
 export interface RestHistoryMetadata {
@@ -131,7 +161,9 @@ export interface ProviderSettingsSummary {
   reasoningMode: ReasoningMode;
   reasoningTokensEnabled?: boolean;
   reasoningTokens?: number;
+  mediaResolution?: "low" | "medium" | "high" | "ultra_high";
   apiKeyMask?: string;
+  imageGeneration?: ImageGenConfig;
 }
 
 export type BranchLabel = "A" | "B";
@@ -190,6 +222,12 @@ export interface RuntimeConfig {
   sessionTtlMs: number;
   sessionCap: number;
   includeInstructionPanel: boolean;
+}
+
+export interface ImageGenConfig {
+  enabled: boolean;
+  provider: ImageGenProvider;
+  modelId: ImageModelId;
 }
 
 export interface AppConfig {

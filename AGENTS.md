@@ -19,6 +19,7 @@ Welcome! This guide provides the high-level context, architectural details, and 
 - **Primary Goal**: To function as a "rapid-prototyping cheat code," allowing you to validate a UX flow or interaction idea without writing any frontend or backend code.
 - **Core Philosophy**: It's an "intentionally unserious" and "cheeky thought experiment". The joy is in watching the model "make it up as it goes," embracing the creative chaos of generative AI.
 - **Key Feature**: It supports multiple LLM providers (OpenAI, Google Gemini, Anthropic, xAI Grok, and Groq), allowing you to see how different models interpret the same brief.
+- **Image Generation**: It can generate images on the fly using OpenAI (DALL-E, GPT Image 1.5) or Google (Imagen, Nano Banana, Nano Banana Pro) models, caching them in memory to prevent redundant costs.
 
 ---
 
@@ -337,6 +338,7 @@ VaporVibe displays **live reasoning streams** from LLMs that support extended th
   - `POST /api/admin/forks/:forkId/discard`: Discard an active fork and all of its branches.
 - `/rest_api/mutation/*` & `/rest_api/query/*`: Endpoints intended to be called via `fetch` from _within the LLM-generated HTML_ for lightweight state persistence or data retrieval without full page reloads. Handled by `RestApiController` (`src/server/rest-api-controller.ts`).
 - `/__vaporvibe/result/{token}`: Temporary route used by the loading shell to fetch the asynchronously generated HTML.
+- `/rest_api/image/generate`: Endpoint for generating images via the configured provider. Handled by `RestApiController`.
 
 ### A/B Testing (Forking)
 
@@ -496,6 +498,17 @@ The project includes a comprehensive suite of scripts for building, signing, and
   - **State Management**: Frontend's `sanitizeReasoningTokens()` must return `-1` immediately for Gemini without clamping to prevent UI toggle bugs.
 
 - **Embrace the Chaos**: Guide the LLM's creativity, don't force deterministic output. Minor variations are expected.
+
+### TypeScript & Testing Best Practices
+
+To maintain a clean and error-free codebase, follow these TypeScript and testing guidelines:
+
+- **ESM Import Extensions**: Always include the `.js` file extension in relative imports (e.g., `import { foo } from './bar.js';`). This is required for NodeNext module resolution.
+- **Node.js Built-ins**: Use the `node:` prefix when importing built-in Node.js modules (e.g., `import fs from 'node:fs';`, `import path from 'node:path';`).
+- **Mock Typing**: When creating mock factories for tests (like `getLoggerMock`), return the specialized mock type (e.g., `LoggerMock`) that includes Vitest mock properties (`.mockClear()`, etc.). Cast the mock to its production interface (e.g., `as unknown as Logger`) only at the point of injection into a controller or service.
+- **Vitest 4.x Function Mocks**: Use the newer generic syntax for `vi.fn()`: `vi.fn<(arg: Type) => ReturnType>()`. Avoid the deprecated array-based `vi.fn<[Type], ReturnType>()` syntax.
+- **Provider Settings**: When creating test fixtures for `ProviderSettings`, ensure the `imageGeneration` property is included.
+- **Mandatory Type Checks**: Always run `npm run type-check` before committing. This custom script uses `tsconfig.tests.json` to perform a comprehensive check across both the `src/` and `tests/` directories.
 
 ### Contribution Workflow
 

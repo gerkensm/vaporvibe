@@ -36,6 +36,7 @@ export function createHistorySnapshot(context: HistoryExportContext): HistorySna
     reasoningTokensEnabled: provider.reasoningTokensEnabled,
     reasoningTokens: provider.reasoningTokens,
     apiKeyMask: maskSensitive(provider.apiKey),
+    imageGeneration: provider.imageGeneration,
   };
 
   return {
@@ -49,7 +50,10 @@ export function createHistorySnapshot(context: HistoryExportContext): HistorySna
       historyMaxBytes: runtime.historyMaxBytes,
       includeInstructionPanel: runtime.includeInstructionPanel,
     },
-    llm: providerSummary,
+    llm: {
+      ...providerSummary,
+      imageGeneration: provider.imageGeneration,
+    },
   };
 }
 
@@ -76,9 +80,11 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
       lines.push(`### Attachment ${index + 1}: ${attachment.name}`);
       lines.push(`- MIME Type: ${attachment.mimeType}`);
       lines.push(`- Size: ${attachment.size} bytes`);
-      lines.push("```base64");
-      lines.push(attachment.base64);
-      lines.push("```");
+      if (attachment.base64) {
+        lines.push("```base64");
+        lines.push(attachment.base64);
+        lines.push("```");
+      }
       lines.push("");
     });
   }
@@ -91,6 +97,13 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
   lines.push(`- History Limit (prompt context): ${runtime.historyLimit}`);
   lines.push(`- History Byte Budget: ${runtime.historyMaxBytes}`);
   lines.push(`- Instruction Panel Enabled: ${runtime.includeInstructionPanel ? "yes" : "no"}`);
+  if (provider.imageGeneration.enabled) {
+    lines.push(
+      `- Image Generation: ${provider.imageGeneration.provider} (${provider.imageGeneration.modelId})`
+    );
+  } else {
+    lines.push(`- Image Generation: disabled`);
+  }
   lines.push("");
 
   history.forEach((entry, index) => {
@@ -181,9 +194,11 @@ export function createPromptMarkdown(context: HistoryExportContext): string {
         lines.push(
           `- Brief Attachment ${attachmentIndex + 1}: ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes)`
         );
-        lines.push("```base64");
-        lines.push(attachment.base64);
-        lines.push("```");
+        if (attachment.base64) {
+          lines.push("```base64");
+          lines.push(attachment.base64);
+          lines.push("```");
+        }
       });
     }
     lines.push("- Generated HTML:");

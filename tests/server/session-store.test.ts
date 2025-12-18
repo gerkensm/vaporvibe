@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ServerResponse } from "node:http";
 
 const { setCookieMock } = vi.hoisted(() => ({
   setCookieMock: vi.fn(),
@@ -28,13 +29,8 @@ class FakeResponse {
   }
 }
 
-type WritableResponse = NodeJS.WritableStream & {
-  getHeader(name: string): string | string[] | undefined;
-  setHeader(name: string, value: string | string[]): void;
-};
-
-function createWritableResponse(): WritableResponse {
-  return new FakeResponse() as unknown as WritableResponse;
+function createMockServerResponse(): ServerResponse {
+  return new FakeResponse() as unknown as ServerResponse;
 }
 
 describe("SessionStore", () => {
@@ -50,7 +46,7 @@ describe("SessionStore", () => {
   function seedBaseSession(
     overrides: Partial<HistoryEntry> = {}
   ): { sid: string; entry: HistoryEntry } {
-    const res = createWritableResponse();
+    const res = createMockServerResponse();
     const sid = store.getOrCreateSessionId({}, res);
     const entry = createHistoryEntry({
       response: { html: "<html><body>Origin</body></html>" },
@@ -64,7 +60,7 @@ describe("SessionStore", () => {
   }
 
   it("creates a session id and sets cookie when missing", () => {
-    const res = createWritableResponse();
+    const res = createMockServerResponse();
     const sid = store.getOrCreateSessionId({}, res);
 
     expect(sid).toMatch(/^[a-f0-9]{32}$/);
@@ -72,7 +68,7 @@ describe("SessionStore", () => {
   });
 
   it("returns existing session id without setting cookie", () => {
-    const res = createWritableResponse();
+    const res = createMockServerResponse();
     const sid = store.getOrCreateSessionId({}, res);
 
     setCookieMock.mockClear();
@@ -83,7 +79,7 @@ describe("SessionStore", () => {
   });
 
   it("tracks previous html and history entries", () => {
-    const res = createWritableResponse();
+    const res = createMockServerResponse();
     const sid = store.getOrCreateSessionId({}, res);
 
     const history: HistoryEntry = createHistoryEntry({
@@ -102,7 +98,7 @@ describe("SessionStore", () => {
   });
 
   it("clamps stored rest records and returns clones", () => {
-    const res = createWritableResponse();
+    const res = createMockServerResponse();
     const sid = store.getOrCreateSessionId({}, res);
 
     for (let index = 0; index < 30; index += 1) {
@@ -126,7 +122,7 @@ describe("SessionStore", () => {
   });
 
   it("exports and imports snapshots without sharing references", () => {
-    const res = createWritableResponse();
+    const res = createMockServerResponse();
     const sid = store.getOrCreateSessionId({}, res);
 
     store.appendHistoryEntry(
@@ -147,7 +143,7 @@ describe("SessionStore", () => {
   });
 
   it("replaces history for the current session id when importing", () => {
-    const res = createWritableResponse();
+    const res = createMockServerResponse();
     const sid = store.getOrCreateSessionId({}, res);
 
     store.appendHistoryEntry(
@@ -184,7 +180,7 @@ describe("SessionStore", () => {
   });
 
   it("appends REST history entries with preserved previous html", () => {
-    const res = createWritableResponse();
+    const res = createMockServerResponse();
     const sid = store.getOrCreateSessionId({}, res);
 
     store.setPrevHtml(sid, "<html><body>Existing</body></html>");
@@ -202,6 +198,27 @@ describe("SessionStore", () => {
     expect(restEntry.entryKind).toBe("rest-mutation");
     expect(restEntry.response.html).toContain("vaporvibe-rest-json");
     expect(store.getPrevHtml(sid)).toContain("Existing");
+  });
+
+  it("records generated images on the latest html entry", () => {
+    const { sid } = seedBaseSession({ id: "html-entry" });
+
+    store.recordGeneratedImage(sid, {
+      id: "image-1",
+      cacheKey: "hash-1",
+      url: "/generated-images/hash-1.png",
+      prompt: "A cozy reading nook",
+      ratio: "4:3",
+      provider: "openai",
+      modelId: "gpt-image-1.5",
+      mimeType: "image/png",
+      base64: "YmFzZTY0",
+      createdAt: "2024-01-01T00:00:00.000Z",
+    });
+
+    const history = store.getHistory(sid);
+    expect(history[0].generatedImages).toHaveLength(1);
+    expect(history[0].generatedImages?.[0]?.prompt).toBe("A cozy reading nook");
   });
 
   describe("fork support", () => {

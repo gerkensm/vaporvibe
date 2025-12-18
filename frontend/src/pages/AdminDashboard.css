@@ -1331,6 +1331,85 @@
   font-size: 2rem;
 }
 
+.history-item__images {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.history-item__images > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.history-item__images > summary::-webkit-details-marker {
+  display: none;
+}
+
+.history-item__images[open] > summary {
+  margin-bottom: 12px;
+}
+
+.history-item__image-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+.history-item__image-card {
+  margin: 0;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-item__image-thumb {
+  aspect-ratio: 1 / 1;
+  background: #e2e8f0;
+  display: grid;
+  place-items: center;
+}
+
+.history-item__image-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.history-item__image-meta {
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0 12px;
+}
+
+.history-item__image-prompt {
+  color: #0f172a;
+  font-size: 0.9rem;
+  padding: 0 12px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.history-item__image-actions {
+  display: flex;
+  gap: 10px;
+  padding: 0 12px 12px;
+  flex-wrap: wrap;
+}
+
 .history-item__actions {
   display: flex;
   flex-wrap: wrap;
@@ -1701,36 +1780,6 @@
   border-color: rgba(59, 130, 246, 0.45);
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(14, 165, 233, 0.08));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
-}
-
-.snapshot-import__editor .admin-field__label {
-  color: #0f172a;
-  font-weight: 600;
-}
-
-.snapshot-import__textarea {
-  min-height: 220px;
-  font-family: "JetBrains Mono", "SFMono-Regular", "Consolas", monospace;
-  font-size: 0.9rem;
-  border-radius: 16px;
-  border: 1px solid rgba(15, 23, 42, 0.2);
-  background: rgba(15, 23, 42, 0.9);
-  color: #f1f5f9;
-  padding: 16px;
-  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.2);
-}
-
-.snapshot-import__textarea:focus {
-  border-color: rgba(59, 130, 246, 0.6);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-}
-
-.snapshot-import__editor .admin-field__helper {
-  color: #cbd5f5;
-}
-
-.snapshot-import__editor .admin-field__error {
-  color: #fecaca;
 }
 
 .brief-extra-slot {

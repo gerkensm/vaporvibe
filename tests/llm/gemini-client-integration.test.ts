@@ -9,9 +9,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GeminiClient } from '../../src/llm/gemini-client.js';
 import type { LlmStreamObserver, LlmReasoningStreamEvent } from '../../src/llm/client.js';
 import type { ProviderSettings } from '../../src/types.js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -63,6 +63,7 @@ describe('GeminiClient Integration', () => {
                 reasoningTokensEnabled: true,
                 reasoningTokens: 2000,
                 reasoningMode: 'default',
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             };
 
             const client = new GeminiClient(settings);
@@ -116,6 +117,7 @@ describe('GeminiClient Integration', () => {
                 model: 'gemini-2.5-flash',
                 maxOutputTokens: 8192,
                 reasoningMode: 'default',
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             };
 
             const client = new GeminiClient(settings);
@@ -152,6 +154,7 @@ describe('GeminiClient Integration', () => {
                 model: 'gemini-3-pro-preview',
                 maxOutputTokens: 64000,
                 reasoningMode: 'high',
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             };
 
             const client = new GeminiClient(settings);
@@ -185,6 +188,7 @@ describe('GeminiClient Integration', () => {
                 model: 'gemini-3-pro-preview',
                 maxOutputTokens: 64000,
                 reasoningMode: 'low',
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             };
 
             const client = new GeminiClient(settings);
@@ -224,6 +228,7 @@ describe('GeminiClient Integration', () => {
                 model: 'gemini-3-pro-preview',
                 maxOutputTokens: 64000,
                 reasoningMode: 'high',
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             };
 
             const settingsLow: ProviderSettings = {

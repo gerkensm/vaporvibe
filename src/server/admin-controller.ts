@@ -1,4 +1,6 @@
+import { randomUUID } from "node:crypto";
 import type { ServerResponse } from "node:http";
+import JSZip from "jszip";
 import type { Logger } from "pino";
 import { ADMIN_ROUTE_PREFIX } from "../constants.js";
 import {
@@ -6,6 +8,7 @@ import {
   PROVIDER_LABELS,
   PROVIDER_PLACEHOLDERS,
   PROVIDER_REASONING_CAPABILITIES,
+  PROVIDER_MEDIA_RESOLUTION_CAPABILITIES,
   PROVIDER_REASONING_MODES,
   PROVIDER_TOKEN_GUIDANCE,
   DEFAULT_MODEL_BY_PROVIDER,
@@ -25,13 +28,18 @@ import {
 } from "../constants.js";
 import type {
   BriefAttachment,
+  GeneratedImage,
   HistoryEntry,
+  ImageAspectRatio,
+  ImageGenProvider,
+  ImageModelId,
   ProviderSettings,
   ReasoningMode,
   ModelProvider,
   RestMutationRecord,
   RestQueryRecord,
 } from "../types.js";
+import { createHistoryArchiveZip } from "../utils/history-archive.js";
 import { createLlmClient } from "../llm/factory.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
 import { readBody } from "../utils/body.js";
@@ -42,9 +50,15 @@ import {
   createHistorySnapshot,
   createPromptMarkdown,
 } from "../utils/history-export.js";
+import {
+  buildImageCacheKey,
+  writeImageCache,
+} from "../image-gen/cache.js";
+import { getGeneratedImagePath } from "../image-gen/paths.js";
 import type { MutableServerState, RequestContext } from "./server.js";
 import { SessionStore } from "./session-store.js";
 import { getCredentialStore } from "../utils/credential-store.js";
+import { getConfigStore } from "../utils/config-store.js";
 import { processBriefAttachmentFiles } from "./brief-attachments.js";
 import type {
   AdminActiveForkSummary,
@@ -61,6 +75,7 @@ import type {
 } from "../types/admin-api.js";
 
 const JSON_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.json`;
+const ZIP_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.zip`;
 const MARKDOWN_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history/prompt.md`;
 
 interface AdminControllerOptions {
@@ -77,6 +92,11 @@ interface HistorySnapshot {
     historyLimit?: number;
     historyMaxBytes?: number;
     includeInstructionPanel?: boolean;
+    imageGeneration?: {
+      enabled?: boolean;
+      provider?: ImageGenProvider | null;
+      modelId?: ImageModelId | null;
+    } | null;
   } | null;
   llm?: (Partial<ProviderSettings> & { provider?: string | null }) | null;
 }
@@ -124,6 +144,11 @@ export class AdminController {
 
     if (method === "GET" && subPath === "/history.json") {
       this.handleHistoryJson(context);
+      return true;
+    }
+
+    if (method === "GET" && subPath === "/history.zip") {
+      await this.handleHistoryArchive(context, reqLogger);
       return true;
     }
 
@@ -262,7 +287,10 @@ export class AdminController {
     if (method === "POST" && subPath === "/runtime") {
       const body = await readBody(req);
       try {
-        const { message } = this.applyRuntimeUpdate(body.data ?? {}, reqLogger);
+        const { message } = await this.applyRuntimeUpdate(
+          body.data ?? {},
+          reqLogger
+        );
         const state = await this.buildAdminStateResponse();
         const payload: AdminUpdateResponse = {
           success: true,
@@ -348,7 +376,8 @@ export class AdminController {
         const entries = await this.importHistorySnapshot(
           snapshotInput,
           reqLogger,
-          sid
+          sid,
+          body.files ?? []
         );
         const state = await this.buildAdminStateResponse();
         const payload: AdminUpdateResponse = {
@@ -645,6 +674,17 @@ export class AdminController {
     return result;
   }
 
+  private async hasImageProviderKey(provider: ImageGenProvider): Promise<boolean> {
+    if (
+      provider === this.state.provider.provider &&
+      this.state.provider.apiKey.trim().length > 0
+    ) {
+      return true;
+    }
+
+    return await this.credentialStore.hasStoredKey(provider);
+  }
+
   private async buildAdminStateResponse(): Promise<AdminStateResponse> {
     const sortedHistory = this.getSortedHistoryEntries();
     const sessionCount = new Set(sortedHistory.map((entry) => entry.sessionId))
@@ -676,6 +716,13 @@ export class AdminController {
       reasoningTokensEnabled: this.state.provider.reasoningTokensEnabled,
       reasoningTokens: this.state.provider.reasoningTokens,
       apiKeyMask: maskSensitive(this.state.provider.apiKey),
+      mediaResolution: this.state.provider.mediaResolution,
+      imageGeneration: {
+        enabled: this.state.provider.imageGeneration.enabled,
+        provider: this.state.provider.imageGeneration.provider,
+        modelId: this.state.provider.imageGeneration.modelId,
+        hasApiKey: await this.hasImageProviderKey(this.state.provider.imageGeneration.provider),
+      },
     };
 
     const runtimeInfo: AdminRuntimeInfo = {
@@ -716,7 +763,7 @@ export class AdminController {
       providerLocked: this.state.providerLocked,
       totalHistoryCount: sortedHistory.length,
       sessionCount,
-      exportJsonUrl: JSON_EXPORT_PATH,
+      exportJsonUrl: ZIP_EXPORT_PATH,
       exportMarkdownUrl: MARKDOWN_EXPORT_PATH,
       providerKeyStatuses: providerKeyStatuses as Record<
         ModelProvider,
@@ -735,6 +782,7 @@ export class AdminController {
       featuredModels,
       providerReasoningModes: PROVIDER_REASONING_MODES,
       providerReasoningCapabilities: PROVIDER_REASONING_CAPABILITIES,
+      providerMediaResolutionCapabilities: PROVIDER_MEDIA_RESOLUTION_CAPABILITIES,
       isForkActive: activeForks.length > 0,
       activeForks,
     };
@@ -789,6 +837,54 @@ export class AdminController {
     res.setHeader("Content-Type", "application/json; charset=utf-8");
     res.setHeader("Content-Disposition", "attachment; filename=history.json");
     res.end(payload);
+  }
+
+  private async handleHistoryArchive(
+    context: RequestContext,
+    reqLogger: Logger
+  ): Promise<void> {
+    const { res } = context;
+    if (this.sessionStore.hasAnyActiveFork()) {
+      this.respondJson(
+        res,
+        {
+          success: false,
+          message: "Cannot export history while an A/B test is active",
+        },
+        409
+      );
+      return;
+    }
+
+    const history = this.sessionStore.exportHistory();
+    const snapshot = createHistorySnapshot({
+      history,
+      brief: this.state.brief,
+      briefAttachments: cloneAttachments(this.state.briefAttachments),
+      runtime: this.state.runtime,
+      provider: this.state.provider,
+    });
+
+    try {
+      const archive = await createHistoryArchiveZip(snapshot);
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=history.zip"
+      );
+      res.end(archive);
+    } catch (error) {
+      reqLogger.error({ err: error }, "Failed to create snapshot archive");
+      this.respondJson(
+        res,
+        {
+          success: false,
+          message: "Failed to export snapshot archive",
+        },
+        500
+      );
+    }
   }
 
   private handlePromptMarkdown(context: RequestContext): void {
@@ -1050,6 +1146,7 @@ export class AdminController {
       reasoningTokensEnabled: storedReasoningTokensEnabled,
       reasoningTokens: finalReasoningTokens,
       apiKey: apiKeyCandidate,
+      imageGeneration: this.state.provider.imageGeneration,
     };
 
     if (!updatedSettings.apiKey || updatedSettings.apiKey.trim().length === 0) {
@@ -1101,12 +1198,98 @@ export class AdminController {
     }
 
     this.applyProviderEnv(updatedSettings);
+
+    // Handle nested image generation settings if provided
+    const imageGenerationRaw =
+      typeof data.imageGeneration === "object" && data.imageGeneration
+        ? (data.imageGeneration as Record<string, unknown>)
+        : null;
+
+    if (imageGenerationRaw) {
+      await this.applyImageGenerationUpdate(imageGenerationRaw, reqLogger);
+    }
+
+    // Persist LLM settings to config store
+    const configStore = getConfigStore();
+    configStore.setLlmSettings({
+      provider: updatedSettings.provider,
+      model: updatedSettings.model,
+      maxOutputTokens: updatedSettings.maxOutputTokens,
+      reasoningMode: updatedSettings.reasoningMode,
+      ...(updatedSettings.reasoningTokensEnabled !== undefined && {
+        reasoningTokensEnabled: updatedSettings.reasoningTokensEnabled,
+      }),
+      ...(updatedSettings.reasoningTokens !== undefined && {
+        reasoningTokens: updatedSettings.reasoningTokens,
+      }),
+    });
+
     reqLogger.info(
       { provider },
       "Updated LLM provider settings via admin interface"
     );
 
-    return { message: "Provider configuration updated" };
+    return {
+      message: "Provider configuration updated"
+    };
+  }
+
+  private async applyImageGenerationUpdate(
+    data: Record<string, unknown>,
+    reqLogger: Logger
+  ): Promise<void> {
+    const enabled =
+      typeof data.enabled === "boolean"
+        ? data.enabled
+        : this.state.provider.imageGeneration.enabled;
+
+    const allowedImageModels: ImageModelId[] = [
+      "gpt-image-1.5",
+      "dall-e-3",
+      "gemini-2.5-flash-image",
+      "gemini-3-pro-image-preview",
+      "imagen-3.0-generate-002",
+      "imagen-4.0-fast-generate-001",
+    ];
+
+    const modelId =
+      typeof data.modelId === "string" &&
+        allowedImageModels.includes(data.modelId as ImageModelId)
+        ? (data.modelId as ImageModelId)
+        : this.state.provider.imageGeneration.modelId;
+
+    const provider: ImageGenProvider =
+      modelId.startsWith("gemini") || modelId.startsWith("imagen")
+        ? "gemini"
+        : "openai";
+
+    const apiKey = typeof data.apiKey === "string" ? data.apiKey.trim() : "";
+
+    this.state.provider.imageGeneration.enabled = enabled;
+    this.state.provider.imageGeneration.provider = provider;
+    this.state.provider.imageGeneration.modelId = modelId;
+
+    if (apiKey) {
+      await this.credentialStore.saveApiKey(provider, apiKey);
+    }
+
+    // Persist image generation settings to config store
+    const configStore = getConfigStore();
+    configStore.setImageGeneration({
+      enabled,
+      provider,
+      modelId,
+    });
+
+    reqLogger.debug(
+      {
+        enabled,
+        provider,
+        modelId,
+        apiKeyProvided: Boolean(apiKey),
+      },
+      "Updated image generation settings"
+    );
   }
 
   private async applyProviderVerification(
@@ -1196,10 +1379,10 @@ export class AdminController {
     }
   }
 
-  private applyRuntimeUpdate(
+  private async applyRuntimeUpdate(
     data: Record<string, unknown>,
     reqLogger: Logger
-  ): { message: string } {
+  ): Promise<{ message: string }> {
     const historyLimit = clampInt(
       parsePositiveInt(data.historyLimit, this.state.runtime.historyLimit),
       HISTORY_LIMIT_MIN,
@@ -1226,11 +1409,17 @@ export class AdminController {
     this.state.runtime.includeInstructionPanel = includeInstructionPanel;
 
     reqLogger.info(
-      { historyLimit, historyMaxBytes, includeInstructionPanel },
+      {
+        historyLimit,
+        historyMaxBytes,
+        includeInstructionPanel,
+      },
       "Updated runtime settings via admin interface"
     );
 
-    return { message: "Runtime settings saved" };
+    return {
+      message: "Runtime settings saved"
+    };
   }
 
   private async handleRuntimeUpdate(
@@ -1241,7 +1430,10 @@ export class AdminController {
     const body = await readBody(req);
 
     try {
-      const { message } = this.applyRuntimeUpdate(body.data ?? {}, reqLogger);
+      const { message } = await this.applyRuntimeUpdate(
+        body.data ?? {},
+        reqLogger
+      );
       this.redirectWithMessage(res, message, false);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -1311,7 +1503,7 @@ export class AdminController {
     }
     if (removedCount > 0) {
       statusParts.push(
-        `Removed ${removedCount} attachment${removedCount === 1 ? "" : "s"}`
+        `Removed ${removedCount} attachment${removedCount === 1 ? "" : "s"} `
       );
     }
     const statusMessage = statusParts.join(" · ");
@@ -1334,8 +1526,211 @@ export class AdminController {
       this.redirectWithMessage(res, message, false);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.redirectWithMessage(res, `Brief update failed: ${message}`, true);
+      this.redirectWithMessage(res, `Brief update failed: ${message} `, true);
     }
+  }
+
+  private normalizeImageRatio(value: unknown): ImageAspectRatio {
+    const allowed: ImageAspectRatio[] = ["1:1", "16:9", "9:16", "4:3", "3:4"];
+    return allowed.includes(value as ImageAspectRatio)
+      ? (value as ImageAspectRatio)
+      : "1:1";
+  }
+
+  private hydrateImportedAttachments(
+    attachments: BriefAttachment[] | undefined,
+    assets: Map<string, Buffer>
+  ): BriefAttachment[] {
+    if (!attachments || attachments.length === 0) {
+      return [];
+    }
+
+    return attachments.map((attachment) => {
+      const safeName =
+        (attachment.name || attachment.id || "attachment").replace(
+          /[^a-zA-Z0-9._-]+/g,
+          "-",
+        ) || "attachment";
+
+      const blobName =
+        typeof attachment.blobName === "string" && attachment.blobName.trim().length > 0
+          ? attachment.blobName.trim()
+          : `attachments/${safeName}`;
+
+      const base64FromAssets = (() => {
+        const candidateKeys = [
+          blobName,
+          typeof attachment.blobName === "string" ? attachment.blobName.trim() : undefined,
+          attachment.name ? `attachments/${attachment.name}` : undefined,
+          attachment.id ? `attachments/${attachment.id}` : undefined,
+        ].filter((value): value is string => !!value && value.trim().length > 0);
+
+        for (const key of candidateKeys) {
+          if (assets.has(key)) {
+            return assets.get(key)?.toString("base64");
+          }
+        }
+        return undefined;
+      })();
+
+      const base64 =
+        typeof attachment.base64 === "string" && attachment.base64.trim().length > 0
+          ? attachment.base64.trim()
+          : base64FromAssets;
+
+      return { ...attachment, blobName, base64 };
+    });
+  }
+
+  private async hydrateImportedImages(
+    historyEntries: HistoryEntry[],
+    reqLogger: Logger,
+    assets: Map<string, Buffer>
+  ): Promise<void> {
+    const writePromises: Promise<unknown>[] = [];
+
+    for (const entry of historyEntries) {
+      if (!entry.generatedImages?.length) {
+        continue;
+      }
+
+      entry.generatedImages = entry.generatedImages.map((image) => {
+        const ratio = this.normalizeImageRatio(image.ratio);
+        const provider = image.provider === "gemini" ? "gemini" : "openai";
+        const modelId = (image.modelId ?? "gpt-image-1.5") as ImageModelId;
+        const cacheKey =
+          image.cacheKey && image.cacheKey.trim().length > 0
+            ? image.cacheKey
+            : buildImageCacheKey({
+                provider,
+                modelId,
+                prompt: image.prompt ?? "",
+                ratio,
+              });
+        const route =
+          image.url && image.url.trim().length > 0
+            ? image.url
+            : getGeneratedImagePath(cacheKey).route;
+        const base64 = (() => {
+          if (typeof image.base64 === "string" && image.base64.trim().length > 0) {
+            return image.base64.trim();
+          }
+          const blobName =
+            typeof image.blobName === "string" && image.blobName.trim().length > 0
+              ? image.blobName.trim()
+              : undefined;
+          if (blobName && assets.has(blobName)) {
+            return assets.get(blobName)?.toString("base64");
+          }
+          return undefined;
+        })();
+        const blobName =
+          typeof image.blobName === "string" && image.blobName.trim().length > 0
+            ? image.blobName.trim()
+            : undefined;
+
+        if (base64) {
+          writePromises.push(
+            writeImageCache(cacheKey, base64).catch((error) => {
+              reqLogger.warn({ err: error }, "Failed to restore generated image cache");
+            })
+          );
+        }
+
+        return {
+          ...image,
+          id:
+            typeof image.id === "string" && image.id.trim().length > 0
+              ? image.id
+              : randomUUID(),
+          cacheKey,
+          url: route,
+          prompt: image.prompt ?? "",
+          ratio,
+          provider,
+          modelId,
+          blobName,
+          mimeType:
+            typeof image.mimeType === "string" && image.mimeType.trim().length > 0
+              ? image.mimeType
+              : "image/png",
+          base64,
+          createdAt:
+            typeof image.createdAt === "string" && image.createdAt.trim().length > 0
+              ? image.createdAt
+              : new Date().toISOString(),
+        } satisfies GeneratedImage;
+      });
+    }
+
+    if (writePromises.length > 0) {
+      await Promise.all(writePromises);
+    }
+  }
+
+  private async parseSnapshotPayload(
+    snapshotInput: unknown,
+    files: ParsedFile[]
+  ): Promise<{ snapshot: HistorySnapshot; assets: Map<string, Buffer> }> {
+    const assets = new Map<string, Buffer>();
+
+    const primaryFile = files.at(0);
+    if (primaryFile) {
+      const buffer = primaryFile.data;
+      const isZip =
+        primaryFile.mimeType === "application/zip"
+        || (primaryFile.filename?.toLowerCase().endsWith(".zip") ?? false);
+
+      if (isZip) {
+        const archive = await JSZip.loadAsync(buffer);
+        const manifest = archive.file("history.json");
+        if (!manifest) {
+          throw new Error("Snapshot archive is missing history.json");
+        }
+
+        const manifestJson = await manifest.async("string");
+        const snapshot = JSON.parse(manifestJson) as HistorySnapshot;
+
+        const assetEntries = Object.values(archive.files).filter(
+          (file) => !file.dir && file.name !== "history.json"
+        );
+
+        for (const entry of assetEntries) {
+          const content = await entry.async("nodebuffer");
+          assets.set(entry.name, Buffer.from(content));
+        }
+
+        return { snapshot, assets };
+      }
+
+      if (!buffer.length) {
+        throw new Error("History snapshot payload is empty");
+      }
+      const textPayload = buffer.toString("utf8");
+      const snapshot = JSON.parse(textPayload) as HistorySnapshot;
+      return { snapshot, assets };
+    }
+
+    if (typeof snapshotInput === "string") {
+      const trimmed = snapshotInput.trim();
+      if (!trimmed) {
+        throw new Error("History snapshot payload is empty");
+      }
+      try {
+        const snapshot = JSON.parse(trimmed) as HistorySnapshot;
+        return { snapshot, assets };
+      } catch (error) {
+        throw new Error(
+          `Invalid snapshot JSON: ${(error as Error).message ?? String(error)} `
+        );
+      }
+    }
+
+    if (snapshotInput && typeof snapshotInput === "object") {
+      return { snapshot: snapshotInput as HistorySnapshot, assets };
+    }
+
+    throw new Error("Provide a history snapshot JSON payload");
   }
 
   private async handleHistoryImport(
@@ -1357,7 +1752,7 @@ export class AdminController {
     if (snapshotInput == null || (typeof snapshotInput === "string" && !snapshotInput.trim())) {
       this.redirectWithMessage(
         res,
-        "History import failed: no JSON provided",
+        "History import failed: no snapshot provided",
         true
       );
       return;
@@ -1370,7 +1765,8 @@ export class AdminController {
       const entries = await this.importHistorySnapshot(
         snapshotInput,
         reqLogger,
-        sid
+        sid,
+        body.files ?? []
       );
       this.redirectWithMessage(
         res,
@@ -1380,34 +1776,20 @@ export class AdminController {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       reqLogger.error({ err: error }, "Failed to import history snapshot");
-      this.redirectWithMessage(res, `History import failed: ${message}`, true);
+      this.redirectWithMessage(res, `History import failed: ${message} `, true);
     }
   }
 
   private async importHistorySnapshot(
     snapshotInput: unknown,
     reqLogger: Logger,
-    sid: string
+    sid: string,
+    files: ParsedFile[]
   ): Promise<number> {
-    let snapshot: HistorySnapshot;
-
-    if (typeof snapshotInput === "string") {
-      const trimmed = snapshotInput.trim();
-      if (!trimmed) {
-        throw new Error("History snapshot payload is empty");
-      }
-      try {
-        snapshot = JSON.parse(trimmed) as HistorySnapshot;
-      } catch (error) {
-        throw new Error(
-          `Invalid snapshot JSON: ${(error as Error).message ?? String(error)}`
-        );
-      }
-    } else if (snapshotInput && typeof snapshotInput === "object") {
-      snapshot = snapshotInput as HistorySnapshot;
-    } else {
-      throw new Error("Provide a history snapshot JSON payload");
-    }
+    const { snapshot, assets } = await this.parseSnapshotPayload(
+      snapshotInput,
+      files
+    );
 
     if (snapshot.version !== 1) {
       throw new Error("Unsupported snapshot version");
@@ -1423,8 +1805,13 @@ export class AdminController {
       ...entry,
       createdAt: entry.createdAt,
       response: entry.response,
-      briefAttachments: cloneAttachments(entry.briefAttachments),
+      briefAttachments: this.hydrateImportedAttachments(
+        cloneAttachments(entry.briefAttachments),
+        assets
+      ),
     }));
+
+    await this.hydrateImportedImages(historyEntries, reqLogger, assets);
     this.sessionStore.replaceSessionHistory(sid, historyEntries);
 
     if (typeof snapshot.brief === "string") {
@@ -1433,13 +1820,21 @@ export class AdminController {
       this.state.brief = null;
     }
 
-    if (Array.isArray(snapshot.briefAttachments)) {
-      this.state.briefAttachments = cloneAttachments(
-        snapshot.briefAttachments as BriefAttachment[]
-      );
+    const hydratedAttachments = Array.isArray(snapshot.briefAttachments)
+      ? this.hydrateImportedAttachments(
+          snapshot.briefAttachments as BriefAttachment[],
+          assets
+        )
+      : undefined;
+
+    if (hydratedAttachments) {
+      this.state.briefAttachments = hydratedAttachments;
     } else {
       const latestAttachments = historyEntries.at(-1)?.briefAttachments;
-      this.state.briefAttachments = cloneAttachments(latestAttachments);
+      this.state.briefAttachments = this.hydrateImportedAttachments(
+        cloneAttachments(latestAttachments),
+        assets
+      );
     }
 
     if (snapshot.runtime && typeof snapshot.runtime === "object") {
@@ -1447,6 +1842,11 @@ export class AdminController {
         historyLimit: number;
         historyMaxBytes: number;
         includeInstructionPanel: boolean;
+        imageGeneration?: {
+          enabled?: boolean;
+          provider?: ImageGenProvider | null;
+          modelId?: ImageModelId | null;
+        } | null;
       }>;
       if (
         typeof runtimeData.historyLimit === "number" &&
@@ -1463,6 +1863,33 @@ export class AdminController {
       if (typeof runtimeData.includeInstructionPanel === "boolean") {
         this.state.runtime.includeInstructionPanel =
           runtimeData.includeInstructionPanel;
+      }
+      if (runtimeData.imageGeneration) {
+        if (typeof runtimeData.imageGeneration.enabled === "boolean") {
+          this.state.provider.imageGeneration.enabled =
+            runtimeData.imageGeneration.enabled;
+        }
+        if (
+          runtimeData.imageGeneration.provider === "openai" ||
+          runtimeData.imageGeneration.provider === "gemini"
+        ) {
+          this.state.provider.imageGeneration.provider =
+            runtimeData.imageGeneration.provider;
+        }
+        if (
+          typeof runtimeData.imageGeneration.modelId === "string" &&
+          [
+            "gpt-image-1.5",
+            "dall-e-3",
+            "gemini-2.5-flash-image",
+            "gemini-3-pro-image-preview",
+            "imagen-3.0-generate-002",
+            "imagen-4.0-fast-generate-001",
+          ].includes(runtimeData.imageGeneration.modelId)
+        ) {
+          this.state.provider.imageGeneration.modelId =
+            runtimeData.imageGeneration.modelId as ImageModelId;
+        }
       }
     }
 
@@ -1552,7 +1979,7 @@ export class AdminController {
     const { res } = context;
     const entries = this.getSortedHistoryEntries();
     const sessionCount = new Set(entries.map((entry) => entry.sessionId)).size;
-    const providerLabel = `${this.state.provider.provider} · ${this.state.provider.model}`;
+    const providerLabel = `${this.state.provider.provider} · ${this.state.provider.model} `;
 
     const history = this.buildAdminHistoryResponse(
       Math.min(this.state.runtime.historyLimit, 100),
@@ -1595,8 +2022,8 @@ export class AdminController {
     isError: boolean
   ): void {
     const target = isError
-      ? `${ADMIN_ROUTE_PREFIX}?error=${encodeURIComponent(message)}`
-      : `${ADMIN_ROUTE_PREFIX}?status=${encodeURIComponent(message)}`;
+      ? `${ADMIN_ROUTE_PREFIX}?error = ${encodeURIComponent(message)} `
+      : `${ADMIN_ROUTE_PREFIX}?status = ${encodeURIComponent(message)} `;
     this.redirect(res, target);
   }
 
@@ -1615,7 +2042,7 @@ export class AdminController {
   private toAdminBriefAttachment(
     attachment: BriefAttachment
   ): AdminBriefAttachment {
-    const dataUrl = `data:${attachment.mimeType};base64,${attachment.base64}`;
+    const dataUrl = `data:${attachment.mimeType}; base64, ${attachment.base64} `;
     return {
       id: attachment.id,
       name: attachment.name,
@@ -1662,6 +2089,19 @@ export class AdminController {
         this.toAdminBriefAttachment(attachment)
       )
       : undefined;
+    const generatedImages = entry.generatedImages?.length
+      ? entry.generatedImages.map((image) => ({
+          id: image.id,
+          url: image.url,
+          downloadUrl: image.url,
+          prompt: image.prompt,
+          ratio: image.ratio,
+          provider: image.provider,
+          modelId: image.modelId,
+          mimeType: image.mimeType,
+          createdAt: image.createdAt,
+        }))
+      : undefined;
     const restMutations =
       entry.entryKind === "html" && entry.restMutations?.length
         ? entry.restMutations.map(toAdminRestMutationItem)
@@ -1704,13 +2144,12 @@ export class AdminController {
       reasoningDetails,
       html: entry.response.html,
       attachments,
+      generatedImages,
       entryKind: entry.entryKind,
       rest: restItem,
       restMutations,
       restQueries,
-      viewUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(
-        entry.id
-      )}/view`,
+      viewUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(entry.id)}/view`,
       downloadUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(
         entry.id
       )}/download`,

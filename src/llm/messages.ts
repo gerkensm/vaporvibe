@@ -23,6 +23,7 @@ export interface MessageContext {
   adminPath: string;
   mode?: "page" | "json-query";
   branchId?: string;
+  imageGenerationEnabled?: boolean;
 }
 
 export function buildMessages(context: MessageContext): ChatMessage[] {
@@ -47,6 +48,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     adminPath,
     mode = "page",
     branchId,
+    imageGenerationEnabled = false,
   } = context;
   const isJsonQuery = mode === "json-query";
 
@@ -103,11 +105,11 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "",
       "### Non-negotiables (Core Rules)",
       '1) Single view, local-first interactivity. Generate the entire page for the current request. No client routers, virtual nav stacks, hash-nav, iframes, popups, or target="_blank".',
-      "2) Self-contained. Inline all CSS and JS via <style> and <script>. Use inline SVG/CSS for visuals; avoid raster images/data-URLs. No external CDNs/fonts/assets.",
+      "2) Self-contained. Inline all CSS and JS via <style> and <script>. Use inline SVG/CSS for visuals where possible. Avoid linking to external images or embedding large data-URLs. No external CDNs/fonts/assets.",
       "3) Latency-aware.",
       "   - Full page reloads (links/forms) are **slow** (~30s to 3m). Use inline JS for local UI changes (tabs, modals, sorting/filtering existing data).",
       "   - Use the Virtual REST API (see Efficiency Tools) for background state changes or data loading.",
-      "4) What you know: App Brief; Current Request details; Previous HTML (your last output); recorded Mutations/Queries; recent History (your previous outputs). **This is how you 'remember' state.** No hidden server data exists.",
+      "4) State Awareness. **You must derive all application state** from the App Brief, Current Request, Previous HTML, and recorded REST Mutations/Queries provided in this prompt. Do not assume the server maintains any hidden application logic or databases outside of what is presented here.",
       "5) Pass state forward.",
       "   - Visible state needed next render → query params (GET links) / form fields (POST forms).",
       "   - Invisible state needed next render → Use HTML comment bundle: . Find, preserve, update, and forward these comments from the Previous HTML.",
@@ -148,6 +150,30 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "- Your own `data-id` attributes added to any element.",
       "- `data-id` attributes copied verbatim from previous HTML. Use `{{component:data-id}}` syntax instead for reuse.",
     ];
+
+  if (!isJsonQuery && imageGenerationEnabled) {
+    systemLines.push(
+      "",
+      "### IMAGE GENERATION",
+      "You can request server-rendered images without writing JavaScript.",
+      "Use the custom element: <ai-image prompt=\"Describe the image\" ratio=\"16:9\"></ai-image>.",
+      "",
+      "CRITICAL RULES FOR IMAGES:",
+      "1. COST WARNING: Generating images is expensive. Use them SPARINGLY.",
+      "2. LIMIT: Target 0-5 images per page for standard content. For image-heavy views (galleries, catalogs), you may exceed this if essential to the brief.",
+      "3. VALUE: Ensure every generated image serves a specific user goal (e.g., illustrating a product, setting a specific mood defined in the brief). Prefer CSS gradients/patterns for generic backgrounds.",
+      "4. RELEVANCE: If the brief doesn't explicitly ask for visuals, prefer CSS styling or SVG icons over generated images.",
+      "5. EXCEPTION: If the user explicitly requests more images or specific visuals in the brief or instructions, you may override these limits to satisfy the request.",
+      "6. DESCRIPTION: Construct image prompts using this structure: `[Subject] + [Action/Context] + [Art Style/Mood] + [Lighting]`. Be concrete and detailed.",
+      "",
+      "Valid ratios: 1:1, 16:9, 9:16, and 4:3.",
+      "You may control sizing and layout with standard HTML attributes (width, style, class) on the <ai-image> tag.",
+      "Examples:",
+      "- Full width landscape: <ai-image prompt=\"A futuristic skyline\" ratio=\"16:9\" width=\"100%\"></ai-image>.",
+      "- Small floated square: <ai-image prompt=\"An icon of a robot\" ratio=\"1:1\" style=\"width: 200px; float: right; margin: 12px;\"></ai-image>.",
+      "Do NOT use Markdown images or raw <img> tags; the helper will swap in an <img> element automatically."
+    );
+  }
 
   // --- Assemble final messages ---
   const system = systemLines.join("\n");

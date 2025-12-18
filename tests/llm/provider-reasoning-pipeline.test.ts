@@ -8,15 +8,16 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { LlmClient, LlmStreamObserver, LlmReasoningStreamEvent } from '../../src/llm/client.js';
 import type { ProviderSettings } from '../../src/types.js';
 import { GeminiClient } from '../../src/llm/gemini-client.js';
 import { AnthropicClient } from '../../src/llm/anthropic-client.js';
 import { OpenAiClient } from '../../src/llm/openai-client.js';
 import { GroqClient } from '../../src/llm/groq-client.js';
+import { createProviderSettings } from '../test-utils/factories.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -266,15 +267,14 @@ describe('Provider Reasoning Pipeline', () => {
             if (fixture.provider === 'openai') model = 'gpt-4o';
             if (fixture.provider === 'groq') model = 'llama-3.1-70b-versatile';
 
-            return {
+            return createProviderSettings({
                 provider: fixture.provider as any,
-                apiKey: 'test-key',
                 model,
                 maxOutputTokens: 8192,
                 reasoningMode: isHigh ? 'high' : isLow ? 'low' : 'none',
                 reasoningTokens: isThinking ? 2000 : undefined,
                 reasoningTokensEnabled: isThinking,
-            };
+            });
         }
 
         it('Stage 1: Raw API Response Structure', () => {

@@ -1,9 +1,9 @@
 {
-  "generated": "2025-11-24T22:37:57.478Z",
+  "generated": "2025-12-18T13:49:14.301Z",
   "backend": {
     "basePath": "src",
-    "totalModules": 43,
-    "externalPackages": 18,
+    "totalModules": 51,
+    "externalPackages": 20,
     "modules": {
       "cli/args.ts": {
         "imports": {
@@ -41,12 +41,17 @@
             "../utils/credential-store.js": [
               "getCredentialStore"
             ],
+            "../utils/config-store.js": [
+              "getConfigStore"
+            ],
             "../logger.js": [
               "logger"
             ],
             "../types.js": [
               "AppConfig",
               "ModelProvider",
+              "ImageModelId",
+              "ImageGenConfig",
               "ProviderSettings",
               "ReasoningMode",
               "RuntimeConfig"
@@ -60,7 +65,7 @@
         "importedBy": [
           "index.ts"
         ],
-        "importCount": 5
+        "importCount": 6
       },
       "constants.ts": {
         "imports": {
@@ -153,6 +158,147 @@
         },
         "importedBy": [],
         "importCount": 9
+      },
+      "image-gen/cache.ts": {
+        "imports": {
+          "internal": {
+            "../logger.js": [
+              "logger"
+            ],
+            "./paths.js": [
+              "GENERATED_IMAGES_DIR",
+              "getGeneratedImagePath"
+            ],
+            "./types.js": [
+              "ImageGenClient",
+              "ImageGenOptions",
+              "ImageGenResult"
+            ],
+            "../types.js": [
+              "ImageAspectRatio",
+              "ImageGenProvider",
+              "ImageModelId"
+            ]
+          },
+          "external": {
+            "node:crypto": [
+              "createHash"
+            ],
+            "node:fs": [
+              "existsSync"
+            ],
+            "node:fs/promises": [
+              "mkdir",
+              "readFile",
+              "writeFile"
+            ]
+          }
+        },
+        "importedBy": [
+          "server/admin-controller.ts",
+          "server/rest-api-controller.ts"
+        ],
+        "importCount": 7
+      },
+      "image-gen/factory.ts": {
+        "imports": {
+          "internal": {
+            "./cache.js": [
+              "CachedImageGenClient"
+            ],
+            "./providers/google.js": [
+              "GoogleImageGenClient"
+            ],
+            "./providers/openai.js": [
+              "OpenAiImageGenClient"
+            ],
+            "./types.js": [
+              "ImageGenClient"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/rest-api-controller.ts"
+        ],
+        "importCount": 4
+      },
+      "image-gen/paths.ts": {
+        "imports": {
+          "internal": {},
+          "external": {
+            "node:path": [
+              "dirname",
+              "resolve"
+            ],
+            "node:url": [
+              "fileURLToPath"
+            ]
+          }
+        },
+        "importedBy": [
+          "server/admin-controller.ts",
+          "server/rest-api-controller.ts",
+          "server/server.ts",
+          "server/session-store.ts"
+        ],
+        "importCount": 2
+      },
+      "image-gen/providers/google.ts": {
+        "imports": {
+          "internal": {
+            "../../logger.js": [
+              "logger"
+            ],
+            "../types.js": [
+              "ImageGenClient",
+              "ImageGenOptions",
+              "ImageGenResult"
+            ]
+          },
+          "external": {
+            "@google/genai": [
+              "GoogleGenAI"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 3
+      },
+      "image-gen/providers/openai.ts": {
+        "imports": {
+          "internal": {
+            "../../logger.js": [
+              "logger"
+            ],
+            "../types.js": [
+              "ImageGenClient",
+              "ImageGenOptions",
+              "ImageGenResult"
+            ]
+          },
+          "external": {
+            "openai": [
+              "default as OpenAI"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 3
+      },
+      "image-gen/types.ts": {
+        "imports": {
+          "internal": {
+            "../types.js": [
+              "ImageAspectRatio"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/rest-api-controller.ts"
+        ],
+        "importCount": 1
       },
       "index.ts": {
         "imports": {
@@ -325,7 +471,8 @@
             "@google/genai": [
               "GoogleGenAI",
               "GenerateContentConfig",
-              "ThinkingLevel"
+              "ThinkingLevel",
+              "MediaResolution"
             ]
           }
         },
@@ -499,6 +646,7 @@
         "importedBy": [
           "config/runtime-config.ts",
           "dev/backend-dev-server.ts",
+          "image-gen/cache.ts",
           "index.ts",
           "llm/anthropic-client.ts",
           "llm/gemini-client.ts",
@@ -506,6 +654,7 @@
           "llm/groq-client.ts",
           "llm/openai-client.ts",
           "server/server.ts",
+          "utils/config-store.ts",
           "utils/credential-store.ts"
         ],
         "importCount": 1
@@ -525,6 +674,7 @@
               "PROVIDER_LABELS",
               "PROVIDER_PLACEHOLDERS",
               "PROVIDER_REASONING_CAPABILITIES",
+              "PROVIDER_MEDIA_RESOLUTION_CAPABILITIES",
               "PROVIDER_REASONING_MODES",
               "PROVIDER_TOKEN_GUIDANCE",
               "DEFAULT_MODEL_BY_PROVIDER",
@@ -535,6 +685,9 @@
               "getFeaturedModels",
               "PROVIDER_MODEL_METADATA",
               "CUSTOM_MODEL_DESCRIPTION"
+            ],
+            "../utils/history-archive.js": [
+              "createHistoryArchiveZip"
             ],
             "../llm/factory.js": [
               "createLlmClient"
@@ -556,18 +709,32 @@
               "createHistorySnapshot",
               "createPromptMarkdown"
             ],
+            "../image-gen/cache.js": [
+              "buildImageCacheKey",
+              "writeImageCache"
+            ],
+            "../image-gen/paths.js": [
+              "getGeneratedImagePath"
+            ],
             "./session-store.js": [
               "SessionStore"
             ],
             "../utils/credential-store.js": [
               "getCredentialStore"
             ],
+            "../utils/config-store.js": [
+              "getConfigStore"
+            ],
             "./brief-attachments.js": [
               "processBriefAttachmentFiles"
             ],
             "../types.js": [
               "BriefAttachment",
+              "GeneratedImage",
               "HistoryEntry",
+              "ImageAspectRatio",
+              "ImageGenProvider",
+              "ImageModelId",
               "ProviderSettings",
               "ReasoningMode",
               "ModelProvider",
@@ -593,16 +760,22 @@
             ]
           },
           "external": {
+            "node:crypto": [
+              "randomUUID"
+            ],
             "node:http": [
               "ServerResponse"
             ],
             "pino": [
               "Logger"
+            ],
+            "jszip": [
+              "default as JSZip"
             ]
           }
         },
         "importedBy": [],
-        "importCount": 16
+        "importCount": 22
       },
       "server/brief-attachments.ts": {
         "imports": {
@@ -673,23 +846,47 @@
             "./session-store.js": [
               "SessionStore"
             ],
+            "../image-gen/factory.js": [
+              "createImageGenClient"
+            ],
+            "../image-gen/paths.js": [
+              "getGeneratedImagePath"
+            ],
+            "../image-gen/cache.js": [
+              "buildImageCacheKey",
+              "readImageCacheBase64",
+              "ensureImageCacheDir",
+              "writeImageCache"
+            ],
+            "../utils/credential-store.js": [
+              "getCredentialStore"
+            ],
             "../llm/client.js": [
               "LlmClient"
             ],
             "../types.js": [
               "BriefAttachment",
               "HistoryEntry",
+              "ImageAspectRatio",
+              "ImageGenProvider",
               "RestMutationRecord",
               "RestQueryRecord",
-              "RuntimeConfig"
+              "RuntimeConfig",
+              "ProviderSettings"
             ],
             "./server.js": [
               "RequestContext"
+            ],
+            "../image-gen/types.js": [
+              "ImageGenResult"
             ]
           },
           "external": {
             "node:crypto": [
               "randomUUID"
+            ],
+            "node:fs": [
+              "existsSync"
             ],
             "pino": [
               "Logger"
@@ -697,7 +894,7 @@
           }
         },
         "importedBy": [],
-        "importCount": 11
+        "importCount": 17
       },
       "server/server.ts": {
         "imports": {
@@ -783,6 +980,12 @@
             "./history-utils.js": [
               "selectHistoryForPrompt"
             ],
+            "../image-gen/paths.js": [
+              "GENERATED_IMAGES_DIR",
+              "GENERATED_IMAGES_ROUTE",
+              "RUNTIME_DIST_DIR",
+              "RUNTIME_SOURCE_DIR"
+            ],
             "../types.js": [
               "BriefAttachment",
               "ChatMessage",
@@ -804,6 +1007,7 @@
               "randomUUID"
             ],
             "node:fs": [
+              "createReadStream",
               "existsSync",
               "readFileSync",
               "statSync"
@@ -835,7 +1039,7 @@
           "dev/backend-dev-server.ts",
           "index.ts"
         ],
-        "importCount": 31
+        "importCount": 32
       },
       "server/session-store.ts": {
         "imports": {
@@ -846,9 +1050,15 @@
             "../utils/html.js": [
               "escapeHtml"
             ],
+            "../image-gen/paths.js": [
+              "getGeneratedImagePath"
+            ],
             "../types.js": [
               "BranchState",
               "ForkState",
+              "ImageAspectRatio",
+              "ImageModelId",
+              "GeneratedImage",
               "HistoryEntry",
               "HistoryForkInfo",
               "LlmReasoningTrace",
@@ -870,7 +1080,7 @@
           "dev/backend-dev-server.ts",
           "index.ts"
         ],
-        "importCount": 5
+        "importCount": 6
       },
       "types.ts": {
         "imports": {
@@ -882,6 +1092,11 @@
           "config/runtime-config.ts",
           "constants.ts",
           "constants/providers.ts",
+          "image-gen/cache.ts",
+          "image-gen/factory.ts",
+          "image-gen/providers/google.ts",
+          "image-gen/providers/openai.ts",
+          "image-gen/types.ts",
           "index.ts",
           "llm/anthropic-client.ts",
           "llm/capabilities.ts",
@@ -901,7 +1116,8 @@
           "server/server.ts",
           "server/session-store.ts",
           "types/admin-api.ts",
-          "utils/credential-store.ts",
+          "utils/config-store.ts",
+          "utils/history-archive.ts",
           "utils/history-export.ts",
           "utils/instructions-panel.ts"
         ],
@@ -914,6 +1130,9 @@
               "HistoryEntryKind",
               "HistoryForkInfo",
               "ModelProvider",
+              "ImageAspectRatio",
+              "ImageGenProvider",
+              "ImageModelId",
               "ReasoningMode",
               "RestHistoryMetadata"
             ],
@@ -960,6 +1179,31 @@
         ],
         "importCount": 2
       },
+      "utils/config-store.ts": {
+        "imports": {
+          "internal": {
+            "../logger.js": [
+              "logger"
+            ],
+            "../types.js": [
+              "ImageGenProvider",
+              "ImageModelId",
+              "ModelProvider",
+              "ReasoningMode"
+            ]
+          },
+          "external": {
+            "conf": [
+              "default as Conf"
+            ]
+          }
+        },
+        "importedBy": [
+          "config/runtime-config.ts",
+          "server/admin-controller.ts"
+        ],
+        "importCount": 3
+      },
       "utils/cookies.ts": {
         "imports": {
           "internal": {},
@@ -982,9 +1226,6 @@
           "internal": {
             "../logger.js": [
               "logger"
-            ],
-            "../types.js": [
-              "ModelProvider"
             ]
           },
           "external": {}
@@ -992,9 +1233,10 @@
         "importedBy": [
           "config/runtime-config.ts",
           "server/admin-controller.ts",
+          "server/rest-api-controller.ts",
           "server/server.ts"
         ],
-        "importCount": 2
+        "importCount": 1
       },
       "utils/frontend-assets.ts": {
         "imports": {
@@ -1018,6 +1260,30 @@
         },
         "importedBy": [],
         "importCount": 4
+      },
+      "utils/history-archive.ts": {
+        "imports": {
+          "internal": {
+            "./history-export.js": [
+              "createHistorySnapshot"
+            ],
+            "../types.js": [
+              "BriefAttachment",
+              "GeneratedImage",
+              "HistoryEntry",
+              "HistorySnapshot"
+            ]
+          },
+          "external": {
+            "jszip": [
+              "default as JSZip"
+            ]
+          }
+        },
+        "importedBy": [
+          "server/admin-controller.ts"
+        ],
+        "importCount": 3
       },
       "utils/history-export.ts": {
         "imports": {
@@ -1199,13 +1465,14 @@
       "node:url": {
         "usedBy": [
           "dev/backend-dev-server.ts",
+          "image-gen/paths.ts",
           "index.ts",
           "server/server.ts",
           "utils/frontend-assets.ts",
           "views/loading-shell.ts",
           "views/loading-shell/status-messages.ts"
         ],
-        "count": 6
+        "count": 7
       },
       "node:module": {
         "usedBy": [
@@ -1216,12 +1483,13 @@
       "node:path": {
         "usedBy": [
           "dev/backend-dev-server.ts",
+          "image-gen/paths.ts",
           "server/server.ts",
           "utils/frontend-assets.ts",
           "views/loading-shell.ts",
           "views/loading-shell/status-messages.ts"
         ],
-        "count": 5
+        "count": 6
       },
       "node:process": {
         "usedBy": [
@@ -1236,6 +1504,44 @@
         ],
         "count": 1
       },
+      "node:crypto": {
+        "usedBy": [
+          "image-gen/cache.ts",
+          "server/admin-controller.ts",
+          "server/brief-attachments.ts",
+          "server/rest-api-controller.ts",
+          "server/server.ts",
+          "server/session-store.ts"
+        ],
+        "count": 6
+      },
+      "node:fs": {
+        "usedBy": [
+          "image-gen/cache.ts",
+          "server/rest-api-controller.ts",
+          "server/server.ts",
+          "utils/frontend-assets.ts",
+          "views/loading-shell.ts",
+          "views/loading-shell/status-messages.ts"
+        ],
+        "count": 6
+      },
+      "@google/genai": {
+        "usedBy": [
+          "image-gen/providers/google.ts",
+          "llm/gemini-client.ts"
+        ],
+        "count": 2
+      },
+      "openai": {
+        "usedBy": [
+          "image-gen/providers/openai.ts",
+          "llm/grok-client.ts",
+          "llm/groq-client.ts",
+          "llm/openai-client.ts"
+        ],
+        "count": 4
+      },
       "open": {
         "usedBy": [
           "index.ts"
@@ -1248,20 +1554,6 @@
         ],
         "count": 1
       },
-      "@google/genai": {
-        "usedBy": [
-          "llm/gemini-client.ts"
-        ],
-        "count": 1
-      },
-      "openai": {
-        "usedBy": [
-          "llm/grok-client.ts",
-          "llm/groq-client.ts",
-          "llm/openai-client.ts"
-        ],
-        "count": 3
-      },
       "pino": {
         "usedBy": [
           "logger.ts",
@@ -1271,21 +1563,19 @@
         ],
         "count": 4
       },
+      "jszip": {
+        "usedBy": [
+          "server/admin-controller.ts",
+          "utils/history-archive.ts"
+        ],
+        "count": 2
+      },
       "node:http": {
         "usedBy": [
           "server/admin-controller.ts",
           "server/session-store.ts",
           "utils/body.ts",
           "utils/cookies.ts"
-        ],
-        "count": 4
-      },
-      "node:crypto": {
-        "usedBy": [
-          "server/brief-attachments.ts",
-          "server/rest-api-controller.ts",
-          "server/server.ts",
-          "server/session-store.ts"
         ],
         "count": 4
       },
@@ -1301,15 +1591,6 @@
           "server/server.ts"
         ],
         "count": 2
-      },
-      "node:fs": {
-        "usedBy": [
-          "server/server.ts",
-          "utils/frontend-assets.ts",
-          "views/loading-shell.ts",
-          "views/loading-shell/status-messages.ts"
-        ],
-        "count": 4
       },
       "node:child_process": {
         "usedBy": [
@@ -1328,12 +1609,18 @@
           "utils/body.ts"
         ],
         "count": 1
+      },
+      "conf": {
+        "usedBy": [
+          "utils/config-store.ts"
+        ],
+        "count": 1
       }
     }
   },
   "frontend": {
     "basePath": "frontend/src",
-    "totalModules": 24,
+    "totalModules": 25,
     "externalPackages": 5,
     "modules": {
       "api/admin.ts": {
@@ -1363,6 +1650,7 @@
           "components/ABWorkspaceShell.tsx",
           "components/HistoryExplorer.tsx",
           "components/HistorySnapshotControls.tsx",
+          "components/ImageModelSelector.tsx",
           "components/ModelInspector.tsx",
           "components/ModelSelector.tsx",
           "components/ResumeSessionCallout.tsx",
@@ -1527,6 +1815,22 @@
           "pages/AdminDashboard.tsx"
         ],
         "importCount": 3
+      },
+      "components/ImageModelSelector.tsx": {
+        "imports": {
+          "internal": {
+            "../api/types": [
+              "AdminImageGenerationInfo"
+            ]
+          },
+          "external": {
+            "react": [
+              "useMemo"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 2
       },
       "components/index.ts": {
         "imports": {
@@ -1751,6 +2055,7 @@
             "../components": [
               "AttachmentUploader",
               "ModelSelector",
+              "ImageModelSelector",
               "TokenBudgetControl",
               "CustomModelConfig"
             ],
@@ -1763,7 +2068,8 @@
               "submitProviderUpdate",
               "submitRuntimeUpdate",
               "verifyProviderKey",
-              "type ProviderUpdatePayload"
+              "type ProviderUpdatePayload",
+              "type RuntimeUpdatePayload"
             ],
             "../constants/runtime": [
               "HISTORY_LIMIT_MIN",
@@ -1852,6 +2158,7 @@
           "components/ConfirmationModal.tsx",
           "components/HistoryExplorer.tsx",
           "components/HistorySnapshotControls.tsx",
+          "components/ImageModelSelector.tsx",
           "components/ModelInspector.tsx",
           "components/ModelSelector.tsx",
           "components/Notifications.tsx",
@@ -1861,7 +2168,7 @@
           "main.tsx",
           "pages/AdminDashboard.tsx"
         ],
-        "count": 13
+        "count": 14
       },
       "react-dom": {
         "usedBy": [

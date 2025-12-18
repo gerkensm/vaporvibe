@@ -5,6 +5,20 @@ export interface AdminBriefAttachment {
   size: number;
   dataUrl: string;
   isImage: boolean;
+  blobName?: string;
+}
+
+export interface AdminGeneratedImage {
+  id: string;
+  url: string;
+  downloadUrl: string;
+  prompt: string;
+  ratio: "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+  provider: "openai" | "gemini";
+  modelId: string;
+  mimeType: string;
+  createdAt: string;
+  blobName?: string;
 }
 
 export interface AdminRestMutationItem {
@@ -82,6 +96,7 @@ export interface ModelMetadata {
   cost?: ModelCostInfo;
   compositeScores?: ModelCompositeScores;
   supportsReasoningMode?: boolean;
+  supportsMediaResolution?: boolean;
 }
 
 export interface AdminProviderInfo {
@@ -92,12 +107,21 @@ export interface AdminProviderInfo {
   reasoningTokensEnabled?: boolean;
   reasoningTokens?: number;
   apiKeyMask: string;
+  mediaResolution?: string;
+  imageGeneration: AdminImageGenerationInfo;
 }
 
 export interface AdminRuntimeInfo {
   historyLimit: number;
   historyMaxBytes: number;
   includeInstructionPanel: boolean;
+}
+
+export interface AdminImageGenerationInfo {
+  enabled: boolean;
+  provider?: "openai" | "gemini";
+  modelId: string;
+  hasApiKey: boolean;
 }
 
 export interface AdminHistoryItem {
@@ -114,6 +138,7 @@ export interface AdminHistoryItem {
   reasoningDetails?: string[];
   html: string;
   attachments?: AdminBriefAttachment[];
+  generatedImages?: AdminGeneratedImage[];
   entryKind: AdminHistoryEntryKind;
   rest?: {
     type: "mutation" | "query";
@@ -208,6 +233,7 @@ export interface AdminStateResponse {
     string,
     { mode: boolean; tokens: boolean }
   >;
+  providerMediaResolutionCapabilities: Record<string, boolean>;
 }
 
 export interface AdminHistoryResponse {

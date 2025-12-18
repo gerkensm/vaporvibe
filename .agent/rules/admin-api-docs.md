@@ -23,6 +23,7 @@ The system currently supports two API styles:
 The `AdminController` is the primary mutator of the global `MutableServerState`.
 -   **Configuration**: Updates `state.provider`, `state.brief`, etc.
 -   **Credentials**: Persists API keys to the OS Keychain via `CredentialStore`.
+-   **Settings**: Persists model/runtime preferences to disk via `ConfigStore`.
 -   **Session**: Delegates history operations (clear, delete) to `SessionStore`.
 
 ### 3. Route Dispatch Architecture
@@ -66,7 +67,8 @@ graph TB
 2.  **Capabilities**: Verify the model supports the requested features (reasoning, tokens).
 3.  **Key Resolution**: Use the provided key, or fall back to the stored key/env var.
 4.  **Verification**: Optionally test the key with a real API call.
-5.  **Apply**: Update global state and reset the `LlmClient`.
+5.  **Persistence**: Save settings to `ConfigStore` and key to `CredentialStore`.
+6.  **Apply**: Update global state and reset the `LlmClient`.
 
 ## Key Endpoints
 -   `GET /api/admin/state`: The "boot" payload for the dashboard.
@@ -78,6 +80,7 @@ graph TB
 -   **Controller**: `src/server/admin-controller.ts`
 -   **State**: `src/types.ts` (`MutableServerState`)
 -   **Security**: `src/utils/credential-store.ts`
+-   **Persistence**: `src/utils/config-store.ts`
 
 ## Deep Dive: Provider Selection Quirks
 

@@ -2,9 +2,13 @@ import crypto from "node:crypto";
 import type { ServerResponse } from "node:http";
 import { setCookie } from "../utils/cookies.js";
 import { escapeHtml } from "../utils/html.js";
+import { getGeneratedImagePath } from "../image-gen/paths.js";
 import type {
   BranchState,
   ForkState,
+  ImageAspectRatio,
+  ImageModelId,
+  GeneratedImage,
   HistoryEntry,
   HistoryForkInfo,
   LlmReasoningTrace,
@@ -313,11 +317,11 @@ export class SessionStore {
       const forkInfo: HistoryForkInfo = cloned.forkInfo
         ? { ...cloned.forkInfo, status: "chosen" }
         : {
-            forkId: fork.forkId,
-            branchId: chosenBranchId,
-            label: branch.label,
-            status: "chosen",
-          };
+          forkId: fork.forkId,
+          branchId: chosenBranchId,
+          label: branch.label,
+          status: "chosen",
+        };
       cloned.forkInfo = forkInfo;
       return cloned;
     });
@@ -331,11 +335,11 @@ export class SessionStore {
         const forkInfo: HistoryForkInfo = cloned.forkInfo
           ? { ...cloned.forkInfo, status: "discarded" }
           : {
-              forkId: fork.forkId,
-              branchId: id,
-              label: otherBranch.label,
-              status: "discarded",
-            };
+            forkId: fork.forkId,
+            branchId: id,
+            label: otherBranch.label,
+            status: "discarded",
+          };
         cloned.forkInfo = forkInfo;
         return cloned;
       });
@@ -373,11 +377,11 @@ export class SessionStore {
         const forkInfo: HistoryForkInfo = cloned.forkInfo
           ? { ...cloned.forkInfo, status: "discarded" }
           : {
-              forkId: fork.forkId,
-              branchId: branch.branchId,
-              label: branch.label,
-              status: "discarded",
-            };
+            forkId: fork.forkId,
+            branchId: branch.branchId,
+            label: branch.label,
+            status: "discarded",
+          };
         cloned.forkInfo = forkInfo;
         return cloned;
       });
@@ -416,8 +420,7 @@ export class SessionStore {
     return summarizeFork(fork);
   }
 
-  getActiveForkSummaries(): Array<{ sessionId: string; fork: ForkSummary }>
-  {
+  getActiveForkSummaries(): Array<{ sessionId: string; fork: ForkSummary }> {
     const summaries: Array<{ sessionId: string; fork: ForkSummary }> = [];
     for (const [sid, record] of this.sessions.entries()) {
       const fork = this.getActiveFork(record);
@@ -772,21 +775,21 @@ export class SessionStore {
       rest:
         type === "mutation"
           ? {
-              type,
-              request: restRequest,
-              response,
-              rawResponse,
-              ok,
-              error,
-            }
+            type,
+            request: restRequest,
+            response,
+            rawResponse,
+            ok,
+            error,
+          }
           : {
-              type,
-              request: restRequest,
-              response,
-              rawResponse,
-              ok,
-              error,
-            },
+            type,
+            request: restRequest,
+            response,
+            rawResponse,
+            ok,
+            error,
+          },
       usage,
       reasoning,
     };
@@ -799,6 +802,51 @@ export class SessionStore {
     }
 
     this.appendHistoryEntry(sid, entry, { preservePrevHtml: true });
+  }
+
+  recordGeneratedImage(
+    sid: string,
+    image: GeneratedImage,
+    branchId?: string
+  ): void {
+    const normalizedImage = normalizeGeneratedImages([image])?.[0];
+    if (!normalizedImage) {
+      return;
+    }
+
+    const record = this.ensureRecord(sid);
+
+    if (branchId) {
+      const { fork, branch } = this.getBranchWithFork(record, branchId);
+      const targetIndex = findLastHtmlEntryIndex(branch.history);
+      if (targetIndex === -1) {
+        return;
+      }
+      const nextHistory = branch.history.slice();
+      const target = nextHistory[targetIndex];
+      nextHistory[targetIndex] = {
+        ...target,
+        generatedImages: [...(target.generatedImages ?? []), normalizedImage],
+      };
+      branch.history = nextHistory;
+      fork.branches.set(branchId, branch);
+      record.activeFork = fork;
+      this.persistRecord(sid, record);
+      return;
+    }
+
+    const targetIndex = findLastHtmlEntryIndex(record.history);
+    if (targetIndex === -1) {
+      return;
+    }
+    const nextHistory = record.history.slice();
+    const target = nextHistory[targetIndex];
+    nextHistory[targetIndex] = {
+      ...target,
+      generatedImages: [...(target.generatedImages ?? []), normalizedImage],
+    };
+    record.history = nextHistory;
+    this.persistRecord(sid, record);
   }
 }
 
@@ -899,6 +947,15 @@ function findLastHtmlEntry(history: HistoryEntry[]): HistoryEntry | undefined {
   return undefined;
 }
 
+function findLastHtmlEntryIndex(history: HistoryEntry[]): number {
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    if (history[index]?.entryKind === "html") {
+      return index;
+    }
+  }
+  return -1;
+}
+
 function summarizeFork(fork: ForkState): ForkSummary {
   return {
     forkId: fork.forkId,
@@ -938,6 +995,11 @@ function normalizeImportedEntry(entry: HistoryEntry): HistoryEntry {
     entryKind,
   };
 
+  const generatedImages = normalizeGeneratedImages(entry.generatedImages);
+  if (generatedImages?.length) {
+    normalized.generatedImages = generatedImages;
+  }
+
   if (entryKind === "html") {
     normalized.llm = entry.llm;
     return normalized;
@@ -955,4 +1017,81 @@ function normalizeImportedEntry(entry: HistoryEntry): HistoryEntry {
     },
   };
   return normalized;
+}
+
+function normalizeGeneratedImages(
+  images: GeneratedImage[] | undefined
+): GeneratedImage[] | undefined {
+  if (!images || images.length === 0) {
+    return undefined;
+  }
+
+  const allowedRatios: ImageAspectRatio[] = ["1:1", "16:9", "9:16", "4:3", "3:4"];
+
+  return images
+    .map((image): GeneratedImage | null => {
+      if (!image || typeof image !== "object") {
+        return null;
+      }
+      const ratio = allowedRatios.includes(image.ratio as ImageAspectRatio)
+        ? (image.ratio as ImageAspectRatio)
+        : "1:1";
+      const provider = image.provider === "gemini" ? "gemini" : "openai";
+      const modelId =
+        typeof image.modelId === "string"
+          ? (image.modelId as ImageModelId)
+          : "gpt-image-1.5";
+      const mimeType =
+        typeof image.mimeType === "string" && image.mimeType.trim().length > 0
+          ? image.mimeType
+          : "image/png";
+      const cacheKey =
+        typeof image.cacheKey === "string" && image.cacheKey.trim().length > 0
+          ? image.cacheKey
+          : crypto.randomUUID();
+      const url =
+        typeof image.url === "string" && image.url.trim().length > 0
+          ? image.url
+          : getGeneratedImagePath(cacheKey).route;
+      const createdAt =
+        typeof image.createdAt === "string" && image.createdAt.trim().length > 0
+          ? image.createdAt
+          : new Date().toISOString();
+      const prompt = typeof image.prompt === "string" ? image.prompt : "";
+      const base64 =
+        typeof image.base64 === "string" && image.base64.trim().length > 0
+          ? image.base64
+          : undefined;
+      const blobName =
+        typeof image.blobName === "string" && image.blobName.trim().length > 0
+          ? image.blobName.trim()
+          : undefined;
+      const id =
+        typeof image.id === "string" && image.id.trim().length > 0
+          ? image.id
+          : crypto.randomUUID();
+
+      const result: GeneratedImage = {
+        id,
+        cacheKey,
+        url,
+        prompt,
+        ratio,
+        provider,
+        modelId,
+        mimeType,
+        createdAt,
+      };
+
+      if (base64) {
+        result.base64 = base64;
+      }
+
+      if (blobName) {
+        result.blobName = blobName;
+      }
+
+      return result;
+    })
+    .filter((image): image is GeneratedImage => image !== null);
 }

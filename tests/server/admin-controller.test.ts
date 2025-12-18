@@ -1,4 +1,6 @@
+import { existsSync, rmSync } from "node:fs";
 import type { ServerResponse } from "node:http";
+import type { Logger } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminController } from "../../src/server/admin-controller.js";
 import type { MutableServerState, RequestContext } from "../../src/server/server.js";
@@ -6,6 +8,7 @@ import { SessionStore } from "../../src/server/session-store.js";
 import { createHistoryEntry } from "../test-utils/factories.js";
 import { createIncomingMessage } from "../test-utils/http.js";
 import { getLoggerMock } from "../test-utils/logger.js";
+import { getGeneratedImagePath } from "../../src/image-gen/paths.js";
 
 const credentialStoreMock = {
   saveApiKey: vi.fn(),
@@ -36,7 +39,7 @@ class MockServerResponse {
 
   end(chunk?: string | Buffer): void {
     if (chunk != null) {
-      this.body = chunk instanceof Buffer ? chunk.toString("utf8") : chunk;
+      this.body = chunk instanceof Buffer ? chunk.toString("utf8") : chunk as string;
     }
   }
 }
@@ -53,6 +56,11 @@ function createState(): MutableServerState {
     brief: null,
     briefAttachments: [],
     runtime: {
+      port: 3000,
+      host: 'localhost',
+      promptPath: '',
+      sessionTtlMs: 3600000,
+      sessionCap: 100,
       historyLimit: 50,
       historyMaxBytes: 2_000_000,
       includeInstructionPanel: true,
@@ -64,7 +72,11 @@ function createState(): MutableServerState {
       reasoningMode: "default",
       reasoningTokensEnabled: false,
       maxOutputTokens: 1024,
-      customModel: null,
+      imageGeneration: {
+        enabled: false,
+        provider: "openai",
+        modelId: "gpt-image-1.5",
+      },
     },
     llmClient: null,
     providerReady: false,
@@ -73,6 +85,7 @@ function createState(): MutableServerState {
     providersWithKeys: new Set(),
     verifiedProviders: {},
     pendingHtml: new Map(),
+    reasoningStreams: new Map(),
   };
 }
 
@@ -98,7 +111,7 @@ describe("AdminController forks", () => {
   const capacity = 50;
   let sessionStore: SessionStore;
   let controller: AdminController;
-  const logger = getLoggerMock();
+  const logger = getLoggerMock() as unknown as Logger;
 
   beforeEach(() => {
     sessionStore = new SessionStore(ttl, capacity);
@@ -110,7 +123,7 @@ describe("AdminController forks", () => {
     const response = createResponse();
     const sid = sessionStore.getOrCreateSessionId({}, response);
     const entry = createHistoryEntry({
-      id: "origin", 
+      id: "origin",
       response: { html: "<html><body>Base</body></html>" },
     });
     sessionStore.appendHistoryEntry(sid, entry);
@@ -358,7 +371,7 @@ describe("AdminController history import", () => {
   const capacity = 50;
   let sessionStore: SessionStore;
   let controller: AdminController;
-  const logger = getLoggerMock();
+  const logger = getLoggerMock() as unknown as Logger;
 
   beforeEach(() => {
     sessionStore = new SessionStore(ttl, capacity);
@@ -430,5 +443,74 @@ describe("AdminController history import", () => {
     expect(history[0].sessionId).toBe(sid);
     expect(history[0].response.html).toContain("Imported");
     expect(payload.state?.brief).toBe("Imported brief");
+  });
+
+  it("restores generated image caches during import", async () => {
+    const response = createResponse();
+    const sid = sessionStore.getOrCreateSessionId({}, response);
+    const base64 = Buffer.from("image-binary").toString("base64");
+
+    const snapshot = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      brief: "Imported brief",
+      briefAttachments: [],
+      history: [
+        createHistoryEntry({
+          sessionId: "external",
+          createdAt: "2024-02-01T00:00:00.000Z",
+          response: { html: "<html><body>Imported</body></html>" },
+          generatedImages: [
+            {
+              id: "img-1",
+              cacheKey: "cache-key-1",
+              url: "/generated-images/cache-key-1.png",
+              prompt: "A neon skyline",
+              ratio: "16:9",
+              provider: "openai",
+              modelId: "gpt-image-1.5",
+              mimeType: "image/png",
+              base64,
+              createdAt: "2024-02-01T00:00:00.000Z",
+            },
+          ],
+        }),
+      ],
+      runtime: {
+        historyLimit: 100,
+        historyMaxBytes: 5_000_000,
+        includeInstructionPanel: true,
+      },
+      llm: {
+        provider: "openai",
+        model: "gpt-4o-mini",
+        maxOutputTokens: 2048,
+        reasoningMode: "default",
+      },
+    };
+
+    const res = createResponse();
+    const context = createContext(
+      "/api/admin/history/import",
+      "POST",
+      {
+        headers: {
+          "content-type": "application/json",
+          cookie: `sid=${sid}`,
+        },
+        body: [JSON.stringify({ snapshot })],
+      },
+      res
+    );
+
+    await controller.handle(context, Date.now(), logger);
+
+    const history = sessionStore.getHistory(sid);
+    expect(history[0].generatedImages).toHaveLength(1);
+    const cacheKey = history[0].generatedImages?.[0]?.cacheKey ?? "";
+    const { filePath } = getGeneratedImagePath(cacheKey);
+    expect(existsSync(filePath)).toBe(true);
+
+    rmSync(filePath, { force: true });
   });
 });

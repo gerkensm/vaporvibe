@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   AttachmentUploader,
   ModelSelector,
+  ImageModelSelector,
   TokenBudgetControl,
 } from "../components";
 import type { CustomModelConfig } from "../components";
@@ -21,6 +22,7 @@ import {
   submitRuntimeUpdate,
   verifyProviderKey,
   type ProviderUpdatePayload,
+  type RuntimeUpdatePayload,
 } from "../api/admin";
 import type {
   AdminBriefAttachment,
@@ -1398,10 +1400,26 @@ function ProviderPanel({
   const [customModelConfigs, setCustomModelConfigs] = useState<
     Record<ProviderKey, CustomModelConfig>
   >({});
+  const [imageGenerationEnabled, setImageGenerationEnabled] =
+    useState<boolean>(state.provider.imageGeneration.enabled);
+  const [imageGenerationModelId, setImageGenerationModelId] = useState(
+    state.provider.imageGeneration.modelId
+  );
+  const [imageGenerationApiKey, setImageGenerationApiKey] = useState("");
   const [customModelIds, setCustomModelIds] = useState<
     Record<ProviderKey, string>
   >({});
   const currentProvider = provider.provider as ProviderKey;
+
+  useEffect(() => {
+    setImageGenerationEnabled(state.provider.imageGeneration.enabled);
+    setImageGenerationModelId(state.provider.imageGeneration.modelId);
+    setImageGenerationApiKey("");
+  }, [
+    state.provider.imageGeneration.enabled,
+    state.provider.imageGeneration.modelId,
+  ]);
+
   const lastAppliedDefaultRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -2121,7 +2139,9 @@ function ProviderPanel({
         }
       }
       setApiKey("");
+      setImageGenerationApiKey("");
       onStatus({ tone: "info", message: response.message });
+
       setVerifying("success");
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -2171,7 +2191,13 @@ function ProviderPanel({
       maxOutputTokens: sanitizedMaxTokens,
       reasoningMode,
       apiKey: apiKey.trim() || undefined,
+      imageGeneration: {
+        enabled: imageGenerationEnabled,
+        modelId: imageGenerationModelId,
+        apiKey: imageGenerationApiKey.trim() || undefined,
+      },
     };
+
 
     if (currentGuidance.reasoningTokensSupported) {
       payload.reasoningTokensEnabled = effectiveReasoningEnabled;
@@ -2193,6 +2219,7 @@ function ProviderPanel({
         onState(response.state);
       }
       setApiKey("");
+      setImageGenerationApiKey("");
       onStatus({ tone: "info", message: response.message });
       onSaving("success");
     } catch (error) {
@@ -2285,6 +2312,16 @@ function ProviderPanel({
             key.
           </p>
         </label>
+
+        <ImageModelSelector
+          enabled={imageGenerationEnabled}
+          modelId={imageGenerationModelId}
+          apiKey={imageGenerationApiKey}
+          hasStoredKey={state.provider.imageGeneration.hasApiKey}
+          onEnabledChange={setImageGenerationEnabled}
+          onModelChange={setImageGenerationModelId}
+          onApiKeyChange={setImageGenerationApiKey}
+        />
 
         <details
           className="admin-advanced"
@@ -2724,6 +2761,7 @@ function RuntimePanel({
   const [includeInstructionPanel, setIncludeInstructionPanel] =
     useState<boolean>(runtime.includeInstructionPanel);
   const [runtimeErrors, setRuntimeErrors] = useState<{
+
     historyLimit?: string;
     historyMaxBytes?: string;
   }>({});
@@ -2737,6 +2775,7 @@ function RuntimePanel({
     state.runtime.historyMaxBytes,
     state.runtime.includeInstructionPanel,
   ]);
+
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -2775,6 +2814,13 @@ function RuntimePanel({
       HISTORY_MAX_BYTES_MAX
     );
 
+    const runtimePayload: RuntimeUpdatePayload = {
+      historyLimit: sanitizedHistoryLimit,
+      historyMaxBytes: sanitizedHistoryMaxBytes,
+      instructionPanel: includeInstructionPanel,
+    };
+
+
     const adjustments: string[] = [];
     if (sanitizedHistoryLimit !== parsedHistoryLimit) {
       adjustments.push(`History limit adjusted to ${sanitizedHistoryLimit}.`);
@@ -2790,17 +2836,14 @@ function RuntimePanel({
     setRuntimeErrors({});
 
     try {
-      const response = await submitRuntimeUpdate({
-        historyLimit: sanitizedHistoryLimit,
-        historyMaxBytes: sanitizedHistoryMaxBytes,
-        instructionPanel: includeInstructionPanel,
-      });
+      const response = await submitRuntimeUpdate(runtimePayload);
       if (!response.success) {
         throw new Error(response.message || "Runtime update failed");
       }
       if (response.state) {
         onState(response.state);
       }
+
       const statusMessage =
         adjustments.length > 0
           ? `${response.message} ${adjustments.join(" ")}`
@@ -2918,6 +2961,7 @@ function RuntimePanel({
         </label>
 
         <div className="admin-actions">
+
           <button
             type="submit"
             className="admin-primary"

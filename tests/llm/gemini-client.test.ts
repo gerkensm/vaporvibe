@@ -9,9 +9,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GeminiClient } from '../../src/llm/gemini-client.js';
 import type { LlmStreamObserver, LlmReasoningStreamEvent } from '../../src/llm/client.js';
 import type { ProviderSettings } from '../../src/types.js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

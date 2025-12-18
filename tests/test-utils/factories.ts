@@ -1,6 +1,7 @@
 import type {
   BriefAttachment,
   HistoryEntry,
+  ProviderSettings,
   RestMutationRecord,
   RestQueryRecord,
 } from "../../src/types.js";
@@ -87,3 +88,24 @@ export function createRestQuery(
     error: overrides.error,
   };
 }
+
+export function createProviderSettings(
+  overrides: Partial<ProviderSettings> = {}
+): ProviderSettings {
+  return {
+    provider: overrides.provider ?? "openai",
+    apiKey: overrides.apiKey ?? "test-api-key",
+    model: overrides.model ?? "gpt-4o",
+    maxOutputTokens: overrides.maxOutputTokens ?? 4096,
+    reasoningMode: overrides.reasoningMode ?? "none",
+    reasoningTokensEnabled: overrides.reasoningTokensEnabled,
+    reasoningTokens: overrides.reasoningTokens,
+    mediaResolution: overrides.mediaResolution,
+    imageGeneration: overrides.imageGeneration ?? {
+      enabled: false,
+      provider: "openai",
+      modelId: "gpt-image-1.5",
+    },
+  };
+}
+
