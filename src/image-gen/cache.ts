@@ -1,34 +1,76 @@
+import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { logger } from "../logger.js";
 import type { ImageGenClient, ImageGenOptions, ImageGenResult } from "./types.js";
+import type {
+  ImageAspectRatio,
+  ImageGenProvider,
+  ImageModelId,
+} from "../types.js";
+import { GENERATED_IMAGES_DIR, getGeneratedImagePath } from "./paths.js";
 
 export class CachedImageGenClient implements ImageGenClient {
-    private static cache = new Map<string, ImageGenResult>();
-    private readonly client: ImageGenClient;
+  private static cache = new Map<string, ImageGenResult>();
+  private readonly client: ImageGenClient;
 
-    constructor(client: ImageGenClient) {
-        this.client = client;
+  constructor(client: ImageGenClient) {
+    this.client = client;
+  }
+
+  async generateImage(options: ImageGenOptions): Promise<ImageGenResult> {
+    const key = this.getCacheKey(options);
+    const cached = CachedImageGenClient.cache.get(key);
+
+    if (cached) {
+      logger.debug({ key }, "Image generation cache hit");
+      return cached;
     }
 
-    async generateImage(options: ImageGenOptions): Promise<ImageGenResult> {
-        const key = this.getCacheKey(options);
-        const cached = CachedImageGenClient.cache.get(key);
+    logger.debug({ key }, "Image generation cache miss");
+    const result = await this.client.generateImage(options);
+    CachedImageGenClient.cache.set(key, result);
+    return result;
+  }
 
-        if (cached) {
-            logger.debug({ key }, "Image generation cache hit");
-            return cached;
-        }
+  private getCacheKey(options: ImageGenOptions): string {
+    return `${options.modelId || "default"}:${options.ratio}:${options.prompt.trim()}`;
+  }
+}
 
-        logger.debug({ key }, "Image generation cache miss");
-        const result = await this.client.generateImage(options);
-        CachedImageGenClient.cache.set(key, result);
-        return result;
-    }
+export function buildImageCacheKey(options: {
+  provider: ImageGenProvider;
+  modelId: ImageModelId;
+  prompt: string;
+  ratio: ImageAspectRatio;
+}): string {
+  const { provider, modelId, prompt, ratio } = options;
+  return createHash("sha256")
+    .update(`${provider}:${modelId}:${prompt}:${ratio}`)
+    .digest("hex");
+}
 
-    private getCacheKey(options: ImageGenOptions): string {
-        // We include the modelId, ratio, and prompt in the cache key.
-        // The apiKey is NOT included because we want to share results even if the key changes slightly
-        // (though usually it won't), but more importantly, we don't want to leak keys in logs if we ever log keys.
-        // Also, if the user switches keys but requests the same image, we can still serve the cached one.
-        return `${options.modelId || "default"}:${options.ratio}:${options.prompt.trim()}`;
-    }
+export async function ensureImageCacheDir(): Promise<void> {
+  await mkdir(GENERATED_IMAGES_DIR, { recursive: true });
+}
+
+export async function writeImageCache(
+  cacheKey: string,
+  base64: string
+): Promise<{ filePath: string; route: string }> {
+  await ensureImageCacheDir();
+  const { filePath, route } = getGeneratedImagePath(cacheKey);
+  if (!existsSync(filePath)) {
+    await writeFile(filePath, Buffer.from(base64, "base64"));
+  }
+  return { filePath, route };
+}
+
+export async function readImageCacheBase64(
+  cacheKey: string
+): Promise<{ base64: string; filePath: string; route: string }> {
+  await ensureImageCacheDir();
+  const { filePath, route } = getGeneratedImagePath(cacheKey);
+  const buffer = await readFile(filePath);
+  return { base64: buffer.toString("base64"), filePath, route };
 }

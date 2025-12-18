@@ -1,6 +1,5 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
 import type { Logger } from "pino";
 import { supportsImageInput } from "../llm/capabilities.js";
 import { buildMessages } from "../llm/messages.js";
@@ -10,6 +9,7 @@ import { readBody } from "../utils/body.js";
 import type {
   BriefAttachment,
   HistoryEntry,
+  ImageAspectRatio,
   ImageGenProvider,
   RestMutationRecord,
   RestQueryRecord,
@@ -20,11 +20,14 @@ import type { RequestContext } from "./server.js";
 import { selectHistoryForPrompt } from "./history-utils.js";
 import { SessionStore } from "./session-store.js";
 import { createImageGenClient } from "../image-gen/factory.js";
-import type { ImageAspectRatio, ImageGenResult } from "../image-gen/types.js";
+import type { ImageGenResult } from "../image-gen/types.js";
+import { getGeneratedImagePath } from "../image-gen/paths.js";
 import {
-  GENERATED_IMAGES_DIR,
-  getGeneratedImagePath,
-} from "../image-gen/paths.js";
+  buildImageCacheKey,
+  readImageCacheBase64,
+  ensureImageCacheDir,
+  writeImageCache,
+} from "../image-gen/cache.js";
 import { getCredentialStore } from "../utils/credential-store.js";
 
 const BRANCH_FIELD = "__vaporvibe_branch";
@@ -104,7 +107,7 @@ export class RestApiController {
     context: RequestContext,
     reqLogger: Logger
   ): Promise<void> {
-    const { req, res, path, method } = context;
+    const { req, res, path, method, url } = context;
     if (path !== "/rest_api/image/generate") {
       res.statusCode = 404;
       res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -128,11 +131,29 @@ export class RestApiController {
       return;
     }
 
+    const cookies = parseCookies(req.headers.cookie);
+    const sid = this.sessionStore.getOrCreateSessionId(cookies, res);
+
     const body = await readBody(req);
     const data = body.data ?? {};
     const prompt =
       typeof data.prompt === "string" ? data.prompt.trim() : undefined;
     const ratio = this.normalizeAspectRatio(data.ratio);
+
+    const rawQueryEntries = Array.from(url.searchParams.entries());
+    let branchId = context.branchId;
+    for (const [key, value] of rawQueryEntries) {
+      if (key === BRANCH_FIELD && typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed.length > 0 && !branchId) {
+          branchId = trimmed;
+        }
+      }
+    }
+
+    const bodyBranch = extractBranchId(data[BRANCH_FIELD]);
+    const normalizedBranchId =
+      branchId || (bodyBranch ? bodyBranch.trim() : undefined);
 
     if (!prompt) {
       res.statusCode = 400;
@@ -143,13 +164,28 @@ export class RestApiController {
 
     const provider: ImageGenProvider = env.provider.imageGeneration.provider;
     const modelId = env.provider.imageGeneration.modelId ?? "gpt-image-1.5";
-    const hash = createHash("sha256")
-      .update(`${provider}:${modelId}:${prompt}:${ratio}`)
-      .digest("hex");
-    const { filePath, route } = getGeneratedImagePath(hash);
+    const cacheKey = buildImageCacheKey({ provider, modelId, prompt, ratio });
+    const { filePath, route } = getGeneratedImagePath(cacheKey);
 
-    await mkdir(GENERATED_IMAGES_DIR, { recursive: true });
+    await ensureImageCacheDir();
     if (existsSync(filePath)) {
+      const cached = await readImageCacheBase64(cacheKey);
+      this.sessionStore.recordGeneratedImage(
+        sid,
+        {
+          id: randomUUID(),
+          cacheKey,
+          url: route,
+          prompt,
+          ratio,
+          provider,
+          modelId,
+          mimeType: "image/png",
+          base64: cached.base64,
+          createdAt: new Date().toISOString(),
+        },
+        normalizedBranchId
+      );
       res.statusCode = 200;
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.setHeader("Cache-Control", "no-store");
@@ -176,7 +212,27 @@ export class RestApiController {
         apiKey,
         modelId,
       });
-      await this.persistImage(result, filePath);
+      const { base64, mimeType } = await this.persistImage(
+        result,
+        cacheKey,
+        route
+      );
+      this.sessionStore.recordGeneratedImage(
+        sid,
+        {
+          id: randomUUID(),
+          cacheKey,
+          url: route,
+          prompt,
+          ratio,
+          provider,
+          modelId,
+          mimeType,
+          base64,
+          createdAt: new Date().toISOString(),
+        },
+        normalizedBranchId
+      );
       res.statusCode = 200;
       res.setHeader("Content-Type", "application/json; charset=utf-8");
       res.setHeader("Cache-Control", "no-store");
@@ -504,27 +560,53 @@ export class RestApiController {
     return null;
   }
 
-  private async persistImage(result: ImageGenResult, filePath: string): Promise<void> {
-    let buffer: Buffer;
+  private async persistImage(
+    result: ImageGenResult,
+    cacheKey: string,
+    route: string
+  ): Promise<{ base64: string; mimeType: string }> {
+    const { buffer, mimeType } = await this.resolveImageBuffer(result);
+    const base64 = buffer.toString("base64");
+    await writeImageCache(cacheKey, base64);
 
+    return { base64, mimeType: mimeType ?? this.getMimeTypeFromRoute(route) };
+  }
+
+  private async resolveImageBuffer(
+    result: ImageGenResult
+  ): Promise<{ buffer: Buffer; mimeType?: string }> {
     if (result.url.startsWith("data:")) {
-      const base64Payload = result.url.split(",")[1];
+      const match = result.url.match(/^data:(.*?);base64,(.+)$/i);
+      const mimeType = match?.[1];
+      const base64Payload = match?.[2];
       if (!base64Payload) {
         throw new Error("Invalid data URL from image generation provider");
       }
-      buffer = Buffer.from(base64Payload, "base64");
-    } else {
-      const response = await fetch(result.url);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to download generated image (status ${response.status})`
-        );
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      buffer = Buffer.from(arrayBuffer);
+      return { buffer: Buffer.from(base64Payload, "base64"), mimeType };
     }
 
-    await writeFile(filePath, buffer);
+    const response = await fetch(result.url);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to download generated image (status ${response.status})`
+      );
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const mimeType = result.mimeType ?? response.headers.get("content-type") ?? undefined;
+    return { buffer: Buffer.from(arrayBuffer), mimeType: mimeType ?? undefined };
+  }
+
+  private getMimeTypeFromRoute(route: string): string {
+    if (route.endsWith(".jpg") || route.endsWith(".jpeg")) {
+      return "image/jpeg";
+    }
+    if (route.endsWith(".webp")) {
+      return "image/webp";
+    }
+    if (route.endsWith(".gif")) {
+      return "image/gif";
+    }
+    return "image/png";
   }
 
   private preparePromptContext(

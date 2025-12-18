@@ -7,6 +7,18 @@ export interface AdminBriefAttachment {
   isImage: boolean;
 }
 
+export interface AdminGeneratedImage {
+  id: string;
+  url: string;
+  downloadUrl: string;
+  prompt: string;
+  ratio: "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+  provider: "openai" | "gemini";
+  modelId: string;
+  mimeType: string;
+  createdAt: string;
+}
+
 export interface AdminRestMutationItem {
   id: string;
   createdAt: string;
@@ -124,6 +136,7 @@ export interface AdminHistoryItem {
   reasoningDetails?: string[];
   html: string;
   attachments?: AdminBriefAttachment[];
+  generatedImages?: AdminGeneratedImage[];
   entryKind: AdminHistoryEntryKind;
   rest?: {
     type: "mutation" | "query";

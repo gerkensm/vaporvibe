@@ -43,23 +43,53 @@ class AIImage extends HTMLElement {
         if (!data || !data.url) {
           throw new Error("Missing image URL");
         }
-        this.innerHTML = `<img src="${data.url}" alt="${this.#escape(prompt)}" style="width: 100%; height: auto; border-radius: 10px; display: block;" loading="lazy" />`;
+
+        const img = document.createElement("img");
+        img.src = data.url;
+        img.alt = prompt;
+        img.loading = "lazy";
+
+        // Internal display defaults
+        img.style.width = "100%";
+        img.style.height = "auto";
+        img.style.borderRadius = "10px";
+        img.style.display = "block";
+
+        // Overwrite/Add attributes from the host <ai-image>
+        for (const attr of this.attributes) {
+          const name = attr.name.toLowerCase();
+          // Skip internal/already-handled attributes
+          if (["prompt", "ratio", "data-rendered", "src", "alt"].includes(name)) {
+            continue;
+          }
+
+          if (name === "style") {
+            // Merge styles: internal defaults first, then user styles to allow overrides
+            img.style.cssText += ";" + attr.value;
+          } else {
+            img.setAttribute(attr.name, attr.value);
+          }
+        }
+
+        this.innerHTML = "";
+        this.appendChild(img);
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("AI Image Generation Error:", err);
         this.innerHTML = `<div style="background: #fef2f2; color: #b91c1c; padding: 12px; border-radius: 10px; border: 1px solid #fecdd3; font-size: 0.9rem;">Image generation failed. Try again.</div>`;
       });
   }
 
-    #ratioToCss(ratio) {
-      const map = {
-        "1:1": "1 / 1",
-        "16:9": "16 / 9",
-        "9:16": "9 / 16",
-        "4:3": "4 / 3",
-        "3:4": "3 / 4",
-      };
-      return map[ratio] || map["1:1"];
-    }
+  #ratioToCss(ratio) {
+    const map = {
+      "1:1": "1 / 1",
+      "16:9": "16 / 9",
+      "9:16": "9 / 16",
+      "4:3": "4 / 3",
+      "3:4": "3 / 4",
+    };
+    return map[ratio] || map["1:1"];
+  }
 
   #escape(value) {
     return (value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");

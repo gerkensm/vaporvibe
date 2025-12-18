@@ -200,6 +200,27 @@ describe("SessionStore", () => {
     expect(store.getPrevHtml(sid)).toContain("Existing");
   });
 
+  it("records generated images on the latest html entry", () => {
+    const { sid } = seedBaseSession({ id: "html-entry" });
+
+    store.recordGeneratedImage(sid, {
+      id: "image-1",
+      cacheKey: "hash-1",
+      url: "/generated-images/hash-1.png",
+      prompt: "A cozy reading nook",
+      ratio: "4:3",
+      provider: "openai",
+      modelId: "gpt-image-1.5",
+      mimeType: "image/png",
+      base64: "YmFzZTY0",
+      createdAt: "2024-01-01T00:00:00.000Z",
+    });
+
+    const history = store.getHistory(sid);
+    expect(history[0].generatedImages).toHaveLength(1);
+    expect(history[0].generatedImages?.[0]?.prompt).toBe("A cozy reading nook");
+  });
+
   describe("fork support", () => {
     it("creates fork branches with cloned state and instructions", () => {
       const { sid, entry } = seedBaseSession();

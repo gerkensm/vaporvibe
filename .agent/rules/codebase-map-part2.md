@@ -3,6 +3,21 @@ trigger: glob
 globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+**Internal Imports:**
+
+- From `../logger.js`: `logger`
+- From `../types.js`: `ChatMessage`, `LlmReasoningTrace`, `LlmUsageMetrics`, `ProviderSettings`, `VerificationResult`
+- From `./client.js`: `LlmClient`, `LlmResult`, `LlmGenerateOptions`
+
+**External Imports:**
+
+- From `openai`: `default as OpenAI`
+
+#### `llm/groq-client.ts`
+
+**Internal Imports:**
+
+- From `../logger.js`: `logger`
 - From `./capabilities.js`: `supportsImageInput`
 - From `../types.js`: `ChatMessage`, `LlmReasoningTrace`, `LlmUsageMetrics`, `ProviderSettings`, `VerificationResult`, `ReasoningMode`
 - From `./client.js`: `LlmClient`, `LlmResult`, `LlmGenerateOptions`, `LlmStreamObserver`
@@ -64,16 +79,19 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 - From `../utils/cookies.js`: `parseCookies`
 - From `../utils/sensitive.js`: `maskSensitive`
 - From `../utils/history-export.js`: `createHistorySnapshot`, `createPromptMarkdown`
+- From `../image-gen/cache.js`: `buildImageCacheKey`, `writeImageCache`
+- From `../image-gen/paths.js`: `getGeneratedImagePath`
 - From `./session-store.js`: `SessionStore`
 - From `../utils/credential-store.js`: `getCredentialStore`
 - From `../utils/config-store.js`: `getConfigStore`
 - From `./brief-attachments.js`: `processBriefAttachmentFiles`
-- From `../types.js`: `BriefAttachment`, `HistoryEntry`, `ImageGenProvider`, `ImageModelId`, `ProviderSettings`, `ReasoningMode`, `ModelProvider`, `RestMutationRecord`, `RestQueryRecord`
+- From `../types.js`: `BriefAttachment`, `GeneratedImage`, `HistoryEntry`, `ImageAspectRatio`, `ImageGenProvider`, `ImageModelId`, `ProviderSettings`, `ReasoningMode`, `ModelProvider`, `RestMutationRecord`, `RestQueryRecord`
 - From `./server.js`: `MutableServerState`, `RequestContext`
 - From `../types/admin-api.js`: `AdminActiveForkSummary`, `AdminBriefAttachment`, `AdminHistoryItem`, `AdminHistoryResponse`, `AdminProviderInfo`, `AdminRestItem`, `AdminRestMutationItem`, `AdminRestQueryItem`, `AdminRuntimeInfo`, `AdminStateResponse`, `AdminUpdateResponse`
 
 **External Imports:**
 
+- From `node:crypto`: `randomUUID`
 - From `node:http`: `ServerResponse`
 - From `pino`: `Logger`
 
@@ -115,18 +133,18 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 - From `./history-utils.js`: `selectHistoryForPrompt`
 - From `./session-store.js`: `SessionStore`
 - From `../image-gen/factory.js`: `createImageGenClient`
-- From `../image-gen/paths.js`: `GENERATED_IMAGES_DIR`, `getGeneratedImagePath`
+- From `../image-gen/paths.js`: `getGeneratedImagePath`
+- From `../image-gen/cache.js`: `buildImageCacheKey`, `readImageCacheBase64`, `ensureImageCacheDir`, `writeImageCache`
 - From `../utils/credential-store.js`: `getCredentialStore`
 - From `../llm/client.js`: `LlmClient`
-- From `../types.js`: `BriefAttachment`, `HistoryEntry`, `ImageGenProvider`, `RestMutationRecord`, `RestQueryRecord`, `RuntimeConfig`, `ProviderSettings`
+- From `../types.js`: `BriefAttachment`, `HistoryEntry`, `ImageAspectRatio`, `ImageGenProvider`, `RestMutationRecord`, `RestQueryRecord`, `RuntimeConfig`, `ProviderSettings`
 - From `./server.js`: `RequestContext`
-- From `../image-gen/types.js`: `ImageAspectRatio`, `ImageGenResult`
+- From `../image-gen/types.js`: `ImageGenResult`
 
 **External Imports:**
 
-- From `node:crypto`: `createHash`, `randomUUID`
+- From `node:crypto`: `randomUUID`
 - From `node:fs`: `existsSync`
-- From `node:fs/promises`: `mkdir`, `writeFile`
 - From `pino`: `Logger`
 
 #### `server/server.ts`
@@ -175,7 +193,8 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 
 - From `../utils/cookies.js`: `setCookie`
 - From `../utils/html.js`: `escapeHtml`
-- From `../types.js`: `BranchState`, `ForkState`, `HistoryEntry`, `HistoryForkInfo`, `LlmReasoningTrace`, `LlmUsageMetrics`, `RestMutationRecord`, `RestQueryRecord`
+- From `../image-gen/paths.js`: `getGeneratedImagePath`
+- From `../types.js`: `BranchState`, `ForkState`, `ImageAspectRatio`, `ImageModelId`, `GeneratedImage`, `HistoryEntry`, `HistoryForkInfo`, `LlmReasoningTrace`, `LlmUsageMetrics`, `RestMutationRecord`, `RestQueryRecord`
 
 **External Imports:**
 
@@ -190,7 +209,7 @@ _No imports_
 
 **Internal Imports:**
 
-- From `../types.js`: `HistoryEntryKind`, `HistoryForkInfo`, `ModelProvider`, `ImageModelId`, `ReasoningMode`, `RestHistoryMetadata`
+- From `../types.js`: `HistoryEntryKind`, `HistoryForkInfo`, `ModelProvider`, `ImageAspectRatio`, `ImageGenProvider`, `ImageModelId`, `ReasoningMode`, `RestHistoryMetadata`
 - From `../constants/providers.js`: `ProviderChoice`, `ProviderTokenGuidance`
 - From `../llm/model-catalog.js`: `ModelMetadata`
 
@@ -348,25 +367,3 @@ graph TD
   classDef serverNode fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
   classDef llmNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
   classDef viewNode fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
-  classDef utilNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px
-```
-
----
-
-### Key Module Dependencies
-
-_Top 10 modules by import count_
-
-```mermaid
-graph LR
-  pages_AdminDashboard_tsx["AdminDashboard.tsx"]
-  ___components["components"] --> pages_AdminDashboard_tsx
-  ___api_admin["admin"] --> pages_AdminDashboard_tsx
-  ___constants_runtime["runtime"] --> pages_AdminDashboard_tsx
-  ___components_Notifications["Notifications"] --> pages_AdminDashboard_tsx
-  ___api_types["types"] --> pages_AdminDashboard_tsx
-  App_tsx["App.tsx"]
-  __components_Notifications["Notifications"] --> App_tsx
-  __pages_AdminDashboard["AdminDashboard"] --> App_tsx
-  __pages_AbTestWorkspacePage["AbTestWorkspacePage"] --> App_tsx
-  __pages_SetupWizard["SetupWizard"] --> App_tsx

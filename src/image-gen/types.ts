@@ -1,4 +1,6 @@
-export type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+import type { ImageAspectRatio } from "../types.js";
+
+export type { ImageAspectRatio } from "../types.js";
 
 export interface ImageGenOptions {
   prompt: string;
@@ -11,6 +13,7 @@ export interface ImageGenResult {
   url: string;
   provider: string;
   originalPrompt?: string;
+  mimeType?: string;
 }
 
 export interface ImageGenClient {

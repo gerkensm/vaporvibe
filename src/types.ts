@@ -2,6 +2,8 @@ export type ModelProvider = "openai" | "gemini" | "anthropic" | "grok" | "groq";
 
 export type ImageGenProvider = "openai" | "gemini";
 
+export type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
+
 export type ImageModelId =
   | "gpt-image-1.5"
   | "dall-e-3"
@@ -97,7 +99,21 @@ export interface HistoryEntry {
   rest?: RestHistoryMetadata;
   componentCache?: Record<string, string>;
   styleCache?: Record<string, string>;
+  generatedImages?: GeneratedImage[];
   forkInfo?: HistoryForkInfo;
+}
+
+export interface GeneratedImage {
+  id: string;
+  cacheKey: string;
+  url: string;
+  prompt: string;
+  ratio: ImageAspectRatio;
+  provider: ImageGenProvider;
+  modelId: ImageModelId;
+  mimeType: string;
+  base64?: string;
+  createdAt: string;
 }
 
 export interface RestHistoryMetadata {

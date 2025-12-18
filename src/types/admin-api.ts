@@ -2,6 +2,8 @@ import type {
   HistoryEntryKind,
   HistoryForkInfo,
   ModelProvider,
+  ImageAspectRatio,
+  ImageGenProvider,
   ImageModelId,
   ReasoningMode,
   RestHistoryMetadata,
@@ -46,6 +48,18 @@ export interface AdminBriefAttachment {
   isImage: boolean;
 }
 
+export interface AdminGeneratedImage {
+  id: string;
+  url: string;
+  downloadUrl: string;
+  prompt: string;
+  ratio: ImageAspectRatio;
+  provider: ImageGenProvider;
+  modelId: ImageModelId;
+  mimeType: string;
+  createdAt: string;
+}
+
 export interface AdminRestItem {
   type: "mutation" | "query";
   request: RestHistoryMetadata["request"];
@@ -83,6 +97,7 @@ export interface AdminHistoryItem {
   reasoningDetails?: string[];
   html: string;
   attachments?: AdminBriefAttachment[];
+  generatedImages?: AdminGeneratedImage[];
   entryKind: HistoryEntryKind;
   rest?: AdminRestItem;
   restMutations?: AdminRestMutationItem[];

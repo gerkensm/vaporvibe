@@ -464,6 +464,64 @@ export function HistoryExplorer({
                     </div>
                   </div>
                 )}
+                {item.generatedImages && item.generatedImages.length > 0 && (
+                  <div className="history-item__section">
+                    <details className="history-item__images">
+                      <summary>
+                        <div className="history-item__label">Generated images</div>
+                        <span className="history-chip history-chip--muted">
+                          {item.generatedImages.length === 1
+                            ? "1 image"
+                            : `${item.generatedImages.length} images`}
+                        </span>
+                      </summary>
+                      <div className="history-item__image-grid">
+                        {item.generatedImages.map((image) => (
+                          <figure
+                            key={image.id}
+                            className="history-item__image-card"
+                          >
+                            <div className="history-item__image-thumb">
+                              <img
+                                src={image.url}
+                                alt={image.prompt || "Generated image"}
+                                loading="lazy"
+                              />
+                            </div>
+                            <figcaption>
+                              <div className="history-item__image-meta">
+                                {`${image.ratio} · ${image.provider}`}
+                              </div>
+                              <div
+                                className="history-item__image-prompt"
+                                title={image.prompt}
+                              >
+                                {image.prompt || "(prompt unavailable)"}
+                              </div>
+                              <div className="history-item__image-actions">
+                                <a
+                                  href={image.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="admin-secondary admin-secondary--link"
+                                >
+                                  View
+                                </a>
+                                <a
+                                  href={image.downloadUrl}
+                                  download
+                                  className="admin-secondary admin-secondary--link"
+                                >
+                                  Download
+                                </a>
+                              </div>
+                            </figcaption>
+                          </figure>
+                        ))}
+                      </div>
+                    </details>
+                  </div>
+                )}
                 <div
                   className="history-item__actions"
                   role="group"

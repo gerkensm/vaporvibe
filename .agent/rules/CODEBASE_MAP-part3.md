@@ -3,6 +3,24 @@ trigger: always_on
 globs: **/*
 ---
 
+### Key Module Dependencies
+
+_Top 10 modules by import count_
+
+```mermaid
+graph LR
+  pages_AdminDashboard_tsx["AdminDashboard.tsx"]
+  ___components["components"] --> pages_AdminDashboard_tsx
+  ___api_admin["admin"] --> pages_AdminDashboard_tsx
+  ___constants_runtime["runtime"] --> pages_AdminDashboard_tsx
+  ___components_Notifications["Notifications"] --> pages_AdminDashboard_tsx
+  ___api_types["types"] --> pages_AdminDashboard_tsx
+  App_tsx["App.tsx"]
+  __components_Notifications["Notifications"] --> App_tsx
+  __pages_AdminDashboard["AdminDashboard"] --> App_tsx
+  __pages_AbTestWorkspacePage["AbTestWorkspacePage"] --> App_tsx
+  __pages_SetupWizard["SetupWizard"] --> App_tsx
+  components_ABWorkspaceShell_tsx["ABWorkspaceShell.tsx"]
   ___api_admin["admin"] --> components_ABWorkspaceShell_tsx
   __Notifications["Notifications"] --> components_ABWorkspaceShell_tsx
   ___api_types["types"] --> components_ABWorkspaceShell_tsx

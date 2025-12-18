@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { ServerResponse } from "node:http";
 import type { Logger } from "pino";
 import { ADMIN_ROUTE_PREFIX } from "../constants.js";
@@ -26,7 +27,9 @@ import {
 } from "../constants.js";
 import type {
   BriefAttachment,
+  GeneratedImage,
   HistoryEntry,
+  ImageAspectRatio,
   ImageGenProvider,
   ImageModelId,
   ProviderSettings,
@@ -45,6 +48,11 @@ import {
   createHistorySnapshot,
   createPromptMarkdown,
 } from "../utils/history-export.js";
+import {
+  buildImageCacheKey,
+  writeImageCache,
+} from "../image-gen/cache.js";
+import { getGeneratedImagePath } from "../image-gen/paths.js";
 import type { MutableServerState, RequestContext } from "./server.js";
 import { SessionStore } from "./session-store.js";
 import { getCredentialStore } from "../utils/credential-store.js";
@@ -1465,6 +1473,84 @@ export class AdminController {
     }
   }
 
+  private normalizeImageRatio(value: unknown): ImageAspectRatio {
+    const allowed: ImageAspectRatio[] = ["1:1", "16:9", "9:16", "4:3", "3:4"];
+    return allowed.includes(value as ImageAspectRatio)
+      ? (value as ImageAspectRatio)
+      : "1:1";
+  }
+
+  private async hydrateImportedImages(
+    historyEntries: HistoryEntry[],
+    reqLogger: Logger
+  ): Promise<void> {
+    const writePromises: Promise<unknown>[] = [];
+
+    for (const entry of historyEntries) {
+      if (!entry.generatedImages?.length) {
+        continue;
+      }
+
+      entry.generatedImages = entry.generatedImages.map((image) => {
+        const ratio = this.normalizeImageRatio(image.ratio);
+        const provider = image.provider === "gemini" ? "gemini" : "openai";
+        const modelId = (image.modelId ?? "gpt-image-1.5") as ImageModelId;
+        const cacheKey =
+          image.cacheKey && image.cacheKey.trim().length > 0
+            ? image.cacheKey
+            : buildImageCacheKey({
+                provider,
+                modelId,
+                prompt: image.prompt ?? "",
+                ratio,
+              });
+        const route =
+          image.url && image.url.trim().length > 0
+            ? image.url
+            : getGeneratedImagePath(cacheKey).route;
+        const base64 =
+          typeof image.base64 === "string" && image.base64.trim().length > 0
+            ? image.base64.trim()
+            : undefined;
+
+        if (base64) {
+          writePromises.push(
+            writeImageCache(cacheKey, base64).catch((error) => {
+              reqLogger.warn({ err: error }, "Failed to restore generated image cache");
+            })
+          );
+        }
+
+        return {
+          ...image,
+          id:
+            typeof image.id === "string" && image.id.trim().length > 0
+              ? image.id
+              : randomUUID(),
+          cacheKey,
+          url: route,
+          prompt: image.prompt ?? "",
+          ratio,
+          provider,
+          modelId,
+          mimeType:
+            typeof image.mimeType === "string" && image.mimeType.trim().length > 0
+              ? image.mimeType
+              : "image/png",
+          base64,
+          createdAt:
+            typeof image.createdAt === "string" && image.createdAt.trim().length > 0
+              ? image.createdAt
+              : new Date().toISOString(),
+        } satisfies GeneratedImage;
+      });
+    }
+
+    if (writePromises.length > 0) {
+      await Promise.all(writePromises);
+    }
+  }
+
   private async handleHistoryImport(
     context: RequestContext,
     reqLogger: Logger
@@ -1552,6 +1638,8 @@ export class AdminController {
       response: entry.response,
       briefAttachments: cloneAttachments(entry.briefAttachments),
     }));
+
+    await this.hydrateImportedImages(historyEntries, reqLogger);
     this.sessionStore.replaceSessionHistory(sid, historyEntries);
 
     if (typeof snapshot.brief === "string") {
@@ -1821,6 +1909,19 @@ export class AdminController {
         this.toAdminBriefAttachment(attachment)
       )
       : undefined;
+    const generatedImages = entry.generatedImages?.length
+      ? entry.generatedImages.map((image) => ({
+          id: image.id,
+          url: image.url,
+          downloadUrl: image.url,
+          prompt: image.prompt,
+          ratio: image.ratio,
+          provider: image.provider,
+          modelId: image.modelId,
+          mimeType: image.mimeType,
+          createdAt: image.createdAt,
+        }))
+      : undefined;
     const restMutations =
       entry.entryKind === "html" && entry.restMutations?.length
         ? entry.restMutations.map(toAdminRestMutationItem)
@@ -1863,14 +1964,12 @@ export class AdminController {
       reasoningDetails,
       html: entry.response.html,
       attachments,
+      generatedImages,
       entryKind: entry.entryKind,
       rest: restItem,
       restMutations,
       restQueries,
-      viewUrl: `${ADMIN_ROUTE_PREFIX} /history/${encodeURIComponent(
-        entry.id
-      )
-        }/view`,
+      viewUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(entry.id)}/view`,
       downloadUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(
         entry.id
       )}/download`,
