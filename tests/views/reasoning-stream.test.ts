@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { JSDOM } from 'jsdom';
 
 const SCRIPT_PATH = path.resolve(__dirname, '../../src/views/loading-shell/assets/reasoning-stream.js');

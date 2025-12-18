@@ -11,9 +11,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { GeminiClient } from '../../src/llm/gemini-client.js';
 import type { LlmStreamObserver, LlmReasoningStreamEvent } from '../../src/llm/client.js';
 import type { ProviderSettings } from '../../src/types.js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -78,6 +78,7 @@ describe('Gemini Reasoning Pipeline', () => {
                 reasoningMode: 'none',
                 reasoningTokens: 2000,
                 reasoningTokensEnabled: true,
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             });
             // @ts-ignore
             client['client'] = mockClient;
@@ -123,6 +124,7 @@ describe('Gemini Reasoning Pipeline', () => {
                 reasoningMode: 'none',
                 reasoningTokens: 2000,
                 reasoningTokensEnabled: true,
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             });
             // @ts-ignore
             client['client'] = mockClient;
@@ -175,6 +177,7 @@ describe('Gemini Reasoning Pipeline', () => {
                 reasoningMode: 'none',
                 reasoningTokens: 2000,
                 reasoningTokensEnabled: true,
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             });
             // @ts-ignore
             client['client'] = mockClient;
@@ -212,6 +215,7 @@ describe('Gemini Reasoning Pipeline', () => {
                 model: 'gemini-2.5-flash',
                 maxOutputTokens: 8192,
                 reasoningMode: 'none',
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             });
             // @ts-ignore
             client['client'] = mockClient;
@@ -272,6 +276,7 @@ describe('Gemini Reasoning Pipeline', () => {
                 model: 'gemini-3-pro-preview',
                 maxOutputTokens: 64000,
                 reasoningMode: 'high',
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             });
 
             const clientLow = new GeminiClient({
@@ -280,6 +285,7 @@ describe('Gemini Reasoning Pipeline', () => {
                 model: 'gemini-3-pro-preview',
                 maxOutputTokens: 64000,
                 reasoningMode: 'low',
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             });
 
             // @ts-ignore
@@ -326,6 +332,7 @@ describe('Gemini Reasoning Pipeline', () => {
                 reasoningMode: 'none',
                 reasoningTokens: 2000,
                 reasoningTokensEnabled: true,
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             });
             // @ts-ignore
             client['client'] = mockClient;
@@ -408,6 +415,7 @@ describe('Gemini Reasoning Pipeline', () => {
                 model: fixture.name.includes('pro') ? 'gemini-3-pro-preview' : 'gemini-2.5-flash',
                 maxOutputTokens: 8192,
                 reasoningMode: 'none',
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             };
 
             const client = new GeminiClient(settings);
@@ -443,6 +451,7 @@ describe('Gemini Reasoning Pipeline', () => {
                 reasoningMode: fixture.name.includes('high') ? 'high' : fixture.name.includes('low') ? 'low' : 'none',
                 reasoningTokens: fixture.name.includes('thinking') && !fixture.name.includes('pro') ? 2000 : undefined,
                 reasoningTokensEnabled: fixture.name.includes('thinking') && !fixture.name.includes('pro'),
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             };
 
             const client = new GeminiClient(settings);
@@ -485,6 +494,7 @@ describe('Gemini Reasoning Pipeline', () => {
                 reasoningMode: fixture.name.includes('high') ? 'high' : fixture.name.includes('low') ? 'low' : 'none',
                 reasoningTokens: fixture.name.includes('thinking') && !fixture.name.includes('pro') ? 2000 : undefined,
                 reasoningTokensEnabled: fixture.name.includes('thinking') && !fixture.name.includes('pro'),
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             };
 
             const client = new GeminiClient(settings);
@@ -529,6 +539,7 @@ describe('Gemini Reasoning Pipeline', () => {
                 reasoningMode: fixture.name.includes('high') ? 'high' : fixture.name.includes('low') ? 'low' : 'none',
                 reasoningTokens: fixture.name.includes('thinking') && !fixture.name.includes('pro') ? 2000 : undefined,
                 reasoningTokensEnabled: fixture.name.includes('thinking') && !fixture.name.includes('pro'),
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             };
 
             const client = new GeminiClient(settings);
@@ -576,6 +587,7 @@ describe('Gemini Reasoning Pipeline', () => {
                 reasoningMode: fixture.name.includes('high') ? 'high' : fixture.name.includes('low') ? 'low' : 'none',
                 reasoningTokens: fixture.name.includes('thinking') && !fixture.name.includes('pro') ? 2000 : undefined,
                 reasoningTokensEnabled: fixture.name.includes('thinking') && !fixture.name.includes('pro'),
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             };
 
             const client = new GeminiClient(settings);
@@ -628,6 +640,7 @@ describe('Gemini Reasoning Pipeline', () => {
                 reasoningMode: fixture.name.includes('high') ? 'high' : fixture.name.includes('low') ? 'low' : 'none',
                 reasoningTokens: fixture.name.includes('thinking') && !fixture.name.includes('pro') ? 2000 : undefined,
                 reasoningTokensEnabled: fixture.name.includes('thinking') && !fixture.name.includes('pro'),
+                imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
             };
 
             const client = new GeminiClient(settings);
@@ -689,6 +702,7 @@ describe('Gemini Reasoning Pipeline', () => {
                     model: 'gemini-2.5-flash',
                     maxOutputTokens: 8192,
                     reasoningMode: 'none',
+                    imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
                 };
 
                 const clientThinking = new GeminiClient({ ...settings, reasoningTokens: 2000, reasoningTokensEnabled: true });
