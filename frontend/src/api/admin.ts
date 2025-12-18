@@ -151,6 +151,12 @@ export interface RuntimeUpdatePayload {
   historyLimit: number;
   historyMaxBytes: number;
   instructionPanel: boolean;
+  imageGeneration?: {
+    enabled: boolean;
+    provider?: "openai" | "gemini";
+    modelId: string;
+    apiKey?: string;
+  };
 }
 
 export async function submitRuntimeUpdate(

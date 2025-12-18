@@ -26,6 +26,7 @@ Welcome! This guide provides the high-level context, architectural details, and 
 - **Primary Goal**: To function as a "rapid-prototyping cheat code," allowing you to validate a UX flow or interaction idea without writing any frontend or backend code.
 - **Core Philosophy**: It's an "intentionally unserious" and "cheeky thought experiment". The joy is in watching the model "make it up as it goes," embracing the creative chaos of generative AI.
 - **Key Feature**: It supports multiple LLM providers (OpenAI, Google Gemini, Anthropic, xAI Grok, and Groq), allowing you to see how different models interpret the same brief.
+- **Image Generation**: It can generate images on the fly using OpenAI (DALL-E, GPT Image 1.5) or Google (Imagen, Nano Banana, Nano Banana Pro) models, caching them in memory to prevent redundant costs.
 
 ---
 
@@ -156,5 +157,3 @@ This section defines the desired visual style, UI patterns, and overall user exp
   - **Hints/Errors:** Provide helper text below inputs (`.admin-field__helper`) and display validation errors clearly, often below the field (`.admin-field__error`), potentially using red text/borders.
   - _Reference:_ `.admin-field` structure, `TokenBudgetControl.css`, `ModelInspector.css` custom fields.
 - **Buttons:**
-  - **Styles:** Provide distinct styles for primary (solid accent color, often gradient), secondary (light background, accent border/text), and destructive actions (red). Use fully rounded (`999px`) corners.
-  - **States:** Include clear hover and focus-visible states (e.g., slight transform, increased shadow). Disabled states should have reduced opacity.

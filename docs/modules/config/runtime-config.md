@@ -11,8 +11,9 @@
 `runtime-config.ts` is the configuration bootstrapper for the application. Its primary job is to resolve the `AppConfig` object at startup by merging inputs from:
 1.  **CLI Arguments** (`options`): Passed from `cli/args.ts`.
 2.  **Environment Variables** (`env`): `process.env`.
-3.  **Persisted Credentials**: Stored API keys from `CredentialStore`.
-4.  **Hardcoded Defaults**: Constants from `constants.ts`.
+3.  **Persisted Settings** (`ConfigStore`): User-configured settings saved from previous sessions.
+4.  **Persisted Credentials**: Stored API keys from `CredentialStore`.
+5.  **Hardcoded Defaults**: Constants from `constants.ts`.
 
 It implements the logic to automatically detect which LLM provider to use based on available keys and enforces a strict precedence order.
 
@@ -22,12 +23,14 @@ It implements the logic to automatically detect which LLM provider to use based 
 The module follows a "Cascading Configuration" pattern. For almost every setting (e.g., `port`, `model`), the resolution order is:
 1.  **CLI Flag**: `--port 3000` (Highest priority)
 2.  **Environment Variable**: `PORT=3000`
-3.  **Default**: `DEFAULT_PORT` (Lowest priority)
+3.  **Persisted Setting**: Saved from previous run.
+4.  **Default**: `DEFAULT_PORT` (Lowest priority)
 
 ### 2. Provider Detection Logic (`determineProvider`)
 The app tries to be smart about which provider to use if none is explicitly requested.
 -   **Explicit Selection**: If `--provider` or `SERVE_LLM_PROVIDER` is set, it respects that (and marks the provider as "locked").
--   **Auto-Detection**: If no provider is specified, it scans for API keys (both in `env` and `CredentialStore`).
+-   **Persisted Preference**: If no explicit override, checks `ConfigStore` for the last used provider.
+-   **Auto-Detection**: If neither of the above, it scans for API keys (both in `env` and `CredentialStore`).
     -   If *only* OpenAI keys are found -> defaults to OpenAI.
     -   If *only* Gemini keys are found -> defaults to Gemini.
     -   If *multiple* keys are found -> defaults to OpenAI (arbitrary tie-breaker).

@@ -16,12 +16,14 @@ import {
 import type {
   AppConfig,
   ModelProvider,
+  ImageModelId,
   ProviderSettings,
   ReasoningMode,
   RuntimeConfig,
 } from "../types.js";
 import type { CliOptions } from "../cli/args.js";
 import { getCredentialStore } from "../utils/credential-store.js";
+import { getConfigStore } from "../utils/config-store.js";
 import { logger } from "../logger.js";
 
 const SESSION_TTL_MS = Number.MAX_SAFE_INTEGER;
@@ -89,6 +91,24 @@ function resolveRuntime(
     options.historyMaxBytes ??
     parsePositiveInt(env.HISTORY_MAX_BYTES) ??
     DEFAULT_HISTORY_MAX_BYTES;
+
+  // Load persisted settings from config store
+  const configStore = getConfigStore();
+  const persistedImageGenSettings = configStore.getImageGeneration();
+
+  // Image generation: CLI > Env > Persisted > Defaults
+  const imageGenerationEnabled =
+    (env.IMAGE_GENERATION_ENABLED ?? "").toLowerCase() === "true" ||
+    (persistedImageGenSettings?.enabled ?? false);
+  const imageGenerationProvider =
+    (env.IMAGE_GENERATION_PROVIDER as "openai" | "gemini" | undefined) ??
+    persistedImageGenSettings?.provider ??
+    "openai";
+  const imageGenerationModel =
+    (env.IMAGE_GENERATION_MODEL as ImageModelId | undefined) ??
+    persistedImageGenSettings?.modelId ??
+    "gpt-image-1.5";
+
   const runtime: RuntimeConfig = {
     port,
     host,
@@ -99,6 +119,11 @@ function resolveRuntime(
     sessionTtlMs: SESSION_TTL_MS,
     sessionCap: SESSION_CAP,
     includeInstructionPanel: parseInstructionPanelSetting(instructionSetting),
+    imageGeneration: {
+      enabled: imageGenerationEnabled,
+      provider: imageGenerationProvider,
+      modelId: imageGenerationModel,
+    },
   };
   if (typeof maxOutputTokens === "number") {
     // Allow runtime override via env even if provider settings pick defaults later
@@ -119,6 +144,12 @@ async function resolveProviderSettings(
     parsePositiveInt(env.MAX_TOKENS);
   const reasoning = resolveReasoningOptions(options, env);
 
+  // Load persisted settings
+  const configStore = getConfigStore();
+  const persistedLlm = configStore.getLlmSettings();
+  const persistedForProvider =
+    persistedLlm?.provider === provider ? persistedLlm : undefined;
+
   // Check environment first, then credential store for UI-entered keys
   let apiKey = lookupEnvApiKey(provider, env)?.trim() ?? "";
   if (!apiKey) {
@@ -133,9 +164,18 @@ async function resolveProviderSettings(
   }
 
   if (provider === "openai") {
-    const model = modelFromCli || env.MODEL?.trim() || DEFAULT_OPENAI_MODEL;
-    const maxOutputTokens = maxOverride ?? DEFAULT_MAX_OUTPUT_TOKENS;
-    const reasoningMode = reasoning.modeExplicit ? reasoning.mode : "low";
+    const model =
+      modelFromCli ||
+      env.MODEL?.trim() ||
+      persistedForProvider?.model ||
+      DEFAULT_OPENAI_MODEL;
+    const maxOutputTokens =
+      maxOverride ??
+      persistedForProvider?.maxOutputTokens ??
+      DEFAULT_MAX_OUTPUT_TOKENS;
+    const reasoningMode = reasoning.modeExplicit
+      ? reasoning.mode
+      : persistedForProvider?.reasoningMode ?? "low";
     return {
       provider,
       apiKey,
@@ -151,24 +191,33 @@ async function resolveProviderSettings(
       modelFromCli ||
       env.GEMINI_MODEL?.trim() ||
       env.MODEL?.trim() ||
+      persistedForProvider?.model ||
       DEFAULT_GEMINI_MODEL;
-    const maxOutputTokens = maxOverride ?? DEFAULT_MAX_OUTPUT_TOKENS;
+    const maxOutputTokens =
+      maxOverride ??
+      persistedForProvider?.maxOutputTokens ??
+      DEFAULT_MAX_OUTPUT_TOKENS;
     const reasoningTokensExplicit =
       reasoning.tokensExplicit && typeof reasoning.tokens === "number";
+
+    // Fallback to persisted settings if not explicit in CLI/Env
     const reasoningTokensEnabled = reasoningTokensExplicit
       ? reasoning.tokens !== 0
-      : true;
+      : persistedForProvider?.reasoningTokensEnabled ?? true;
+
     let reasoningTokens: number | undefined;
     if (reasoningTokensEnabled) {
       reasoningTokens = reasoningTokensExplicit
         ? reasoning.tokens
-        : DEFAULT_REASONING_TOKENS.gemini;
+        : persistedForProvider?.reasoningTokens ??
+        DEFAULT_REASONING_TOKENS.gemini;
     }
+
     const reasoningMode = reasoning.modeExplicit
       ? reasoning.mode
-      : reasoningTokensEnabled
-      ? "low"
-      : "none";
+      : persistedForProvider?.reasoningMode ??
+      (reasoningTokensEnabled ? "low" : "none");
+
     return {
       provider,
       apiKey,
@@ -186,9 +235,15 @@ async function resolveProviderSettings(
       env.GROK_MODEL?.trim() ||
       env.XAI_MODEL?.trim() ||
       env.MODEL?.trim() ||
+      persistedForProvider?.model ||
       DEFAULT_GROK_MODEL;
-    const maxOutputTokens = maxOverride ?? DEFAULT_MAX_OUTPUT_TOKENS;
-    const reasoningMode = reasoning.modeExplicit ? reasoning.mode : "low";
+    const maxOutputTokens =
+      maxOverride ??
+      persistedForProvider?.maxOutputTokens ??
+      DEFAULT_MAX_OUTPUT_TOKENS;
+    const reasoningMode = reasoning.modeExplicit
+      ? reasoning.mode
+      : persistedForProvider?.reasoningMode ?? "low";
     return {
       provider,
       apiKey,
@@ -204,8 +259,12 @@ async function resolveProviderSettings(
       modelFromCli ||
       env.GROQ_MODEL?.trim() ||
       env.MODEL?.trim() ||
+      persistedForProvider?.model ||
       DEFAULT_GROQ_MODEL;
-    const maxOutputTokens = maxOverride ?? DEFAULT_MAX_OUTPUT_TOKENS;
+    const maxOutputTokens =
+      maxOverride ??
+      persistedForProvider?.maxOutputTokens ??
+      DEFAULT_MAX_OUTPUT_TOKENS;
     if (
       reasoning.tokensExplicit &&
       typeof reasoning.tokens === "number" &&
@@ -215,7 +274,9 @@ async function resolveProviderSettings(
         `Groq does not expose reasoning token budgets; requested value ${reasoning.tokens} will be ignored.`
       );
     }
-    const reasoningMode = reasoning.mode;
+    const reasoningMode = reasoning.modeExplicit
+      ? reasoning.mode
+      : persistedForProvider?.reasoningMode ?? "none";
     return {
       provider,
       apiKey,
@@ -230,27 +291,35 @@ async function resolveProviderSettings(
     modelFromCli ||
     env.ANTHROPIC_MODEL?.trim() ||
     env.MODEL?.trim() ||
+    persistedForProvider?.model ||
     DEFAULT_ANTHROPIC_MODEL;
   const maxOutputTokens =
     typeof maxOverride === "number"
       ? Math.min(maxOverride, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
-      : DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS;
+      : persistedForProvider?.maxOutputTokens ??
+      DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS;
+
   const reasoningTokensExplicit =
     reasoning.tokensExplicit && typeof reasoning.tokens === "number";
+
+  // Fallback to persisted settings
   const reasoningTokensEnabled = reasoningTokensExplicit
     ? reasoning.tokens !== 0
-    : true;
+    : persistedForProvider?.reasoningTokensEnabled ?? true;
+
   let reasoningTokens: number | undefined;
   if (reasoningTokensEnabled) {
     reasoningTokens = reasoningTokensExplicit
       ? Math.min(reasoning.tokens!, DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS)
-      : DEFAULT_REASONING_TOKENS.anthropic;
+      : persistedForProvider?.reasoningTokens ??
+      DEFAULT_REASONING_TOKENS.anthropic;
   }
+
   const reasoningMode = reasoning.modeExplicit
     ? reasoning.mode
-    : reasoningTokensEnabled
-    ? "low"
-    : "none";
+    : persistedForProvider?.reasoningMode ??
+    (reasoningTokensEnabled ? "low" : "none");
+
   return {
     provider,
     apiKey,
@@ -276,34 +345,40 @@ async function determineProvider(
     parseProviderValue(env.LLM_PROVIDER) ||
     parseProviderValue(env.PROVIDER);
 
+  const detected = await detectProvidersWithKeys(env);
+
   if (explicit) {
-    const detected = await detectProvidersWithKeys(env);
     return { provider: explicit, locked: true, providersWithKeys: detected };
   }
 
-  const hasOpenAiKey =
-    Boolean(getOpenAiKey(env)) || (await hasStoredKey("openai"));
-  const hasGeminiKey =
-    Boolean(getGeminiKey(env)) || (await hasStoredKey("gemini"));
-  const hasAnthropicKey =
-    Boolean(getAnthropicKey(env)) || (await hasStoredKey("anthropic"));
-  const hasGrokKey = Boolean(getGrokKey(env)) || (await hasStoredKey("grok"));
-  const hasGroqKey = Boolean(getGroqKey(env)) || (await hasStoredKey("groq"));
-  const providersWithKeys: ModelProvider[] = [];
-  if (hasOpenAiKey) providersWithKeys.push("openai");
-  if (hasGeminiKey) providersWithKeys.push("gemini");
-  if (hasAnthropicKey) providersWithKeys.push("anthropic");
-  if (hasGrokKey) providersWithKeys.push("grok");
-  if (hasGroqKey) providersWithKeys.push("groq");
+  // Check for persisted provider preference
+  const configStore = getConfigStore();
+  const persistedLlm = configStore.getLlmSettings();
+  if (persistedLlm?.provider) {
+    // Only use persisted provider if we actually have a key for it (or it's in the detected list)
+    if (detected.includes(persistedLlm.provider)) {
+      return {
+        provider: persistedLlm.provider,
+        locked: false,
+        providersWithKeys: detected,
+      };
+    }
+  }
+
+  const hasOpenAiKey = detected.includes("openai");
+  const hasGeminiKey = detected.includes("gemini");
+  const hasAnthropicKey = detected.includes("anthropic");
+  const hasGrokKey = detected.includes("grok");
+  const hasGroqKey = detected.includes("groq");
 
   if (hasOpenAiKey && !hasGeminiKey && !hasAnthropicKey) {
-    return { provider: "openai", locked: false, providersWithKeys };
+    return { provider: "openai", locked: false, providersWithKeys: detected };
   }
   if (hasGeminiKey && !hasOpenAiKey && !hasAnthropicKey) {
-    return { provider: "gemini", locked: false, providersWithKeys };
+    return { provider: "gemini", locked: false, providersWithKeys: detected };
   }
   if (hasAnthropicKey && !hasOpenAiKey && !hasGeminiKey) {
-    return { provider: "anthropic", locked: false, providersWithKeys };
+    return { provider: "anthropic", locked: false, providersWithKeys: detected };
   }
   if (
     hasGrokKey &&
@@ -312,7 +387,7 @@ async function determineProvider(
     !hasAnthropicKey &&
     !hasGroqKey
   ) {
-    return { provider: "grok", locked: false, providersWithKeys };
+    return { provider: "grok", locked: false, providersWithKeys: detected };
   }
   if (
     hasGroqKey &&
@@ -321,27 +396,27 @@ async function determineProvider(
     !hasAnthropicKey &&
     !hasGrokKey
   ) {
-    return { provider: "groq", locked: false, providersWithKeys };
+    return { provider: "groq", locked: false, providersWithKeys: detected };
   }
 
   if (hasOpenAiKey) {
-    return { provider: "openai", locked: false, providersWithKeys };
+    return { provider: "openai", locked: false, providersWithKeys: detected };
   }
   if (hasGeminiKey) {
-    return { provider: "gemini", locked: false, providersWithKeys };
+    return { provider: "gemini", locked: false, providersWithKeys: detected };
   }
   if (hasAnthropicKey) {
-    return { provider: "anthropic", locked: false, providersWithKeys };
+    return { provider: "anthropic", locked: false, providersWithKeys: detected };
   }
   if (hasGrokKey) {
-    return { provider: "grok", locked: false, providersWithKeys };
+    return { provider: "grok", locked: false, providersWithKeys: detected };
   }
   if (hasGroqKey) {
-    return { provider: "groq", locked: false, providersWithKeys };
+    return { provider: "groq", locked: false, providersWithKeys: detected };
   }
 
   // Default to OpenAI when no preference is supplied.
-  return { provider: "openai", locked: false, providersWithKeys };
+  return { provider: "openai", locked: false, providersWithKeys: detected };
 }
 
 async function detectProvidersWithKeys(

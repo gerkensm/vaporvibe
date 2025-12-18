@@ -21,6 +21,7 @@ import {
   submitRuntimeUpdate,
   verifyProviderKey,
   type ProviderUpdatePayload,
+  type RuntimeUpdatePayload,
 } from "../api/admin";
 import type {
   AdminBriefAttachment,
@@ -2723,6 +2724,12 @@ function RuntimePanel({
   );
   const [includeInstructionPanel, setIncludeInstructionPanel] =
     useState<boolean>(runtime.includeInstructionPanel);
+  const [imageGenerationEnabled, setImageGenerationEnabled] =
+    useState<boolean>(runtime.imageGeneration.enabled);
+  const [imageGenerationModelId, setImageGenerationModelId] = useState(
+    runtime.imageGeneration.modelId
+  );
+  const [imageGenerationApiKey, setImageGenerationApiKey] = useState("");
   const [runtimeErrors, setRuntimeErrors] = useState<{
     historyLimit?: string;
     historyMaxBytes?: string;
@@ -2732,10 +2739,15 @@ function RuntimePanel({
     setHistoryLimitValue(String(state.runtime.historyLimit));
     setHistoryMaxBytesValue(String(state.runtime.historyMaxBytes));
     setIncludeInstructionPanel(state.runtime.includeInstructionPanel);
+    setImageGenerationEnabled(state.runtime.imageGeneration.enabled);
+    setImageGenerationModelId(state.runtime.imageGeneration.modelId);
+    setImageGenerationApiKey("");
   }, [
     state.runtime.historyLimit,
     state.runtime.historyMaxBytes,
     state.runtime.includeInstructionPanel,
+    state.runtime.imageGeneration.enabled,
+    state.runtime.imageGeneration.modelId,
   ]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -2775,6 +2787,18 @@ function RuntimePanel({
       HISTORY_MAX_BYTES_MAX
     );
 
+    const trimmedImageKey = imageGenerationApiKey.trim();
+    const runtimePayload: RuntimeUpdatePayload = {
+      historyLimit: sanitizedHistoryLimit,
+      historyMaxBytes: sanitizedHistoryMaxBytes,
+      instructionPanel: includeInstructionPanel,
+      imageGeneration: {
+        enabled: imageGenerationEnabled,
+        modelId: imageGenerationModelId,
+        apiKey: trimmedImageKey || undefined,
+      },
+    };
+
     const adjustments: string[] = [];
     if (sanitizedHistoryLimit !== parsedHistoryLimit) {
       adjustments.push(`History limit adjusted to ${sanitizedHistoryLimit}.`);
@@ -2790,17 +2814,14 @@ function RuntimePanel({
     setRuntimeErrors({});
 
     try {
-      const response = await submitRuntimeUpdate({
-        historyLimit: sanitizedHistoryLimit,
-        historyMaxBytes: sanitizedHistoryMaxBytes,
-        instructionPanel: includeInstructionPanel,
-      });
+      const response = await submitRuntimeUpdate(runtimePayload);
       if (!response.success) {
         throw new Error(response.message || "Runtime update failed");
       }
       if (response.state) {
         onState(response.state);
       }
+      setImageGenerationApiKey("");
       const statusMessage =
         adjustments.length > 0
           ? `${response.message} ${adjustments.join(" ")}`
@@ -2915,6 +2936,71 @@ function RuntimePanel({
             />
             <span>Show the floating instructions helper</span>
           </div>
+        </label>
+
+        <div className="admin-divider" aria-hidden="true" />
+
+        <label className="admin-field admin-field--row">
+          <span className="admin-field__label">Image generation</span>
+          <div className="admin-toggle">
+            <input
+              type="checkbox"
+              checked={imageGenerationEnabled}
+              onChange={(event) =>
+                setImageGenerationEnabled(event.target.checked)
+              }
+            />
+            <span>
+              Allow <code>&lt;ai-image&gt;</code> tags to render generated images
+            </span>
+          </div>
+        </label>
+
+
+
+        <label className="admin-field">
+          <span className="admin-field__label">Image model</span>
+          <select
+            value={imageGenerationModelId}
+            onChange={(event) => setImageGenerationModelId(event.target.value)}
+            disabled={!imageGenerationEnabled}
+          >
+            <optgroup label="OpenAI">
+              <option value="gpt-image-1.5">GPT Image 1.5 (recommended)</option>
+              <option value="dall-e-3">DALL·E 3</option>
+            </optgroup>
+            <optgroup label="Google">
+              <option value="gemini-3-pro-image-preview">
+                Nano Banana Pro (Gemini 3)
+              </option>
+              <option value="gemini-2.5-flash-image">Nano Banana (Gemini 2.5)</option>
+              <option value="imagen-4.0-fast-generate-001">Imagen 4 (Fast)</option>
+              <option value="imagen-3.0-generate-002">Imagen 3</option>
+            </optgroup>
+          </select>
+          <p className="admin-field__helper">
+            Choose the specific image model to control resolution and behavior.
+          </p>
+        </label>
+
+        <label className="admin-field">
+          <span className="admin-field__label">Image API key (optional)</span>
+          <input
+            type="password"
+            value={imageGenerationApiKey}
+            onChange={(event) => setImageGenerationApiKey(event.target.value)}
+            placeholder={
+              runtime.imageGeneration.hasApiKey
+                ? "Key stored"
+                : "Enter API key"
+            }
+            disabled={!imageGenerationEnabled}
+          />
+          <p className="admin-field__helper">
+            {runtime.imageGeneration.hasApiKey
+              ? "A key is already saved for this provider. Leave blank to keep it."
+              : "Provide a key for the selected image provider. Leave blank to reuse the main provider key if compatible."}
+          </p>
         </label>
 
         <div className="admin-actions">

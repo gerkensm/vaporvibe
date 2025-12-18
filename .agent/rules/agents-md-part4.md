@@ -3,6 +3,10 @@ trigger: always_on
 globs: **/*
 ---
 
+- **Separation of concerns and maintainability**: Always separate concerns, use different modules and proactively reflect on when a functionality needs to be carved out of a file and given its own module, function or service.
+
+### Areas for Caution ⚠️
+
 - **Focused Test Suite**: A Vitest suite now covers config loading, prompt compilation, the session store, and key utilities. It runs fast but doesn't yet exercise every provider path, so keep testing manually when touching network integrations or the SPA.
 - **macOS-Centric Builds**: `scripts/` contains complex logic for macOS `.app` and DMG creation/notarization.
 - **Inconsistent Reasoning APIs**: OpenAI/Grok use `reasoningMode`, while Anthropic/Gemini use `reasoningTokens`. Backend logic handles normalization.

@@ -1,5 +1,6 @@
-import type { ModelProvider } from "../types.js";
 import { logger } from "../logger.js";
+
+type ProviderKey = string;
 
 const SERVICE_NAME = "com.vaporvibe.app";
 
@@ -12,7 +13,7 @@ const SERVICE_NAME = "com.vaporvibe.app";
 export class CredentialStore {
   private keytar: typeof import("keytar") | null = null;
   private keytarAvailable: boolean | null = null;
-  private memoryCache: Map<ModelProvider, string> = new Map();
+  private memoryCache: Map<ProviderKey, string> = new Map();
 
   /**
    * Lazy-load keytar to handle missing native bindings gracefully
@@ -45,7 +46,7 @@ export class CredentialStore {
       );
       logger.warn(
         "API keys entered in the UI will persist in memory only for this session. " +
-          "For persistent storage, ensure native dependencies are available."
+        "For persistent storage, ensure native dependencies are available."
       );
       return false;
     }
@@ -61,7 +62,7 @@ export class CredentialStore {
   /**
    * Save an API key for a provider (UI-entered only, not from env/CLI)
    */
-  async saveApiKey(provider: ModelProvider, apiKey: string): Promise<void> {
+  async saveApiKey(provider: ProviderKey, apiKey: string): Promise<void> {
     // Always store in memory cache
     this.memoryCache.set(provider, apiKey);
 
@@ -88,7 +89,7 @@ export class CredentialStore {
   /**
    * Retrieve a stored API key for a provider
    */
-  async getApiKey(provider: ModelProvider): Promise<string | null> {
+  async getApiKey(provider: ProviderKey): Promise<string | null> {
     // Check memory cache first (faster)
     const cached = this.memoryCache.get(provider);
     if (cached) {
@@ -120,7 +121,7 @@ export class CredentialStore {
   /**
    * Delete a stored API key for a provider
    */
-  async deleteApiKey(provider: ModelProvider): Promise<boolean> {
+  async deleteApiKey(provider: ProviderKey): Promise<boolean> {
     // Remove from memory cache
     this.memoryCache.delete(provider);
 
@@ -150,7 +151,7 @@ export class CredentialStore {
   /**
    * Check if a provider has a stored credential
    */
-  async hasStoredKey(provider: ModelProvider): Promise<boolean> {
+  async hasStoredKey(provider: ProviderKey): Promise<boolean> {
     const key = await this.getApiKey(provider);
     return key !== null && key.trim().length > 0;
   }

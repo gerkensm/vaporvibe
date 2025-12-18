@@ -1,4 +1,6 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import type { Logger } from "pino";
 import { supportsImageInput } from "../llm/capabilities.js";
 import { buildMessages } from "../llm/messages.js";
@@ -8,13 +10,22 @@ import { readBody } from "../utils/body.js";
 import type {
   BriefAttachment,
   HistoryEntry,
+  ImageGenProvider,
   RestMutationRecord,
   RestQueryRecord,
   RuntimeConfig,
+  ProviderSettings,
 } from "../types.js";
 import type { RequestContext } from "./server.js";
 import { selectHistoryForPrompt } from "./history-utils.js";
 import { SessionStore } from "./session-store.js";
+import { createImageGenClient } from "../image-gen/factory.js";
+import type { ImageAspectRatio, ImageGenResult } from "../image-gen/types.js";
+import {
+  GENERATED_IMAGES_DIR,
+  getGeneratedImagePath,
+} from "../image-gen/paths.js";
+import { getCredentialStore } from "../utils/credential-store.js";
 
 const BRANCH_FIELD = "__vaporvibe_branch";
 
@@ -39,6 +50,7 @@ interface RestEnvironmentSnapshot {
   briefAttachments: BriefAttachment[];
   runtime: RuntimeConfig;
   llmClient: LlmClient | null;
+  provider: ProviderSettings | null;
   providerReady: boolean;
   providerSelectionRequired: boolean;
 }
@@ -53,6 +65,7 @@ export class RestApiController {
   private readonly sessionStore: SessionStore;
   private readonly adminPath: string;
   private readonly getEnvironment: () => RestEnvironmentSnapshot;
+  private readonly credentialStore = getCredentialStore();
 
   constructor(options: RestApiControllerOptions) {
     this.sessionStore = options.sessionStore;
@@ -64,6 +77,11 @@ export class RestApiController {
     const { path } = context;
     if (!path.startsWith("/rest_api/")) {
       return false;
+    }
+
+    if (path.startsWith("/rest_api/image/")) {
+      await this.handleImageGeneration(context, reqLogger);
+      return true;
     }
 
     if (path.startsWith("/rest_api/mutation/")) {
@@ -80,6 +98,97 @@ export class RestApiController {
     context.res.setHeader("Content-Type", "application/json; charset=utf-8");
     context.res.end(JSON.stringify({ success: false, error: "Unknown REST endpoint" }));
     return true;
+  }
+
+  private async handleImageGeneration(
+    context: RequestContext,
+    reqLogger: Logger
+  ): Promise<void> {
+    const { req, res, path, method } = context;
+    if (path !== "/rest_api/image/generate") {
+      res.statusCode = 404;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.end(JSON.stringify({ success: false, error: "Not Found" }));
+      return;
+    }
+
+    if (method !== "POST") {
+      res.statusCode = 405;
+      res.setHeader("Allow", "POST");
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.end(JSON.stringify({ success: false, error: "Method Not Allowed" }));
+      return;
+    }
+
+    const env = this.getEnvironment();
+    if (!env.runtime.imageGeneration.enabled) {
+      res.statusCode = 403;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.end(JSON.stringify({ success: false, error: "Image generation disabled" }));
+      return;
+    }
+
+    const body = await readBody(req);
+    const data = body.data ?? {};
+    const prompt =
+      typeof data.prompt === "string" ? data.prompt.trim() : undefined;
+    const ratio = this.normalizeAspectRatio(data.ratio);
+
+    if (!prompt) {
+      res.statusCode = 400;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.end(JSON.stringify({ success: false, error: "Missing prompt" }));
+      return;
+    }
+
+    const provider: ImageGenProvider = env.runtime.imageGeneration.provider;
+    const modelId = env.runtime.imageGeneration.modelId ?? "gpt-image-1.5";
+    const hash = createHash("sha256")
+      .update(`${provider}:${modelId}:${prompt}:${ratio}`)
+      .digest("hex");
+    const { filePath, route } = getGeneratedImagePath(hash);
+
+    await mkdir(GENERATED_IMAGES_DIR, { recursive: true });
+    if (existsSync(filePath)) {
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store");
+      res.end(JSON.stringify({ url: route }));
+      reqLogger.debug({ provider, ratio, cache: true }, "Image cache hit");
+      return;
+    }
+
+    const apiKey = await this.resolveImageApiKey(provider, env);
+    if (!apiKey) {
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.end(
+        JSON.stringify({ success: false, error: "Missing API key for image provider" })
+      );
+      return;
+    }
+
+    const client = createImageGenClient(provider);
+    try {
+      const result = await client.generateImage({
+        prompt,
+        ratio,
+        apiKey,
+        modelId,
+      });
+      await this.persistImage(result, filePath);
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader("Cache-Control", "no-store");
+      res.end(JSON.stringify({ url: route }));
+      reqLogger.info({ provider, ratio }, "Generated image cached");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      reqLogger.error({ err: error, provider }, "Image generation failed");
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.end(JSON.stringify({ success: false, error: message }));
+    }
   }
 
   private async handleMutation(
@@ -240,6 +349,7 @@ export class RestApiController {
       adminPath: this.adminPath,
       mode: "json-query",
       branchId: normalizedBranchId,
+      imageGenerationEnabled: env.runtime.imageGeneration.enabled,
     });
 
     try {
@@ -363,6 +473,58 @@ export class RestApiController {
         branchId: normalizedBranchId,
       });
     }
+  }
+
+  private normalizeAspectRatio(value: unknown): ImageAspectRatio {
+    const allowed: ImageAspectRatio[] = ["1:1", "16:9", "9:16", "4:3", "3:4"];
+    return allowed.includes(value as ImageAspectRatio)
+      ? (value as ImageAspectRatio)
+      : "1:1";
+  }
+
+  private async resolveImageApiKey(
+    provider: ImageGenProvider,
+    env: RestEnvironmentSnapshot
+  ): Promise<string | null> {
+    const llmClientKey =
+      env.llmClient?.settings.provider === provider
+        ? env.llmClient.settings.apiKey
+        : undefined;
+    const providerKey =
+      env.provider?.provider === provider ? env.provider.apiKey : llmClientKey;
+    if (providerKey && providerKey.trim().length > 0) {
+      return providerKey.trim();
+    }
+
+    const storedKey = await this.credentialStore.getApiKey(provider);
+    if (storedKey && storedKey.trim().length > 0) {
+      return storedKey.trim();
+    }
+
+    return null;
+  }
+
+  private async persistImage(result: ImageGenResult, filePath: string): Promise<void> {
+    let buffer: Buffer;
+
+    if (result.url.startsWith("data:")) {
+      const base64Payload = result.url.split(",")[1];
+      if (!base64Payload) {
+        throw new Error("Invalid data URL from image generation provider");
+      }
+      buffer = Buffer.from(base64Payload, "base64");
+    } else {
+      const response = await fetch(result.url);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to download generated image (status ${response.status})`
+        );
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+    }
+
+    await writeFile(filePath, buffer);
   }
 
   private preparePromptContext(

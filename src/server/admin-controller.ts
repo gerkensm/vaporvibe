@@ -26,6 +26,8 @@ import {
 import type {
   BriefAttachment,
   HistoryEntry,
+  ImageGenProvider,
+  ImageModelId,
   ProviderSettings,
   ReasoningMode,
   ModelProvider,
@@ -45,6 +47,7 @@ import {
 import type { MutableServerState, RequestContext } from "./server.js";
 import { SessionStore } from "./session-store.js";
 import { getCredentialStore } from "../utils/credential-store.js";
+import { getConfigStore } from "../utils/config-store.js";
 import { processBriefAttachmentFiles } from "./brief-attachments.js";
 import type {
   AdminActiveForkSummary,
@@ -77,6 +80,11 @@ interface HistorySnapshot {
     historyLimit?: number;
     historyMaxBytes?: number;
     includeInstructionPanel?: boolean;
+    imageGeneration?: {
+      enabled?: boolean;
+      provider?: ImageGenProvider | null;
+      modelId?: ImageModelId | null;
+    } | null;
   } | null;
   llm?: (Partial<ProviderSettings> & { provider?: string | null }) | null;
 }
@@ -262,7 +270,10 @@ export class AdminController {
     if (method === "POST" && subPath === "/runtime") {
       const body = await readBody(req);
       try {
-        const { message } = this.applyRuntimeUpdate(body.data ?? {}, reqLogger);
+        const { message } = await this.applyRuntimeUpdate(
+          body.data ?? {},
+          reqLogger
+        );
         const state = await this.buildAdminStateResponse();
         const payload: AdminUpdateResponse = {
           success: true,
@@ -645,6 +656,17 @@ export class AdminController {
     return result;
   }
 
+  private async hasImageProviderKey(provider: ImageGenProvider): Promise<boolean> {
+    if (
+      provider === this.state.provider.provider &&
+      this.state.provider.apiKey.trim().length > 0
+    ) {
+      return true;
+    }
+
+    return await this.credentialStore.hasStoredKey(provider);
+  }
+
   private async buildAdminStateResponse(): Promise<AdminStateResponse> {
     const sortedHistory = this.getSortedHistoryEntries();
     const sessionCount = new Set(sortedHistory.map((entry) => entry.sessionId))
@@ -678,10 +700,19 @@ export class AdminController {
       apiKeyMask: maskSensitive(this.state.provider.apiKey),
     };
 
+    const imageProvider = this.state.runtime.imageGeneration.provider;
+    const hasImageKey = await this.hasImageProviderKey(imageProvider);
+
     const runtimeInfo: AdminRuntimeInfo = {
       historyLimit: this.state.runtime.historyLimit,
       historyMaxBytes: this.state.runtime.historyMaxBytes,
       includeInstructionPanel: this.state.runtime.includeInstructionPanel,
+      imageGeneration: {
+        enabled: this.state.runtime.imageGeneration.enabled,
+        provider: imageProvider,
+        modelId: this.state.runtime.imageGeneration.modelId,
+        hasApiKey: hasImageKey,
+      },
     };
 
     const providerKeyStatuses = await this.computeProviderKeyStatuses();
@@ -1101,6 +1132,24 @@ export class AdminController {
     }
 
     this.applyProviderEnv(updatedSettings);
+
+    // Persist LLM settings to config store
+    const configStore = getConfigStore();
+    configStore.setLlmSettings({
+      provider: updatedSettings.provider,
+      model: updatedSettings.model,
+      maxOutputTokens: updatedSettings.maxOutputTokens,
+      reasoningMode: updatedSettings.reasoningMode,
+      ...(updatedSettings.reasoningTokensEnabled !== undefined && {
+        reasoningTokensEnabled: updatedSettings.reasoningTokensEnabled,
+      }),
+      ...(updatedSettings.reasoningTokens !== undefined && {
+        reasoningTokens: updatedSettings.reasoningTokens,
+      }),
+    });
+
+
+
     reqLogger.info(
       { provider },
       "Updated LLM provider settings via admin interface"
@@ -1196,10 +1245,10 @@ export class AdminController {
     }
   }
 
-  private applyRuntimeUpdate(
+  private async applyRuntimeUpdate(
     data: Record<string, unknown>,
     reqLogger: Logger
-  ): { message: string } {
+  ): Promise<{ message: string }> {
     const historyLimit = clampInt(
       parsePositiveInt(data.historyLimit, this.state.runtime.historyLimit),
       HISTORY_LIMIT_MIN,
@@ -1221,12 +1270,71 @@ export class AdminController {
       includeInstructionPanel = false;
     }
 
+    const imageGenerationRaw =
+      typeof data.imageGeneration === "object" && data.imageGeneration
+        ? (data.imageGeneration as Record<string, unknown>)
+        : null;
+    const imageGenerationEnabled =
+      typeof imageGenerationRaw?.enabled === "boolean"
+        ? imageGenerationRaw.enabled
+        : this.state.runtime.imageGeneration.enabled;
+    const allowedImageModels: ImageModelId[] = [
+      "gpt-image-1.5",
+      "dall-e-3",
+      "gemini-2.5-flash-image",
+      "gemini-3-pro-image-preview",
+      "imagen-3.0-generate-002",
+      "imagen-4.0-fast-generate-001",
+    ];
+    const imageGenerationModelId =
+      typeof imageGenerationRaw?.modelId === "string" &&
+        allowedImageModels.includes(
+          imageGenerationRaw.modelId as ImageModelId
+        )
+        ? (imageGenerationRaw.modelId as ImageModelId)
+        : this.state.runtime.imageGeneration.modelId;
+    const imageGenerationProvider: ImageGenProvider =
+      imageGenerationModelId.startsWith("gemini") ||
+        imageGenerationModelId.startsWith("imagen")
+        ? "gemini"
+        : "openai";
+    const imageGenerationApiKey =
+      typeof imageGenerationRaw?.apiKey === "string"
+        ? imageGenerationRaw.apiKey.trim()
+        : undefined;
+
     this.state.runtime.historyLimit = historyLimit;
     this.state.runtime.historyMaxBytes = historyMaxBytes;
     this.state.runtime.includeInstructionPanel = includeInstructionPanel;
+    this.state.runtime.imageGeneration.enabled = imageGenerationEnabled;
+    this.state.runtime.imageGeneration.provider = imageGenerationProvider;
+    this.state.runtime.imageGeneration.modelId = imageGenerationModelId;
+
+    if (imageGenerationApiKey) {
+      await this.credentialStore.saveApiKey(
+        imageGenerationProvider,
+        imageGenerationApiKey
+      );
+    }
+
+    // Persist image generation settings to config store
+    const configStore = getConfigStore();
+    configStore.setImageGeneration({
+      enabled: imageGenerationEnabled,
+      provider: imageGenerationProvider,
+      modelId: imageGenerationModelId,
+    });
 
     reqLogger.info(
-      { historyLimit, historyMaxBytes, includeInstructionPanel },
+      {
+        historyLimit,
+        historyMaxBytes,
+        includeInstructionPanel,
+        imageGenerationEnabled,
+        imageGenerationProvider,
+        imageGenerationModelId,
+        imageGenerationApiKeyProvided: Boolean(imageGenerationApiKey),
+      },
       "Updated runtime settings via admin interface"
     );
 
@@ -1241,7 +1349,10 @@ export class AdminController {
     const body = await readBody(req);
 
     try {
-      const { message } = this.applyRuntimeUpdate(body.data ?? {}, reqLogger);
+      const { message } = await this.applyRuntimeUpdate(
+        body.data ?? {},
+        reqLogger
+      );
       this.redirectWithMessage(res, message, false);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -1311,7 +1422,7 @@ export class AdminController {
     }
     if (removedCount > 0) {
       statusParts.push(
-        `Removed ${removedCount} attachment${removedCount === 1 ? "" : "s"}`
+        `Removed ${removedCount} attachment${removedCount === 1 ? "" : "s"} `
       );
     }
     const statusMessage = statusParts.join(" · ");
@@ -1334,7 +1445,7 @@ export class AdminController {
       this.redirectWithMessage(res, message, false);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.redirectWithMessage(res, `Brief update failed: ${message}`, true);
+      this.redirectWithMessage(res, `Brief update failed: ${message} `, true);
     }
   }
 
@@ -1380,7 +1491,7 @@ export class AdminController {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       reqLogger.error({ err: error }, "Failed to import history snapshot");
-      this.redirectWithMessage(res, `History import failed: ${message}`, true);
+      this.redirectWithMessage(res, `History import failed: ${message} `, true);
     }
   }
 
@@ -1400,7 +1511,7 @@ export class AdminController {
         snapshot = JSON.parse(trimmed) as HistorySnapshot;
       } catch (error) {
         throw new Error(
-          `Invalid snapshot JSON: ${(error as Error).message ?? String(error)}`
+          `Invalid snapshot JSON: ${(error as Error).message ?? String(error)} `
         );
       }
     } else if (snapshotInput && typeof snapshotInput === "object") {
@@ -1447,6 +1558,11 @@ export class AdminController {
         historyLimit: number;
         historyMaxBytes: number;
         includeInstructionPanel: boolean;
+        imageGeneration?: {
+          enabled?: boolean;
+          provider?: ImageGenProvider | null;
+          modelId?: ImageModelId | null;
+        } | null;
       }>;
       if (
         typeof runtimeData.historyLimit === "number" &&
@@ -1463,6 +1579,33 @@ export class AdminController {
       if (typeof runtimeData.includeInstructionPanel === "boolean") {
         this.state.runtime.includeInstructionPanel =
           runtimeData.includeInstructionPanel;
+      }
+      if (runtimeData.imageGeneration) {
+        if (typeof runtimeData.imageGeneration.enabled === "boolean") {
+          this.state.runtime.imageGeneration.enabled =
+            runtimeData.imageGeneration.enabled;
+        }
+        if (
+          runtimeData.imageGeneration.provider === "openai" ||
+          runtimeData.imageGeneration.provider === "gemini"
+        ) {
+          this.state.runtime.imageGeneration.provider =
+            runtimeData.imageGeneration.provider;
+        }
+        if (
+          typeof runtimeData.imageGeneration.modelId === "string" &&
+          [
+            "gpt-image-1.5",
+            "dall-e-3",
+            "gemini-2.5-flash-image",
+            "gemini-3-pro-image-preview",
+            "imagen-3.0-generate-002",
+            "imagen-4.0-fast-generate-001",
+          ].includes(runtimeData.imageGeneration.modelId)
+        ) {
+          this.state.runtime.imageGeneration.modelId =
+            runtimeData.imageGeneration.modelId as ImageModelId;
+        }
       }
     }
 
@@ -1552,7 +1695,7 @@ export class AdminController {
     const { res } = context;
     const entries = this.getSortedHistoryEntries();
     const sessionCount = new Set(entries.map((entry) => entry.sessionId)).size;
-    const providerLabel = `${this.state.provider.provider} · ${this.state.provider.model}`;
+    const providerLabel = `${this.state.provider.provider} · ${this.state.provider.model} `;
 
     const history = this.buildAdminHistoryResponse(
       Math.min(this.state.runtime.historyLimit, 100),
@@ -1595,8 +1738,8 @@ export class AdminController {
     isError: boolean
   ): void {
     const target = isError
-      ? `${ADMIN_ROUTE_PREFIX}?error=${encodeURIComponent(message)}`
-      : `${ADMIN_ROUTE_PREFIX}?status=${encodeURIComponent(message)}`;
+      ? `${ADMIN_ROUTE_PREFIX}?error = ${encodeURIComponent(message)} `
+      : `${ADMIN_ROUTE_PREFIX}?status = ${encodeURIComponent(message)} `;
     this.redirect(res, target);
   }
 
@@ -1615,7 +1758,7 @@ export class AdminController {
   private toAdminBriefAttachment(
     attachment: BriefAttachment
   ): AdminBriefAttachment {
-    const dataUrl = `data:${attachment.mimeType};base64,${attachment.base64}`;
+    const dataUrl = `data:${attachment.mimeType}; base64, ${attachment.base64} `;
     return {
       id: attachment.id,
       name: attachment.name,
@@ -1708,9 +1851,10 @@ export class AdminController {
       rest: restItem,
       restMutations,
       restQueries,
-      viewUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(
+      viewUrl: `${ADMIN_ROUTE_PREFIX} /history/${encodeURIComponent(
         entry.id
-      )}/view`,
+      )
+        }/view`,
       downloadUrl: `${ADMIN_ROUTE_PREFIX}/history/${encodeURIComponent(
         entry.id
       )}/download`,

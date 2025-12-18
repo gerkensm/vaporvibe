@@ -1,5 +1,15 @@
 export type ModelProvider = "openai" | "gemini" | "anthropic" | "grok" | "groq";
 
+export type ImageGenProvider = "openai" | "gemini";
+
+export type ImageModelId =
+  | "gpt-image-1.5"
+  | "dall-e-3"
+  | "gemini-2.5-flash-image"
+  | "gemini-3-pro-image-preview"
+  | "imagen-3.0-generate-002"
+  | "imagen-4.0-fast-generate-001";
+
 export type ReasoningMode = "none" | "low" | "medium" | "high" | "default";
 
 export interface BriefAttachment {
@@ -175,7 +185,7 @@ export interface HistorySnapshot {
   history: HistoryEntry[];
   runtime: Pick<
     RuntimeConfig,
-    "historyLimit" | "historyMaxBytes" | "includeInstructionPanel"
+    "historyLimit" | "historyMaxBytes" | "includeInstructionPanel" | "imageGeneration"
   >;
   llm: ProviderSettingsSummary;
 }
@@ -190,6 +200,13 @@ export interface RuntimeConfig {
   sessionTtlMs: number;
   sessionCap: number;
   includeInstructionPanel: boolean;
+  imageGeneration: ImageGenConfig;
+}
+
+export interface ImageGenConfig {
+  enabled: boolean;
+  provider: ImageGenProvider;
+  modelId: ImageModelId;
 }
 
 export interface AppConfig {

@@ -3,6 +3,82 @@ trigger: always_on
 globs: **/*
 ---
 
+  __Notifications["Notifications"] --> components_ABWorkspaceShell_tsx
+  ___api_types["types"] --> components_ABWorkspaceShell_tsx
+  __ConfirmationModal["ConfirmationModal"] --> components_ABWorkspaceShell_tsx
+  components_SnapshotImportForm_tsx["SnapshotImportForm.tsx"]
+  ___api_admin["admin"] --> components_SnapshotImportForm_tsx
+  __AttachmentUploader["AttachmentUploader"] --> components_SnapshotImportForm_tsx
+  __Notifications["Notifications"] --> components_SnapshotImportForm_tsx
+  ___api_types["types"] --> components_SnapshotImportForm_tsx
+  components_HistoryExplorer_tsx["HistoryExplorer.tsx"]
+  ___api_types["types"] --> components_HistoryExplorer_tsx
+  components_HistorySnapshotControls_tsx["HistorySnapshotControls.tsx"]
+  ___api_types["types"] --> components_HistorySnapshotControls_tsx
+  __SnapshotImportForm["SnapshotImportForm"] --> components_HistorySnapshotControls_tsx
+  components_ResumeSessionCallout_tsx["ResumeSessionCallout.tsx"]
+  ___api_types["types"] --> components_ResumeSessionCallout_tsx
+  __SnapshotImportForm["SnapshotImportForm"] --> components_ResumeSessionCallout_tsx
+  main_tsx["main.tsx"]
+  __App["App"] --> main_tsx
+  components_ConfirmationModal_tsx["ConfirmationModal.tsx"]
+  components_ModelInspector_tsx["ModelInspector.tsx"]
+  ___api_types["types"] --> components_ModelInspector_tsx
+```
+
+---
+
+### External Dependencies
+
+#### `react`
+
+Used by 13 module(s)
+
+#### `react-router-dom`
+
+Used by 3 module(s)
+
+#### `react-dom`
+
+Used by 2 module(s)
+
+#### `react-markdown`
+
+Used by 1 module(s)
+
+#### `remark-gfm`
+
+Used by 1 module(s)
+
+---
+
+### Module Import Details
+
+#### `api/admin.ts`
+
+**Internal Imports:**
+
+- From `./types`: `AdminHistoryResponse`, `AdminStateResponse`, `AdminUpdateResponse`
+
+#### `api/types.ts`
+
+_No imports_
+
+#### `App.tsx`
+
+**Internal Imports:**
+
+- From `./components/Notifications`: `NotificationsProvider`
+- From `./pages/AdminDashboard`: `default as AdminDashboard`
+- From `./pages/AbTestWorkspacePage`: `default as AbTestWorkspacePage`
+- From `./pages/SetupWizard`: `default as SetupWizard`
+
+**External Imports:**
+
+- From `react-router-dom`: `BrowserRouter`, `Navigate`, `Route`, `Routes`
+
+#### `components/ABWorkspaceShell.tsx`
+
 **Internal Imports:**
 
 - From `../api/admin`: `discardAbFork`, `fetchAdminState`, `keepAbForkVersion`
@@ -154,7 +230,7 @@ _No imports_
 **Internal Imports:**
 
 - From `../components`: `AttachmentUploader`, `ModelSelector`, `TokenBudgetControl`, `CustomModelConfig`
-- From `../api/admin`: `fetchAdminState`, `fetchAdminHistory`, `deleteHistoryEntry`, `deleteAllHistoryEntries`, `submitBriefUpdate`, `submitProviderUpdate`, `submitRuntimeUpdate`, `verifyProviderKey`, `type ProviderUpdatePayload`
+- From `../api/admin`: `fetchAdminState`, `fetchAdminHistory`, `deleteHistoryEntry`, `deleteAllHistoryEntries`, `submitBriefUpdate`, `submitProviderUpdate`, `submitRuntimeUpdate`, `verifyProviderKey`, `type ProviderUpdatePayload`, `type RuntimeUpdatePayload`
 - From `../constants/runtime`: `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`, `DEFAULT_HISTORY_MAX_BYTES`
 - From `../components/Notifications`: `useNotifications`
 - From `../api/types`: `AdminBriefAttachment`, `AdminHistoryItem`, `AdminStateResponse`

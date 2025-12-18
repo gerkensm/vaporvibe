@@ -3,6 +3,58 @@ trigger: always_on
 globs: **/*
 ---
 
+- From `../types.js`: `ChatMessage`, `LlmReasoningTrace`, `LlmUsageMetrics`, `ProviderSettings`, `VerificationResult`, `ReasoningMode`
+- From `./client.js`: `LlmClient`, `LlmResult`, `LlmGenerateOptions`, `LlmStreamObserver`
+
+**External Imports:**
+
+- From `openai`: `default as OpenAI`
+
+#### `llm/messages.ts`
+
+**Internal Imports:**
+
+- From `../types.js`: `BriefAttachment`, `ChatMessage`, `HistoryEntry`
+
+#### `llm/model-catalog.ts`
+
+**Internal Imports:**
+
+- From `../types.js`: `ModelProvider`, `ReasoningMode`
+
+#### `llm/openai-client.ts`
+
+**Internal Imports:**
+
+- From `../logger.js`: `logger`
+- From `../types.js`: `ChatMessage`, `LlmReasoningTrace`, `LlmUsageMetrics`, `ProviderSettings`, `VerificationResult`
+- From `./client.js`: `LlmClient`, `LlmResult`, `LlmGenerateOptions`
+
+**External Imports:**
+
+- From `openai`: `default as OpenAI`
+
+#### `llm/verification.ts`
+
+**Internal Imports:**
+
+- From `./openai-client.js`: `verifyOpenAiApiKey`
+- From `./gemini-client.js`: `verifyGeminiApiKey`
+- From `./anthropic-client.js`: `verifyAnthropicApiKey`
+- From `./grok-client.js`: `verifyGrokApiKey`
+- From `./groq-client.js`: `verifyGroqApiKey`
+- From `../types.js`: `ModelProvider`, `VerificationResult`
+
+#### `logger.ts`
+
+**External Imports:**
+
+- From `pino`: `default as pino`
+
+#### `server/admin-controller.ts`
+
+**Internal Imports:**
+
 - From `../constants.js`: `ADMIN_ROUTE_PREFIX`, `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`
 - From `../constants/providers.js`: `PROVIDER_CHOICES`, `PROVIDER_LABELS`, `PROVIDER_PLACEHOLDERS`, `PROVIDER_REASONING_CAPABILITIES`, `PROVIDER_REASONING_MODES`, `PROVIDER_TOKEN_GUIDANCE`, `DEFAULT_MODEL_BY_PROVIDER`, `DEFAULT_MAX_TOKENS_BY_PROVIDER`, `REASONING_MODE_CHOICES`, `getModelOptions`, `getModelMetadata`, `getFeaturedModels`, `PROVIDER_MODEL_METADATA`, `CUSTOM_MODEL_DESCRIPTION`
 - From `../llm/factory.js`: `createLlmClient`
@@ -13,8 +65,9 @@ globs: **/*
 - From `../utils/history-export.js`: `createHistorySnapshot`, `createPromptMarkdown`
 - From `./session-store.js`: `SessionStore`
 - From `../utils/credential-store.js`: `getCredentialStore`
+- From `../utils/config-store.js`: `getConfigStore`
 - From `./brief-attachments.js`: `processBriefAttachmentFiles`
-- From `../types.js`: `BriefAttachment`, `HistoryEntry`, `ProviderSettings`, `ReasoningMode`, `ModelProvider`, `RestMutationRecord`, `RestQueryRecord`
+- From `../types.js`: `BriefAttachment`, `HistoryEntry`, `ImageGenProvider`, `ImageModelId`, `ProviderSettings`, `ReasoningMode`, `ModelProvider`, `RestMutationRecord`, `RestQueryRecord`
 - From `./server.js`: `MutableServerState`, `RequestContext`
 - From `../types/admin-api.js`: `AdminActiveForkSummary`, `AdminBriefAttachment`, `AdminHistoryItem`, `AdminHistoryResponse`, `AdminProviderInfo`, `AdminRestItem`, `AdminRestMutationItem`, `AdminRestQueryItem`, `AdminRuntimeInfo`, `AdminStateResponse`, `AdminUpdateResponse`
 
@@ -60,13 +113,19 @@ globs: **/*
 - From `../utils/body.js`: `readBody`
 - From `./history-utils.js`: `selectHistoryForPrompt`
 - From `./session-store.js`: `SessionStore`
+- From `../image-gen/factory.js`: `createImageGenClient`
+- From `../image-gen/paths.js`: `GENERATED_IMAGES_DIR`, `getGeneratedImagePath`
+- From `../utils/credential-store.js`: `getCredentialStore`
 - From `../llm/client.js`: `LlmClient`
-- From `../types.js`: `BriefAttachment`, `HistoryEntry`, `RestMutationRecord`, `RestQueryRecord`, `RuntimeConfig`
+- From `../types.js`: `BriefAttachment`, `HistoryEntry`, `ImageGenProvider`, `RestMutationRecord`, `RestQueryRecord`, `RuntimeConfig`, `ProviderSettings`
 - From `./server.js`: `RequestContext`
+- From `../image-gen/types.js`: `ImageAspectRatio`, `ImageGenResult`
 
 **External Imports:**
 
-- From `node:crypto`: `randomUUID`
+- From `node:crypto`: `createHash`, `randomUUID`
+- From `node:fs`: `existsSync`
+- From `node:fs/promises`: `mkdir`, `writeFile`
 - From `pino`: `Logger`
 
 #### `server/server.ts`
@@ -93,6 +152,7 @@ globs: **/*
 - From `../utils/credential-store.js`: `getCredentialStore`
 - From `./rest-api-controller.js`: `RestApiController`
 - From `./history-utils.js`: `selectHistoryForPrompt`
+- From `../image-gen/paths.js`: `GENERATED_IMAGES_DIR`, `GENERATED_IMAGES_ROUTE`, `RUNTIME_DIST_DIR`, `RUNTIME_SOURCE_DIR`
 - From `../types.js`: `BriefAttachment`, `ChatMessage`, `HistoryEntry`, `RuntimeConfig`, `ProviderSettings`, `ReasoningMode`, `ModelProvider`
 - From `../llm/client.js`: `LlmClient`
 
@@ -100,7 +160,7 @@ globs: **/*
 
 - From `node:buffer`: `Buffer`
 - From `node:crypto`: `randomUUID`
-- From `node:fs`: `existsSync`, `readFileSync`, `statSync`
+- From `node:fs`: `createReadStream`, `existsSync`, `readFileSync`, `statSync`
 - From `node:fs/promises`: `readFile`
 - From `node:path`: `dirname`, `extname`, `resolve`
 - From `node:url`: `URL`, `fileURLToPath`
@@ -129,7 +189,7 @@ _No imports_
 
 **Internal Imports:**
 
-- From `../types.js`: `HistoryEntryKind`, `HistoryForkInfo`, `ModelProvider`, `ReasoningMode`, `RestHistoryMetadata`
+- From `../types.js`: `HistoryEntryKind`, `HistoryForkInfo`, `ModelProvider`, `ImageModelId`, `ReasoningMode`, `RestHistoryMetadata`
 - From `../constants/providers.js`: `ProviderChoice`, `ProviderTokenGuidance`
 - From `../llm/model-catalog.js`: `ModelMetadata`
 
@@ -144,6 +204,17 @@ _No imports_
 - From `node:http`: `IncomingMessage`
 - From `node:querystring`: `default as querystring`
 
+#### `utils/config-store.ts`
+
+**Internal Imports:**
+
+- From `../logger.js`: `logger`
+- From `../types.js`: `ImageGenProvider`, `ImageModelId`, `ModelProvider`, `ReasoningMode`
+
+**External Imports:**
+
+- From `conf`: `default as Conf`
+
 #### `utils/cookies.ts`
 
 **External Imports:**
@@ -155,7 +226,6 @@ _No imports_
 **Internal Imports:**
 
 - From `../logger.js`: `logger`
-- From `../types.js`: `ModelProvider`
 
 #### `utils/frontend-assets.ts`
 
@@ -301,78 +371,3 @@ graph LR
   __pages_SetupWizard["SetupWizard"] --> App_tsx
   components_ABWorkspaceShell_tsx["ABWorkspaceShell.tsx"]
   ___api_admin["admin"] --> components_ABWorkspaceShell_tsx
-  __Notifications["Notifications"] --> components_ABWorkspaceShell_tsx
-  ___api_types["types"] --> components_ABWorkspaceShell_tsx
-  __ConfirmationModal["ConfirmationModal"] --> components_ABWorkspaceShell_tsx
-  components_SnapshotImportForm_tsx["SnapshotImportForm.tsx"]
-  ___api_admin["admin"] --> components_SnapshotImportForm_tsx
-  __AttachmentUploader["AttachmentUploader"] --> components_SnapshotImportForm_tsx
-  __Notifications["Notifications"] --> components_SnapshotImportForm_tsx
-  ___api_types["types"] --> components_SnapshotImportForm_tsx
-  components_HistoryExplorer_tsx["HistoryExplorer.tsx"]
-  ___api_types["types"] --> components_HistoryExplorer_tsx
-  components_HistorySnapshotControls_tsx["HistorySnapshotControls.tsx"]
-  ___api_types["types"] --> components_HistorySnapshotControls_tsx
-  __SnapshotImportForm["SnapshotImportForm"] --> components_HistorySnapshotControls_tsx
-  components_ResumeSessionCallout_tsx["ResumeSessionCallout.tsx"]
-  ___api_types["types"] --> components_ResumeSessionCallout_tsx
-  __SnapshotImportForm["SnapshotImportForm"] --> components_ResumeSessionCallout_tsx
-  main_tsx["main.tsx"]
-  __App["App"] --> main_tsx
-  components_ConfirmationModal_tsx["ConfirmationModal.tsx"]
-  components_ModelInspector_tsx["ModelInspector.tsx"]
-  ___api_types["types"] --> components_ModelInspector_tsx
-```
-
----
-
-### External Dependencies
-
-#### `react`
-
-Used by 13 module(s)
-
-#### `react-router-dom`
-
-Used by 3 module(s)
-
-#### `react-dom`
-
-Used by 2 module(s)
-
-#### `react-markdown`
-
-Used by 1 module(s)
-
-#### `remark-gfm`
-
-Used by 1 module(s)
-
----
-
-### Module Import Details
-
-#### `api/admin.ts`
-
-**Internal Imports:**
-
-- From `./types`: `AdminHistoryResponse`, `AdminStateResponse`, `AdminUpdateResponse`
-
-#### `api/types.ts`
-
-_No imports_
-
-#### `App.tsx`
-
-**Internal Imports:**
-
-- From `./components/Notifications`: `NotificationsProvider`
-- From `./pages/AdminDashboard`: `default as AdminDashboard`
-- From `./pages/AbTestWorkspacePage`: `default as AbTestWorkspacePage`
-- From `./pages/SetupWizard`: `default as SetupWizard`
-
-**External Imports:**
-
-- From `react-router-dom`: `BrowserRouter`, `Navigate`, `Route`, `Routes`
-
-#### `components/ABWorkspaceShell.tsx`

@@ -128,7 +128,11 @@ const CONFIGURATION: Record<string, RuleConfig> = {
     "runtime-config-docs.md": {
         docs: ["docs/modules/config/runtime-config.md"],
         trigger: "glob",
-        globs: ["src/config/runtime-config.ts", "src/cli/args.ts"],
+        globs: [
+            "src/config/runtime-config.ts",
+            "src/cli/args.ts",
+            "src/utils/config-store.ts",
+        ],
     },
     "server-core-docs.md": {
         docs: ["docs/modules/server/server.md"],

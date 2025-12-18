@@ -1,7 +1,7 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, extname, resolve as resolvePath } from "node:path";
 import { URL, fileURLToPath } from "node:url";
@@ -66,6 +66,12 @@ import { shouldEnableGeminiThoughts } from "../llm/gemini-client.js";
 import { getCredentialStore } from "../utils/credential-store.js";
 import { RestApiController } from "./rest-api-controller.js";
 import { selectHistoryForPrompt } from "./history-utils.js";
+import {
+  GENERATED_IMAGES_DIR,
+  GENERATED_IMAGES_ROUTE,
+  RUNTIME_DIST_DIR,
+  RUNTIME_SOURCE_DIR,
+} from "../image-gen/paths.js";
 
 type RequestLogger = Logger;
 
@@ -254,6 +260,9 @@ function shouldDelegateToDevServer(path: string): boolean {
   if (path === INTERCEPTOR_SW_ROUTE) {
     return false;
   }
+  if (path.startsWith(GENERATED_IMAGES_ROUTE)) {
+    return false;
+  }
   if (
     path.startsWith("/api/") ||
     path.startsWith("/rest_api/") ||
@@ -379,6 +388,15 @@ function getAssetContentType(filePath: string): string {
       return "application/json; charset=utf-8";
     case ".svg":
       return "image/svg+xml";
+    case ".png":
+      return "image/png";
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".webp":
+      return "image/webp";
+    case ".gif":
+      return "image/gif";
     case ".json":
       return "application/json; charset=utf-8";
     case ".txt":
@@ -482,6 +500,166 @@ function maybeServeFrontendAsset(
     return true;
   } catch (error) {
     reqLogger.error({ err: error }, "Failed to serve frontend asset");
+    res.statusCode = 500;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("Internal Server Error");
+    return true;
+  }
+}
+
+function maybeServeRuntimeAsset(
+  context: RequestContext,
+  res: ServerResponse,
+  reqLogger: RequestLogger
+): boolean {
+  const runtimePrefix = "/runtime/";
+  if (!context.path.startsWith(runtimePrefix)) {
+    return false;
+  }
+
+  if (context.method !== "GET" && context.method !== "HEAD") {
+    res.statusCode = 405;
+    res.setHeader("Allow", "GET, HEAD");
+    res.end("Method Not Allowed");
+    return true;
+  }
+
+  const requestedPath = context.path.slice(runtimePrefix.length);
+  const segments = requestedPath
+    .split(/[\\/]+/)
+    .filter((segment) => segment && segment !== ".");
+
+  if (!segments.length || segments.some((segment) => segment === "..")) {
+    res.statusCode = 400;
+    res.end("Bad Request");
+    return true;
+  }
+
+  const normalized = segments.join("/");
+  const candidatePaths = [
+    resolvePath(RUNTIME_DIST_DIR, normalized),
+    resolvePath(RUNTIME_SOURCE_DIR, normalized),
+  ];
+  const filePath = candidatePaths.find((candidate) => existsSync(candidate));
+
+  if (!filePath) {
+    res.statusCode = 404;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("Not Found");
+    return true;
+  }
+
+  try {
+    const stats = statSync(filePath);
+    const lastModified = stats.mtime.toUTCString();
+
+    let cached = frontendAssetCache.get(filePath);
+    if (!cached || cached.mtimeMs !== stats.mtimeMs) {
+      const content = readFileSync(filePath);
+      cached = {
+        content,
+        contentType: getAssetContentType(filePath),
+        mtimeMs: stats.mtimeMs,
+      };
+      frontendAssetCache.set(filePath, cached);
+    }
+
+    res.statusCode = 200;
+    res.setHeader("Content-Type", cached.contentType);
+    res.setHeader("Last-Modified", lastModified);
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.setHeader("Content-Length", String(cached.content.length));
+
+    if (context.method === "HEAD") {
+      res.end();
+    } else {
+      res.end(cached.content);
+    }
+
+    reqLogger.debug(`Served runtime asset ${context.path}`);
+    return true;
+  } catch (error) {
+    reqLogger.error({ err: error }, "Failed to serve runtime asset");
+    res.statusCode = 500;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("Internal Server Error");
+    return true;
+  }
+}
+
+function maybeServeGeneratedImage(
+  context: RequestContext,
+  res: ServerResponse,
+  reqLogger: RequestLogger
+): boolean {
+  const prefix = `${GENERATED_IMAGES_ROUTE}/`;
+  if (!context.path.startsWith(prefix)) {
+    return false;
+  }
+
+  if (context.method !== "GET" && context.method !== "HEAD") {
+    res.statusCode = 405;
+    res.setHeader("Allow", "GET, HEAD");
+    res.end("Method Not Allowed");
+    return true;
+  }
+
+  const requestedPath = context.path.slice(prefix.length);
+  const segments = requestedPath
+    .split(/[\\/]+/)
+    .filter((segment) => segment && segment !== ".");
+
+  if (!segments.length || segments.some((segment) => segment === "..")) {
+    res.statusCode = 400;
+    res.end("Bad Request");
+    return true;
+  }
+
+  const normalized = segments.join("/");
+  const filePath = resolvePath(GENERATED_IMAGES_DIR, normalized);
+
+  if (!filePath.startsWith(GENERATED_IMAGES_DIR)) {
+    res.statusCode = 403;
+    res.end("Forbidden");
+    return true;
+  }
+
+  if (!existsSync(filePath)) {
+    res.statusCode = 404;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("Not Found");
+    return true;
+  }
+
+  try {
+    const stats = statSync(filePath);
+    const lastModified = stats.mtime.toUTCString();
+
+    res.statusCode = 200;
+    res.setHeader("Content-Type", getAssetContentType(filePath));
+    res.setHeader("Last-Modified", lastModified);
+    res.setHeader("Content-Length", String(stats.size));
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+
+    if (context.method === "HEAD") {
+      res.end();
+      return true;
+    }
+
+    const stream = createReadStream(filePath);
+    stream.on("error", (error) => {
+      reqLogger.error({ err: error }, "Failed to stream generated image");
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      }
+      res.end("Internal Server Error");
+    });
+    stream.pipe(res);
+    reqLogger.debug(`Served generated image ${context.path}`);
+    return true;
+  } catch (error) {
+    reqLogger.error({ err: error }, "Failed to serve generated image");
     res.statusCode = 500;
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.end("Internal Server Error");
@@ -910,6 +1088,16 @@ export function createServerState(
   snapshot?: ServerStateSnapshot
 ): MutableServerState {
   const runtimeState: RuntimeConfig = { ...config.runtime };
+  if (!runtimeState.imageGeneration) {
+    runtimeState.imageGeneration = {
+      enabled: false,
+      provider: "openai",
+      modelId: "gpt-image-1.5",
+    };
+  }
+  if (!runtimeState.imageGeneration.modelId) {
+    runtimeState.imageGeneration.modelId = "gpt-image-1.5";
+  }
   const providerState: ProviderSettings = { ...config.provider };
   const providersWithKeys = new Set<ModelProvider>(
     config.providersWithKeys
@@ -993,6 +1181,7 @@ export function createServer(options: ServerOptions): http.Server {
       briefAttachments: state.briefAttachments,
       runtime: state.runtime,
       llmClient: state.llmClient,
+      provider: state.provider,
       providerReady: state.providerReady,
       providerSelectionRequired: state.providerSelectionRequired,
     }),
@@ -1018,6 +1207,10 @@ export function createServer(options: ServerOptions): http.Server {
       reqLogger.debug(logMessage);
     } else {
       reqLogger.info(logMessage);
+    }
+
+    if (maybeServeGeneratedImage(context, res, reqLogger)) {
+      return;
     }
 
     if (
@@ -1050,6 +1243,10 @@ export function createServer(options: ServerOptions): http.Server {
     }
 
     if (!devServer && maybeServeFrontendAsset(context, res, reqLogger)) {
+      return;
+    }
+
+    if (maybeServeRuntimeAsset(context, res, reqLogger)) {
       return;
     }
 
@@ -1482,6 +1679,7 @@ async function handleLlmRequest(
     historyByteOmitted: byteOmitted,
     adminPath: ADMIN_ROUTE_PREFIX,
     branchId,
+    imageGenerationEnabled: state.runtime.imageGeneration.enabled,
   });
   reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
 
@@ -1667,6 +1865,19 @@ async function handleLlmRequest(
       );
     } else {
       renderedHtml = `${renderedHtml}${interceptorScriptTag}`;
+    }
+
+    if (state.runtime.imageGeneration.enabled) {
+      const imageRuntimeScript =
+        '<script src="/runtime/ai-image.js" defer></script>';
+      if (/<\/body\s*>/i.test(renderedHtml)) {
+        renderedHtml = renderedHtml.replace(
+          /(<\/body\s*>)/i,
+          `${imageRuntimeScript}$1`
+        );
+      } else {
+        renderedHtml = `${renderedHtml}${imageRuntimeScript}`;
+      }
     }
 
     if (state.runtime.includeInstructionPanel) {

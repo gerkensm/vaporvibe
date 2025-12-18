@@ -3,6 +3,8 @@ trigger: always_on
 globs: **/*
 ---
 
+  - **Styles:** Provide distinct styles for primary (solid accent color, often gradient), secondary (light background, accent border/text), and destructive actions (red). Use fully rounded (`999px`) corners.
+  - **States:** Include clear hover and focus-visible states (e.g., slight transform, increased shadow). Disabled states should have reduced opacity.
   - **Placement:** Group actions logically, often at the bottom of a form or card section.
   - _Reference:_ `.admin-primary`, `.admin-secondary`, `.admin-danger` styles.
 - **Navigation/Tabs:** For secondary navigation within a view, use tab patterns with clear active states (e.g., background color change, shadow).
@@ -168,8 +170,3 @@ VaporVibe displays **live reasoning streams** from LLMs that support extended th
 - **Volatile State:** Handled client-side within LLM-generated HTML using inline JS for micro-interactions (e.g., toggling UI elements).
 - **View-to-View State:** Passed explicitly between LLM renders via URL query parameters (`GET`) or form submissions (`POST`).
 - **Persistent State (Invisible):** Stored within HTML comments in the LLM-generated HTML. The LLM is instructed to find, preserve, and forward these comments across requests.
-
-### Special Server Routes & API
-
-- `/` & `/__setup` & `/vaporvibe`: Serve the React SPA shell (`frontend/dist/index.html`).
-- `/assets/*`: Serve static assets (JS, CSS, etc.) from `frontend/dist/assets/`. Handled by `maybeServeFrontendAsset` in `src/server/server.ts`.

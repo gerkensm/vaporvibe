@@ -98,6 +98,14 @@ export interface AdminRuntimeInfo {
   historyLimit: number;
   historyMaxBytes: number;
   includeInstructionPanel: boolean;
+  imageGeneration: AdminImageGenerationInfo;
+}
+
+export interface AdminImageGenerationInfo {
+  enabled: boolean;
+  provider?: "openai" | "gemini";
+  modelId: string;
+  hasApiKey: boolean;
 }
 
 export interface AdminHistoryItem {

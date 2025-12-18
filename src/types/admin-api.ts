@@ -2,6 +2,7 @@ import type {
   HistoryEntryKind,
   HistoryForkInfo,
   ModelProvider,
+  ImageModelId,
   ReasoningMode,
   RestHistoryMetadata,
 } from "../types.js";
@@ -25,6 +26,14 @@ export interface AdminRuntimeInfo {
   historyLimit: number;
   historyMaxBytes: number;
   includeInstructionPanel: boolean;
+  imageGeneration: AdminImageGenerationInfo;
+}
+
+export interface AdminImageGenerationInfo {
+  enabled: boolean;
+  provider?: "openai" | "gemini";
+  modelId: string;
+  hasApiKey: boolean;
 }
 
 export interface AdminBriefAttachment {

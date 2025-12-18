@@ -3,6 +3,10 @@ trigger: always_on
 globs: **/*
 ---
 
+### Special Server Routes & API
+
+- `/` & `/__setup` & `/vaporvibe`: Serve the React SPA shell (`frontend/dist/index.html`).
+- `/assets/*`: Serve static assets (JS, CSS, etc.) from `frontend/dist/assets/`. Handled by `maybeServeFrontendAsset` in `src/server/server.ts`.
 - `/api/admin/*`: JSON API endpoints for the Admin SPA. Handled by `AdminController` (`src/server/admin-controller.ts`).
   - `GET /api/admin/state`: Get current app config, provider status, model catalogs.
   - `POST /api/admin/brief`: Update brief and attachments.
@@ -19,6 +23,7 @@ globs: **/*
   - `POST /api/admin/forks/:forkId/discard`: Discard an active fork and all of its branches.
 - `/rest_api/mutation/*` & `/rest_api/query/*`: Endpoints intended to be called via `fetch` from _within the LLM-generated HTML_ for lightweight state persistence or data retrieval without full page reloads. Handled by `RestApiController` (`src/server/rest-api-controller.ts`).
 - `/__vaporvibe/result/{token}`: Temporary route used by the loading shell to fetch the asynchronously generated HTML.
+- `/rest_api/image/generate`: Endpoint for generating images via the configured provider. Handled by `RestApiController`.
 
 ### A/B Testing (Forking)
 
@@ -153,6 +158,3 @@ The project includes a comprehensive suite of scripts for building, signing, and
 - **Language**: **TypeScript** (`strict` mode) targeting **NodeNext** modules (use `.js` extensions in relative imports).
 - **Formatting**: **2-space indentation**, **trailing commas** for multi-line literals. Follow existing patterns.
 - **Constants**: Use `src/constants.ts` and `src/constants/providers.ts` for shared literals.
-- **Separation of concerns and maintainability**: Always separate concerns, use different modules and proactively reflect on when a functionality needs to be carved out of a file and given its own module, function or service.
-
-### Areas for Caution ⚠️
