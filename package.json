@@ -21,7 +21,7 @@
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --project tsconfig.tests.json",
     "build:fe": "cd frontend && npm install && npm run build",
     "dev:be": "tsx src/dev/backend-dev-server.ts",
     "dev:fe": "cd frontend && npm run dev",

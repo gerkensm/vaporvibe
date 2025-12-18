@@ -7,11 +7,11 @@ import {
   resolveActiveBranchId,
   applyBranchToUrl,
   ensureBranchField,
-} from "../../frontend/src/interceptor-branch-utils";
+} from "../../frontend/src/interceptor-branch-utils.js";
 
 class MockInput {
   type = "text";
-  constructor(public name = "", public value = "") {}
+  constructor(public name = "", public value = "") { }
 }
 
 class MockForm {

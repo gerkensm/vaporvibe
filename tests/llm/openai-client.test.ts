@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { OpenAiClient, normalizeReasoningChunk } from '../../src/llm/openai-client';
-import { ProviderSettings } from '../../src/types';
+import { OpenAiClient, normalizeReasoningChunk } from '../../src/llm/openai-client.js';
+import { ProviderSettings } from '../../src/types.js';
 
 // Mock OpenAI
 vi.mock('openai', () => {
@@ -19,7 +19,8 @@ describe('OpenAiClient', () => {
         model: 'gpt-4o',
         apiKey: 'test-key',
         reasoningMode: 'high',
-        maxOutputTokens: 1000
+        maxOutputTokens: 1000,
+        imageGeneration: { enabled: false, provider: 'openai', modelId: 'gpt-image-1.5' },
     };
 
     describe('normalizeReasoningChunk', () => {

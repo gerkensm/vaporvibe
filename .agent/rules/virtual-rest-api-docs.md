@@ -30,6 +30,10 @@ The API does not have fixed endpoints. Instead, it uses two **namespaces** that 
     -   *Examples*: `/rest_api/mutation/create-task`, `/rest_api/mutation/update-profile`
     -   *Behavior*: Returns JSON `{ success: true }` (usually). Records a `RestMutationRecord` in the session.
 
+-   **`/rest_api/image/generate`**: Image generation endpoint (special case).
+    -   *Behavior*: Generates images via OpenAI or Google, bypasses LLM entirely.
+    -   *See*: [Image Generation Module](../modules/image-gen.md)
+
 ### 3. Token Optimization
 -   **Full Page Reload**: ~10,000 tokens (Input) + ~2,000 tokens (Output). Slow.
 -   **Virtual REST Call**: ~5,000 tokens (Input) + ~100 tokens (Output). Fast.
@@ -117,4 +121,6 @@ Since we rely on an LLM to generate JSON, things can go wrong.
 ## Key Files
 -   **Controller**: `src/server/rest-api-controller.ts`
 -   **Storage**: `src/server/session-store.ts` (See `rest` field in `SessionData`)
+-   **Image Generation**: `src/image-gen/` (See [Image Generation Module](../modules/image-gen.md))
+
 

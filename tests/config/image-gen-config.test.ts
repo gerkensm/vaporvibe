@@ -16,7 +16,7 @@ vi.mock("../../src/utils/config-store.js", () => ({
 }));
 
 const credentialStoreMock = {
-    getApiKey: vi.fn<[], Promise<string | null>>(),
+    getApiKey: vi.fn<(provider: string) => Promise<string | null>>(),
 };
 
 vi.mock("../../src/utils/credential-store.js", () => ({
@@ -110,7 +110,7 @@ describe("Image Generation Config Resolution", () => {
     });
 
     it("defaults to gemini provider when only gemini key is available", async () => {
-        credentialStoreMock.getApiKey.mockImplementation(async (provider) =>
+        credentialStoreMock.getApiKey.mockImplementation(async (provider: string) =>
             provider === "gemini" ? "gemini-key" : null
         );
         configStoreMock.getImageGeneration.mockReturnValue(undefined);

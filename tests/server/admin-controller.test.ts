@@ -1,4 +1,5 @@
 import type { ServerResponse } from "node:http";
+import type { Logger } from "pino";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminController } from "../../src/server/admin-controller.js";
 import type { MutableServerState, RequestContext } from "../../src/server/server.js";
@@ -36,7 +37,7 @@ class MockServerResponse {
 
   end(chunk?: string | Buffer): void {
     if (chunk != null) {
-      this.body = chunk instanceof Buffer ? chunk.toString("utf8") : chunk;
+      this.body = chunk instanceof Buffer ? chunk.toString("utf8") : chunk as string;
     }
   }
 }
@@ -53,6 +54,11 @@ function createState(): MutableServerState {
     brief: null,
     briefAttachments: [],
     runtime: {
+      port: 3000,
+      host: 'localhost',
+      promptPath: '',
+      sessionTtlMs: 3600000,
+      sessionCap: 100,
       historyLimit: 50,
       historyMaxBytes: 2_000_000,
       includeInstructionPanel: true,
@@ -64,7 +70,6 @@ function createState(): MutableServerState {
       reasoningMode: "default",
       reasoningTokensEnabled: false,
       maxOutputTokens: 1024,
-      customModel: null,
       imageGeneration: {
         enabled: false,
         provider: "openai",
@@ -78,6 +83,7 @@ function createState(): MutableServerState {
     providersWithKeys: new Set(),
     verifiedProviders: {},
     pendingHtml: new Map(),
+    reasoningStreams: new Map(),
   };
 }
 
@@ -103,7 +109,7 @@ describe("AdminController forks", () => {
   const capacity = 50;
   let sessionStore: SessionStore;
   let controller: AdminController;
-  const logger = getLoggerMock();
+  const logger = getLoggerMock() as unknown as Logger;
 
   beforeEach(() => {
     sessionStore = new SessionStore(ttl, capacity);
@@ -363,7 +369,7 @@ describe("AdminController history import", () => {
   const capacity = 50;
   let sessionStore: SessionStore;
   let controller: AdminController;
-  const logger = getLoggerMock();
+  const logger = getLoggerMock() as unknown as Logger;
 
   beforeEach(() => {
     sessionStore = new SessionStore(ttl, capacity);

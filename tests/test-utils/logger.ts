@@ -1,17 +1,19 @@
-import type { Logger } from "pino";
+import { type Mock } from "vitest";
 
-export function getLoggerMock(): Logger {
+type LoggerMock = {
+  level: string;
+  info: Mock;
+  warn: Mock;
+  error: Mock;
+  debug: Mock;
+  fatal: Mock;
+  trace: Mock;
+  silent: Mock;
+  child: Mock;
+};
+
+export function getLoggerMock(): LoggerMock {
   return (globalThis as typeof globalThis & {
-    __VITEST_LOGGER__?: {
-      level: string;
-      info: (...args: unknown[]) => void;
-      warn: (...args: unknown[]) => void;
-      error: (...args: unknown[]) => void;
-      debug: (...args: unknown[]) => void;
-      fatal: (...args: unknown[]) => void;
-      trace: (...args: unknown[]) => void;
-      silent: (...args: unknown[]) => void;
-      child: (...args: unknown[]) => unknown;
-    };
-  }).__VITEST_LOGGER__ as unknown as Logger;
+    __VITEST_LOGGER__?: LoggerMock;
+  }).__VITEST_LOGGER__ as LoggerMock;
 }

@@ -499,6 +499,17 @@ The project includes a comprehensive suite of scripts for building, signing, and
 
 - **Embrace the Chaos**: Guide the LLM's creativity, don't force deterministic output. Minor variations are expected.
 
+### TypeScript & Testing Best Practices
+
+To maintain a clean and error-free codebase, follow these TypeScript and testing guidelines:
+
+- **ESM Import Extensions**: Always include the `.js` file extension in relative imports (e.g., `import { foo } from './bar.js';`). This is required for NodeNext module resolution.
+- **Node.js Built-ins**: Use the `node:` prefix when importing built-in Node.js modules (e.g., `import fs from 'node:fs';`, `import path from 'node:path';`).
+- **Mock Typing**: When creating mock factories for tests (like `getLoggerMock`), return the specialized mock type (e.g., `LoggerMock`) that includes Vitest mock properties (`.mockClear()`, etc.). Cast the mock to its production interface (e.g., `as unknown as Logger`) only at the point of injection into a controller or service.
+- **Vitest 4.x Function Mocks**: Use the newer generic syntax for `vi.fn()`: `vi.fn<(arg: Type) => ReturnType>()`. Avoid the deprecated array-based `vi.fn<[Type], ReturnType>()` syntax.
+- **Provider Settings**: When creating test fixtures for `ProviderSettings`, ensure the `imageGeneration` property is included.
+- **Mandatory Type Checks**: Always run `npm run type-check` before committing. This custom script uses `tsconfig.tests.json` to perform a comprehensive check across both the `src/` and `tests/` directories.
+
 ### Contribution Workflow
 
 1.  Make changes in `src/` (backend) or `frontend/src/` (frontend).

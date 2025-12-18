@@ -75,11 +75,6 @@ function createState(): MutableServerState {
             promptPath: "prompt.md",
             sessionTtlMs: 3600000,
             sessionCap: 100,
-            imageGeneration: {
-                enabled: false,
-                provider: "openai",
-                modelId: "gpt-image-1.5",
-            },
         },
         provider: {
             provider: "openai",
@@ -88,6 +83,11 @@ function createState(): MutableServerState {
             reasoningMode: "default",
             reasoningTokensEnabled: false,
             maxOutputTokens: 1024,
+            imageGeneration: {
+                enabled: false,
+                provider: "openai",
+                modelId: "gpt-image-1.5",
+            },
         },
         llmClient: null,
         providerReady: false,

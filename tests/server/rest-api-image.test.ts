@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Logger } from "pino";
 import type { ServerResponse } from "node:http";
 import { RestApiController } from "../../src/server/rest-api-controller.js";
 import { SessionStore } from "../../src/server/session-store.js";
@@ -10,7 +11,7 @@ import { createIncomingMessage } from "../test-utils/http.js";
 // Mock dependencies
 const mockGenerateImage = vi.fn();
 const mockCredentialStore = {
-    getApiKey: vi.fn<[string], Promise<string | null>>(),
+    getApiKey: vi.fn<(provider: string) => Promise<string | null>>(),
 };
 
 vi.mock("../../src/image-gen/factory.js", () => ({
@@ -96,6 +97,7 @@ function createProviderSettings(imageGenEnabled: boolean): ProviderSettings {
         } : {
             enabled: false,
             provider: "openai",
+            modelId: "gpt-image-1.5",
         },
     };
 }
@@ -120,11 +122,11 @@ function createEnvironment(imageGenEnabled: boolean) {
 describe("RestApiController Image Generation", () => {
     let controller: RestApiController;
     let sessionStore: SessionStore;
-    const logger = getLoggerMock();
+    const logger = getLoggerMock() as unknown as Logger;
 
     beforeEach(() => {
         vi.clearAllMocks();
-        sessionStore = new SessionStore({ ttlMs: 3600000, cap: 100 });
+        sessionStore = new SessionStore(3600000, 100);
         controller = new RestApiController({
             sessionStore,
             adminPath: "/vaporvibe",
