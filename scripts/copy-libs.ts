@@ -9,12 +9,16 @@ import { finished } from 'node:stream/promises';
 const NPM_MAPPING: Record<string, string> = {
   // Core & UI
   'alpine.js': 'alpinejs/dist/cdn.min.js',
-  'anime.min.js': 'animejs/dist/bundles/anime.umd.min.js', // Removed, handled by bundleLib
+  // 'anime.min.js' removed; handled by bundleLib explicitly to avoid UMD issues
   'animate.min.css': 'animate.css/animate.min.css',
   'aos.js': 'aos/dist/aos.js',
   'aos.css': 'aos/dist/aos.css',
+  'bootstrap.min.css': 'bootstrap/dist/css/bootstrap.min.css',
+  'bootstrap.bundle.min.js': 'bootstrap/dist/js/bootstrap.bundle.min.js',
+  'bootstrap-icons.css': 'bootstrap-icons/font/bootstrap-icons.min.css',
   'cleave.min.js': 'cleave.js/dist/cleave.min.js',
   'confetti.browser.min.js': 'canvas-confetti/dist/confetti.browser.js',
+  'flowbite': 'flowbite',
   'driver.min.js': 'driver.js/dist/driver.js.iife.js',
   'driver.min.css': 'driver.js/dist/driver.css',
   'FileSaver.min.js': 'file-saver/dist/FileSaver.min.js',
@@ -23,6 +27,9 @@ const NPM_MAPPING: Record<string, string> = {
   'hammer.min.js': 'hammerjs/hammer.min.js',
   'hint.min.css': 'hint.css/hint.min.css',
   'hotkeys.min.js': 'hotkeys-js/dist/hotkeys-js.min.js',
+  'materialize.min.css': 'materialize-css/dist/css/materialize.min.css',
+  'materialize.min.js': 'materialize-css/dist/js/materialize.min.js',
+  'material-icons.css': 'material-icons/iconfont/material-icons.css',
   'phaser.min.js': 'phaser/dist/phaser.min.js',
   'daisyui.css': 'daisyui/dist/full.css',
   'lucide.min.js': 'lucide/dist/umd/lucide.min.js',
@@ -34,11 +41,16 @@ const NPM_MAPPING: Record<string, string> = {
   'popper.min.js': '@popperjs/core/dist/umd/popper.min.js',
   'rellax.min.js': 'rellax/rellax.min.js',
   'rough-notation.iife.js': 'rough-notation/lib/rough-notation.iife.js',
+  'shoelace': '@shoelace-style/shoelace', /* Special Handling */
+  'spectre.min.css': 'spectre.css/dist/spectre.min.css',
   'sortable.min.js': 'sortablejs/Sortable.min.js',
   'swiper-element.min.js': 'swiper/swiper-element-bundle.min.js',
-  'tippy.min.js': 'tippy.js/dist/tippy-bundle.umd.min.js',
+  'tippy': 'tippy.js/dist/tippy-bundle.umd.min.js',
   'typewriter.js': 'typewriter-effect/dist/core.js',
-  'winbox.bundle.min.js': 'winbox/dist/winbox.bundle.min.js',
+  'uikit.min.css': 'uikit/dist/css/uikit.min.css',
+  'uikit.min.js': 'uikit/dist/js/uikit.min.js',
+  'uikit-icons.min.js': 'uikit/dist/js/uikit-icons.min.js',
+  'winbox': 'winbox/dist/winbox.bundle.min.js',
   'sweetalert2.all.min.js': 'sweetalert2/dist/sweetalert2.all.min.js',
   'bulma.min.css': 'bulma/css/bulma.min.css',
   'toastify.js': 'toastify-js/src/toastify.js',
@@ -66,6 +78,11 @@ const NPM_MAPPING: Record<string, string> = {
   'font-roboto': '@fontsource/roboto',
   'font-poppins': '@fontsource/poppins',
   'font-fira-code': '@fontsource/fira-code',
+  'font-lora': '@fontsource/lora',
+  'font-merriweather': '@fontsource/merriweather',
+  'font-montserrat': '@fontsource/montserrat',
+  'font-oswald': '@fontsource/oswald',
+  'font-raleway': '@fontsource/raleway',
 };
 
 const DEST_DIR = path.resolve(process.cwd(), 'frontend/public/libs');
@@ -159,29 +176,7 @@ function getPackageVersion(modulePath: string): { version: string; packageName: 
   return { version: 'unknown', packageName };
 }
 
-async function downloadTailwind(targetPath: string): Promise<void> {
-  const tailwindVersion = '3.4.1';
-  libVersions.tailwind = tailwindVersion;
-  if (fs.existsSync(targetPath)) {
-    return;
-  }
 
-  try {
-    const response = await fetch('https://cdn.tailwindcss.com/3.4.1');
-    if (!response.ok || !response.body) {
-      throw new Error(`Failed to download Tailwind CDN build: ${response.status} ${response.statusText}`);
-    }
-
-    const fileStream = fs.createWriteStream(targetPath);
-    await finished(Readable.fromWeb(response.body as any).pipe(fileStream));
-  } catch (error) {
-    console.warn('⚠️ Could not download Tailwind CDN build, writing stub instead.', error);
-    fs.writeFileSync(
-      targetPath,
-      `// Tailwind CDN build unavailable during copy. Version ${tailwindVersion} expected.\n`
-    );
-  }
-}
 
 async function bundleLib(packageName: string, entryFile: string, destFilename: string, globalName?: string): Promise<void> {
   const { version } = getPackageVersion(packageName);
@@ -225,8 +220,28 @@ async function bundleLib(packageName: string, entryFile: string, destFilename: s
 async function main(): Promise<void> {
   ensureDir(DEST_DIR);
 
-  const tailwindPath = path.join(DEST_DIR, 'tailwind.js');
-  await downloadTailwind(tailwindPath);
+  /*
+   * Tailwind CSS (Runtime)
+   * 
+   * Sourced from @tailwindcss/browser devDependency.
+   */
+  const tailwindVersion = '3.4.1'; // We keep this version string for URL consistency
+  libVersions.tailwind = tailwindVersion;
+  const tailwindDir = path.join(DEST_DIR, 'tailwind', tailwindVersion);
+  ensureDir(tailwindDir);
+
+  // Look in frontend/node_modules since we installed it there
+  const tailwindSource = path.resolve(process.cwd(), 'frontend/node_modules/@tailwindcss/browser/dist/index.global.js');
+  const tailwindDest = path.join(tailwindDir, 'tailwind.js');
+
+  if (fs.existsSync(tailwindSource)) {
+    console.log(`Copying Tailwind CSS runtime from ${tailwindSource}...`);
+    fs.copyFileSync(tailwindSource, tailwindDest);
+  } else {
+    console.error(`ERROR: Tailwind CSS runtime not found at ${tailwindSource}.`);
+    console.error(`Please run 'npm install' in the frontend directory.`);
+    process.exit(1);
+  }
 
   // Special bundling for GeoPattern (no browser build in package)
   // Dynamic versioning handled inside bundleLib
@@ -235,14 +250,37 @@ async function main(): Promise<void> {
   // Special bundling for ms (CJS only)
   await bundleLib('ms', 'index.js', 'ms.js', 'ms');
 
-  // Bundle AnimeJS (UMD build is flaky in browser)
-  await bundleLib('animejs', 'dist/bundles/anime.esm.js', 'anime.min.js', 'anime');
+  // Use official UMD build for AnimeJS (v4+)
+  const animeVersion = getPackageVersion('animejs').version;
+  libVersions['animejs'] = animeVersion;
+  const animeDestDir = path.join(DEST_DIR, 'animejs', animeVersion);
+  ensureDir(animeDestDir);
+  const animeSrc = path.resolve(MODULES_DIR, 'animejs/dist/bundles/anime.umd.min.js');
+  fs.copyFileSync(animeSrc, path.join(animeDestDir, 'anime.min.js'));
 
   // Special copy for Three.js (needs full build dir for relative imports)
   const threeVer = getPackageVersion('three').version;
   libVersions['three'] = threeVer;
   ensureDir(path.join(DEST_DIR, 'three', threeVer));
   copyFolderSync(path.join(MODULES_DIR, 'three/build'), path.join(DEST_DIR, 'three', threeVer));
+
+  // Special copy for Lit and its dependencies (needed for resolution)
+  const litPackages = ["lit", "lit-html", "lit-element", "@lit/reactive-element"];
+  for (const pkg of litPackages) {
+    try {
+      const version = getPackageVersion(pkg).version;
+      libVersions[pkg] = version;
+      // Handle scoped packages like @lit/reactive-element -> @lit/reactive-element/version
+      // path.join with package name works fine
+      const pkgSrc = path.join(MODULES_DIR, ...pkg.split("/"));
+      const pkgDest = path.join(DEST_DIR, ...pkg.split("/"), version);
+
+      ensureDir(pkgDest);
+      copyFolderSync(pkgSrc, pkgDest);
+    } catch (e) {
+      console.warn(`Warning: Could not copy ${pkg}`, e);
+    }
+  }
 
   for (const [destName, srcPath] of Object.entries(NPM_MAPPING)) {
     const fullSrc = path.join(MODULES_DIR, srcPath);
@@ -267,6 +305,47 @@ async function main(): Promise<void> {
       continue;
     }
 
+    if (destName === 'tippy') {
+      // tippy.js structure:
+      // fullSrc points to dist/tippy-bundle.umd.min.js
+      // We need:
+      // - dist/tippy-bundle.umd.min.js -> tippy.min.js
+      // - dist/tippy.css -> tippy.css
+      // - animations/ -> animations/
+      // - themes/ -> themes/
+
+      const pkgRoot = path.resolve(fullSrc, '../../'); // Go up from dist/file.js to root
+
+      // Copy JS
+      fs.copyFileSync(fullSrc, path.join(versionedDestDir, 'tippy.min.js'));
+
+      // Copy Core CSS
+      const cssSrc = path.join(pkgRoot, 'dist/tippy.css');
+      if (fs.existsSync(cssSrc)) {
+        fs.copyFileSync(cssSrc, path.join(versionedDestDir, 'tippy.css'));
+      }
+
+      // Copy Animations
+      const animSrc = path.join(pkgRoot, 'animations');
+      if (fs.existsSync(animSrc)) {
+        copyFolderSync(animSrc, path.join(versionedDestDir, 'animations'));
+      }
+
+      // Copy Themes
+      const themeSrc = path.join(pkgRoot, 'themes');
+      if (fs.existsSync(themeSrc)) {
+        copyFolderSync(themeSrc, path.join(versionedDestDir, 'themes'));
+      }
+      continue;
+    }
+
+    if (destName === 'winbox') {
+      // winbox.bundle.min.js is mapped (via 'winbox' key), so fullSrc is correct.
+      // We just need to copy it to the right destination filename.
+      fs.copyFileSync(fullSrc, path.join(versionedDestDir, 'winbox.bundle.min.js'));
+      continue;
+    }
+
     if (destName === 'leaflet') {
       fs.copyFileSync(path.join(fullSrc, 'dist/leaflet.js'), path.join(versionedDestDir, 'leaflet.js'));
       fs.copyFileSync(path.join(fullSrc, 'dist/leaflet.css'), path.join(versionedDestDir, 'leaflet.css'));
@@ -279,6 +358,46 @@ async function main(): Promise<void> {
       fs.copyFileSync(path.join(fullSrc, 'dist/katex.min.js'), path.join(versionedDestDir, 'katex.min.js'));
       fs.copyFileSync(path.join(fullSrc, 'dist/katex.min.css'), path.join(versionedDestDir, 'katex.min.css'));
       copyFolderSync(path.join(fullSrc, 'dist/fonts'), path.join(versionedDestDir, 'fonts'));
+      continue;
+    }
+
+    if (destName === 'shoelace') {
+      // User requested to ONLY use the cdn package
+      const cdnSrc = path.join(fullSrc, 'cdn');
+      if (fs.existsSync(cdnSrc)) {
+        copyFolderSync(cdnSrc, versionedDestDir);
+      } else {
+        console.warn(`Warning: Shoelace CDN directory not found at ${cdnSrc}`);
+      }
+      continue;
+    }
+
+    if (destName === 'flowbite') {
+      // Copy the entire dist folder for full Flowbite support
+      const distSrc = path.join(fullSrc, 'dist');
+      if (fs.existsSync(distSrc)) {
+        copyFolderSync(distSrc, versionedDestDir);
+      } else {
+        console.warn(`Warning: Flowbite dist directory not found at ${distSrc}`);
+      }
+      continue;
+    }
+
+    if (destName === 'bootstrap-icons.css') {
+      // Copy the css file
+      fs.copyFileSync(fullSrc, path.join(versionedDestDir, 'bootstrap-icons.css'));
+      // Copy the fonts directory (sibling to css in module)
+      const fontsSrc = path.join(path.dirname(fullSrc), 'fonts');
+      if (fs.existsSync(fontsSrc)) {
+        copyFolderSync(fontsSrc, path.join(versionedDestDir, 'fonts'));
+      }
+      continue;
+    }
+
+    if (destName === 'material-icons.css') {
+      // Material icons has css and woff2 files in the same dir. Copy everything.
+      // But we mapped fullSrc to the css file. So get dirname.
+      copyFolderSync(path.dirname(fullSrc), versionedDestDir);
       continue;
     }
 

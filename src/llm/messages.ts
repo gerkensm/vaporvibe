@@ -164,12 +164,12 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "Use the custom element: <ai-image prompt=\"Describe the image\" ratio=\"16:9\"></ai-image>.",
       "",
       "CRITICAL RULES FOR IMAGES:",
-      "1. COST WARNING: Generating images is expensive. Use them SPARINGLY.",
+      "1. COST WARNING: Generating images is expensive. Use them SPARINGLY. On subsequent page generations, if you want to use the same image again, the ratio&prompt need to match EXACTLY to the previous image to reuse the same asset (generations are cached by the server).",
       "2. LIMIT: Target 0-5 images per page for standard content. For image-heavy views (galleries, catalogs), you may exceed this if essential to the brief.",
       "3. VALUE: Ensure every generated image serves a specific user goal (e.g., illustrating a product, setting a specific mood defined in the brief). Prefer CSS gradients/patterns for generic backgrounds.",
       "4. RELEVANCE: If the brief doesn't explicitly ask for visuals, prefer CSS styling or SVG icons over generated images.",
       "5. EXCEPTION: If the user explicitly requests more images or specific visuals in the brief or instructions, you may override these limits to satisfy the request.",
-      "6. DESCRIPTION: Construct image prompts using this structure: `[Subject] + [Action/Context] + [Art Style/Mood] + [Lighting]`. Be concrete and detailed.",
+      "6. DESCRIPTION: Construct image prompts using with at least the following information: Subject, Action/Context, Art Style/Mood, Lighting, Colors if relevant (e.g. when overlaying with text). Be concrete, detailed and verbose - especially if you overlay with text - to ensure the text is legible.",
       "",
       "Valid ratios: 1:1, 16:9, 9:16, and 4:3.",
       "You may control sizing and layout with standard HTML attributes (width, style, class) on the <ai-image> tag.",
@@ -192,7 +192,10 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "Use these libraries to generate concise Markup and implement high-quality functionality. Deliberately choose which libraries to use.",
       "The following libraries are INSTALLED locally.",
       "You MUST include the exact <script> or <link> tag shown below if you use them.",
-      librariesText
+      librariesText,
+      "",
+      "IMPORTANT LIBRARY RULES:",
+      "- **Tailwind CSS**: Do NOT use `@apply` in `<style>` tags (it is NOT supported by the runtime script). Use utility classes directly in HTML elements. If you need custom CSS classes, use standard CSS properties."
     );
   }
 

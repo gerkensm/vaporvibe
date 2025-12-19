@@ -286,6 +286,7 @@ import {
       /\bconst\s+stateComment\b/g,
       "var stateComment"
     );
+    prepared = injectCustomElementsRegistryPatch(prepared);
     if (normalizedTarget && normalizedTarget.trim().length > 0) {
       prepared = injectHistoryRestoreSnippet(prepared, normalizedTarget);
     }
@@ -301,6 +302,37 @@ import {
     } catch {
       return targetHref;
     }
+  }
+
+  function injectCustomElementsRegistryPatch(html: string): string {
+    const snippet = [
+      "<script>",
+      "/** VaporVibe: Prevent CustomElementRegistry collisions during soft navigation */",
+      "(function(){",
+      "  try {",
+      "    var origDefine = customElements.define;",
+      "    var origGet = customElements.get;",
+      "    customElements.define = function(name, constructor, options) {",
+      "      if (origGet.call(customElements, name)) {",
+      "        console.warn('VaporVibe: Ignoring duplicate definition for ' + name);",
+      "        return;",
+      "      }",
+      "      origDefine.call(customElements, name, constructor, options);",
+      "    };",
+      "  } catch (e) {",
+      "    console.warn('VaporVibe: Failed to patch CustomElementRegistry', e);",
+      "  }",
+      "})();",
+      "</script>",
+    ].join("\n");
+
+    const headMatch = html.match(/<head[^>]*>/i);
+    if (headMatch && headMatch.index !== undefined) {
+      const insertAt = headMatch.index + headMatch[0].length;
+      return html.slice(0, insertAt) + snippet + html.slice(insertAt);
+    }
+
+    return snippet + html;
   }
 
   function injectHistoryRestoreSnippet(

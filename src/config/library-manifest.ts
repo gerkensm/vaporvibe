@@ -15,9 +15,17 @@ const v = (key: string) => LIB_VERSIONS[key] || 'unknown';
 export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
   // TIER A: CORE & REACTIVITY
   {
+    id: "tailwindcss",
+    filename: "tailwind.js",
+    description: "Tailwind CSS Runtime (Script-based). Required for arbitrary values (e.g. w-[10px]) and standard utilities if not using full DaisyUI.",
+    tags: `<script src="/libs/tailwind/${v('tailwind')}/tailwind.js"></script>`,
+    inject: "on-request",
+    version: v('tailwind')
+  },
+  {
     id: "daisyui",
     filename: "daisyui.css",
-    description: "UI framework (Tailwind CSS + Components). Includes all Tailwind utilities. Choose deliberately, may only use Tailwind classes or DaisyUI components as well for more bespoke looks.",
+    description: "UI framework (Tailwind CSS + Components). Includes STANDARD Tailwind utilities (e.g. p-4, flex). For arbitrary values (e.g. w-[350px]), you MUST also include 'tailwindcss'.",
     tags: `<link rel="stylesheet" href="/libs/daisyui/${v('daisyui')}/daisyui.css">`,
     inject: "on-request",
     version: v('daisyui')
@@ -88,6 +96,46 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     inject: "on-request",
     version: v('fira-code')
   },
+  {
+    id: "font-lora",
+    filename: "fonts/lora/index.css",
+    description: "Lora upscale serif (CSS: font-family: 'Lora')",
+    tags: `<link rel="stylesheet" href="/libs/lora/${v('lora')}/index.css">`,
+    inject: "on-request",
+    version: v('lora')
+  },
+  {
+    id: "font-merriweather",
+    filename: "fonts/merriweather/index.css",
+    description: "Merriweather serif (CSS: font-family: 'Merriweather')",
+    tags: `<link rel="stylesheet" href="/libs/merriweather/${v('merriweather')}/index.css">`,
+    inject: "on-request",
+    version: v('merriweather')
+  },
+  {
+    id: "font-montserrat",
+    filename: "fonts/montserrat/index.css",
+    description: "Montserrat modern sans (CSS: font-family: 'Montserrat')",
+    tags: `<link rel="stylesheet" href="/libs/montserrat/${v('montserrat')}/index.css">`,
+    inject: "on-request",
+    version: v('montserrat')
+  },
+  {
+    id: "font-oswald",
+    filename: "fonts/oswald/index.css",
+    description: "Oswald condensed sans (CSS: font-family: 'Oswald')",
+    tags: `<link rel="stylesheet" href="/libs/oswald/${v('oswald')}/index.css">`,
+    inject: "on-request",
+    version: v('oswald')
+  },
+  {
+    id: "font-raleway",
+    filename: "fonts/raleway/index.css",
+    description: "Raleway elegant sans (CSS: font-family: 'Raleway')",
+    tags: `<link rel="stylesheet" href="/libs/raleway/${v('raleway')}/index.css">`,
+    inject: "on-request",
+    version: v('raleway')
+  },
 
   // TIER C: ASSET HEAVY & COMPLEX
   {
@@ -133,12 +181,60 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     version: v('aos')
   },
   {
+    id: "bootstrap",
+    filename: "bootstrap.min.css",
+    description: "Classic Bootstrap 5 (Global: bootstrap). Includes JS bundle + Popper + Bootstrap Icons.",
+    tags: `<link rel="stylesheet" href="/libs/bootstrap/${v('bootstrap')}/bootstrap.min.css">\n<link rel="stylesheet" href="/libs/bootstrap-icons/${v('bootstrap-icons')}/bootstrap-icons.css">\n<script src="/libs/bootstrap/${v('bootstrap')}/bootstrap.bundle.min.js"></script>`,
+    inject: "on-request",
+    version: v('bootstrap')
+  },
+  {
     id: "bulma",
     filename: "bulma.min.css",
     description: "Modern CSS framework (Usage: class='button is-primary')",
     tags: `<link rel="stylesheet" href="/libs/bulma/${v('bulma')}/bulma.min.css">`,
     inject: "on-request",
     version: v('bulma')
+  },
+  {
+    id: "materialize",
+    filename: "materialize.min.css",
+    description: "Material Design framework (Global: M.AutoInit()). Includes Material Icons.",
+    tags: `<link rel="stylesheet" href="/libs/materialize-css/${v('materialize-css')}/materialize.min.css">\n<link rel="stylesheet" href="/libs/material-icons/${v('material-icons')}/material-icons.css">\n<script src="/libs/materialize-css/${v('materialize-css')}/materialize.min.js"></script>`,
+    inject: "on-request",
+    version: v('materialize-css')
+  },
+  {
+    id: "spectre",
+    filename: "spectre.min.css",
+    description: "Lightweight, clean CSS framework.",
+    tags: `<link rel="stylesheet" href="/libs/spectre/${v('spectre')}/spectre.min.css">`,
+    inject: "on-request",
+    version: v('spectre')
+  },
+  {
+    id: "uikit",
+    filename: "uikit.min.css",
+    description: "Web interface framework (Global: UIkit). Robust components.",
+    tags: `<link rel="stylesheet" href="/libs/uikit/${v('uikit')}/uikit.min.css">\n<script src="/libs/uikit/${v('uikit')}/uikit.min.js"></script>\n<script src="/libs/uikit/${v('uikit')}/uikit-icons.min.js"></script>`,
+    inject: "on-request",
+    version: v('uikit')
+  },
+  {
+    id: "shoelace",
+    filename: "shoelace.js",
+    description: "Web Component library (Usage: <sl-button>). Framework agnostic.",
+    tags: `<link rel="stylesheet" href="/libs/shoelace-style-shoelace/${v('shoelace-style-shoelace')}/themes/light.css">\n<script type="module" src="/libs/shoelace-style-shoelace/${v('shoelace-style-shoelace')}/shoelace-autoloader.js"></script>`,
+    inject: "on-request",
+    version: v('shoelace-style-shoelace')
+  },
+  {
+    id: "flowbite",
+    filename: "flowbite.min.js",
+    description: "Tailwind components + interactive JS (Global: initFlowbite()).",
+    tags: `<link rel="stylesheet" href="/libs/flowbite/${v('flowbite')}/flowbite.min.css">\n<script src="/libs/flowbite/${v('flowbite')}/flowbite.min.js"></script>`,
+    inject: "on-request",
+    version: v('flowbite')
   },
   {
     id: "cleave",
@@ -264,7 +360,7 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     id: "tippy",
     filename: "tippy.min.js",
     description: "Tooltips and popovers (Global: tippy('#id', ...))",
-    tags: `<script src="/libs/popperjs-core/${v('popperjs-core')}/popper.min.js"></script>\n<script src="/libs/tippy/${v('tippy')}/tippy.min.js"></script>`,
+    tags: `<script src="/libs/popperjs-core/${v('popperjs-core')}/popper.min.js"></script>\n<script src="/libs/tippy/${v('tippy')}/tippy.min.js"></script>\n<link rel="stylesheet" href="/libs/tippy/${v('tippy')}/tippy.css">\n<link rel="stylesheet" href="/libs/tippy/${v('tippy')}/animations/shift-away.css">`,
     inject: "on-request",
     version: v('tippy')
   },
