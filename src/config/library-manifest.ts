@@ -15,19 +15,19 @@ const v = (key: string) => LIB_VERSIONS[key] || 'unknown';
 export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
   // TIER A: CORE & REACTIVITY
   {
-    id: "tailwind",
-    filename: "tailwind.js",
-    description: "Utility CSS framework (Global: automatically applied via classes)",
-    tags: '<script src="/libs/tailwind.js"></script>', // Special case: downloaded to root
-    inject: "always",
-    version: v('tailwind')
+    id: "daisyui",
+    filename: "daisyui.css",
+    description: "UI framework (Tailwind CSS + Components). Includes all Tailwind utilities. Choose deliberately, may only use Tailwind classes or DaisyUI components as well for more bespoke looks.",
+    tags: `<link rel="stylesheet" href="/libs/daisyui/${v('daisyui')}/daisyui.css">`,
+    inject: "on-request",
+    version: v('daisyui')
   },
   {
     id: "alpine",
     filename: "alpine.js",
     description: "Lightweight reactivity framework (Global: Alpine, x-data attributes)",
     tags: `<script src="/libs/alpinejs/${v('alpinejs')}/alpine.js" defer></script>`,
-    inject: "always",
+    inject: "on-request",
     version: v('alpinejs')
   },
 
@@ -37,7 +37,7 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     filename: "fonts/inter/index.css",
     description: "Inter variable font (CSS: font-family: 'Inter')",
     tags: `<link rel="stylesheet" href="/libs/inter/${v('inter')}/index.css">`,
-    inject: "always",
+    inject: "on-request",
     version: v('inter')
   },
   {
@@ -407,11 +407,11 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     version: v('zdog')
   },
   {
-    id: "kaboom",
-    filename: "kaboom.js",
-    description: "Game programming (Global: kaboom())",
-    tags: `<script src="/libs/kaboom/${v('kaboom')}/kaboom.js"></script>`,
+    id: "phaser",
+    filename: "phaser.min.js",
+    description: "Professional 2D game engine (Global: new Phaser.Game({...})). Stable v3 API.",
+    tags: `<script src="/libs/phaser/${v('phaser')}/phaser.min.js"></script>`,
     inject: "on-request",
-    version: v('kaboom')
+    version: v('phaser')
   },
 ];

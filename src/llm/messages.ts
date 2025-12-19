@@ -185,12 +185,13 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       (lib) =>
         `- **${lib.id}** (v${lib.version}): ${lib.description}. Usage: ${lib.tags}`
     ).join("\n");
+
     systemLines.push(
       "",
       "# AVAILABLE LOCAL LIBRARIES",
-      "Use these libraries if they help to generate concise Markup and implement the requested functionality with high quality and performance. Deliberately choose which libraries to use.",
+      "Use these libraries to generate concise Markup and implement high-quality functionality. Deliberately choose which libraries to use.",
       "The following libraries are INSTALLED locally.",
-      "Use these versions specifically. Do not guess API methods for other versions.",
+      "You MUST include the exact <script> or <link> tag shown below if you use them.",
       librariesText
     );
   }

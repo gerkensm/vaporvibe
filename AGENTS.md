@@ -194,6 +194,18 @@ The admin UI is functional but has some minor inconsistencies the LLM should _no
 - **Compilation**: Assembles `system` (rules) and `user` (context) messages.
 - **Content**: Includes the App Brief, current request details, previous HTML, curated session history, and recent REST API state.
 
+### Standard Library & Offline Assets
+
+- **Concept**: To prevent dependency on external CDNs (which might be blocked or flaky) and ensure consistent LLM outputs, VaporVibe serves a curated "Standard Library" of ~40 popular libraries (DaisyUI, Phaser, Chart.js, etc.) directly from `frontend/public/libs/`.
+- **Composition Pipeline**:
+  1.  **Build (`scripts/copy-libs.ts`)**: Copies assets from `frontend/node_modules/` to `frontend/public/libs/` and locks generic versions (e.g., `daisyui` -> `daisyui/4.12.24/full.css`).
+  2.  **Manifest (`src/config/library-manifest.ts`)**: Defines available libraries, their descriptions, and injection rules (`always` vs `on-request`).
+  3.  **Prompt Injection**: `src/llm/messages.ts` reads the manifest and injects the *exact* available versions into the system prompt. This prevents the LLM from hallucinating API methods for wrong versions.
+- **Core Stacks**:
+  - **CSS**: **DaisyUI** (v4 standalone) is always injected. It includes all Tailwind utilities, so the LLM can mix utility classes (`p-4`) with component classes (`btn btn-primary`).
+  - **Game Engine**: **Phaser** (v3) is the supported engine (replacing Kaboom/Kaplay) due to its API stability and strong LLM training data presence.
+- **Documentation**: See `docs/STANDARD_LIBRARY.md` for the full catalog and maintenance instructions.
+
 ### Navigation Interception
 
 - **Purpose**: Shows a loading overlay during LLM generation instead of a blank screen.
