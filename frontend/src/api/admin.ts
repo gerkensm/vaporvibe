@@ -157,6 +157,7 @@ export interface RuntimeUpdatePayload {
   historyLimit: number;
   historyMaxBytes: number;
   instructionPanel: boolean;
+  enableStandardLibrary: boolean;
   imageGeneration?: {
     enabled: boolean;
     provider?: "openai" | "gemini";

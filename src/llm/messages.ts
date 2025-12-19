@@ -1,4 +1,5 @@
 import type { BriefAttachment, ChatMessage, HistoryEntry } from "../types.js";
+import { VAPORVIBE_LIBRARIES } from "../config/library-manifest.js";
 
 const LINE_DIVIDER = "----------------------------------------";
 
@@ -24,6 +25,7 @@ export interface MessageContext {
   mode?: "page" | "json-query";
   branchId?: string;
   imageGenerationEnabled?: boolean;
+  enableStandardLibrary?: boolean;
 }
 
 export function buildMessages(context: MessageContext): ChatMessage[] {
@@ -49,6 +51,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     mode = "page",
     branchId,
     imageGenerationEnabled = false,
+    enableStandardLibrary = true,
   } = context;
   const isJsonQuery = mode === "json-query";
 
@@ -105,7 +108,9 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "",
       "### Non-negotiables (Core Rules)",
       '1) Single view, local-first interactivity. Generate the entire page for the current request. No client routers, virtual nav stacks, hash-nav, iframes, popups, or target="_blank".',
-      "2) Self-contained. Inline all CSS and JS via <style> and <script>. Use inline SVG/CSS for visuals where possible. Avoid linking to external images or embedding large data-URLs. No external CDNs/fonts/assets.",
+      enableStandardLibrary
+        ? "2) Self-contained. Inline all CSS and JS via <style> and <script>, OR use the **local** `/libs/*` route (see AVAILABLE LOCAL LIBRARIES below). Use inline SVG/CSS for visuals where possible. Avoid linking to external images or embedding large data-URLs. **No external CDNs** — only `/libs/*` paths are allowed for script/link tags."
+        : "2) Self-contained. Inline all CSS and JS via <style> and <script>. Use inline SVG/CSS for visuals where possible. Avoid linking to external images or embedding large data-URLs. **No external CDNs. No local libraries.** Use pure, dependency-free vanilla code only.",
       "3) Latency-aware.",
       "   - Full page reloads (links/forms) are **slow** (~30s to 3m). Use inline JS for local UI changes (tabs, modals, sorting/filtering existing data).",
       "   - Use the Virtual REST API (see Efficiency Tools) for background state changes or data loading.",
@@ -172,6 +177,21 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "- Full width landscape: <ai-image prompt=\"A futuristic skyline\" ratio=\"16:9\" width=\"100%\"></ai-image>.",
       "- Small floated square: <ai-image prompt=\"An icon of a robot\" ratio=\"1:1\" style=\"width: 200px; float: right; margin: 12px;\"></ai-image>.",
       "Do NOT use Markdown images or raw <img> tags; the helper will swap in an <img> element automatically."
+    );
+  }
+
+  if (!isJsonQuery && enableStandardLibrary) {
+    const librariesText = VAPORVIBE_LIBRARIES.map(
+      (lib) =>
+        `- **${lib.id}** (v${lib.version}): ${lib.description}. Usage: ${lib.tags}`
+    ).join("\n");
+    systemLines.push(
+      "",
+      "# AVAILABLE LOCAL LIBRARIES",
+      "Use these libraries if they help to generate concise Markup and implement the requested functionality with high quality and performance. Deliberately choose which libraries to use.",
+      "The following libraries are INSTALLED locally.",
+      "Use these versions specifically. Do not guess API methods for other versions.",
+      librariesText
     );
   }
 
@@ -243,6 +263,8 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "- Replace synthesized starter data with actual mutation history data once available.",
       "- Only call mutation API with meaningful state changes.",
     ];
+
+
 
   // Stable context (changes less often)
   const stableSections: string[] = [`App Brief:\n${brief}`];

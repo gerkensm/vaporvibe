@@ -13,6 +13,7 @@ export interface CliOptions {
   historyMaxBytes?: number;
   host?: string;
   showHelp?: boolean;
+  enableStandardLibrary?: boolean;
 }
 
 const FLAG_MAP: Record<string, keyof CliOptions> = {
@@ -37,6 +38,9 @@ const FLAG_MAP: Record<string, keyof CliOptions> = {
   "history-bytes": "historyMaxBytes",
   "history-max-bytes": "historyMaxBytes",
   host: "host",
+  "standard-library": "enableStandardLibrary",
+  "enable-standard-library": "enableStandardLibrary",
+  enableStandardLibrary: "enableStandardLibrary",
 };
 
 export function parseCliArgs(argv: string[]): CliOptions {
@@ -112,9 +116,24 @@ function assignOption(options: CliOptions, key: keyof CliOptions, value: string)
     (options as Record<string, unknown>)[key] = parsed;
     return;
   }
+  if (key === "enableStandardLibrary") {
+    (options as Record<string, unknown>)[key] = parseBoolean(value);
+    return;
+  }
   if (key === "reasoningMode" || key === "instructionPanel" || key === "host") {
     (options as Record<string, unknown>)[key] = value.trim();
     return;
   }
   (options as Record<string, unknown>)[key] = value;
+}
+
+function parseBoolean(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  if (["true", "1", "yes", "on", "enable", "enabled"].includes(normalized)) {
+    return true;
+  }
+  if (["false", "0", "no", "off", "disable", "disabled"].includes(normalized)) {
+    return false;
+  }
+  throw new Error(`Expected a boolean value, received: ${value}`);
 }

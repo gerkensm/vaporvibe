@@ -25,6 +25,7 @@ dist
 dist/*
 frontend/dist
 frontend/dist/*
+frontend/public/libs
 
 # Generated macOS packaging artifacts
 scripts/macos-app/icon-build/

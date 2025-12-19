@@ -3,6 +3,11 @@ trigger: glob
 globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+- From `../types.js`: `ChatMessage`, `LlmReasoningTrace`, `LlmUsageMetrics`, `ProviderSettings`, `VerificationResult`
+- From `./client.js`: `LlmClient`, `LlmResult`, `LlmGenerateOptions`, `LlmStreamObserver`
+
+**External Imports:**
+
 - From `@google/genai`: `GoogleGenAI`, `GenerateContentConfig`, `ThinkingLevel`, `MediaResolution`
 
 #### `llm/grok-client.ts`
@@ -34,6 +39,7 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 
 **Internal Imports:**
 
+- From `../config/library-manifest.js`: `VAPORVIBE_LIBRARIES`
 - From `../types.js`: `BriefAttachment`, `ChatMessage`, `HistoryEntry`
 
 #### `llm/model-catalog.ts`
@@ -351,21 +357,9 @@ _No imports_
 
 ## Frontend (frontend/src/)
 
-**Total Modules**: 25  
+**Total Modules**: 28  
 **External Packages**: 5
 
 ---
 
 ### Architecture Overview
-
-```mermaid
-graph TD
-  root["root/<br/>6 modules"]
-  api["api/<br/>2 modules"]
-  components["components/<br/>13 modules"]:::viewNode
-  constants["constants/<br/>1 modules"]
-  pages["pages/<br/>3 modules"]
-  App_tsx --> components
-  App_tsx --> pages
-  api --> types
-  components --> api

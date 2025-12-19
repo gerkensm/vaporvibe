@@ -12,6 +12,7 @@ const credentialStoreMock = {
 const configStoreMock = {
     getLlmSettings: vi.fn(),
     getImageGeneration: vi.fn(),
+    getRuntimeSettings: vi.fn(),
 };
 
 vi.mock("../../src/utils/credential-store.js", () => ({
@@ -43,6 +44,7 @@ describe("App Config Persistence", () => {
         credentialStoreMock.getApiKey.mockReset();
         configStoreMock.getLlmSettings.mockReset();
         configStoreMock.getImageGeneration.mockReset();
+        configStoreMock.getRuntimeSettings.mockReset();
         (loggerMock.info as any).mockClear();
     });
 

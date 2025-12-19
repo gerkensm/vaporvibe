@@ -21,6 +21,7 @@ describe("createHistoryArchiveZip", () => {
     sessionTtlMs: 60_000,
     sessionCap: 10,
     includeInstructionPanel: true,
+    enableStandardLibrary: true,
   };
 
   const provider: ProviderSettings = {

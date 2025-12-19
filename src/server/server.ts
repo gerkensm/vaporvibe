@@ -102,6 +102,7 @@ const FRONTEND_DIST_DIR = resolvePath(PROJECT_ROOT_DIR, "frontend/dist");
 const FRONTEND_ASSETS_DIR = resolvePath(FRONTEND_DIST_DIR, "assets");
 const SPA_INDEX_PATH = resolvePath(FRONTEND_DIST_DIR, "index.html");
 const FRONTEND_SOURCE_DIR = resolvePath(PROJECT_ROOT_DIR, "frontend");
+const STANDARD_LIBRARY_DIR = resolvePath(FRONTEND_SOURCE_DIR, "public", "libs");
 const SPA_SOURCE_INDEX_PATH = resolvePath(FRONTEND_SOURCE_DIR, "index.html");
 const ADMIN_ASSET_ROUTE_PREFIX = `${ADMIN_ROUTE_PREFIX}/assets`;
 const ADMIN_ASSET_ROUTE_PREFIX_WITH_SLASH = `${ADMIN_ASSET_ROUTE_PREFIX}/`;
@@ -397,6 +398,12 @@ function getAssetContentType(filePath: string): string {
       return "image/webp";
     case ".gif":
       return "image/gif";
+    case ".woff":
+      return "font/woff";
+    case ".woff2":
+      return "font/woff2";
+    case ".ttf":
+      return "font/ttf";
     case ".json":
       return "application/json; charset=utf-8";
     case ".txt":
@@ -580,6 +587,84 @@ function maybeServeRuntimeAsset(
     return true;
   } catch (error) {
     reqLogger.error({ err: error }, "Failed to serve runtime asset");
+    res.statusCode = 500;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("Internal Server Error");
+    return true;
+  }
+}
+
+function maybeServeStandardLibraryAsset(
+  context: RequestContext,
+  res: ServerResponse,
+  reqLogger: RequestLogger,
+  runtime: RuntimeConfig
+): boolean {
+  const libsPrefix = "/libs/";
+  if (!runtime.enableStandardLibrary || !context.path.startsWith(libsPrefix)) {
+    return false;
+  }
+
+  if (context.method !== "GET" && context.method !== "HEAD") {
+    res.statusCode = 405;
+    res.setHeader("Allow", "GET, HEAD");
+    res.end("Method Not Allowed");
+    return true;
+  }
+
+  const requestedPath = context.path.slice(libsPrefix.length);
+  const segments = requestedPath
+    .split(/[\\/]+/)
+    .filter((segment) => segment && segment !== ".");
+
+  if (!segments.length || segments.some((segment) => segment === "..")) {
+    res.statusCode = 400;
+    res.end("Bad Request");
+    return true;
+  }
+
+  const normalized = segments.join("/");
+  const filePath = resolvePath(STANDARD_LIBRARY_DIR, normalized);
+
+  if (!filePath.startsWith(STANDARD_LIBRARY_DIR)) {
+    res.statusCode = 403;
+    res.end("Forbidden");
+    return true;
+  }
+
+  if (!existsSync(filePath)) {
+    res.statusCode = 404;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("Not Found");
+    return true;
+  }
+
+  try {
+    const stats = statSync(filePath);
+    res.statusCode = 200;
+    res.setHeader("Content-Type", getAssetContentType(filePath));
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.setHeader("Content-Length", String(stats.size));
+
+    if (context.method === "HEAD") {
+      res.end();
+      return true;
+    }
+
+    const stream = createReadStream(filePath);
+    stream.on("error", (error) => {
+      reqLogger.error({ err: error }, "Failed to stream standard library asset");
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      }
+      res.end("Internal Server Error");
+    });
+    stream.pipe(res);
+    reqLogger.debug(`Served standard library asset ${context.path}`);
+    return true;
+  } catch (error) {
+    reqLogger.error({ err: error }, "Failed to serve standard library asset");
     res.statusCode = 500;
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.end("Internal Server Error");
@@ -1214,6 +1299,12 @@ export function createServer(options: ServerOptions): http.Server {
     }
 
     if (
+      maybeServeStandardLibraryAsset(context, res, reqLogger, state.runtime)
+    ) {
+      return;
+    }
+
+    if (
       devServer &&
       (context.method === "GET" || context.method === "HEAD") &&
       shouldDelegateToDevServer(context.path)
@@ -1680,6 +1771,7 @@ async function handleLlmRequest(
     adminPath: ADMIN_ROUTE_PREFIX,
     branchId,
     imageGenerationEnabled: state.provider.imageGeneration.enabled,
+    enableStandardLibrary: state.runtime.enableStandardLibrary,
   });
   reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
 

@@ -55,6 +55,9 @@ class AIImage extends HTMLElement {
         img.style.borderRadius = "10px";
         img.style.display = "block";
 
+        // Default to non-draggable to prevent native image drag from interfering with swipes/UI
+        img.setAttribute("draggable", "false");
+
         // Overwrite/Add attributes from the host <ai-image>
         for (const attr of this.attributes) {
           const name = attr.name.toLowerCase();

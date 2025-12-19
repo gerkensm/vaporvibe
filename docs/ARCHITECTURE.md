@@ -70,6 +70,26 @@ A React-based "Shell" that wraps the generated content.
 -   **Workspace**: The split-screen view for A/B testing.
 -   **Interceptor**: Client-side JS that intercepts clicks to keep users in the correct session branch.
 
+### Frontend Runtime & Standard Library
+-   **Static library route**: `/libs/*` serves assets from `frontend/public/libs` with correct MIME types for JS, CSS, images, and fonts. Caching is immutable for fast reuse.
+-   **Toggle**: Controlled by `enableStandardLibrary` (env `ENABLE_STANDARD_LIBRARY`, default `true`). When disabled, `/libs/*` returns 404.
+-   **Pipeline Flow**:
+```mermaid
+graph TD
+    subgraph "Build Phase"
+        NM[node_modules] -->|copy-libs.ts| PD[frontend/public/libs]
+        NM -->|extract version| GV[generated-lib-versions.ts]
+    end
+    
+    subgraph "Request Phase"
+        GV -->|manifest| MP[Messages/Prompt]
+        MP -->|ID + Version| LLM[LLM Provider]
+        LLM -->|HTML with /libs/ tags| Server[VaporVibe Server]
+        Server -->|Serve Asset| Browser[User Browser]
+    end
+```
+-   See [`docs/STANDARD_LIBRARY.md`](./STANDARD_LIBRARY.md) for the full catalog and maintenance steps.
+
 ## 📚 Documentation Index
 
 ### Architecture Deep Dives

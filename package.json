@@ -14,15 +14,16 @@
     "frontend"
   ],
   "scripts": {
-    "build": "npm run build:fe && tsc && node scripts/copy-loading-shell-assets.mjs",
+    "build": "npm run build:fe && npm run copy:libs && tsc && node scripts/copy-loading-shell-assets.mjs",
     "prepare": "npm run build",
     "prepublishOnly": "npm run build",
-    "dev": "node scripts/dev.mjs",
+    "dev": "npm run copy:libs && node scripts/dev.mjs",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "type-check": "tsc --project tsconfig.tests.json",
     "build:fe": "cd frontend && npm install && npm run build",
+    "copy:libs": "tsx scripts/copy-libs.ts",
     "dev:be": "tsx src/dev/backend-dev-server.ts",
     "dev:fe": "cd frontend && npm run dev",
     "gen:codebase-map": "node scripts/generate-codebase-map.mjs",

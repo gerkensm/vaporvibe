@@ -41,103 +41,33 @@ import {
 import { useNotifications } from "../components/Notifications";
 import vaporvibeLogoUrl from "../assets/vaporvibe-icon-both.svg";
 
-type AsyncStatus = "idle" | "loading" | "success" | "error";
-type StatusMessage = { tone: "info" | "error"; message: string };
-type NullableStatus = StatusMessage | null;
-
-type QueuedAttachment = {
-  id: string;
-  file: File;
-  name: string;
-  size: number;
-  mimeType: string;
-  isImage: boolean;
-  previewUrl: string | null;
-};
-
-const HISTORY_PAGE_SIZE = 20;
-const HISTORY_REFRESH_INTERVAL_MS = 8000;
-const HISTORY_TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
-  timeStyle: "medium",
-});
-
-type ProviderKey = keyof AdminStateResponse["providerKeyStatuses"];
-
-const PROVIDER_SORT_ORDER: ProviderKey[] = [
-  "openai",
-  "gemini",
-  "anthropic",
-  "grok",
-  "groq",
-];
-
-const DEFAULT_CUSTOM_MODEL_CONFIG: CustomModelConfig = {
-  isMultimodal: false,
-  supportsImageInput: false,
-  supportsPDFInput: false,
-  supportsReasoning: false,
-  supportsReasoningMode: false,
-};
-
-const createDefaultCustomConfig = (): CustomModelConfig => ({
-  ...DEFAULT_CUSTOM_MODEL_CONFIG,
-});
-
-const TAB_ORDER = ["provider", "brief", "runtime", "history"] as const;
-
-type TabKey = (typeof TAB_ORDER)[number];
-
-const TAB_LABELS: Record<TabKey, string> = {
-  brief: "Brief",
-  provider: "Provider",
-  runtime: "Runtime",
-  history: "History",
-};
-
-const ADMIN_ROUTE_PREFIX = "/vaporvibe";
-
-const isAdminPath = (pathname: string) =>
-  pathname === ADMIN_ROUTE_PREFIX ||
-  pathname.startsWith(`${ADMIN_ROUTE_PREFIX}/`);
-
-const normalizeAdminPath = (pathname: string) =>
-  pathname.replace(/\/+$/, "") || "/";
-
-const isTabKey = (value: string): value is TabKey =>
-  (TAB_ORDER as readonly string[]).includes(value);
-
-const getTabFromPath = (pathname: string): TabKey | null => {
-  if (!isAdminPath(pathname)) {
-    return null;
-  }
-  const normalized = normalizeAdminPath(pathname);
-  const remainder = normalized.slice(ADMIN_ROUTE_PREFIX.length);
-  if (!remainder || remainder === "") {
-    return "provider";
-  }
-  const segments = remainder.split("/").filter(Boolean);
-  if (segments.length === 0) {
-    return "provider";
-  }
-  const candidate = segments[0];
-  return isTabKey(candidate) ? candidate : "provider";
-};
-
-const createTabPath = (tab: TabKey) =>
-  tab === "provider" ? ADMIN_ROUTE_PREFIX : `${ADMIN_ROUTE_PREFIX}/${tab}`;
-
-type AdminLocationState = {
-  showLaunchPad?: boolean;
-} | null;
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(Math.max(value, min), max);
-
-interface AdminDashboardProps {
-  mode?: "auto" | "setup" | "admin";
-}
-
-const SETUP_INTRO_STORAGE_KEY = "vaporvibe:setup:intro-seen:v1";
+import {
+  type AdminDashboardProps,
+  type AdminLocationState,
+  type AsyncStatus,
+  type NullableStatus,
+  type ProviderKey,
+  type QueuedAttachment,
+  type TabKey,
+} from "./admin-dashboard/types";
+import {
+  HISTORY_PAGE_SIZE,
+  HISTORY_REFRESH_INTERVAL_MS,
+  HISTORY_TIME_FORMATTER,
+  PROVIDER_SORT_ORDER,
+  TAB_LABELS,
+  TAB_ORDER,
+  SETUP_INTRO_STORAGE_KEY,
+  DEFAULT_CUSTOM_MODEL_CONFIG,
+} from "./admin-dashboard/constants";
+import {
+  clamp,
+  createDefaultCustomConfig,
+  createTabPath,
+  getTabFromPath,
+  isAdminPath,
+  normalizeAdminPath,
+} from "./admin-dashboard/utils";
 
 export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   const navigate = useNavigate();
@@ -1911,7 +1841,7 @@ function ProviderPanel({
       const modelDefaultMode = guidance.modelMetadata?.defaultReasoningMode;
       let nextReasoningMode = provider.reasoningMode ?? "none";
 
-      // When changing models, prioritize the model's default reasoning mode
+      // When changing models, prioritiize the model's default reasoning mode
       if (modelDefaultMode && availableModes.includes(modelDefaultMode)) {
         nextReasoningMode = modelDefaultMode;
       } else if (!availableModes.includes(nextReasoningMode)) {
@@ -2760,6 +2690,9 @@ function RuntimePanel({
   );
   const [includeInstructionPanel, setIncludeInstructionPanel] =
     useState<boolean>(runtime.includeInstructionPanel);
+  const [enableStandardLibrary, setEnableStandardLibrary] = useState<boolean>(
+    runtime.enableStandardLibrary
+  );
   const [runtimeErrors, setRuntimeErrors] = useState<{
 
     historyLimit?: string;
@@ -2770,10 +2703,13 @@ function RuntimePanel({
     setHistoryLimitValue(String(state.runtime.historyLimit));
     setHistoryMaxBytesValue(String(state.runtime.historyMaxBytes));
     setIncludeInstructionPanel(state.runtime.includeInstructionPanel);
+    setEnableStandardLibrary(state.runtime.enableStandardLibrary);
   }, [
     state.runtime.historyLimit,
     state.runtime.historyMaxBytes,
+    state.runtime.historyMaxBytes,
     state.runtime.includeInstructionPanel,
+    state.runtime.enableStandardLibrary,
   ]);
 
 
@@ -2818,6 +2754,7 @@ function RuntimePanel({
       historyLimit: sanitizedHistoryLimit,
       historyMaxBytes: sanitizedHistoryMaxBytes,
       instructionPanel: includeInstructionPanel,
+      enableStandardLibrary,
     };
 
 
@@ -2957,6 +2894,25 @@ function RuntimePanel({
               }
             />
             <span>Show the floating instructions helper</span>
+          </div>
+        </label>
+
+        <label className="admin-field admin-field--row">
+          <div className="admin-field__label-group">
+            <span className="admin-field__label">Use Built-in Standard Library</span>
+            <span className="admin-field__helper">
+              Provides access to curated local versions of common libraries
+              (UI frameworks, icons, 3D libraries, fonts, game engines, etc.). Uncheck to force the AI to write
+              dependency-free vanilla code.
+            </span>
+          </div>
+          <div className="admin-toggle">
+            <input
+              type="checkbox"
+              checked={enableStandardLibrary}
+              onChange={(event) => setEnableStandardLibrary(event.target.checked)}
+            />
+            <span>Enabled</span>
           </div>
         </label>
 

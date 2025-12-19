@@ -93,6 +93,12 @@ function resolveRuntime(
     options.historyMaxBytes ??
     parsePositiveInt(env.HISTORY_MAX_BYTES) ??
     DEFAULT_HISTORY_MAX_BYTES;
+  const configStore = getConfigStore();
+  const persistedRuntime = configStore.getRuntimeSettings();
+
+  const enableStandardLibrarySetting = parseBooleanFlag(
+    options.enableStandardLibrary ?? env.ENABLE_STANDARD_LIBRARY
+  );
 
   const runtime: RuntimeConfig = {
     port,
@@ -104,6 +110,10 @@ function resolveRuntime(
     sessionTtlMs: SESSION_TTL_MS,
     sessionCap: SESSION_CAP,
     includeInstructionPanel: parseInstructionPanelSetting(instructionSetting),
+    enableStandardLibrary:
+      enableStandardLibrarySetting !== undefined
+        ? enableStandardLibrarySetting
+        : persistedRuntime?.enableStandardLibrary ?? true,
   };
   return runtime;
 }
@@ -551,6 +561,27 @@ function parseInstructionPanelSetting(value: unknown): boolean {
     `Unknown instruction panel setting '${value}', defaulting to enabled.`
   );
   return true;
+}
+
+function parseBooleanFlag(value: unknown): boolean | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (["true", "1", "yes", "on", "enable", "enabled"].includes(normalized)) {
+    return true;
+  }
+  if (["false", "0", "no", "off", "disable", "disabled"].includes(normalized)) {
+    return false;
+  }
+  return undefined;
 }
 
 function parseProviderValue(value: unknown): ModelProvider | undefined {
