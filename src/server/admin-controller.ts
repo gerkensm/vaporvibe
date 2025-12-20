@@ -55,6 +55,7 @@ import {
   writeImageCache,
 } from "../image-gen/cache.js";
 import { getGeneratedImagePath } from "../image-gen/paths.js";
+import { prepareHtmlForExport } from "../utils/html-export-transform.js";
 import type { MutableServerState, RequestContext } from "./server.js";
 import { SessionStore } from "./session-store.js";
 import { getCredentialStore } from "../utils/credential-store.js";
@@ -950,12 +951,17 @@ export class AdminController {
     }
 
     const filenameSafeId = entryId.replace(/[^a-z0-9-_]/gi, "-");
-    const html = entry.response.html;
+    const isDownload = action === "download" || url.searchParams.get("download") === "1";
+
+    // For downloads, transform HTML to be self-contained (CDN libs + embedded images)
+    const html = isDownload
+      ? prepareHtmlForExport(entry.response.html, entry.generatedImages)
+      : entry.response.html;
 
     res.statusCode = 200;
     res.setHeader("Content-Type", "text/html; charset=utf-8");
 
-    if (action === "download" || url.searchParams.get("download") === "1") {
+    if (isDownload) {
       res.setHeader(
         "Content-Disposition",
         `attachment; filename=history-${filenameSafeId}.html`
