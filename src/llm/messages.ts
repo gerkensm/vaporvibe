@@ -199,11 +199,12 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "- **Tailwind CSS**: The provided runtime is **Tailwind CSS v3.4.1** (running in the browser via JIT).",
       "  - Use utility classes directly in HTML elements (e.g., class=\"p-4 flex\").",
       "  - You CAN use the `.container` class as it exists in this version.",
-      "  - You CAN use `@apply` in `<style>` tags if combined with the `type=\"text/tailwindcss\"` attribute on the style tag.",
+      "  - You CAN use `@apply` for standard Tailwind utilities in `<style type=\"text/tailwindcss\">` blocks.",
+      "  - **CRITICAL EXCEPTION**: Do NOT use `@apply` with DaisyUI classes (e.g., `@apply btn`). The JIT runtime cannot see them. Use classes directly in HTML.",
       "  - The `tailwindcss` script tag is **already included** when the standard library is enabled.",
       "  - You CAN use arbitrary values (e.g., `grid-cols-[1fr_200px]`) and all standard v3 features.",
       "  - Do NOT include large CSS resets or external Tailwind CDN links.",
-      "- **DaisyUI**: Trust the provided classes for complex components (modals, cards, tabs) instead of building them from scratch with raw Tailwind utility classes."
+      "- **DaisyUI**: Trust the provided classes for complex components (modals, cards, tabs). Use them directly in HTML (e.g., `<button class=\"btn btn-primary\">`) to avoid runtime errors."
     );
   }
 

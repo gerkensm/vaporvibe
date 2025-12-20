@@ -25,7 +25,7 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
   {
     id: "daisyui",
     filename: "daisyui.css",
-    description: "UI framework (Tailwind CSS + Components). Includes STANDARD Tailwind utilities (e.g. p-4, flex). NOTE: Primarily decorative; for responsive classes or arbitrary values, you MUST also include 'tailwindcss' script.",
+    description: "UI framework (Tailwind CSS + Components). Includes STANDARD Tailwind utilities. NOTE: Use classes directly in HTML. Do NOT use @apply with DaisyUI classes in <style> blocks (the runtime cannot see them).",
     tags: `<link rel="stylesheet" href="/libs/daisyui/${v('daisyui')}/daisyui.css">`,
     inject: "on-request",
     version: v('daisyui')
@@ -42,17 +42,17 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     id: "htmx",
     filename: "htmx.min.js",
     description: "High-power tools for HTML (Usage: hx-get, hx-post). Access AJAX, CSS Transitions, WebSockets and Server Sent Events directly in HTML.",
-    tags: `<script src="/libs/htmx-org/${v('htmx-org')}/htmx.min.js"></script>`,
+    tags: `<script src="/libs/htmx.org/${v('htmx.org')}/htmx.min.js"></script>`,
     inject: "on-request",
-    version: v('htmx-org')
+    version: v('htmx.org')
   },
   {
     id: "hyperscript",
     filename: "hyperscript.min.js",
     description: "A small scripting language for the web (Usage: _='on click...'). Companion to htmx.",
-    tags: `<script src="/libs/hyperscript-org/${v('hyperscript-org')}/hyperscript.min.js"></script>`,
+    tags: `<script src="/libs/hyperscript.org/${v('hyperscript.org')}/hyperscript.min.js"></script>`,
     inject: "on-request",
-    version: v('hyperscript-org')
+    version: v('hyperscript.org')
   },
 
   // TIER B: FONTS
