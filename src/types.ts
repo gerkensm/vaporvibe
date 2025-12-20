@@ -110,6 +110,7 @@ export interface GeneratedImage {
   url: string;
   prompt: string;
   ratio: ImageAspectRatio;
+  aspectRatio?: ImageAspectRatio; // Alias for LLM compatibility (some models may hallucinate this name)
   provider: ImageGenProvider;
   modelId: ImageModelId;
   mimeType: string;

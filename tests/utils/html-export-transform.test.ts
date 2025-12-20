@@ -12,7 +12,7 @@ describe("html-export-transform", () => {
     describe("localLibPathToCdn", () => {
         it("should convert standard library paths to jsdelivr CDN URLs", () => {
             expect(localLibPathToCdn("/libs/alpinejs/3.14.3/alpine.min.js")).toBe(
-                "https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/alpine.min.js"
+                "https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"
             );
         });
 
@@ -31,8 +31,8 @@ describe("html-export-transform", () => {
         });
 
         it("should handle htmx.org package", () => {
-            expect(localLibPathToCdn("/libs/htmx/2.0.4/htmx.min.js")).toBe(
-                "https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/htmx.min.js"
+            expect(localLibPathToCdn("/libs/htmx.org/2.0.4/htmx.min.js")).toBe(
+                "https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js"
             );
         });
 
@@ -47,7 +47,7 @@ describe("html-export-transform", () => {
             const html = `<script src="/libs/alpinejs/3.14.3/alpine.min.js"></script>`;
             const result = transformLocalLibsToCdn(html);
             expect(result).toBe(
-                `<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/alpine.min.js"></script>`
+                `<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>`
             );
         });
 
@@ -55,7 +55,7 @@ describe("html-export-transform", () => {
             const html = `<link href="/libs/daisyui/4.12.24/full.css" rel="stylesheet">`;
             const result = transformLocalLibsToCdn(html);
             expect(result).toBe(
-                `<link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.24/full.css" rel="stylesheet">`
+                `<link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.24/dist/full.css" rel="stylesheet">`
             );
         });
 
@@ -66,9 +66,9 @@ describe("html-export-transform", () => {
         <script src="/libs/alpinejs/3.14.3/alpine.min.js"></script>
       `;
             const result = transformLocalLibsToCdn(html);
-            expect(result).toContain("https://cdn.jsdelivr.net/npm/daisyui@4.12.24/full.css");
+            expect(result).toContain("https://cdn.jsdelivr.net/npm/daisyui@4.12.24/dist/full.css");
             expect(result).toContain("https://cdn.tailwindcss.com/3.4.1");
-            expect(result).toContain("https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/alpine.min.js");
+            expect(result).toContain("https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js");
         });
 
         it("should leave non-lib paths unchanged", () => {
@@ -83,11 +83,16 @@ describe("html-export-transform", () => {
             const cacheKey = "test-model:1:1:a sunset over mountains";
             const images: GeneratedImage[] = [
                 {
+                    id: "gen-1",
                     cacheKey,
+                    url: `/generated-images/${cacheKey}.png`,
                     prompt: "a sunset over mountains",
-                    aspectRatio: "1:1",
+                    ratio: "1:1",
+                    provider: "openai",
+                    modelId: "dall-e-3",
                     base64: "iVBORw0KGgoAAAANSUhEUg==",
                     mimeType: "image/png",
+                    createdAt: new Date().toISOString(),
                 },
             ];
 
@@ -114,11 +119,16 @@ describe("html-export-transform", () => {
     describe("transformAiImagesToDataUrls", () => {
         const images: GeneratedImage[] = [
             {
+                id: "gen-2",
                 cacheKey: "test-model:1:1:a beautiful sunset",
+                url: "/generated-images/test-model:1:1:a beautiful sunset.png",
                 prompt: "a beautiful sunset",
-                aspectRatio: "1:1",
+                ratio: "1:1",
+                provider: "openai",
+                modelId: "dall-e-3",
                 base64: "iVBORw0KGgoAAAANSU==",
                 mimeType: "image/png",
+                createdAt: new Date().toISOString(),
             },
         ];
 
@@ -167,11 +177,16 @@ describe("html-export-transform", () => {
         it("should apply all transformations", () => {
             const images: GeneratedImage[] = [
                 {
+                    id: "gen-3",
                     cacheKey: "model:1:1:a logo",
+                    url: "/generated-images/model:1:1:a logo.png",
                     prompt: "a logo",
-                    aspectRatio: "1:1",
+                    ratio: "1:1",
+                    provider: "openai",
+                    modelId: "dall-e-3",
                     base64: "abc123==",
                     mimeType: "image/png",
+                    createdAt: new Date().toISOString(),
                 },
             ];
 
@@ -190,7 +205,7 @@ describe("html-export-transform", () => {
             const result = prepareHtmlForExport(html, images);
 
             // Check CDN replacement
-            expect(result).toContain("https://cdn.jsdelivr.net/npm/daisyui@4.12.24/full.css");
+            expect(result).toContain("https://cdn.jsdelivr.net/npm/daisyui@4.12.24/dist/full.css");
             expect(result).not.toContain("/libs/daisyui");
 
             // Check ai-image transformation
@@ -206,7 +221,7 @@ describe("html-export-transform", () => {
             const html = `<script src="/libs/alpinejs/3.14.3/alpine.min.js"></script>`;
             const result = prepareHtmlForExport(html, []);
             expect(result).toBe(
-                `<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/alpine.min.js"></script>`
+                `<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>`
             );
         });
 

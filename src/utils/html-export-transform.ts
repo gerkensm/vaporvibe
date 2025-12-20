@@ -11,17 +11,151 @@ import type { GeneratedImage } from "../types.js";
 
 /**
  * CDN URL mappings for libraries that need special handling.
- * Most libraries use the standard jsdelivr pattern.
+ * Maps local package directory name to a function that produces the CDN URL.
+ * 
+ * Format: (version, filePath) => full CDN URL
  */
 const SPECIAL_CDN_MAPPINGS: Record<string, (version: string, file: string) => string> = {
+    // Tailwind uses its own CDN
     tailwind: (version) => `https://cdn.tailwindcss.com/${version}`,
+
+    // Libraries with /dist/ prefix
+    daisyui: (v, f) => `https://cdn.jsdelivr.net/npm/daisyui@${v}/dist/full.css`,
+    alpinejs: (v) => `https://cdn.jsdelivr.net/npm/alpinejs@${v}/dist/cdn.min.js`,
+    lucide: (v, f) => `https://cdn.jsdelivr.net/npm/lucide@${v}/dist/umd/${f}`,
+    leaflet: (v, f) => `https://cdn.jsdelivr.net/npm/leaflet@${v}/dist/${f}`,
+    katex: (v, f) => `https://cdn.jsdelivr.net/npm/katex@${v}/dist/${f}`,
+    mermaid: (v, f) => `https://cdn.jsdelivr.net/npm/mermaid@${v}/dist/${f}`,
+    animejs: (v) => `https://cdn.jsdelivr.net/npm/animejs@${v}/lib/anime.min.js`,
+    aos: (v, f) => `https://cdn.jsdelivr.net/npm/aos@${v}/dist/${f}`,
+    bootstrap: (v, f) => `https://cdn.jsdelivr.net/npm/bootstrap@${v}/dist/${f.includes('.css') ? 'css' : 'js'}/${f}`,
+    // Bootstrap Icons CSS uses expanded version, not minified
+    "bootstrap-icons": (v, f) => {
+        if (f === 'bootstrap-icons.css') {
+            return `https://cdn.jsdelivr.net/npm/bootstrap-icons@${v}/font/bootstrap-icons.css`;
+        }
+        return `https://cdn.jsdelivr.net/npm/bootstrap-icons@${v}/font/${f}`;
+    },
+    bulma: (v, f) => `https://cdn.jsdelivr.net/npm/bulma@${v}/css/${f}`,
+    "materialize-css": (v, f) => `https://cdn.jsdelivr.net/npm/materialize-css@${v}/dist/${f.includes('.css') ? 'css' : 'js'}/${f}`,
+    spectre: (v, f) => `https://cdn.jsdelivr.net/npm/spectre.css@${v}/dist/${f}`,
+    uikit: (v, f) => `https://cdn.jsdelivr.net/npm/uikit@${v}/dist/${f.includes('.css') ? 'css' : 'js'}/${f}`,
+    flowbite: (v, f) => `https://cdn.jsdelivr.net/npm/flowbite@${v}/dist/${f}`,
+    cleave: (v, f) => `https://cdn.jsdelivr.net/npm/cleave.js@${v}/dist/${f}`,
+    // canvas-confetti browser minified version
+    "canvas-confetti": (v, f) => f.includes('browser')
+        ? `https://cdn.jsdelivr.net/npm/canvas-confetti@${v}/dist/${f}`
+        : `https://cdn.jsdelivr.net/npm/canvas-confetti@${v}/dist/confetti.browser.min.js`,
+    driver: (v, f) => f.includes('.css')
+        ? `https://cdn.jsdelivr.net/npm/driver.js@${v}/dist/${f}`
+        : `https://cdn.jsdelivr.net/npm/driver.js@${v}/dist/driver.js.iife.js`,
+    hint: (v, f) => `https://cdn.jsdelivr.net/npm/hint.css@${v}/${f}`,
+    "hotkeys-js": (v, f) => `https://cdn.jsdelivr.net/npm/hotkeys-js@${v}/dist/${f.replace('hotkeys.min.js', 'hotkeys-js.min.js')}`,
+    minidenticons: (v, f) => `https://cdn.jsdelivr.net/npm/minidenticons@${v}/${f}`,
+    nes: (v, f) => `https://cdn.jsdelivr.net/npm/nes.css@${v}/css/${f}`,
+    rellax: (v, f) => `https://cdn.jsdelivr.net/npm/rellax@${v}/${f}`,
+    "rough-notation": (v, f) => `https://cdn.jsdelivr.net/npm/rough-notation@${v}/lib/${f}`,
+    sortablejs: (v) => `https://cdn.jsdelivr.net/npm/sortablejs@${v}/Sortable.min.js`,
+    // swiper element bundle
+    swiper: (v, f) => f.includes('swiper-element')
+        ? `https://cdn.jsdelivr.net/npm/swiper@${v}/swiper-element-bundle.min.js`
+        : `https://cdn.jsdelivr.net/npm/swiper@${v}/${f}`,
+    animate: (v, f) => `https://cdn.jsdelivr.net/npm/animate.css@${v}/${f}`,
+    normalize: (v, f) => `https://cdn.jsdelivr.net/npm/normalize.css@${v}/${f}`,
+    "popperjs-core": (v, f) => `https://cdn.jsdelivr.net/npm/@popperjs/core@${v}/dist/umd/${f}`,
+    tippy: (v, f) => {
+        // tippy.js uses tippy-bundle.umd.min.js for the main file
+        if (f === 'tippy.min.js') {
+            return `https://cdn.jsdelivr.net/npm/tippy.js@${v}/dist/tippy-bundle.umd.min.js`;
+        }
+        // CSS files are in /dist/ (no .min version for tippy.css)
+        if (f === 'tippy.css') {
+            return `https://cdn.jsdelivr.net/npm/tippy.js@${v}/dist/tippy.css`;
+        }
+        return `https://cdn.jsdelivr.net/npm/tippy.js@${v}/${f}`;
+    },
+    sweetalert2: (v, f) => `https://cdn.jsdelivr.net/npm/sweetalert2@${v}/dist/${f}`,
+    "toastify-js": (v, f) => `https://cdn.jsdelivr.net/npm/toastify-js@${v}/src/${f}`,
+    flatpickr: (v, f) => `https://cdn.jsdelivr.net/npm/flatpickr@${v}/dist/${f}`,
+    hammerjs: (v, f) => `https://cdn.jsdelivr.net/npm/hammerjs@${v}/${f}`,
+    numeral: (v, f) => `https://cdn.jsdelivr.net/npm/numeral@${v}/min/${f}`,
+    "file-saver": (v, f) => `https://cdn.jsdelivr.net/npm/file-saver@${v}/dist/${f}`,
+    ms: (v, f) => `https://cdn.jsdelivr.net/npm/ms@${v}/index.js`,
+    "typewriter-effect": (v) => `https://cdn.jsdelivr.net/npm/typewriter-effect@${v}/dist/core.js`,
+    winbox: (v, f) => `https://cdn.jsdelivr.net/npm/winbox@${v}/dist/${f}`,
+    chart: (v, f) => `https://cdn.jsdelivr.net/npm/chart.js@${v}/dist/${f}`,
+    dayjs: (v, f) => `https://cdn.jsdelivr.net/npm/dayjs@${v}/${f}`,
+    gridjs: (v, f) => {
+        // Theme files use different naming: theme-mermaid.min.css → mermaid.css
+        if (f.startsWith('theme-') && f.endsWith('.min.css')) {
+            const themeName = f.replace('theme-', '').replace('.min.css', '.css');
+            return `https://cdn.jsdelivr.net/npm/gridjs@${v}/dist/theme/${themeName}`;
+        }
+        return `https://cdn.jsdelivr.net/npm/gridjs@${v}/dist/${f}`;
+    },
+    prismjs: (v, f) => f.includes('.css')
+        ? `https://cdn.jsdelivr.net/npm/prismjs@${v}/themes/${f}`
+        : `https://cdn.jsdelivr.net/npm/prismjs@${v}/${f}`,
+    marked: (v, f) => `https://cdn.jsdelivr.net/npm/marked@${v}/lib/${f.replace('.min.js', '.umd.js')}`,
+    tone: (v, f) => `https://cdn.jsdelivr.net/npm/tone@${v}/build/${f}`,
+    three: (v, f) => `https://cdn.jsdelivr.net/npm/three@${v}/build/${f}`,
+    zdog: (v, f) => `https://cdn.jsdelivr.net/npm/zdog@${v}/dist/${f}`,
+    phaser: (v, f) => `https://cdn.jsdelivr.net/npm/phaser@${v}/dist/${f}`,
+
+    // Fontsource fonts use @fontsource/ scope
+    inter: (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/inter@${v}/${f}`,
+    "jetbrains-mono": (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@${v}/${f}`,
+    "press-start-2p": (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/press-start-2p@${v}/${f}`,
+    "playfair-display": (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/playfair-display@${v}/${f}`,
+    roboto: (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/roboto@${v}/${f}`,
+    poppins: (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/poppins@${v}/${f}`,
+    "fira-code": (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/fira-code@${v}/${f}`,
+    lora: (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/lora@${v}/${f}`,
+    merriweather: (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/merriweather@${v}/${f}`,
+    montserrat: (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/montserrat@${v}/${f}`,
+    oswald: (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/oswald@${v}/${f}`,
+    raleway: (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/raleway@${v}/${f}`,
+    "dm-sans": (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/dm-sans@${v}/${f}`,
+    manrope: (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/manrope@${v}/${f}`,
+    "space-grotesk": (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@${v}/${f}`,
+    "ibm-plex-sans": (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-sans@${v}/${f}`,
+
+    // Other scoped packages 
+    "material-icons": (v, f) => `https://cdn.jsdelivr.net/npm/material-icons@${v}/iconfont/${f}`,
+
+    // htmx and hyperscript
+    "htmx.org": (v, f) => `https://cdn.jsdelivr.net/npm/htmx.org@${v}/dist/${f}`,
+    "hyperscript.org": (v, f) => f.includes('hyperscript') ? `https://cdn.jsdelivr.net/npm/hyperscript.org@${v}/dist/_${f}` : `https://cdn.jsdelivr.net/npm/hyperscript.org@${v}/dist/${f}`,
+
+    // Shoelace uses /cdn/ path
+    "shoelace-style-shoelace": (v, f) => `https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@${v}/cdn/${f}`,
+
+    // FontAwesome: CSS files need /css/ prefix on CDN
+    "fortawesome-fontawesome-free": (v, f) => {
+        // If file already has css/ prefix (like css/all.min.css), use as-is
+        // Otherwise, add css/ prefix for CSS files (like fontawesome.min.css)
+        if (f.endsWith('.css') && !f.startsWith('css/')) {
+            return `https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@${v}/css/${f}`;
+        }
+        // Files like "css/all.min.css" or webfonts already have correct paths
+        return `https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@${v}/${f}`;
+    },
+
+    // Pico CSS uses /css/ subdirectory
+    "picocss-pico": (v, f) => `https://cdn.jsdelivr.net/npm/@picocss/pico@${v}/css/${f}`,
+
+    // Lit ecosystem (scoped packages)
+    "@lit": (v, f) => `https://cdn.jsdelivr.net/npm/@lit/reactive-element@${v}/${f}`,
+    "lit": (v, f) => `https://cdn.jsdelivr.net/npm/lit@${v}/${f}`,
+    "lit-element": (v, f) => `https://cdn.jsdelivr.net/npm/lit-element@${v}/${f}`,
+    "lit-html": (v, f) => `https://cdn.jsdelivr.net/npm/lit-html@${v}/${f}`,
 };
 
 /**
  * Maps a local /libs/ path to its CDN equivalent.
  *
  * Standard pattern: /libs/{package}/{version}/{file}
- * CDN pattern: https://cdn.jsdelivr.net/npm/{package}@{version}/dist/{file}
+ * CDN pattern varies by library - see SPECIAL_CDN_MAPPINGS
  */
 export function localLibPathToCdn(localPath: string): string | null {
     // Match /libs/{package}/{version}/{rest...}
@@ -32,16 +166,15 @@ export function localLibPathToCdn(localPath: string): string | null {
 
     const [, packageName, version, filePath] = match;
 
-    // Check for special CDN mappings
+    // Check for special CDN mappings (most libraries need this)
     if (SPECIAL_CDN_MAPPINGS[packageName]) {
         return SPECIAL_CDN_MAPPINGS[packageName](version, filePath);
     }
 
-    // Convert package name back to npm format (e.g., "fortawesome-fontawesome-free" -> "@fortawesome/fontawesome-free")
+    // Convert package name back to npm format for remaining packages
     const npmPackage = packageNameToNpm(packageName);
 
-    // Use jsdelivr for everything else
-    // jsdelivr automatically resolves /dist/, so we include the full path
+    // Default: use jsdelivr with the file at root (rarely works, most use /dist/)
     return `https://cdn.jsdelivr.net/npm/${npmPackage}@${version}/${filePath}`;
 }
 
@@ -65,14 +198,6 @@ function packageNameToNpm(dirName: string): string {
         }
     }
 
-    // htmx.org and hyperscript.org are special cases (dots in package name)
-    if (dirName === "htmx") {
-        return "htmx.org";
-    }
-    if (dirName === "hyperscript") {
-        return "hyperscript.org";
-    }
-
     return dirName;
 }
 
@@ -82,11 +207,9 @@ function packageNameToNpm(dirName: string): string {
 export function transformLocalLibsToCdn(html: string): string {
     // Match src="..." and href="..." attributes containing /libs/
     return html.replace(
-        /((?:src|href)\s*=\s*["'])(\/?libs\/[^"']+)(["'])/gi,
+        /((?:src|href)\s*=\s*["'])(\/libs\/[^"']+)(["'])/gi,
         (match, prefix, libPath, suffix) => {
-            // Normalize path to start with /libs/
-            const normalizedPath = libPath.startsWith("/") ? libPath : `/${libPath}`;
-            const cdnUrl = localLibPathToCdn(normalizedPath);
+            const cdnUrl = localLibPathToCdn(libPath);
             if (cdnUrl) {
                 return `${prefix}${cdnUrl}${suffix}`;
             }
@@ -156,8 +279,9 @@ export function transformAiImagesToDataUrls(
 
     // Match <ai-image ...> tags (self-closing or not)
     return html.replace(
-        /<ai-image\s+([^>]*?)\/?>/gi,
-        (match, attributesStr) => {
+        /<ai-image\s+([^>]*?)\/?>|<ai-image\s+([^>]*)>[^<]*<\/ai-image>/gi,
+        (match, attrs1, attrs2) => {
+            const attributesStr = attrs1 || attrs2 || "";
             // Parse attributes
             const attributes = parseAttributes(attributesStr);
             const prompt = attributes.prompt || attributes["data-prompt"] || "";
