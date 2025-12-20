@@ -3,6 +3,24 @@ trigger: glob
 globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+**Total Modules**: 28  
+**External Packages**: 5
+
+---
+
+### Architecture Overview
+
+```mermaid
+graph TD
+  root["root/<br/>6 modules"]
+  api["api/<br/>2 modules"]
+  components["components/<br/>13 modules"]:::viewNode
+  constants["constants/<br/>1 modules"]
+  pages["pages/<br/>6 modules"]
+  App_tsx --> components
+  App_tsx --> pages
+  api --> types
+  components --> api
   components --> Notifications
   components --> ConfirmationModal
   components --> SnapshotImportForm
@@ -12,8 +30,11 @@ globs: **/package.json, **/src/**, **/frontend/src/**
   pages --> components
   pages --> api
   pages --> constants
+  pages --> admin_dashboard
   pages --> assets
   pages --> AdminDashboard
+  pages --> __
+  pages --> types
 
   classDef serverNode fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
   classDef llmNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
@@ -34,7 +55,7 @@ graph LR
   ___api_admin["admin"] --> pages_AdminDashboard_tsx
   ___constants_runtime["runtime"] --> pages_AdminDashboard_tsx
   ___components_Notifications["Notifications"] --> pages_AdminDashboard_tsx
-  ___api_types["types"] --> pages_AdminDashboard_tsx
+  __admin_dashboard_types["types"] --> pages_AdminDashboard_tsx
   App_tsx["App.tsx"]
   __components_Notifications["Notifications"] --> App_tsx
   __pages_AdminDashboard["AdminDashboard"] --> App_tsx
@@ -60,9 +81,11 @@ graph LR
   __SnapshotImportForm["SnapshotImportForm"] --> components_ResumeSessionCallout_tsx
   main_tsx["main.tsx"]
   __App["App"] --> main_tsx
+  pages_admin_dashboard_utils_ts["utils.ts"]
+  __constants["constants"] --> pages_admin_dashboard_utils_ts
+  __types["types"] --> pages_admin_dashboard_utils_ts
+  ______components["components"] --> pages_admin_dashboard_utils_ts
   components_ConfirmationModal_tsx["ConfirmationModal.tsx"]
-  components_ImageModelSelector_tsx["ImageModelSelector.tsx"]
-  ___api_types["types"] --> components_ImageModelSelector_tsx
 ```
 
 ---
@@ -274,6 +297,27 @@ _No imports_
 
 - From `react-router-dom`: `Navigate`, `useParams`, `useSearchParams`
 
+#### `pages/admin-dashboard/constants.ts`
+
+**Internal Imports:**
+
+- From `../../components`: `CustomModelConfig`
+- From `./types`: `ProviderKey`, `TabKey`
+
+#### `pages/admin-dashboard/types.ts`
+
+**Internal Imports:**
+
+- From `../../api/types`: `AdminStateResponse`
+
+#### `pages/admin-dashboard/utils.ts`
+
+**Internal Imports:**
+
+- From `./constants`: `ADMIN_ROUTE_PREFIX`, `DEFAULT_CUSTOM_MODEL_CONFIG`, `TAB_ORDER`
+- From `./types`: `type TabKey`
+- From `../../components`: `CustomModelConfig`
+
 #### `pages/AdminDashboard.tsx`
 
 **Internal Imports:**
@@ -282,6 +326,9 @@ _No imports_
 - From `../api/admin`: `fetchAdminState`, `fetchAdminHistory`, `deleteHistoryEntry`, `deleteAllHistoryEntries`, `submitBriefUpdate`, `submitProviderUpdate`, `submitRuntimeUpdate`, `verifyProviderKey`, `type ProviderUpdatePayload`, `type RuntimeUpdatePayload`
 - From `../constants/runtime`: `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`, `DEFAULT_HISTORY_MAX_BYTES`
 - From `../components/Notifications`: `useNotifications`
+- From `./admin-dashboard/types`: `type AdminDashboardProps`, `type AdminLocationState`, `type AsyncStatus`, `type NullableStatus`, `type ProviderKey`, `type QueuedAttachment`, `type TabKey`
+- From `./admin-dashboard/constants`: `HISTORY_PAGE_SIZE`, `HISTORY_REFRESH_INTERVAL_MS`, `HISTORY_TIME_FORMATTER`, `PROVIDER_SORT_ORDER`, `TAB_LABELS`, `TAB_ORDER`, `SETUP_INTRO_STORAGE_KEY`, `DEFAULT_CUSTOM_MODEL_CONFIG`
+- From `./admin-dashboard/utils`: `clamp`, `createDefaultCustomConfig`, `createTabPath`, `getTabFromPath`, `isAdminPath`, `normalizeAdminPath`
 - From `../api/types`: `AdminBriefAttachment`, `AdminHistoryItem`, `AdminStateResponse`
 - From `../components/HistoryExplorer`: `default as HistoryExplorer`
 - From `../components/HistorySnapshotControls`: `default as HistorySnapshotControls`

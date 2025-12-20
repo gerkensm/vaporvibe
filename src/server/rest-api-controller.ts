@@ -406,6 +406,7 @@ export class RestApiController {
       mode: "json-query",
       branchId: normalizedBranchId,
       imageGenerationEnabled: env.provider?.imageGeneration?.enabled ?? false,
+      enableStandardLibrary: env.runtime.enableStandardLibrary,
     });
 
     try {

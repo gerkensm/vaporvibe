@@ -47,6 +47,29 @@ The admin UI is functional but has some minor inconsistencies the LLM should _no
 - **Compilation**: Assembles `system` (rules) and `user` (context) messages.
 - **Content**: Includes the App Brief, current request details, previous HTML, curated session history, and recent REST API state.
 
+### Standard Library & Offline Assets
+
+- **Concept**: To prevent dependency on external CDNs (which might be blocked or flaky) and ensure consistent LLM outputs, VaporVibe serves a curated "Standard Library" of ~40 popular libraries (DaisyUI, Phaser, Chart.js, etc.) directly from `frontend/public/libs/`.
+- **Composition Pipeline**:
+  1.  **Build (`scripts/copy-libs.ts`)**: Copies assets from `frontend/node_modules/` to `frontend/public/libs/` and locks generic versions (e.g., `daisyui` -> `daisyui/4.12.24/full.css`).
+  2.  **Manifest (`src/config/library-manifest.ts`)**: Defines available libraries, their descriptions, and injection rules (`always` vs `on-request`).
+  3.  **Prompt Injection**: `src/llm/messages.ts` reads the manifest and injects the *exact* available versions into the system prompt. This prevents the LLM from hallucinating API methods for wrong versions.
+- **Core Stacks**:
+  - **CSS**: **DaisyUI** (v4 standalone) and **Tailwind CSS** are the core CSS stack (available on-request). DaisyUI provides component classes (`btn`, `card`) while Tailwind CSS provides the utility classes (`p-4`, `flex`).
+  - **Game Engine**: **Phaser** (v3) is the supported engine (replacing Kaboom/Kaplay) due to its API stability and strong LLM training data presence.
+- **Documentation**: See `docs/STANDARD_LIBRARY.md` for the full catalog and maintenance instructions.
+
+### Library Special Cases 🛠️
+
+Some libraries require specific handling in `scripts/copy-libs.ts` to ensure LLM compatibility:
+
+- **Tailwind CSS**: We explicitly pin **v3.4.1** (via direct download in `copy-libs.ts`) instead of v4.
+  - *Reasoning*: v4 is too new for current LLM training sets, leading to frequent hallucinations of non-existent APIs. v3 is "boring and predictable."
+  - *Mechanism*: The script downloads the standalone runtime directly from the CDN to `vendors/` if missing, rather than using the npm package.
+- **Anime.js**: We use **v3.2.2** (`lib/anime.min.js`) instead of v4.
+  - *Reasoning*: v4 changed the global bundling format, breaking `window.anime` access. v3 is stable and acts as expected.
+- **Marked**: We use the UMD build (`lib/marked.umd.js`) to ensure `window.marked` is available globally without build steps.
+
 ### Navigation Interception
 
 - **Purpose**: Shows a loading overlay during LLM generation instead of a blank screen.
@@ -145,28 +168,3 @@ VaporVibe displays **live reasoning streams** from LLMs that support extended th
 **Lifecycle**:
 1. Interceptor calls `ensureNavigationServiceWorker()` on load
 2. Waits for service worker controller activation
-3. On navigation: sends HTML via `postMessage({ type: "vaporvibe-cache-html", targetUrl, html })`
-4. Service worker caches payload and acknowledges
-5. Interceptor navigates to target URL
-6. Service worker intercepts fetch, serves cached HTML
-7. Browser renders instantly without server round-trip
-
-**Fallback**: If service worker fails, falls back to `document.open()` / `document.write()` for in-place replacement.
-
-### Instructions Panel
-
-- **Purpose**: Allows users to provide quick, iterative feedback ("nudges") to the LLM for the next render without editing the main brief.
-- **Mechanism**: If enabled, the backend injects `<script src="/vaporvibe/assets/vaporvibe-instructions-panel.js">`. This script adds a floating panel UI. Submitting instructions adds a special field (`LLM_WEB_SERVER_INSTRUCTIONS`) to the next form submission.
-- **Source**: The panel logic lives in `frontend/src/instructions-panel.ts` and is bundled by Vite.
-
-### Key Abstractions
-
-- **Session Store (`src/server/session-store.ts`)**: Manages user history in memory, keyed by a session ID cookie. Tracks active forks (A/B comparisons), maintains per-branch history/REST snapshots, prunes old sessions based on TTL and capacity, and provides prompt context.
-- **History Entries (`src/types.ts`)**: Each entry captures the request (method, path, query, body, instructions), the generated HTML, LLM settings (provider, model), token usage, reasoning traces (if enabled), any REST API calls made during that step, and optional fork metadata (e.g., branch ID, status, resolution details).
-- **The Brief (`state.brief`)**: The central user-provided text guiding the LLM's behavior for the entire session. Can be updated via the Admin Console (`POST /api/admin/brief`).
-
-### State Management Patterns
-
-- **Volatile State:** Handled client-side within LLM-generated HTML using inline JS for micro-interactions (e.g., toggling UI elements).
-- **View-to-View State:** Passed explicitly between LLM renders via URL query parameters (`GET`) or form submissions (`POST`).
-- **Persistent State (Invisible):** Stored within HTML comments in the LLM-generated HTML. The LLM is instructed to find, preserve, and forward these comments across requests.

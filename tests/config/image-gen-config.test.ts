@@ -9,6 +9,7 @@ const configStoreMock = {
     getImageGeneration: vi.fn(),
     setLlmSettings: vi.fn(),
     setImageGeneration: vi.fn(),
+    getRuntimeSettings: vi.fn(),
 };
 
 vi.mock("../../src/utils/config-store.js", () => ({
@@ -42,6 +43,7 @@ describe("Image Generation Config Resolution", () => {
         credentialStoreMock.getApiKey.mockReset();
         configStoreMock.getLlmSettings.mockReset();
         configStoreMock.getImageGeneration.mockReset();
+        configStoreMock.getRuntimeSettings.mockReset();
     });
 
     afterEach(() => {

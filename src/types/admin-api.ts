@@ -30,6 +30,7 @@ export interface AdminRuntimeInfo {
   historyLimit: number;
   historyMaxBytes: number;
   includeInstructionPanel: boolean;
+  enableStandardLibrary: boolean;
 }
 
 export interface AdminImageGenerationInfo {

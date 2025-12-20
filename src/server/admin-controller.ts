@@ -729,6 +729,7 @@ export class AdminController {
       historyLimit: this.state.runtime.historyLimit,
       historyMaxBytes: this.state.runtime.historyMaxBytes,
       includeInstructionPanel: this.state.runtime.includeInstructionPanel,
+      enableStandardLibrary: this.state.runtime.enableStandardLibrary,
     };
 
     const providerKeyStatuses = await this.computeProviderKeyStatuses();
@@ -1404,15 +1405,34 @@ export class AdminController {
       includeInstructionPanel = false;
     }
 
+    // Handle enableStandardLibrary toggle
+    const libraryToggle = data.enableStandardLibrary;
+    let enableStandardLibrary: boolean;
+    if (typeof libraryToggle === "string") {
+      const normalized = libraryToggle.toLowerCase();
+      enableStandardLibrary = normalized === "on" || normalized === "true";
+    } else if (typeof libraryToggle === "boolean") {
+      enableStandardLibrary = libraryToggle;
+    } else {
+      // Keep current value if not explicitly provided
+      enableStandardLibrary = this.state.runtime.enableStandardLibrary;
+    }
+
     this.state.runtime.historyLimit = historyLimit;
     this.state.runtime.historyMaxBytes = historyMaxBytes;
     this.state.runtime.includeInstructionPanel = includeInstructionPanel;
+    this.state.runtime.enableStandardLibrary = enableStandardLibrary;
+
+    // Persist enableStandardLibrary to ConfigStore
+    const configStore = getConfigStore();
+    configStore.setEnableStandardLibrary(enableStandardLibrary);
 
     reqLogger.info(
       {
         historyLimit,
         historyMaxBytes,
         includeInstructionPanel,
+        enableStandardLibrary,
       },
       "Updated runtime settings via admin interface"
     );
@@ -1602,11 +1622,11 @@ export class AdminController {
           image.cacheKey && image.cacheKey.trim().length > 0
             ? image.cacheKey
             : buildImageCacheKey({
-                provider,
-                modelId,
-                prompt: image.prompt ?? "",
-                ratio,
-              });
+              provider,
+              modelId,
+              prompt: image.prompt ?? "",
+              ratio,
+            });
         const route =
           image.url && image.url.trim().length > 0
             ? image.url
@@ -1822,9 +1842,9 @@ export class AdminController {
 
     const hydratedAttachments = Array.isArray(snapshot.briefAttachments)
       ? this.hydrateImportedAttachments(
-          snapshot.briefAttachments as BriefAttachment[],
-          assets
-        )
+        snapshot.briefAttachments as BriefAttachment[],
+        assets
+      )
       : undefined;
 
     if (hydratedAttachments) {
@@ -2091,16 +2111,16 @@ export class AdminController {
       : undefined;
     const generatedImages = entry.generatedImages?.length
       ? entry.generatedImages.map((image) => ({
-          id: image.id,
-          url: image.url,
-          downloadUrl: image.url,
-          prompt: image.prompt,
-          ratio: image.ratio,
-          provider: image.provider,
-          modelId: image.modelId,
-          mimeType: image.mimeType,
-          createdAt: image.createdAt,
-        }))
+        id: image.id,
+        url: image.url,
+        downloadUrl: image.url,
+        prompt: image.prompt,
+        ratio: image.ratio,
+        provider: image.provider,
+        modelId: image.modelId,
+        mimeType: image.mimeType,
+        createdAt: image.createdAt,
+      }))
       : undefined;
     const restMutations =
       entry.entryKind === "html" && entry.restMutations?.length

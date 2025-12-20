@@ -1,4 +1,5 @@
-import type { ImageAspectRatio } from "../types.js";
+
+import type { ImageAspectRatio, ImageModelId, ImageGenProvider } from "../types.js";
 
 export type { ImageAspectRatio } from "../types.js";
 
@@ -6,7 +7,7 @@ export interface ImageGenOptions {
   prompt: string;
   ratio: ImageAspectRatio;
   apiKey: string;
-  modelId?: import("../types.js").ImageModelId;
+  modelId?: ImageModelId;
 }
 
 export interface ImageGenResult {
@@ -19,3 +20,14 @@ export interface ImageGenResult {
 export interface ImageGenClient {
   generateImage(options: ImageGenOptions): Promise<ImageGenResult>;
 }
+
+export const VALID_IMAGE_PROVIDERS: ImageGenProvider[] = ["openai", "gemini"];
+
+export const VALID_IMAGE_MODELS: ImageModelId[] = [
+  "gpt-image-1.5",
+  "dall-e-3",
+  "gemini-2.5-flash-image",
+  "gemini-3-pro-image-preview",
+  "imagen-3.0-generate-002",
+  "imagen-4.0-fast-generate-001",
+];

@@ -1,4 +1,5 @@
 import type { BriefAttachment, ChatMessage, HistoryEntry } from "../types.js";
+import { VAPORVIBE_LIBRARIES } from "../config/library-manifest.js";
 
 const LINE_DIVIDER = "----------------------------------------";
 
@@ -24,6 +25,7 @@ export interface MessageContext {
   mode?: "page" | "json-query";
   branchId?: string;
   imageGenerationEnabled?: boolean;
+  enableStandardLibrary?: boolean;
 }
 
 export function buildMessages(context: MessageContext): ChatMessage[] {
@@ -49,6 +51,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     mode = "page",
     branchId,
     imageGenerationEnabled = false,
+    enableStandardLibrary = true,
   } = context;
   const isJsonQuery = mode === "json-query";
 
@@ -85,6 +88,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "   - Use `/rest_api/query/*` (GET/POST) *only on user action* (like clicking 'load more') to fetch data without a full page reload. Show loading states. (Latency: Can be slow, 5-30s+)",
       "   - **Magic:** The server (using another LLM call guided by *your* HTML) will reply with JSON in *exactly the shape your UI expects* based on history. Focus on making the request clear.",
       "   - Use background `fetch` for these; update the DOM optimistically for mutations.",
+      "   - Use the query endpoint also for live chat widgets, etc., to create a realistic user experience.",
       "",
       "**2. Templating Engine (for Speed & Consistency):**",
       "   - Reuse unchanged parts of previous HTML renders (from history) using placeholders to save tokens and keep consistent chrome.",
@@ -105,14 +109,16 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "",
       "### Non-negotiables (Core Rules)",
       '1) Single view, local-first interactivity. Generate the entire page for the current request. No client routers, virtual nav stacks, hash-nav, iframes, popups, or target="_blank".',
-      "2) Self-contained. Inline all CSS and JS via <style> and <script>. Use inline SVG/CSS for visuals where possible. Avoid linking to external images or embedding large data-URLs. No external CDNs/fonts/assets.",
+      enableStandardLibrary
+        ? "2) Self-contained. Inline all CSS and JS via <style> and <script>, OR use the **local** `/libs/*` route (see AVAILABLE LOCAL LIBRARIES below). Use inline SVG/CSS for visuals where possible. Avoid linking to external images or embedding large data-URLs. **No external CDNs** — only `/libs/*` paths are allowed for script/link tags."
+        : "2) Self-contained. Inline all CSS and JS via <style> and <script>. Use inline SVG/CSS for visuals where possible. Avoid linking to external images or embedding large data-URLs. **No external CDNs. No local libraries.** Use pure, dependency-free vanilla code only.",
       "3) Latency-aware.",
       "   - Full page reloads (links/forms) are **slow** (~30s to 3m). Use inline JS for local UI changes (tabs, modals, sorting/filtering existing data).",
       "   - Use the Virtual REST API (see Efficiency Tools) for background state changes or data loading.",
       "4) State Awareness. **You must derive all application state** from the App Brief, Current Request, Previous HTML, and recorded REST Mutations/Queries provided in this prompt. Do not assume the server maintains any hidden application logic or databases outside of what is presented here.",
       "5) Pass state forward.",
       "   - Visible state needed next render → query params (GET links) / form fields (POST forms).",
-      "   - Invisible state needed next render → Use HTML comment bundle: . Find, preserve, update, and forward these comments from the Previous HTML.",
+      "   - Invisible state needed next render → Use HTML comment bundle: <!-- app-state: { ... } -->. Find, preserve, update, and forward these comments from the Previous HTML.",
       "6) Interpretation. Infer user intent from the source element in the previous HTML (link/form/data-attributes). Treat recorded mutations as *already applied*; reflect their effects now.",
       "7) Safety & quality.",
       "   - No eval or dynamic code injection; sanitize echoed user text.",
@@ -159,12 +165,12 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "Use the custom element: <ai-image prompt=\"Describe the image\" ratio=\"16:9\"></ai-image>.",
       "",
       "CRITICAL RULES FOR IMAGES:",
-      "1. COST WARNING: Generating images is expensive. Use them SPARINGLY.",
+      "1. COST WARNING: Generating images is expensive. Use them SPARINGLY. On subsequent page generations, if you want to use the same image again, the ratio&prompt need to match EXACTLY to the previous image to reuse the same asset (generations are cached by the server).",
       "2. LIMIT: Target 0-5 images per page for standard content. For image-heavy views (galleries, catalogs), you may exceed this if essential to the brief.",
       "3. VALUE: Ensure every generated image serves a specific user goal (e.g., illustrating a product, setting a specific mood defined in the brief). Prefer CSS gradients/patterns for generic backgrounds.",
       "4. RELEVANCE: If the brief doesn't explicitly ask for visuals, prefer CSS styling or SVG icons over generated images.",
       "5. EXCEPTION: If the user explicitly requests more images or specific visuals in the brief or instructions, you may override these limits to satisfy the request.",
-      "6. DESCRIPTION: Construct image prompts using this structure: `[Subject] + [Action/Context] + [Art Style/Mood] + [Lighting]`. Be concrete and detailed.",
+      "6. DESCRIPTION: Construct image prompts using with at least the following information: Subject, Action/Context, Art Style/Mood, Lighting, Colors if relevant (e.g. when overlaying with text). Be concrete, detailed and verbose - especially if you overlay with text - to ensure the text is legible.",
       "",
       "Valid ratios: 1:1, 16:9, 9:16, and 4:3.",
       "You may control sizing and layout with standard HTML attributes (width, style, class) on the <ai-image> tag.",
@@ -172,6 +178,33 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "- Full width landscape: <ai-image prompt=\"A futuristic skyline\" ratio=\"16:9\" width=\"100%\"></ai-image>.",
       "- Small floated square: <ai-image prompt=\"An icon of a robot\" ratio=\"1:1\" style=\"width: 200px; float: right; margin: 12px;\"></ai-image>.",
       "Do NOT use Markdown images or raw <img> tags; the helper will swap in an <img> element automatically."
+    );
+  }
+
+  if (!isJsonQuery && enableStandardLibrary) {
+    const librariesText = VAPORVIBE_LIBRARIES.map(
+      (lib) =>
+        `- **${lib.id}** (v${lib.version}): ${lib.description}. Usage: ${lib.tags}`
+    ).join("\n");
+
+    systemLines.push(
+      "",
+      "# AVAILABLE LOCAL LIBRARIES",
+      "Use these libraries to generate concise Markup and implement high-quality functionality. Deliberately choose which libraries to use.",
+      "The following libraries are INSTALLED locally.",
+      "You MUST include the exact <script> or <link> tag shown below if you use them.",
+      librariesText,
+      "",
+      "IMPORTANT LIBRARY RULES:",
+      "- **Tailwind CSS**: The provided runtime is **Tailwind CSS v3.4.1** (running in the browser via JIT).",
+      "  - Use utility classes directly in HTML elements (e.g., class=\"p-4 flex\").",
+      "  - You CAN use the `.container` class as it exists in this version.",
+      "  - You CAN use `@apply` for standard Tailwind utilities in `<style type=\"text/tailwindcss\">` blocks.",
+      "  - **CRITICAL EXCEPTION**: Do NOT use `@apply` with DaisyUI classes (e.g., `@apply btn`). The JIT runtime cannot see them. Use classes directly in HTML.",
+      "  - The `tailwindcss` script tag is **already included** when the standard library is enabled.",
+      "  - You CAN use arbitrary values (e.g., `grid-cols-[1fr_200px]`) and all standard v3 features.",
+      "  - Do NOT include large CSS resets or external Tailwind CDN links.",
+      "- **DaisyUI**: Trust the provided classes for complex components (modals, cards, tabs). Use them directly in HTML (e.g., `<button class=\"btn btn-primary\">`) to avoid runtime errors."
     );
   }
 
@@ -244,6 +277,8 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "- Only call mutation API with meaningful state changes.",
     ];
 
+
+
   // Stable context (changes less often)
   const stableSections: string[] = [`App Brief:\n${brief}`];
   if (attachmentSummary) {
@@ -265,7 +300,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
   );
   dynamicSections.push(
     "",
-    "Previous HTML (Your last output, including server-injected data-ids for reuse via {{}} templates. Use history for older states.):",
+    "Previous HTML (Your last output, including server-injected data-ids for reuse reference. Use history for older states.):",
     "-----BEGIN PREVIOUS HTML-----",
     prevHtmlSnippet,
     "-----END PREVIOUS HTML-----"

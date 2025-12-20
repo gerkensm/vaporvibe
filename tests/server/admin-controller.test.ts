@@ -64,6 +64,7 @@ function createState(): MutableServerState {
       historyLimit: 50,
       historyMaxBytes: 2_000_000,
       includeInstructionPanel: true,
+      enableStandardLibrary: true,
     },
     provider: {
       provider: "openai",

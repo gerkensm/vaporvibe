@@ -70,6 +70,7 @@ function createState(): MutableServerState {
             historyLimit: 50,
             historyMaxBytes: 2_000_000,
             includeInstructionPanel: true,
+            enableStandardLibrary: true,
             port: 3000,
             host: "localhost",
             promptPath: "prompt.md",

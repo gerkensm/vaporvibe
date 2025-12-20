@@ -1,9 +1,9 @@
 {
-  "generated": "2025-12-18T13:49:14.301Z",
+  "generated": "2025-12-20T01:36:29.121Z",
   "backend": {
     "basePath": "src",
-    "totalModules": 51,
-    "externalPackages": 20,
+    "totalModules": 53,
+    "externalPackages": 21,
     "modules": {
       "cli/args.ts": {
         "imports": {
@@ -19,6 +19,32 @@
           "index.ts"
         ],
         "importCount": 1
+      },
+      "config/generated-lib-versions.ts": {
+        "imports": {
+          "internal": {},
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 0
+      },
+      "config/library-manifest.ts": {
+        "imports": {
+          "internal": {
+            "./generated-lib-versions.js": [
+              "LIB_VERSIONS"
+            ]
+          },
+          "external": {
+            "/libs/three.module.js": [
+              "* as THREE"
+            ]
+          }
+        },
+        "importedBy": [
+          "llm/messages.ts"
+        ],
+        "importCount": 2
       },
       "config/runtime-config.ts": {
         "imports": {
@@ -233,6 +259,9 @@
             ],
             "node:url": [
               "fileURLToPath"
+            ],
+            "node:os": [
+              "tmpdir"
             ]
           }
         },
@@ -242,7 +271,7 @@
           "server/server.ts",
           "server/session-store.ts"
         ],
-        "importCount": 2
+        "importCount": 3
       },
       "image-gen/providers/google.ts": {
         "imports": {
@@ -290,7 +319,9 @@
         "imports": {
           "internal": {
             "../types.js": [
-              "ImageAspectRatio"
+              "ImageAspectRatio",
+              "ImageModelId",
+              "ImageGenProvider"
             ]
           },
           "external": {}
@@ -545,6 +576,9 @@
       "llm/messages.ts": {
         "imports": {
           "internal": {
+            "../config/library-manifest.js": [
+              "VAPORVIBE_LIBRARIES"
+            ],
             "../types.js": [
               "BriefAttachment",
               "ChatMessage",
@@ -557,7 +591,7 @@
           "server/rest-api-controller.ts",
           "server/server.ts"
         ],
-        "importCount": 1
+        "importCount": 2
       },
       "llm/model-catalog.ts": {
         "imports": {
@@ -914,7 +948,6 @@
               "DEFAULT_GROQ_MODEL",
               "DEFAULT_MAX_OUTPUT_TOKENS",
               "DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS",
-              "DEFAULT_REASONING_TOKENS",
               "LLM_RESULT_ROUTE_PREFIX",
               "LLM_REASONING_STREAM_ROUTE_PREFIX"
             ],
@@ -1010,7 +1043,8 @@
               "createReadStream",
               "existsSync",
               "readFileSync",
-              "statSync"
+              "statSync",
+              "readdirSync"
             ],
             "node:fs/promises": [
               "readFile"
@@ -1526,6 +1560,12 @@
         ],
         "count": 6
       },
+      "node:os": {
+        "usedBy": [
+          "image-gen/paths.ts"
+        ],
+        "count": 1
+      },
       "@google/genai": {
         "usedBy": [
           "image-gen/providers/google.ts",
@@ -1620,7 +1660,7 @@
   },
   "frontend": {
     "basePath": "frontend/src",
-    "totalModules": 25,
+    "totalModules": 28,
     "externalPackages": 5,
     "modules": {
       "api/admin.ts": {
@@ -2049,6 +2089,54 @@
         ],
         "importCount": 2
       },
+      "pages/admin-dashboard/constants.ts": {
+        "imports": {
+          "internal": {
+            "../../components": [
+              "CustomModelConfig"
+            ],
+            "./types": [
+              "ProviderKey",
+              "TabKey"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 2
+      },
+      "pages/admin-dashboard/types.ts": {
+        "imports": {
+          "internal": {
+            "../../api/types": [
+              "AdminStateResponse"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 1
+      },
+      "pages/admin-dashboard/utils.ts": {
+        "imports": {
+          "internal": {
+            "./constants": [
+              "ADMIN_ROUTE_PREFIX",
+              "DEFAULT_CUSTOM_MODEL_CONFIG",
+              "TAB_ORDER"
+            ],
+            "./types": [
+              "type TabKey"
+            ],
+            "../../components": [
+              "CustomModelConfig"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 3
+      },
       "pages/AdminDashboard.tsx": {
         "imports": {
           "internal": {
@@ -2080,6 +2168,33 @@
             ],
             "../components/Notifications": [
               "useNotifications"
+            ],
+            "./admin-dashboard/types": [
+              "type AdminDashboardProps",
+              "type AdminLocationState",
+              "type AsyncStatus",
+              "type NullableStatus",
+              "type ProviderKey",
+              "type QueuedAttachment",
+              "type TabKey"
+            ],
+            "./admin-dashboard/constants": [
+              "HISTORY_PAGE_SIZE",
+              "HISTORY_REFRESH_INTERVAL_MS",
+              "HISTORY_TIME_FORMATTER",
+              "PROVIDER_SORT_ORDER",
+              "TAB_LABELS",
+              "TAB_ORDER",
+              "SETUP_INTRO_STORAGE_KEY",
+              "DEFAULT_CUSTOM_MODEL_CONFIG"
+            ],
+            "./admin-dashboard/utils": [
+              "clamp",
+              "createDefaultCustomConfig",
+              "createTabPath",
+              "getTabFromPath",
+              "isAdminPath",
+              "normalizeAdminPath"
             ],
             "../api/types": [
               "AdminBriefAttachment",
@@ -2117,7 +2232,7 @@
         "importedBy": [
           "App.tsx"
         ],
-        "importCount": 11
+        "importCount": 14
       },
       "pages/SetupWizard.tsx": {
         "imports": {

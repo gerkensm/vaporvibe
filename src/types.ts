@@ -222,6 +222,7 @@ export interface RuntimeConfig {
   sessionTtlMs: number;
   sessionCap: number;
   includeInstructionPanel: boolean;
+  enableStandardLibrary: boolean;
 }
 
 export interface ImageGenConfig {

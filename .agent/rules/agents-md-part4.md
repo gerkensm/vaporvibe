@@ -3,6 +3,36 @@ trigger: always_on
 globs: **/*
 ---
 
+- Coverage reports live in `coverage/` (text summary + HTML) and are configured via `vitest.config.ts` to focus on `src/**/*.ts`.
+- The suite lives in `tests/`, with targeted coverage for config loading, prompt assembly, the session store, and shared utilities. Reuse helpers in `tests/test-utils/` (HTTP mocks, keytar stubs, factories, logger spies) and the global logger stub defined in `tests/vitest.setup.ts`.
+- Tests intentionally stop at the Node boundary—browser flows and provider integrations still need manual verification.
+
+### macOS Build & Notarization
+The project includes a comprehensive suite of scripts for building, signing, and notarizing the macOS application.
+
+- **Full Release Build**: `npm run build:macos`
+  - Runs the entire pipeline: SEA build -> App Bundle -> Signing -> Notarization -> DMG creation -> DMG Notarization.
+- **Individual Steps**:
+  - `npm run build:macos:sea`: Build the Single Executable Application (SEA).
+  - `npm run build:macos:sea:signed`: Build and sign the SEA.
+  - `npm run build:macos:app`: Create the `.app` bundle.
+  - `npm run build:macos:sign`: Sign the `.app` bundle.
+  - `npm run build:macos:dmg`: Create the `.dmg` disk image.
+  - `npm run build:macos:verify`: Verify the notarization status of the built app.
+
+### Logging & Debugging
+
+- **Log Level**: Set the `LOG_LEVEL` environment variable (`debug`, `info`, `warn`, `error`) to control backend log verbosity. `debug` is highly recommended during development.
+  - `LOG_LEVEL=debug npm run dev`
+- **Inspect Prompts**: `LOG_LEVEL=debug` shows the full prompts sent to the LLM and raw responses.
+- **Disable Pretty Logs**: For scripting or CI, use `PINO_PRETTY=false npm run ...`.
+- **Admin History Explorer**: Use the `/vaporvibe` UI to inspect specific requests, HTML output, and reasoning traces.
+
+### Code Style & Conventions
+
+- **Language**: **TypeScript** (`strict` mode) targeting **NodeNext** modules (use `.js` extensions in relative imports).
+- **Formatting**: **2-space indentation**, **trailing commas** for multi-line literals. Follow existing patterns.
+- **Constants**: Use `src/constants.ts` and `src/constants/providers.ts` for shared literals.
 - **Separation of concerns and maintainability**: Always separate concerns, use different modules and proactively reflect on when a functionality needs to be carved out of a file and given its own module, function or service.
 
 ### Areas for Caution ⚠️

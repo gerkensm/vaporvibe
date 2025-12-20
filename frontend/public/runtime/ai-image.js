@@ -55,19 +55,30 @@ class AIImage extends HTMLElement {
         img.style.borderRadius = "10px";
         img.style.display = "block";
 
+        // Default to non-draggable to prevent native image drag from interfering with swipes/UI
+        img.setAttribute("draggable", "false");
+
         // Overwrite/Add attributes from the host <ai-image>
         for (const attr of this.attributes) {
           const name = attr.name.toLowerCase();
-          // Skip internal/already-handled attributes
-          if (["prompt", "ratio", "data-rendered", "src", "alt"].includes(name)) {
+          // Skip internal/specially-handled host attributes
+          // We skip 'src' and 'id' to avoid conflicts or overwriting the generated URL
+          if (["prompt", "ratio", "data-rendered", "src", "id"].includes(name)) {
             continue;
           }
 
           if (name === "style") {
-            // Merge styles: internal defaults first, then user styles to allow overrides
+            // Merge styles: internal defaults first (set above), then user styles to allow overrides
+            // Using cssText appending as a simple merge; later properties override earlier ones
             img.style.cssText += ";" + attr.value;
           } else {
+            // Apply all other attributes (class, draggable, ondragstart, alt, aria-*, etc.)
             img.setAttribute(attr.name, attr.value);
+
+            // Explicitly sync certain properties that may need it (like draggable)
+            if (name === "draggable") {
+              img.draggable = attr.value === "true";
+            }
           }
         }
 

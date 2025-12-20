@@ -21,6 +21,9 @@ interface ConfigSchema {
         reasoningTokens?: number;
         reasoningTokensEnabled?: boolean;
     };
+    runtime?: {
+        enableStandardLibrary?: boolean;
+    };
 }
 
 /**
@@ -46,6 +49,9 @@ class ConfigStore {
                     model: "gpt-4o",
                     maxOutputTokens: 4096,
                     reasoningMode: "none",
+                },
+                runtime: {
+                    enableStandardLibrary: true,
                 },
             },
         });
@@ -91,6 +97,25 @@ class ConfigStore {
      */
     getConfigPath(): string {
         return this.store.path;
+    }
+
+    /**
+     * Get runtime settings
+     */
+    getRuntimeSettings(): ConfigSchema["runtime"] | undefined {
+        return this.store.get("runtime");
+    }
+
+    /**
+     * Set enableStandardLibrary setting
+     */
+    setEnableStandardLibrary(enabled: boolean): void {
+        const current = this.store.get("runtime") || {};
+        this.store.set("runtime", { ...current, enableStandardLibrary: enabled });
+        logger.debug(
+            { enabled },
+            "Saved enableStandardLibrary setting to config file"
+        );
     }
 
     /**

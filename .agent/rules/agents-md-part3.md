@@ -3,6 +3,32 @@ trigger: always_on
 globs: **/*
 ---
 
+3. On navigation: sends HTML via `postMessage({ type: "vaporvibe-cache-html", targetUrl, html })`
+4. Service worker caches payload and acknowledges
+5. Interceptor navigates to target URL
+6. Service worker intercepts fetch, serves cached HTML
+7. Browser renders instantly without server round-trip
+
+**Fallback**: If service worker fails, falls back to `document.open()` / `document.write()` for in-place replacement.
+
+### Instructions Panel
+
+- **Purpose**: Allows users to provide quick, iterative feedback ("nudges") to the LLM for the next render without editing the main brief.
+- **Mechanism**: If enabled, the backend injects `<script src="/vaporvibe/assets/vaporvibe-instructions-panel.js">`. This script adds a floating panel UI. Submitting instructions adds a special field (`LLM_WEB_SERVER_INSTRUCTIONS`) to the next form submission.
+- **Source**: The panel logic lives in `frontend/src/instructions-panel.ts` and is bundled by Vite.
+
+### Key Abstractions
+
+- **Session Store (`src/server/session-store.ts`)**: Manages user history in memory, keyed by a session ID cookie. Tracks active forks (A/B comparisons), maintains per-branch history/REST snapshots, prunes old sessions based on TTL and capacity, and provides prompt context.
+- **History Entries (`src/types.ts`)**: Each entry captures the request (method, path, query, body, instructions), the generated HTML, LLM settings (provider, model), token usage, reasoning traces (if enabled), any REST API calls made during that step, and optional fork metadata (e.g., branch ID, status, resolution details).
+- **The Brief (`state.brief`)**: The central user-provided text guiding the LLM's behavior for the entire session. Can be updated via the Admin Console (`POST /api/admin/brief`).
+
+### State Management Patterns
+
+- **Volatile State:** Handled client-side within LLM-generated HTML using inline JS for micro-interactions (e.g., toggling UI elements).
+- **View-to-View State:** Passed explicitly between LLM renders via URL query parameters (`GET`) or form submissions (`POST`).
+- **Persistent State (Invisible):** Stored within HTML comments in the LLM-generated HTML. The LLM is instructed to find, preserve, and forward these comments across requests.
+
 ### Special Server Routes & API
 
 - `/` & `/__setup` & `/vaporvibe`: Serve the React SPA shell (`frontend/dist/index.html`).
@@ -128,33 +154,3 @@ gerkensm-vaporvibe/
 ### Testing
 
 - `npm test` (or `npm run test`) executes the Vitest suite once; `npm run test:watch` keeps it running while you iterate.
-- Coverage reports live in `coverage/` (text summary + HTML) and are configured via `vitest.config.ts` to focus on `src/**/*.ts`.
-- The suite lives in `tests/`, with targeted coverage for config loading, prompt assembly, the session store, and shared utilities. Reuse helpers in `tests/test-utils/` (HTTP mocks, keytar stubs, factories, logger spies) and the global logger stub defined in `tests/vitest.setup.ts`.
-- Tests intentionally stop at the Node boundary—browser flows and provider integrations still need manual verification.
-
-### macOS Build & Notarization
-The project includes a comprehensive suite of scripts for building, signing, and notarizing the macOS application.
-
-- **Full Release Build**: `npm run build:macos`
-  - Runs the entire pipeline: SEA build -> App Bundle -> Signing -> Notarization -> DMG creation -> DMG Notarization.
-- **Individual Steps**:
-  - `npm run build:macos:sea`: Build the Single Executable Application (SEA).
-  - `npm run build:macos:sea:signed`: Build and sign the SEA.
-  - `npm run build:macos:app`: Create the `.app` bundle.
-  - `npm run build:macos:sign`: Sign the `.app` bundle.
-  - `npm run build:macos:dmg`: Create the `.dmg` disk image.
-  - `npm run build:macos:verify`: Verify the notarization status of the built app.
-
-### Logging & Debugging
-
-- **Log Level**: Set the `LOG_LEVEL` environment variable (`debug`, `info`, `warn`, `error`) to control backend log verbosity. `debug` is highly recommended during development.
-  - `LOG_LEVEL=debug npm run dev`
-- **Inspect Prompts**: `LOG_LEVEL=debug` shows the full prompts sent to the LLM and raw responses.
-- **Disable Pretty Logs**: For scripting or CI, use `PINO_PRETTY=false npm run ...`.
-- **Admin History Explorer**: Use the `/vaporvibe` UI to inspect specific requests, HTML output, and reasoning traces.
-
-### Code Style & Conventions
-
-- **Language**: **TypeScript** (`strict` mode) targeting **NodeNext** modules (use `.js` extensions in relative imports).
-- **Formatting**: **2-space indentation**, **trailing commas** for multi-line literals. Follow existing patterns.
-- **Constants**: Use `src/constants.ts` and `src/constants/providers.ts` for shared literals.

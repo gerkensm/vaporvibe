@@ -1,7 +1,7 @@
 import http, { type IncomingMessage, type ServerResponse } from "node:http";
 import { Buffer } from "node:buffer";
 import { randomUUID } from "node:crypto";
-import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync, readdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { dirname, extname, resolve as resolvePath } from "node:path";
 import { URL, fileURLToPath } from "node:url";
@@ -22,7 +22,6 @@ import {
   DEFAULT_GROQ_MODEL,
   DEFAULT_MAX_OUTPUT_TOKENS,
   DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS,
-  DEFAULT_REASONING_TOKENS,
   LLM_RESULT_ROUTE_PREFIX,
   LLM_REASONING_STREAM_ROUTE_PREFIX,
 } from "../constants.js";
@@ -102,6 +101,9 @@ const FRONTEND_DIST_DIR = resolvePath(PROJECT_ROOT_DIR, "frontend/dist");
 const FRONTEND_ASSETS_DIR = resolvePath(FRONTEND_DIST_DIR, "assets");
 const SPA_INDEX_PATH = resolvePath(FRONTEND_DIST_DIR, "index.html");
 const FRONTEND_SOURCE_DIR = resolvePath(PROJECT_ROOT_DIR, "frontend");
+const STANDARD_LIBRARY_DIR = existsSync(resolvePath(FRONTEND_DIST_DIR, "libs"))
+  ? resolvePath(FRONTEND_DIST_DIR, "libs")
+  : resolvePath(FRONTEND_SOURCE_DIR, "public", "libs");
 const SPA_SOURCE_INDEX_PATH = resolvePath(FRONTEND_SOURCE_DIR, "index.html");
 const ADMIN_ASSET_ROUTE_PREFIX = `${ADMIN_ROUTE_PREFIX}/assets`;
 const ADMIN_ASSET_ROUTE_PREFIX_WITH_SLASH = `${ADMIN_ASSET_ROUTE_PREFIX}/`;
@@ -397,6 +399,12 @@ function getAssetContentType(filePath: string): string {
       return "image/webp";
     case ".gif":
       return "image/gif";
+    case ".woff":
+      return "font/woff";
+    case ".woff2":
+      return "font/woff2";
+    case ".ttf":
+      return "font/ttf";
     case ".json":
       return "application/json; charset=utf-8";
     case ".txt":
@@ -584,6 +592,132 @@ function maybeServeRuntimeAsset(
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.end("Internal Server Error");
     return true;
+  }
+}
+
+function maybeServeStandardLibraryAsset(
+  context: RequestContext,
+  res: ServerResponse,
+  reqLogger: RequestLogger,
+  runtime: RuntimeConfig
+): boolean {
+  const libsPrefix = "/libs/";
+  if (!runtime.enableStandardLibrary || !context.path.startsWith(libsPrefix)) {
+    return false;
+  }
+
+  if (context.method !== "GET" && context.method !== "HEAD") {
+    res.statusCode = 405;
+    res.setHeader("Allow", "GET, HEAD");
+    res.end("Method Not Allowed");
+    return true;
+  }
+
+  const requestedPath = context.path.slice(libsPrefix.length);
+  const segments = requestedPath
+    .split(/[\\/]+/)
+    .filter((segment) => segment && segment !== ".");
+
+  if (!segments.length || segments.some((segment) => segment === "..")) {
+    res.statusCode = 400;
+    res.end("Bad Request");
+    return true;
+  }
+
+  const normalized = segments.join("/");
+  const filePath = resolvePath(STANDARD_LIBRARY_DIR, normalized);
+
+  if (!filePath.startsWith(STANDARD_LIBRARY_DIR)) {
+    res.statusCode = 403;
+    res.end("Forbidden");
+    return true;
+  }
+
+  // Fuzzy version fallback: If the exact version is missing, check if we have a valid version of the library installed
+  // This handles LLM hallucinations (e.g. requesting "11.12.0" or "unknown" when "1.12.0" is installed)
+  if (!existsSync(filePath) && segments.length >= 3) {
+    let libName = segments[0];
+
+    // Handle common LLM hallucinations for library IDs
+    const ALIASES: Record<string, string> = {
+      "shoelace": "shoelace-style-shoelace",
+      "spectre.css": "spectre",
+    };
+    if (ALIASES[libName]) {
+      libName = ALIASES[libName];
+    }
+
+    const requestedVersion = segments[1];
+    const libDir = resolvePath(STANDARD_LIBRARY_DIR, libName);
+
+    if (existsSync(libDir) && statSync(libDir).isDirectory()) {
+      const versions = readdirSync(libDir).filter((f) =>
+        statSync(resolvePath(libDir, f)).isDirectory()
+      );
+
+      // If we have versions, pick the latest one (best effort)
+      if (versions.length > 0) {
+        // Sort descending to find the "latest"
+        versions.sort((a, b) => b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' }));
+        const actualVersion = versions[0];
+
+        if (actualVersion !== requestedVersion || segments[0] !== libName) {
+          const restPath = segments.slice(2).join("/");
+          const candidatePath = resolvePath(libDir, actualVersion, restPath);
+
+          // Verify existence and security 
+          if (existsSync(candidatePath) && candidatePath.startsWith(STANDARD_LIBRARY_DIR)) {
+            reqLogger.warn(
+              `Fuzzy version match: Serving ${libName} v${actualVersion} instead of requested ${segments[0]} v${requestedVersion}`
+            );
+            return serveFile(candidatePath);
+          }
+        }
+      }
+    }
+  }
+
+  if (!existsSync(filePath)) {
+    res.statusCode = 404;
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.end("Not Found");
+    return true;
+  }
+
+  return serveFile(filePath);
+
+  function serveFile(targetPath: string): boolean {
+    try {
+      const stats = statSync(targetPath);
+      res.statusCode = 200;
+      res.setHeader("Content-Type", getAssetContentType(targetPath));
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader("Content-Length", String(stats.size));
+
+      if (context.method === "HEAD") {
+        res.end();
+        return true;
+      }
+
+      const stream = createReadStream(targetPath);
+      stream.on("error", (error) => {
+        reqLogger.error({ err: error }, "Failed to stream standard library asset");
+        if (!res.headersSent) {
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "text/plain; charset=utf-8");
+        }
+        res.end("Internal Server Error");
+      });
+      stream.pipe(res);
+      reqLogger.debug(`Served standard library asset ${context.path} (mapped to ${targetPath})`);
+      return true;
+    } catch (error) {
+      reqLogger.error({ err: error }, "Failed to serve standard library asset");
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.end("Internal Server Error");
+      return true;
+    }
   }
 }
 
@@ -1214,6 +1348,12 @@ export function createServer(options: ServerOptions): http.Server {
     }
 
     if (
+      maybeServeStandardLibraryAsset(context, res, reqLogger, state.runtime)
+    ) {
+      return;
+    }
+
+    if (
       devServer &&
       (context.method === "GET" || context.method === "HEAD") &&
       shouldDelegateToDevServer(context.path)
@@ -1680,6 +1820,7 @@ async function handleLlmRequest(
     adminPath: ADMIN_ROUTE_PREFIX,
     branchId,
     imageGenerationEnabled: state.provider.imageGeneration.enabled,
+    enableStandardLibrary: state.runtime.enableStandardLibrary,
   });
   reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
 
