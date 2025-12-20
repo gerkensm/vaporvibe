@@ -1,6 +1,6 @@
 # VaporVibe Standard Library
 
-VaporVibe includes a **Standard Library** of ~40 popular UI, animation, data visualization, and utility libraries that are available offline. These libraries are automatically managed, version-detected, and injected into the LLM's system prompt to ensure consistent and high-quality generation.
+VaporVibe includes a **Standard Library** of ~40 popular UI, animation, data visualization, and utility libraries that are available offline. These libraries are automatically managed, version-detected, and presented to the LLM to ensure consistent and high-quality generation.
 
 ## How it Works
 
@@ -27,21 +27,24 @@ graph TD
 
 ## Library Catalog
 
-### Always Injected (Core)
+The following libraries are available for the LLM to use. While none are strictly "forced" into the HTML by the server, the prompt encourages the use of core libraries for consistent quality.
 
-These libraries are automatically included in every generated page:
+### Core & Reactivity
 
-| Library        | Description                                                                          |
-| -------------- | ------------------------------------------------------------------------------------ |
-| **DaisyUI**    | UI framework with Tailwind CSS + component classes. Includes all Tailwind utilities. |
-| **Alpine.js**  | Lightweight reactivity framework (`x-data`, `x-show`, etc.)                          |
-| **Inter Font** | Modern variable font for body text                                                   |
+These libraries are strongly recommended for building the application foundation:
 
-### On-Request Libraries
+| Library         | Description                                                                              |
+| --------------- | ---------------------------------------------------------------------------------------- |
+| **TailwindCSS** | Runtime utility classes (v3.4.1). The script is usually pre-included by prompt rules.    |
+| **DaisyUI**     | Component classes for Tailwind (`btn`, `card`, `modal`). Use directly in HTML.           |
+| **Alpine.js**   | Lightweight reactivity (`x-data`, `x-show`, `x-on:click`). Essential for interactive UI. |
+| **HTMX**        | High-power HTML extensions (`hx-get`, `hx-swap`).                                        |
+| **Hyperscript** | Scripting for the web (`_='on click...'`). Companion to HTMX.                            |
 
-The LLM can include these libraries as needed based on the app brief:
+### CSS Frameworks & UI Kits
 
-#### CSS Frameworks & UI Kits
+Alternative frameworks if the brief specifically requests them:
+
 | Library           | Description                                                 |
 | ----------------- | ----------------------------------------------------------- |
 | **Bulma**         | Modern CSS framework (`class='button is-primary'`)          |
@@ -50,7 +53,8 @@ The LLM can include these libraries as needed based on the app brief:
 | **Normalize.css** | Modern CSS reset                                            |
 | **Hint.css**      | CSS-only tooltips (`class='hint--top' aria-label='...'`)    |
 
-#### Animation & Effects
+### Animation & Effects
+
 | Library             | Description                                                                |
 | ------------------- | -------------------------------------------------------------------------- |
 | **Anime.js**        | Powerful animation engine (`anime.animate({ targets: ... })`)              |
@@ -60,7 +64,8 @@ The LLM can include these libraries as needed based on the app brief:
 | **Canvas Confetti** | High-performance confetti effects (`confetti()`)                           |
 | **Rellax**          | Lightweight parallax library (`new Rellax('.class')`)                      |
 
-#### Interactive UI
+### Interactive UI
+
 | Library         | Description                                                |
 | --------------- | ---------------------------------------------------------- |
 | **SweetAlert2** | Beautiful popup dialogs (`Swal.fire('Hello!')`)            |
@@ -74,13 +79,15 @@ The LLM can include these libraries as needed based on the app brief:
 | **Hammer.js**   | Touch gestures (`new Hammer(el)`)                          |
 | **Hotkeys.js**  | Keyboard shortcuts (`hotkeys('ctrl+a', ...)`)              |
 
-#### Forms & Input
+### Forms & Input
+
 | Library       | Description                              |
 | ------------- | ---------------------------------------- |
 | **Flatpickr** | Datetime picker (`flatpickr('#id', {})`) |
 | **Cleave.js** | Format input text (`new Cleave(...)`)    |
 
-#### Data & Visualization
+### Data & Visualization
+
 | Library        | Description                                       |
 | -------------- | ------------------------------------------------- |
 | **Chart.js**   | Flexible charting (`new Chart(ctx, ...)`)         |
@@ -93,7 +100,8 @@ The LLM can include these libraries as needed based on the app brief:
 | **Day.js**     | Date/time library (`dayjs()`)                     |
 | **ms**         | Millisecond conversion (`ms('2 days')`)           |
 
-#### Graphics & Media
+### Graphics & Media
+
 | Library      | Description                                                                |
 | ------------ | -------------------------------------------------------------------------- |
 | **Three.js** | 3D graphics engine (ESM: `import * as THREE from '/libs/three.module.js'`) |
@@ -101,37 +109,49 @@ The LLM can include these libraries as needed based on the app brief:
 | **Phaser**   | Professional 2D game engine (`new Phaser.Game({...})`) — Stable v3 API     |
 | **Tone.js**  | Web Audio framework (`Tone.Synth`, etc.)                                   |
 
-#### Maps & Location
+### Maps & Location
+
 | Library     | Description                      |
 | ----------- | -------------------------------- |
 | **Leaflet** | Interactive maps (`L.map('id')`) |
 
-#### Icons & Graphics
+### Icons & Graphics
+
 | Library           | Description                                                       |
 | ----------------- | ----------------------------------------------------------------- |
 | **Lucide**        | Beautiful icons (`lucide.createIcons()`)                          |
 | **Minidenticons** | Tiny SVG identicons (`<minidenticon-svg username='...'>`)         |
 | **GeoPattern**    | Generate SVG patterns (`GeoPattern.generate('seed').toDataUrl()`) |
 
-#### Utilities
+### Utilities
+
 | Library               | Description                                         |
 | --------------------- | --------------------------------------------------- |
 | **FileSaver**         | Client-side file saving (`saveAs(blob, 'name')`)    |
 | **Typewriter Effect** | Typewriter animation (`new Typewriter('#id', ...)`) |
 
-#### Fonts
+### Fonts
+
 | Font                 | Description                                           |
 | -------------------- | ----------------------------------------------------- |
+| **Inter**            | `font-family: 'Inter'` — Modern Sans (Default)        |
 | **JetBrains Mono**   | `font-family: 'JetBrains Mono'` — Code/monospace      |
 | **Press Start 2P**   | `font-family: 'Press Start 2P'` — 8-bit retro         |
 | **Playfair Display** | `font-family: 'Playfair Display'` — Serif             |
 | **Roboto**           | `font-family: 'Roboto'` — Clean sans-serif            |
 | **Poppins**          | `font-family: 'Poppins'` — Geometric sans-serif       |
 | **Fira Code**        | `font-family: 'Fira Code'` — Monospace with ligatures |
+| **Lora**             | `font-family: 'Lora'` — Upscale Serif                 |
+| **Merriweather**     | `font-family: 'Merriweather'` — Serif                 |
+| **Montserrat**       | `font-family: 'Montserrat'` — Modern Sans             |
+| **Oswald**           | `font-family: 'Oswald'` — Condensed Sans              |
+| **Raleway**          | `font-family: 'Raleway'` — Elegant Sans               |
+| **DM Sans**          | `font-family: 'DM Sans'` — Modern SaaS body           |
+| **Manrope**          | `font-family: 'Manrope'` — Techy Headings             |
+| **Space Grotesk**    | `font-family: 'Space Grotesk'` — Futuristic Headings  |
+| **IBM Plex Sans**    | `font-family: 'IBM Plex Sans'` — Enterprise / B2B     |
 
 ## Adding a New Library
-
-To add a library to the Standard Library:
 
 1. **Install with NPM**: Run `npm install --prefix frontend <package-name>`.
 2. **Update Copy Script**: Add the library to `NPM_MAPPING` in `scripts/copy-libs.ts`.
@@ -151,7 +171,7 @@ The LLM is explicitly informed of the *exact* library versions installed. This p
 
 ### DaisyUI as Primary CSS Framework
 
-**DaisyUI v4** is the always-injected CSS framework because:
+**DaisyUI v4** is the strongly recommended CSS framework because:
 - It includes **all Tailwind CSS utilities** pre-compiled (~3.2MB standalone build)
 - LLM can use both Tailwind classes (`flex`, `p-4`, `bg-blue-500`) and DaisyUI components (`btn`, `card`, `modal`)
 - No separate Tailwind CDN script needed—it's all in one CSS file
