@@ -3,7 +3,7 @@ export const LIB_VERSIONS: Record<string, string> = {
   "tailwind": "3.4.1",
   "geopattern": "1.2.3",
   "ms": "2.1.3",
-  "animejs": "4.2.2",
+  "animejs": "3.2.2",
   "three": "0.182.0",
   "lit": "3.3.1",
   "lit-html": "3.3.1",

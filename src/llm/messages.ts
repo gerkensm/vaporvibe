@@ -88,6 +88,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "   - Use `/rest_api/query/*` (GET/POST) *only on user action* (like clicking 'load more') to fetch data without a full page reload. Show loading states. (Latency: Can be slow, 5-30s+)",
       "   - **Magic:** The server (using another LLM call guided by *your* HTML) will reply with JSON in *exactly the shape your UI expects* based on history. Focus on making the request clear.",
       "   - Use background `fetch` for these; update the DOM optimistically for mutations.",
+      "   - Use the query endpoint also for live chat widgets, etc., to create a realistic user experience.",
       "",
       "**2. Templating Engine (for Speed & Consistency):**",
       "   - Reuse unchanged parts of previous HTML renders (from history) using placeholders to save tokens and keep consistent chrome.",

@@ -273,12 +273,12 @@ async function main(): Promise<void> {
   // Special bundling for ms (CJS only)
   await bundleLib('ms', 'index.js', 'ms.js', 'ms');
 
-  // Use official UMD build for AnimeJS (v4+)
+  // Use official UMD build for AnimeJS (v3 structure)
   const animeVersion = getPackageVersion('animejs').version;
   libVersions['animejs'] = animeVersion;
   const animeDestDir = path.join(DEST_DIR, 'animejs', animeVersion);
   ensureDir(animeDestDir);
-  const animeSrc = path.resolve(MODULES_DIR, 'animejs/dist/bundles/anime.umd.min.js');
+  const animeSrc = path.resolve(MODULES_DIR, 'animejs/lib/anime.min.js');
   fs.copyFileSync(animeSrc, path.join(animeDestDir, 'anime.min.js'));
 
   // Special copy for Three.js (needs full build dir for relative imports)
