@@ -171,11 +171,11 @@ The LLM is explicitly informed of the *exact* library versions installed. This p
 
 ### DaisyUI as Primary CSS Framework
 
-**DaisyUI v4** is the strongly recommended CSS framework because:
-- It includes **all Tailwind CSS utilities** pre-compiled (~3.2MB standalone build)
-- LLM can use both Tailwind classes (`flex`, `p-4`, `bg-blue-500`) and DaisyUI components (`btn`, `card`, `modal`)
-- No separate Tailwind CDN script needed—it's all in one CSS file
-- Works instantly without a build step
+**DaisyUI v4** is the recommended component library because:
+- It provides semantic component classes (`btn`, `card`, `modal`) that keep HTML clean
+- It pairs perfectly with the **Tailwind CSS** script for utility classes (`flex`, `p-4`)
+- It offers a rich set of pre-designed components without enforcing a specific JS framework
+- It simplifies creating modern, responsive interfaces quickly
 
 ### Phaser Instead of Kaboom/Kaplay
 

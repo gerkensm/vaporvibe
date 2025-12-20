@@ -55,7 +55,7 @@ The admin UI is functional but has some minor inconsistencies the LLM should _no
   2.  **Manifest (`src/config/library-manifest.ts`)**: Defines available libraries, their descriptions, and injection rules (`always` vs `on-request`).
   3.  **Prompt Injection**: `src/llm/messages.ts` reads the manifest and injects the *exact* available versions into the system prompt. This prevents the LLM from hallucinating API methods for wrong versions.
 - **Core Stacks**:
-  - **CSS**: **DaisyUI** (v4 standalone) is always injected. It includes all Tailwind utilities, so the LLM can mix utility classes (`p-4`) with component classes (`btn btn-primary`).
+  - **CSS**: **DaisyUI** (v4 standalone) and **Tailwind CSS** are the core CSS stack (available on-request). DaisyUI provides component classes (`btn`, `card`) while Tailwind CSS provides the utility classes (`p-4`, `flex`).
   - **Game Engine**: **Phaser** (v3) is the supported engine (replacing Kaboom/Kaplay) due to its API stability and strong LLM training data presence.
 - **Documentation**: See `docs/STANDARD_LIBRARY.md` for the full catalog and maintenance instructions.
 
