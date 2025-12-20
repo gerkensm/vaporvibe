@@ -1,14 +1,16 @@
 import { dirname, resolve as resolvePath } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { tmpdir } from "node:os";
+
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = resolvePath(moduleDir, "..", "..");
 
+// Store generated images in a temp directory instead of the project folder
+// to avoid bundling them into the binary and bloating the dist folder.
 export const GENERATED_IMAGES_DIR = resolvePath(
-  PROJECT_ROOT,
-  "dist",
-  "public",
-  "generated-images"
+  tmpdir(),
+  "vaporvibe-generated-images"
 );
 
 export const GENERATED_IMAGES_ROUTE = "/generated-images";

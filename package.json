@@ -50,7 +50,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
     "@google/genai": "^1.30.0",
-    "@tailwindcss/standalone": "^4.0.0-alpha.21",
     "conf": "^15.0.2",
     "jszip": "^3.10.1",
     "keytar": "^7.9.0",

@@ -146,6 +146,10 @@ const visit = dir => {
       continue;
     }
     const relativeKey = path.relative(rootDir, fullPath).replace(/\\/g, "/");
+    // Exclude generated images from the binary - these should be created by the user
+    if (relativeKey.startsWith("dist/public/generated-images/")) {
+      continue;
+    }
     assets[relativeKey] = fullPath;
   }
 };

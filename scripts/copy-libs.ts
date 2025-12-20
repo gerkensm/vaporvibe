@@ -66,6 +66,9 @@ const NPM_MAPPING: Record<string, string> = {
   'prism.js': 'prismjs/prism.js',
   'prism-tomorrow.css': 'prismjs/themes/prism-tomorrow.css',
   'Tone.js': 'tone/build/Tone.js',
+  'htmx.min.js': 'htmx.org/dist/htmx.min.js',
+  'hyperscript.min.js': 'hyperscript.org/dist/_hyperscript.min.js',
+  'fontawesome.min.css': '@fortawesome/fontawesome-free/css/all.min.css',
   // three.module.js handled specially explicitly to copy full build dir
 
   // Complex Assets
@@ -83,6 +86,10 @@ const NPM_MAPPING: Record<string, string> = {
   'font-montserrat': '@fontsource/montserrat',
   'font-oswald': '@fontsource/oswald',
   'font-raleway': '@fontsource/raleway',
+  'font-dm-sans': '@fontsource/dm-sans',
+  'font-manrope': '@fontsource/manrope',
+  'font-space-grotesk': '@fontsource/space-grotesk',
+  'font-ibm-plex-sans': '@fontsource/ibm-plex-sans',
 };
 
 const DEST_DIR = path.resolve(process.cwd(), 'frontend/public/libs');
@@ -99,16 +106,19 @@ function ensureDir(dirPath: string): void {
   }
 }
 
-function copyFolderSync(from: string, to: string): void {
+function copyFolderSync(from: string, to: string, exclude?: (name: string) => boolean): void {
   ensureDir(to);
   fs.readdirSync(from).forEach((element) => {
+    if (exclude && exclude(element)) {
+      return;
+    }
     const sourcePath = path.join(from, element);
     const targetPath = path.join(to, element);
     const stat = fs.lstatSync(sourcePath);
     if (stat.isFile()) {
       fs.copyFileSync(sourcePath, targetPath);
     } else if (stat.isDirectory()) {
-      copyFolderSync(sourcePath, targetPath);
+      copyFolderSync(sourcePath, targetPath, exclude);
     }
   });
 }
@@ -223,25 +233,38 @@ async function main(): Promise<void> {
   /*
    * Tailwind CSS (Runtime)
    * 
-   * Sourced from @tailwindcss/browser devDependency.
+   * We use v3.4.1 because v4's "Layer Trap" (putting utilities in @layer)
+   * causes specificity issues when combined with unlayered resets,
+   * which LLMs often fail to account for.
+   * 
+   * Downloaded from CDN on first build if not present in vendors/
    */
-  const tailwindVersion = '3.4.1'; // We keep this version string for URL consistency
+  const tailwindVersion = '3.4.1';
   libVersions.tailwind = tailwindVersion;
   const tailwindDir = path.join(DEST_DIR, 'tailwind', tailwindVersion);
   ensureDir(tailwindDir);
 
-  // Look in frontend/node_modules since we installed it there
-  const tailwindSource = path.resolve(process.cwd(), 'frontend/node_modules/@tailwindcss/browser/dist/index.global.js');
+  const vendorDir = path.resolve(process.cwd(), 'vendors/tailwind');
+  ensureDir(vendorDir);
+  const tailwindVendorPath = path.join(vendorDir, `tailwind-${tailwindVersion}.js`);
   const tailwindDest = path.join(tailwindDir, 'tailwind.js');
 
-  if (fs.existsSync(tailwindSource)) {
-    console.log(`Copying Tailwind CSS runtime from ${tailwindSource}...`);
-    fs.copyFileSync(tailwindSource, tailwindDest);
-  } else {
-    console.error(`ERROR: Tailwind CSS runtime not found at ${tailwindSource}.`);
-    console.error(`Please run 'npm install' in the frontend directory.`);
-    process.exit(1);
+  // Download from CDN if not already vendored
+  if (!fs.existsSync(tailwindVendorPath)) {
+    console.log(`📥 Downloading Tailwind CSS v${tailwindVersion} from CDN...`);
+    const url = `https://cdn.tailwindcss.com/${tailwindVersion}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`❌ Failed to download Tailwind CSS from ${url}`);
+      process.exit(1);
+    }
+    const content = await response.text();
+    fs.writeFileSync(tailwindVendorPath, content);
+    console.log(`✅ Saved to vendors/tailwind/`);
   }
+
+  console.log(`📦 Copying Tailwind CSS v${tailwindVersion} from vendors/`);
+  fs.copyFileSync(tailwindVendorPath, tailwindDest);
 
   // Special bundling for GeoPattern (no browser build in package)
   // Dynamic versioning handled inside bundleLib
@@ -300,8 +323,23 @@ async function main(): Promise<void> {
     ensureDir(versionedDestDir);
 
     if (destName.startsWith('font-')) {
+      // Fontsource optimization: Only copy Latin subsets and main CSS
       const fontName = destName.replace('font-', '');
-      copyFolderSync(fullSrc, versionedDestDir);
+      copyFolderSync(fullSrc, versionedDestDir, (name) => {
+        // Exclude non-latin font files
+        if (name.endsWith('.woff2') || name.endsWith('.woff') || name.endsWith('.ttf')) {
+          return !name.includes('latin');
+        }
+        // Exclude scss, regional css files (we only want index.css or latin-specific ones if needed)
+        if (name.endsWith('.css')) {
+          return name !== 'index.css' && !name.includes('latin');
+        }
+        // Exclude other regional metadata
+        const skipDirs = ['scss', 'scripts'];
+        if (skipDirs.includes(name)) return true;
+
+        return false;
+      });
       continue;
     }
 
@@ -398,6 +436,16 @@ async function main(): Promise<void> {
       // Material icons has css and woff2 files in the same dir. Copy everything.
       // But we mapped fullSrc to the css file. So get dirname.
       copyFolderSync(path.dirname(fullSrc), versionedDestDir);
+      continue;
+    }
+
+    if (destName === 'fontawesome.min.css') {
+      // Font Awesome needs both the CSS and the webfonts directory
+      fs.copyFileSync(fullSrc, path.join(versionedDestDir, 'fontawesome.min.css'));
+      const webfontsSrc = path.join(path.dirname(path.dirname(fullSrc)), 'webfonts');
+      if (fs.existsSync(webfontsSrc)) {
+        copyFolderSync(webfontsSrc, path.join(versionedDestDir, 'webfonts'));
+      }
       continue;
     }
 

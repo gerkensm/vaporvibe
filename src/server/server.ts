@@ -101,7 +101,9 @@ const FRONTEND_DIST_DIR = resolvePath(PROJECT_ROOT_DIR, "frontend/dist");
 const FRONTEND_ASSETS_DIR = resolvePath(FRONTEND_DIST_DIR, "assets");
 const SPA_INDEX_PATH = resolvePath(FRONTEND_DIST_DIR, "index.html");
 const FRONTEND_SOURCE_DIR = resolvePath(PROJECT_ROOT_DIR, "frontend");
-const STANDARD_LIBRARY_DIR = resolvePath(FRONTEND_SOURCE_DIR, "public", "libs");
+const STANDARD_LIBRARY_DIR = existsSync(resolvePath(FRONTEND_DIST_DIR, "libs"))
+  ? resolvePath(FRONTEND_DIST_DIR, "libs")
+  : resolvePath(FRONTEND_SOURCE_DIR, "public", "libs");
 const SPA_SOURCE_INDEX_PATH = resolvePath(FRONTEND_SOURCE_DIR, "index.html");
 const ADMIN_ASSET_ROUTE_PREFIX = `${ADMIN_ROUTE_PREFIX}/assets`;
 const ADMIN_ASSET_ROUTE_PREFIX_WITH_SLASH = `${ADMIN_ASSET_ROUTE_PREFIX}/`;

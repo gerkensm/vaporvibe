@@ -17,7 +17,7 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
   {
     id: "tailwindcss",
     filename: "tailwind.js",
-    description: "Tailwind CSS Runtime (Script-based). Required for arbitrary values (e.g. w-[10px]) and standard utilities if not using full DaisyUI.",
+    description: "Tailwind CSS Runtime (Script-based). Required for ANY and ALL Tailwind utility classes (e.g. flex, p-4, items-center), arbitrary values, and responsive variants.",
     tags: `<script src="/libs/tailwind/${v('tailwind')}/tailwind.js"></script>`,
     inject: "on-request",
     version: v('tailwind')
@@ -25,7 +25,7 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
   {
     id: "daisyui",
     filename: "daisyui.css",
-    description: "UI framework (Tailwind CSS + Components). Includes STANDARD Tailwind utilities (e.g. p-4, flex). For arbitrary values (e.g. w-[350px]), you MUST also include 'tailwindcss'.",
+    description: "UI framework (Tailwind CSS + Components). Includes STANDARD Tailwind utilities (e.g. p-4, flex). NOTE: Primarily decorative; for responsive classes or arbitrary values, you MUST also include 'tailwindcss' script.",
     tags: `<link rel="stylesheet" href="/libs/daisyui/${v('daisyui')}/daisyui.css">`,
     inject: "on-request",
     version: v('daisyui')
@@ -37,6 +37,22 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     tags: `<script src="/libs/alpinejs/${v('alpinejs')}/alpine.js" defer></script>`,
     inject: "on-request",
     version: v('alpinejs')
+  },
+  {
+    id: "htmx",
+    filename: "htmx.min.js",
+    description: "High-power tools for HTML (Usage: hx-get, hx-post). Access AJAX, CSS Transitions, WebSockets and Server Sent Events directly in HTML.",
+    tags: `<script src="/libs/htmx-org/${v('htmx-org')}/htmx.min.js"></script>`,
+    inject: "on-request",
+    version: v('htmx-org')
+  },
+  {
+    id: "hyperscript",
+    filename: "hyperscript.min.js",
+    description: "A small scripting language for the web (Usage: _='on click...'). Companion to htmx.",
+    tags: `<script src="/libs/hyperscript-org/${v('hyperscript-org')}/hyperscript.min.js"></script>`,
+    inject: "on-request",
+    version: v('hyperscript-org')
   },
 
   // TIER B: FONTS
@@ -136,6 +152,38 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     inject: "on-request",
     version: v('raleway')
   },
+  {
+    id: "font-dm-sans",
+    filename: "fonts/dm-sans/index.css",
+    description: "DM Sans - modern SaaS body text (CSS: font-family: 'DM Sans')",
+    tags: `<link rel="stylesheet" href="/libs/dm-sans/${v('dm-sans')}/index.css">`,
+    inject: "on-request",
+    version: v('dm-sans')
+  },
+  {
+    id: "font-manrope",
+    filename: "fonts/manrope/index.css",
+    description: "Manrope - sleek techy headings (CSS: font-family: 'Manrope')",
+    tags: `<link rel="stylesheet" href="/libs/manrope/${v('manrope')}/index.css">`,
+    inject: "on-request",
+    version: v('manrope')
+  },
+  {
+    id: "font-space-grotesk",
+    filename: "fonts/space-grotesk/index.css",
+    description: "Space Grotesk - futuristic techy headings (CSS: font-family: 'Space Grotesk')",
+    tags: `<link rel="stylesheet" href="/libs/space-grotesk/${v('space-grotesk')}/index.css">`,
+    inject: "on-request",
+    version: v('space-grotesk')
+  },
+  {
+    id: "font-ibm-plex-sans",
+    filename: "fonts/ibm-plex-sans/index.css",
+    description: "IBM Plex Sans - enterprise / B2B seriousness (CSS: font-family: 'IBM Plex Sans')",
+    tags: `<link rel="stylesheet" href="/libs/ibm-plex-sans/${v('ibm-plex-sans')}/index.css">`,
+    inject: "on-request",
+    version: v('ibm-plex-sans')
+  },
 
   // TIER C: ASSET HEAVY & COMPLEX
   {
@@ -167,7 +215,7 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
   {
     id: "anime",
     filename: "anime.min.js",
-    description: "Powerful animation engine (Global: anime.animate({ targets: ... }))",
+    description: "Powerful animation engine (Global: anime({ targets: ... }))",
     tags: `<script src="/libs/animejs/${v('animejs')}/anime.min.js"></script>`,
     inject: "on-request",
     version: v('animejs')
@@ -175,7 +223,7 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
   {
     id: "aos",
     filename: "aos.js",
-    description: "Animate On Scroll library (Global: AOS.init())",
+    description: "Animate On Scroll library (Global: AOS.init()). NOTE: Use 'data-aos' attributes on elements; can be combined with 'animate' library for custom effects.",
     tags: `<link rel="stylesheet" href="/libs/aos/${v('aos')}/aos.css">\n<script src="/libs/aos/${v('aos')}/aos.js"></script>`,
     inject: "on-request",
     version: v('aos')
@@ -285,6 +333,14 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     version: v('lucide')
   },
   {
+    id: "font-awesome",
+    filename: "fontawesome.min.css",
+    description: "Font Awesome Free icons (Usage: <i class='fa-solid fa-house'>). Includes CSS and Webfonts.",
+    tags: `<link rel="stylesheet" href="/libs/fortawesome-fontawesome-free/${v('fortawesome-fontawesome-free')}/fontawesome.min.css">`,
+    inject: "on-request",
+    version: v('fortawesome-fontawesome-free')
+  },
+  {
     id: "minidenticons",
     filename: "minidenticons.min.js",
     description: "Tiny SVG identicons (Usage: <minidenticon-svg username='...'></minidenticon-svg>)",
@@ -343,7 +399,7 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
   {
     id: "animate",
     filename: "animate.min.css",
-    description: "Cross-browser CSS animations (Usage: class='animate__animated animate__bounce')",
+    description: "Cross-browser CSS animations. NOTE: Usage requires 'animate__animated' class plus an effect class like 'animate__fadeIn' or 'animate__bounce'.",
     tags: `<link rel="stylesheet" href="/libs/animate/${v('animate')}/animate.min.css">`,
     inject: "on-request",
     version: v('animate')
@@ -439,7 +495,7 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
   {
     id: "winbox",
     filename: "winbox.bundle.js",
-    description: "Window manager (Global: new WinBox('Title', { ... }))",
+    description: "Window manager (Global: new WinBox('Title', { ... })). IMPORTANT: Always specify a 'root' container element to avoid DOM cleanup errors. Add null checks before calling .close() or .resize() on window instances.",
     tags: `<script src="/libs/winbox/${v('winbox')}/winbox.bundle.min.js"></script>`,
     inject: "on-request",
     version: v('winbox')

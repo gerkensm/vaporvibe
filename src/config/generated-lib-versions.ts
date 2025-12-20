@@ -54,6 +54,9 @@ export const LIB_VERSIONS: Record<string, string> = {
   "mermaid": "11.12.2",
   "prismjs": "1.30.0",
   "tone": "15.1.22",
+  "htmx.org": "2.0.8",
+  "hyperscript.org": "0.9.14",
+  "fortawesome-fontawesome-free": "7.1.0",
   "katex": "0.16.27",
   "leaflet": "1.9.4",
   "inter": "5.2.8",
@@ -67,5 +70,9 @@ export const LIB_VERSIONS: Record<string, string> = {
   "merriweather": "5.2.11",
   "montserrat": "5.2.8",
   "oswald": "5.2.8",
-  "raleway": "5.2.8"
+  "raleway": "5.2.8",
+  "dm-sans": "5.2.8",
+  "manrope": "5.2.8",
+  "space-grotesk": "5.2.10",
+  "ibm-plex-sans": "5.2.8"
 };

@@ -117,7 +117,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "4) State Awareness. **You must derive all application state** from the App Brief, Current Request, Previous HTML, and recorded REST Mutations/Queries provided in this prompt. Do not assume the server maintains any hidden application logic or databases outside of what is presented here.",
       "5) Pass state forward.",
       "   - Visible state needed next render → query params (GET links) / form fields (POST forms).",
-      "   - Invisible state needed next render → Use HTML comment bundle: . Find, preserve, update, and forward these comments from the Previous HTML.",
+      "   - Invisible state needed next render → Use HTML comment bundle: <!-- app-state: { ... } -->. Find, preserve, update, and forward these comments from the Previous HTML.",
       "6) Interpretation. Infer user intent from the source element in the previous HTML (link/form/data-attributes). Treat recorded mutations as *already applied*; reflect their effects now.",
       "7) Safety & quality.",
       "   - No eval or dynamic code injection; sanitize echoed user text.",
@@ -195,7 +195,14 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       librariesText,
       "",
       "IMPORTANT LIBRARY RULES:",
-      "- **Tailwind CSS**: Do NOT use `@apply` in `<style>` tags (it is NOT supported by the runtime script). Use utility classes directly in HTML elements. If you need custom CSS classes, use standard CSS properties."
+      "- **Tailwind CSS**: The provided runtime is **Tailwind CSS v3.4.1** (running in the browser via JIT).",
+      "  - Use utility classes directly in HTML elements (e.g., class=\"p-4 flex\").",
+      "  - You CAN use the `.container` class as it exists in this version.",
+      "  - You CAN use `@apply` in `<style>` tags if combined with the `type=\"text/tailwindcss\"` attribute on the style tag.",
+      "  - The `tailwindcss` script tag is **already included** when the standard library is enabled.",
+      "  - You CAN use arbitrary values (e.g., `grid-cols-[1fr_200px]`) and all standard v3 features.",
+      "  - Do NOT include large CSS resets or external Tailwind CDN links.",
+      "- **DaisyUI**: Trust the provided classes for complex components (modals, cards, tabs) instead of building them from scratch with raw Tailwind utility classes."
     );
   }
 
@@ -291,7 +298,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
   );
   dynamicSections.push(
     "",
-    "Previous HTML (Your last output, including server-injected data-ids for reuse via {{}} templates. Use history for older states.):",
+    "Previous HTML (Your last output, including server-injected data-ids for reuse reference. Use history for older states.):",
     "-----BEGIN PREVIOUS HTML-----",
     prevHtmlSnippet,
     "-----END PREVIOUS HTML-----"

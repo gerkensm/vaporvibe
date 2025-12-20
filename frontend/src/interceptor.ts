@@ -99,8 +99,12 @@ import {
     }
 
     const target = overlay ?? document.body ?? document.documentElement;
-    if (observer && target) {
-      observer.observe(target, { childList: true, subtree: true });
+    if (observer && target && target instanceof Node) {
+      try {
+        observer.observe(target, { childList: true, subtree: true });
+      } catch (e) {
+        console.warn("vaporvibe: MutationObserver observation failed:", e);
+      }
     }
 
     // Ensure the overlay immediately adopts reasoning mode before any snapshots arrive
