@@ -535,6 +535,14 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     version: v('prismjs')
   },
   {
+    id: "marked",
+    filename: "marked.min.js",
+    description: "Markdown compiler (Global: marked.parse('**Bold**'))",
+    tags: `<script src="/libs/marked/${v('marked')}/marked.min.js"></script>`,
+    inject: "on-request",
+    version: v('marked')
+  },
+  {
     id: "tone",
     filename: "Tone.js",
     description: "Web Audio framework (Global: Tone.Synth, etc.)",

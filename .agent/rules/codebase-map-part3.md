@@ -3,6 +3,13 @@ trigger: glob
 globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+**Total Modules**: 28  
+**External Packages**: 5
+
+---
+
+### Architecture Overview
+
 ```mermaid
 graph TD
   root["root/<br/>6 modules"]

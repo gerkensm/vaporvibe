@@ -87,6 +87,7 @@ The LLM can include these libraries as needed based on the app brief:
 | **Grid.js**    | Advanced tables (`new gridjs.Grid(...)`)          |
 | **Mermaid**    | Diagrams from text (`mermaid.initialize()`)       |
 | **Prism.js**   | Syntax highlighting (`Prism.highlightAll()`)      |
+| **Marked**     | Markdown rendering (`marked.parse('**Bold**')`)   |
 | **KaTeX**      | Fast math typesetting (`katex.render()`)          |
 | **Numeral.js** | Number formatting (`numeral(1000).format('0,0')`) |
 | **Day.js**     | Date/time library (`dayjs()`)                     |

@@ -206,6 +206,17 @@ The admin UI is functional but has some minor inconsistencies the LLM should _no
   - **Game Engine**: **Phaser** (v3) is the supported engine (replacing Kaboom/Kaplay) due to its API stability and strong LLM training data presence.
 - **Documentation**: See `docs/STANDARD_LIBRARY.md` for the full catalog and maintenance instructions.
 
+### Library Special Cases 🛠️
+
+Some libraries require specific handling in `scripts/copy-libs.ts` to ensure LLM compatibility:
+
+- **Tailwind CSS**: We explicitly pin **v3.4.1** (via direct download in `copy-libs.ts`) instead of v4.
+  - *Reasoning*: v4 is too new for current LLM training sets, leading to frequent hallucinations of non-existent APIs. v3 is "boring and predictable."
+  - *Mechanism*: The script downloads the standalone runtime directly from the CDN to `vendors/` if missing, rather than using the npm package.
+- **Anime.js**: We use **v3.2.2** (`lib/anime.min.js`) instead of v4.
+  - *Reasoning*: v4 changed the global bundling format, breaking `window.anime` access. v3 is stable and acts as expected.
+- **Marked**: We use the UMD build (`lib/marked.umd.js`) to ensure `window.marked` is available globally without build steps.
+
 ### Navigation Interception
 
 - **Purpose**: Shows a loading overlay during LLM generation instead of a blank screen.

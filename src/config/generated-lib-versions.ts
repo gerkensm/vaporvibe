@@ -48,6 +48,7 @@ export const LIB_VERSIONS: Record<string, string> = {
   "bulma": "1.0.4",
   "toastify-js": "1.12.0",
   "zdog": "1.1.3",
+  "marked": "17.0.1",
   "chart": "4.5.1",
   "dayjs": "1.11.19",
   "gridjs": "6.2.0",

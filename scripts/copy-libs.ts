@@ -56,6 +56,7 @@ const NPM_MAPPING: Record<string, string> = {
   'toastify.js': 'toastify-js/src/toastify.js',
   'toastify.css': 'toastify-js/src/toastify.css',
   'zdog.dist.min.js': 'zdog/dist/zdog.dist.min.js',
+  'marked.min.js': 'marked/lib/marked.umd.js',
 
   // Data / Math / Charts
   'chart.umd.js': 'chart.js/dist/chart.umd.js',
