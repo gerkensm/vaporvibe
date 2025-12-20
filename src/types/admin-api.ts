@@ -136,8 +136,10 @@ export interface AdminStateResponse {
   providerLocked: boolean;
   totalHistoryCount: number;
   sessionCount: number;
+  primarySessionId: string | null;
   exportJsonUrl: string;
   exportMarkdownUrl: string;
+  exportTourUrl: string;
   isForkActive: boolean;
   activeForks: AdminActiveForkSummary[];
   providerKeyStatuses: Record<

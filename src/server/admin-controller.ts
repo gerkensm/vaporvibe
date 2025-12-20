@@ -56,6 +56,13 @@ import {
 } from "../image-gen/cache.js";
 import { getGeneratedImagePath } from "../image-gen/paths.js";
 import { prepareHtmlForExport } from "../utils/html-export-transform.js";
+import { buildMessages } from "../llm/messages.js";
+import { supportsImageInput } from "../llm/capabilities.js";
+import { ensureHtmlDocument } from "../utils/html.js";
+import {
+  applyReusablePlaceholders,
+  buildMasterReusableCaches,
+} from "./component-cache.js";
 import type { MutableServerState, RequestContext } from "./server.js";
 import { SessionStore } from "./session-store.js";
 import { getCredentialStore } from "../utils/credential-store.js";
@@ -78,6 +85,7 @@ import type {
 const JSON_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.json`;
 const ZIP_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.zip`;
 const MARKDOWN_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history/prompt.md`;
+const TOUR_EXPORT_PATH = "/api/project/default/generate-tour";
 
 interface AdminControllerOptions {
   state: MutableServerState;
@@ -131,6 +139,11 @@ export class AdminController {
   ): Promise<boolean> {
     const { method, path } = context;
     if (!path.startsWith(ADMIN_ROUTE_PREFIX)) {
+      const tourMatch = path.match(/^\/api\/project\/([^/]+)\/generate-tour$/);
+      if (method === "POST" && tourMatch) {
+        await this.handleTourGeneration(context, reqLogger, tourMatch[1]);
+        return true;
+      }
       if (path.startsWith("/api/admin")) {
         return this.handleApi(context, reqLogger);
       }
@@ -690,6 +703,7 @@ export class AdminController {
     const sortedHistory = this.getSortedHistoryEntries();
     const sessionCount = new Set(sortedHistory.map((entry) => entry.sessionId))
       .size;
+    const primarySessionId = sortedHistory[0]?.sessionId ?? null;
     const attachments = (this.state.briefAttachments ?? []).map((attachment) =>
       this.toAdminBriefAttachment(attachment)
     );
@@ -765,8 +779,10 @@ export class AdminController {
       providerLocked: this.state.providerLocked,
       totalHistoryCount: sortedHistory.length,
       sessionCount,
+      primarySessionId,
       exportJsonUrl: ZIP_EXPORT_PATH,
       exportMarkdownUrl: MARKDOWN_EXPORT_PATH,
+      exportTourUrl: TOUR_EXPORT_PATH,
       providerKeyStatuses: providerKeyStatuses as Record<
         ModelProvider,
         { hasKey: boolean; verified: boolean }
@@ -914,6 +930,133 @@ export class AdminController {
     res.setHeader("Content-Type", "text/markdown; charset=utf-8");
     res.setHeader("Content-Disposition", "attachment; filename=prompt.md");
     res.end(markdown);
+  }
+
+  private async handleTourGeneration(
+    context: RequestContext,
+    reqLogger: Logger,
+    projectId: string
+  ): Promise<void> {
+    const { req, res, path, method, url } = context;
+    const body = await readBody(req);
+    const sessionIdInput = body.data?.sessionId;
+    const sessionId =
+      typeof sessionIdInput === "string" && sessionIdInput.trim().length > 0
+        ? sessionIdInput.trim()
+        : "";
+
+    if (!sessionId) {
+      this.respondJson(
+        res,
+        { success: false, message: "sessionId is required to generate a tour" },
+        400
+      );
+      return;
+    }
+
+    const history = this.sessionStore.getHistory(sessionId);
+    if (history.length === 0) {
+      this.respondJson(
+        res,
+        { success: false, message: "No history found for the requested session." },
+        404
+      );
+      return;
+    }
+
+    const includeAttachments = supportsImageInput(
+      this.state.provider.provider,
+      this.state.provider.model
+    );
+    const briefAttachments = includeAttachments
+      ? (this.state.briefAttachments ?? []).map((attachment) => ({
+        ...attachment,
+      }))
+      : [];
+    const omittedAttachmentCount = includeAttachments
+      ? 0
+      : (this.state.briefAttachments ?? []).length;
+
+    const lastHtmlEntry = [...history]
+      .reverse()
+      .find((entry) => entry.entryKind === "html");
+    const prevHtml = lastHtmlEntry?.response.html ?? "";
+
+    const messages = buildMessages({
+      brief: this.state.brief ?? "",
+      briefAttachments,
+      omittedAttachmentCount,
+      method,
+      path,
+      query: Object.fromEntries(url.searchParams.entries()),
+      body: body.data ?? {},
+      prevHtml,
+      timestamp: new Date(),
+      includeInstructionPanel: this.state.runtime.includeInstructionPanel,
+      history,
+      historyTotal: history.length,
+      historyLimit: history.length,
+      historyMaxBytes: Number.MAX_SAFE_INTEGER,
+      historyBytesUsed: Buffer.byteLength(prevHtml, "utf8"),
+      historyLimitOmitted: 0,
+      historyByteOmitted: 0,
+      adminPath: ADMIN_ROUTE_PREFIX,
+      imageGenerationEnabled: this.state.provider.imageGeneration.enabled,
+      enableStandardLibrary: true,
+      tourMode: true,
+    });
+
+    try {
+      const llmClient = this.state.llmClient ?? createLlmClient(this.state.provider);
+      this.applyProviderEnv(llmClient.settings);
+
+      const result = await llmClient.generateHtml(messages);
+      const caches = buildMasterReusableCaches(history);
+      const placeholderResult = applyReusablePlaceholders(result.html, caches);
+
+      if (
+        placeholderResult.missingComponentIds.length > 0 ||
+        placeholderResult.missingStyleIds.length > 0
+      ) {
+        reqLogger.warn(
+          {
+            missingComponentIds: placeholderResult.missingComponentIds,
+            missingStyleIds: placeholderResult.missingStyleIds,
+          },
+          "Reusable placeholders could not be resolved for tour export"
+        );
+      }
+
+      const ensuredHtml = ensureHtmlDocument(placeholderResult.html, {
+        method: "GET",
+        path,
+      });
+
+      const exportedHtml = prepareHtmlForExport(
+        ensuredHtml,
+        this.collectGeneratedImages(history)
+      );
+
+      res.statusCode = 200;
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=\"prototype-tour.html\""
+      );
+      res.setHeader("Content-Type", "text/html");
+      res.end(exportedHtml);
+
+      reqLogger.info(
+        { sessionId, projectId },
+        "Prototype clickthrough tour generated"
+      );
+    } catch (error) {
+      reqLogger.error({ err: error }, "Failed to generate prototype tour");
+      this.respondJson(
+        res,
+        { success: false, message: "Failed to generate prototype tour" },
+        500
+      );
+    }
   }
 
   private respondJson(
@@ -2063,6 +2206,30 @@ export class AdminController {
     res.statusCode = 404;
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.end("Not Found");
+  }
+
+  private collectGeneratedImages(history: HistoryEntry[]): GeneratedImage[] {
+    const seen = new Set<string>();
+    const images: GeneratedImage[] = [];
+
+    for (const entry of history) {
+      if (!entry.generatedImages) {
+        continue;
+      }
+
+      for (const image of entry.generatedImages) {
+        const dedupeKey = image.id || image.cacheKey;
+        if (dedupeKey && seen.has(dedupeKey)) {
+          continue;
+        }
+        if (dedupeKey) {
+          seen.add(dedupeKey);
+        }
+        images.push(image);
+      }
+    }
+
+    return images;
   }
 
   private toAdminBriefAttachment(

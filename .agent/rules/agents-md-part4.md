@@ -3,6 +3,55 @@ trigger: always_on
 globs: **/*
 ---
 
+├── scripts/              # Build/utility scripts (dev server, macOS packaging)
+├── docs/                 # Documentation
+├── package.json          # Project dependencies & scripts
+└── tsconfig.json         # TypeScript config for backend
+```
+
+- **`src/index.ts`**: CLI entry point, starts the server.
+- **`src/server/server.ts`**: Core HTTP server, SPA serving, LLM request orchestration.
+- **`src/server/admin-controller.ts`**: Handles `/api/admin/*` JSON endpoints.
+- **`src/llm/messages.ts`**: **Crucial file** for prompt engineering.
+- **`src/llm/*-client.ts`**: Provider-specific logic.
+- **`src/utils/credential-store.ts`**: Secure API key storage (OS keychain).
+- **`frontend/src/App.tsx`**: Defines SPA routes and structure.
+- **`frontend/src/pages/AdminDashboard.tsx`**: Main component for the admin UI.
+- **`frontend/src/api/admin.ts`**: Frontend functions for calling the backend API.
+
+---
+
+## 7\. Development Workflow & Guidelines
+
+### Environment Setup
+
+- **Node.js**: Requires **v24.x**. Use `nvm use` in the repo root.
+- **Dependencies**: Run `npm install` in the root directory.
+
+### Running the Development Server
+
+- **Integrated Dev Harness**: `npm run dev`
+  - Spins up `src/dev/backend-dev-server.ts`, which watches backend files with **chokidar**, restarts on change, and snapshots session/provider state so you keep your brief/history during reloads.
+  - Boots Vite in **middleware mode** (`VAPORVIBE_PREFER_DEV_FRONTEND=1`) so the admin/setup SPA is served through the Node server—with full HMR and no need to rebuild `frontend/dist/` while iterating.
+  - Access everything via `http://localhost:3000/__setup` or `http://localhost:3000/vaporvibe` (no separate Vite port required).
+- **Backend Only**: `npm run dev:be` (runs the same harness directly via `tsx src/dev/backend-dev-server.ts`).
+- **Frontend Only**: `npm run dev:fe` (launches Vite standalone on `http://localhost:5173` if you want to isolate UI work).
+
+### Building for Production
+
+- **Full Build**: `npm run build`
+  - Runs `npm run build:fe` (compiles React SPA into `frontend/dist/`).
+  - Compiles backend TypeScript into `dist/`.
+  - Copies loading shell assets into `dist/`.
+- **Frontend Only**: `npm run build:fe` (runs `vite build` inside `frontend/`)
+
+### Running Compiled Code
+
+- `npm run start` executes the compiled backend from `dist/index.js`, serving the production frontend assets from `frontend/dist/`.
+
+### Testing
+
+- `npm test` (or `npm run test`) executes the Vitest suite once; `npm run test:watch` keeps it running while you iterate.
 - Coverage reports live in `coverage/` (text summary + HTML) and are configured via `vitest.config.ts` to focus on `src/**/*.ts`.
 - The suite lives in `tests/`, with targeted coverage for config loading, prompt assembly, the session store, and shared utilities. Reuse helpers in `tests/test-utils/` (HTTP mocks, keytar stubs, factories, logger spies) and the global logger stub defined in `tests/vitest.setup.ts`.
 - Tests intentionally stop at the Node boundary—browser flows and provider integrations still need manual verification.

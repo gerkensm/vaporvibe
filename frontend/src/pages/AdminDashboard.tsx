@@ -21,6 +21,7 @@ import {
   submitProviderUpdate,
   submitRuntimeUpdate,
   verifyProviderKey,
+  downloadClickthroughPrototype,
   type ProviderUpdatePayload,
   type RuntimeUpdatePayload,
 } from "../api/admin";
@@ -99,6 +100,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     string | null
   >(null);
   const [historyPurgingAll, setHistoryPurgingAll] = useState(false);
+  const [tourDownloadState, setTourDownloadState] = useState<AsyncStatus>("idle");
   const [activeTab, setActiveTab] = useState<TabKey>(() => {
     const initial = getTabFromPath(location.pathname);
     return initial ?? "provider";
@@ -533,6 +535,46 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     }
   }, [historyPurgingAll, loadHistory, notify]);
 
+  const handleDownloadTour = useCallback(async () => {
+    const tourUrl = state?.exportTourUrl;
+    const sessionId = state?.primarySessionId ?? null;
+
+    if (!tourUrl) {
+      notify("error", "Tour download endpoint is unavailable.");
+      return;
+    }
+
+    if (!sessionId) {
+      notify("error", "No session history is available for tour generation.");
+      return;
+    }
+
+    if (tourDownloadState === "loading") {
+      return;
+    }
+
+    setTourDownloadState("loading");
+    try {
+      const blob = await downloadClickthroughPrototype(tourUrl, sessionId);
+      const blobUrl = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = blobUrl;
+      anchor.download = "prototype-tour.html";
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to generate clickthrough prototype";
+      notify("error", message);
+    } finally {
+      setTourDownloadState("idle");
+    }
+  }, [notify, state?.exportTourUrl, state?.primarySessionId, tourDownloadState]);
+
   useEffect(() => {
     if (showSetupShell) {
       setActiveTab("brief");
@@ -773,6 +815,9 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
                     onState={handleSnapshotHydrate}
                     onHistoryRefresh={handleHistoryRefresh}
                     forkActive={state.isForkActive}
+                    onDownloadTour={handleDownloadTour}
+                    tourLoading={tourDownloadState === "loading"}
+                    tourDisabled={!state.primarySessionId}
                   />
                 </>
               }
@@ -788,8 +833,12 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       attachmentsToRemove,
       briefDraft,
       handleBriefSubmit,
+      handleDownloadTour,
       handleHistoryLoadMore,
       handleHistoryRefresh,
+      handleSnapshotHydrate,
+      handleToggleAttachment,
+      handleToggleAutoRefresh,
       handleStateUpdate,
       historyItems,
       historyLoading,
@@ -814,6 +863,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       loadState,
       submitState,
       state,
+      tourDownloadState,
       uploaderKey,
     ]
   );

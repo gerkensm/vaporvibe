@@ -3,6 +3,9 @@ trigger: always_on
 globs: **/*
 ---
 
+  - **Hints/Errors:** Provide helper text below inputs (`.admin-field__helper`) and display validation errors clearly, often below the field (`.admin-field__error`), potentially using red text/borders.
+  - _Reference:_ `.admin-field` structure, `TokenBudgetControl.css`, `ModelInspector.css` custom fields.
+- **Buttons:**
   - **Styles:** Provide distinct styles for primary (solid accent color, often gradient), secondary (light background, accent border/text), and destructive actions (red). Use fully rounded (`999px`) corners.
   - **States:** Include clear hover and focus-visible states (e.g., slight transform, increased shadow). Disabled states should have reduced opacity.
   - **Placement:** Group actions logically, often at the bottom of a form or card section.
@@ -160,11 +163,3 @@ VaporVibe displays **live reasoning streams** from LLMs that support extended th
 **Purpose**: Enable seamless client-side navigation without full page reload.
 
 **Implementation** (`frontend/public/vaporvibe-interceptor-sw.js`):
-- Intercepts navigation requests in service worker
-- Caches HTML responses in memory (90s TTL)
-- MessageChannel communication between interceptor and worker
-- Navigates via `window.location.replace()` after caching
-
-**Lifecycle**:
-1. Interceptor calls `ensureNavigationServiceWorker()` on load
-2. Waits for service worker controller activation

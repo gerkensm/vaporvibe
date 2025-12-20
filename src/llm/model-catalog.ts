@@ -226,6 +226,12 @@ const MODEL_COMPOSITE_SCORES: Record<string, ModelCompositeScores> = {
     responsiveness: 30.06,
     valueForMoney: 30.43,
   },
+  "anthropic:claude-opus-4-5-20251101": {
+    reasoning: 72,
+    codingSkill: 85,
+    responsiveness: 25,
+    valueForMoney: 45,
+  },
   "anthropic:claude-opus-4-1-20250805": {
     reasoning: 59,
     codingSkill: 41.88,
@@ -1833,18 +1839,54 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         },
       },
       {
+        value: "claude-opus-4-5-20251101",
+        label: "Claude Opus 4.5",
+        tagline: "Best-in-class for coding & agents",
+        description:
+          "Anthropic's flagship model—state-of-the-art for software engineering, agents, and computer use. Dramatically more efficient with fewer tokens.",
+        recommendedFor:
+          "Complex agentic workflows, deep research, coding tasks, and flagship product demos.",
+        highlights: ["State-of-the-art coding", "Exceptional reasoning", "3x more affordable"],
+        release: "Nov 2025",
+        contextWindow: 200_000,
+        contextWindowUnit: "tokens",
+        featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 64_000,
+          max: 64_000,
+        },
+        supportsReasoningMode: false,
+        cost: usdCost({ input: 5, output: 25 }),
+        reasoningTokens: {
+          min: 0,
+          max: 64_000,
+          default: 15_000,
+          allowDisable: false,
+          description:
+            "Opus 4.5 uses dramatically fewer tokens while achieving better outcomes. Adjust the ceiling up to 64K tokens.",
+          helper:
+            "Opus 4.5 favours deeper reasoning—leave the default for premium briefs or push higher for flagship demos.",
+        },
+        compositeScores: compositeScoresFor(
+          "anthropic:claude-opus-4-5-20251101"
+        ),
+      },
+      {
         value: "claude-opus-4-1-20250805",
         label: "Claude Opus 4.1",
         tagline: "Premium deep thinker",
         description:
-          "Anthropic’s most capable model—patient, thorough, and brilliant at complex analysis.",
+          "Anthropic's previous flagship—patient, thorough, and brilliant at complex analysis. Superseded by Opus 4.5.",
         recommendedFor:
           "Executive briefings, policy explorations, and nuanced decision support.",
         highlights: ["Exceptional reasoning", "Rich language", "Premium feel"],
         release: "Aug 2025",
         contextWindow: 200_000,
         contextWindowUnit: "tokens",
-        featured: true,
+        featured: false,
         isMultimodal: true,
         supportsImageInput: true,
         supportsPDFInput: true,

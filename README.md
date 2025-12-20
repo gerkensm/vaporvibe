@@ -93,6 +93,7 @@ graph TD
 - **AI-Powered Hot-Fixes:** Use the floating AI Assist panel to give the model live feedback. "Make the buttons rounder" or "Fix this layout bug"—and watch it regenerate the page.
 - **Model "Thinking" Traces:** Enable reasoning mode to see the model's chain-of-thought, giving you a peek into how it decided to render the page.
 - **A/B Comparisons:** Fork any point in your history, give the model alternative instructions, and review the resulting A & B experiences side-by-side before choosing which path to keep.
+- **Download Tour (Clickthrough Prototypes):** Export your entire session as a self-contained HTML file with an embedded Driver.js walkthrough. The tour auto-plays through your exact click path—typing animations, button clicks, view transitions—all bundled into a single shareable file. Perfect for stakeholder demos or handing off to designers who want to experience the UX flow without running the server.
 - **AI Image Generation:** Bring prototypes to life with on-the-fly image generation via OpenAI (DALL-E, GPT Image) or Google (Imagen, Nano Banana). Images are cached in-memory to prevent redundant API costs.
 
 ---

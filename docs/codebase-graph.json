@@ -1,8 +1,8 @@
 {
-  "generated": "2025-12-20T01:36:29.121Z",
+  "generated": "2025-12-20T18:46:29.712Z",
   "backend": {
     "basePath": "src",
-    "totalModules": 53,
+    "totalModules": 54,
     "externalPackages": 21,
     "modules": {
       "cli/args.ts": {
@@ -269,7 +269,8 @@
           "server/admin-controller.ts",
           "server/rest-api-controller.ts",
           "server/server.ts",
-          "server/session-store.ts"
+          "server/session-store.ts",
+          "utils/html-export-transform.ts"
         ],
         "importCount": 3
       },
@@ -421,6 +422,7 @@
           "external": {}
         },
         "importedBy": [
+          "server/admin-controller.ts",
           "server/rest-api-controller.ts",
           "server/server.ts"
         ],
@@ -588,6 +590,7 @@
           "external": {}
         },
         "importedBy": [
+          "server/admin-controller.ts",
           "server/rest-api-controller.ts",
           "server/server.ts"
         ],
@@ -750,6 +753,22 @@
             "../image-gen/paths.js": [
               "getGeneratedImagePath"
             ],
+            "../utils/html-export-transform.js": [
+              "prepareHtmlForExport"
+            ],
+            "../llm/messages.js": [
+              "buildMessages"
+            ],
+            "../llm/capabilities.js": [
+              "supportsImageInput"
+            ],
+            "../utils/html.js": [
+              "ensureHtmlDocument"
+            ],
+            "./component-cache.js": [
+              "applyReusablePlaceholders",
+              "buildMasterReusableCaches"
+            ],
             "./session-store.js": [
               "SessionStore"
             ],
@@ -809,7 +828,7 @@
           }
         },
         "importedBy": [],
-        "importCount": 22
+        "importCount": 27
       },
       "server/brief-attachments.ts": {
         "imports": {
@@ -832,7 +851,11 @@
       },
       "server/component-cache.ts": {
         "imports": {
-          "internal": {},
+          "internal": {
+            "../types.js": [
+              "HistoryEntry"
+            ]
+          },
           "external": {
             "node-html-parser": [
               "parse",
@@ -841,7 +864,7 @@
           }
         },
         "importedBy": [],
-        "importCount": 1
+        "importCount": 2
       },
       "server/history-utils.ts": {
         "imports": {
@@ -976,6 +999,7 @@
             ],
             "./component-cache.js": [
               "applyReusablePlaceholders",
+              "buildMasterReusableCaches",
               "prepareReusableCaches"
             ],
             "../utils/navigation-interceptor.js": [
@@ -1145,6 +1169,7 @@
           "llm/verification.ts",
           "server/admin-controller.ts",
           "server/brief-attachments.ts",
+          "server/component-cache.ts",
           "server/history-utils.ts",
           "server/rest-api-controller.ts",
           "server/server.ts",
@@ -1153,6 +1178,7 @@
           "utils/config-store.ts",
           "utils/history-archive.ts",
           "utils/history-export.ts",
+          "utils/html-export-transform.ts",
           "utils/instructions-panel.ts"
         ],
         "importCount": 0
@@ -1341,12 +1367,30 @@
         ],
         "importCount": 2
       },
+      "utils/html-export-transform.ts": {
+        "imports": {
+          "internal": {
+            "../image-gen/paths.js": [
+              "getGeneratedImagePath"
+            ],
+            "../types.js": [
+              "GeneratedImage"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/admin-controller.ts"
+        ],
+        "importCount": 2
+      },
       "utils/html.ts": {
         "imports": {
           "internal": {},
           "external": {}
         },
         "importedBy": [
+          "server/admin-controller.ts",
           "server/server.ts",
           "server/session-store.ts",
           "views/overlay-debug.ts"
@@ -2156,6 +2200,7 @@
               "submitProviderUpdate",
               "submitRuntimeUpdate",
               "verifyProviderKey",
+              "downloadClickthroughPrototype",
               "type ProviderUpdatePayload",
               "type RuntimeUpdatePayload"
             ],

@@ -3,6 +3,8 @@ trigger: glob
 globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+- From `./client.js`: `LlmClient`
+
 #### `llm/gemini-client.ts`
 
 **Internal Imports:**
@@ -97,6 +99,11 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 - From `../utils/history-export.js`: `createHistorySnapshot`, `createPromptMarkdown`
 - From `../image-gen/cache.js`: `buildImageCacheKey`, `writeImageCache`
 - From `../image-gen/paths.js`: `getGeneratedImagePath`
+- From `../utils/html-export-transform.js`: `prepareHtmlForExport`
+- From `../llm/messages.js`: `buildMessages`
+- From `../llm/capabilities.js`: `supportsImageInput`
+- From `../utils/html.js`: `ensureHtmlDocument`
+- From `./component-cache.js`: `applyReusablePlaceholders`, `buildMasterReusableCaches`
 - From `./session-store.js`: `SessionStore`
 - From `../utils/credential-store.js`: `getCredentialStore`
 - From `../utils/config-store.js`: `getConfigStore`
@@ -124,6 +131,10 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 - From `node:crypto`: `randomUUID`
 
 #### `server/component-cache.ts`
+
+**Internal Imports:**
+
+- From `../types.js`: `HistoryEntry`
 
 **External Imports:**
 
@@ -176,7 +187,7 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 - From `../utils/body.js`: `readBody`
 - From `../utils/html.js`: `ensureHtmlDocument`, `escapeHtml`
 - From `./session-store.js`: `SessionStore`
-- From `./component-cache.js`: `applyReusablePlaceholders`, `prepareReusableCaches`
+- From `./component-cache.js`: `applyReusablePlaceholders`, `buildMasterReusableCaches`, `prepareReusableCaches`
 - From `../utils/navigation-interceptor.js`: `getNavigationInterceptorScript`
 - From `../utils/instructions-panel.js`: `getInstructionsPanelScript`
 - From `../views/loading-shell.js`: `renderLoadingShell`, `renderResultHydrationScript`, `renderLoaderErrorScript`
@@ -294,6 +305,13 @@ _No imports_
 - From `./sensitive.js`: `maskSensitive`
 - From `../types.js`: `BriefAttachment`, `HistoryEntry`, `HistorySnapshot`, `ProviderSettings`, `ProviderSettingsSummary`, `RuntimeConfig`
 
+#### `utils/html-export-transform.ts`
+
+**Internal Imports:**
+
+- From `../image-gen/paths.js`: `getGeneratedImagePath`
+- From `../types.js`: `GeneratedImage`
+
 #### `utils/html.ts`
 
 _No imports_
@@ -329,35 +347,3 @@ _No imports_
 - From `node:fs`: `existsSync`, `readFileSync`
 - From `node:path`: `dirname`, `resolve`
 - From `node:url`: `fileURLToPath`
-
-#### `views/loading-shell/assets/hydrate.js`
-
-_No imports_
-
-#### `views/loading-shell/assets/reasoning-stream.js`
-
-_No imports_
-
-#### `views/loading-shell/assets/status-rotation.js`
-
-_No imports_
-
-#### `views/loading-shell/status-messages.ts`
-
-**External Imports:**
-
-- From `node:fs`: `existsSync`, `readFileSync`
-- From `node:path`: `dirname`, `resolve`
-- From `node:url`: `fileURLToPath`
-
-#### `views/overlay-debug.ts`
-
-**Internal Imports:**
-
-- From `../utils/html.js`: `escapeHtml`
-- From `../utils/navigation-interceptor.js`: `getNavigationInterceptorScript`
-
-
----
-
-## Frontend (frontend/src/)

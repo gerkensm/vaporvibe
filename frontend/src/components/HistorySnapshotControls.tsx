@@ -10,6 +10,9 @@ interface HistorySnapshotControlsProps {
   onState: (state: AdminStateResponse) => void;
   onHistoryRefresh: () => void;
   forkActive: boolean;
+  onDownloadTour: () => Promise<void> | void;
+  tourLoading: boolean;
+  tourDisabled?: boolean;
 }
 
 type CollapsibleKey = "import" | "export";
@@ -20,6 +23,9 @@ function HistorySnapshotControls({
   onState,
   onHistoryRefresh,
   forkActive,
+  onDownloadTour,
+  tourLoading,
+  tourDisabled = false,
 }: HistorySnapshotControlsProps) {
   const [openSection, setOpenSection] = useState<CollapsibleKey | null>(null);
   const [pendingDropFiles, setPendingDropFiles] = useState<File[] | null>(null);
@@ -100,6 +106,7 @@ function HistorySnapshotControls({
   }, [exportOpen, forkActive]);
 
   const exportDisabled = forkActive;
+  const tourButtonDisabled = exportDisabled || tourLoading || tourDisabled;
 
   const handleDisabledLink = useCallback(
     (event: MouseEvent<HTMLAnchorElement>) => {
@@ -168,6 +175,14 @@ function HistorySnapshotControls({
         </header>
         {exportOpen ? (
           <div className="history-snapshot-controls__actions">
+            <button
+              type="button"
+              className="admin-primary"
+              onClick={onDownloadTour}
+              disabled={tourButtonDisabled}
+            >
+              {tourLoading ? "Generating tour…" : "▶ Download Clickthrough Prototype"}
+            </button>
             <a
               className="admin-primary admin-primary--link"
               href={exportJsonUrl}

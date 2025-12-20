@@ -357,6 +357,12 @@ export function prepareHtmlForExport(
 ): string {
     let result = html;
 
+    // Handle legacy driver.js inclusion that omits versioned paths
+    result = result.replace(
+        /<script src="\/libs\/driver\.js"><\/script>/g,
+        '<script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css" />'
+    );
+
     // 1. Replace local /libs/ paths with CDN URLs
     result = transformLocalLibsToCdn(result);
 

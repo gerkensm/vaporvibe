@@ -26,6 +26,7 @@ export interface MessageContext {
   branchId?: string;
   imageGenerationEnabled?: boolean;
   enableStandardLibrary?: boolean;
+  tourMode?: boolean;
 }
 
 export function buildMessages(context: MessageContext): ChatMessage[] {
@@ -52,12 +53,14 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     branchId,
     imageGenerationEnabled = false,
     enableStandardLibrary = true,
+    tourMode = false,
   } = context;
   const isJsonQuery = mode === "json-query";
+  let systemLines: string[];
 
   // --- System Prompt Definition ---
-  const systemLines = isJsonQuery
-    ? [
+  if (isJsonQuery) {
+    systemLines = [
       // Rules for JSON generation via /rest_api/query/*
       "You are a JSON data generator for a 'sourcecodeless web app server'.",
       "Your job: reply with ONLY a valid, minified-or-pretty JSON document that answers the query for the current view.",
@@ -70,8 +73,82 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "5) STRUCTURE: Match the field names, nested structures, and conventions implied by the app history (your prior work). Prefer concise payloads that include only the fields the UI can display.",
       "6) SAFETY: Do not invent scripts or HTML. Return plain JSON with properly escaped strings.",
       "7) STATE HANDOFF: If new durable state should be remembered, ensure the UI also records it via a mutation endpoint.",
-    ]
-    : [
+    ];
+  } else if (tourMode) {
+    systemLines = [
+      // ==================================================================================
+      // 🟢 TOUR / CLICKTHROUGH MODE PROMPT (SIMPLIFIED)
+      // ==================================================================================
+      "SYSTEM — Interactive Clickthrough Prototype Architect",
+      "",
+      "### Your Mission: Consolidate & Automate 🎬",
+      "You are an expert Frontend Architect. Your task is to audit the entire conversation history and consolidate it into a **Single Page Application (SPA)** that features a fully automated **Driver.js** walkthrough.",
+      "",
+      "### 1. The Consolidated SPA Structure (NO RELOADS)",
+      "   - **Single File:** Output exactly one valid `index.html` file.",
+      "   - **View Architecture:** Identify every distinct 'screen' or 'state' from the history (e.g., Login, Dashboard, Settings). Wrap each in a container (e.g., `<div id='view-login' class='app-view'>`). Use `display: none` to hide inactive views.",
+      "   - **Shared Shell:** Place static headers/sidebars *outside* the view containers.",
+      "   - **State Management:** Implement a `switchView(viewId)` function to show/hide views. Avoid framework-internal APIs (no `__x.$data` or similar)—use plain JavaScript or the framework's public API.",
+      "   - **INTERCEPT NAVIGATION:** Convert all `<a href>` links and `<form>` submissions to JavaScript handlers. **No browser refresh should ever occur.**",
+      "",
+      "### 2. The 'Happy Path' Tour (Driver.js) — AUTO-START",
+      "   Use **Driver.js** (see libraries below) to create a step-by-step guided tour.",
+      "   **CRITICAL: Call `driverObj.drive()` immediately on page load** (e.g., at end of `<script>` or in `DOMContentLoaded`). Do NOT wait for user click.",
+      "",
+      "   **A. Sequence (Follow the User's Journey):**",
+      "      - Reconstruct the user's journey from the history.",
+      "      - Create a `steps` array that guides through the EXACT click path—same order, same screens, same actions.",
+      "      - **Preserve User Data:** Use the EXACT data values from history (form inputs, search queries). Do NOT substitute with placeholders.",
+      "",
+      "   **B. Cross-View Navigation:**",
+      "      - Use `onHighlightStarted` to call `switchView()` BEFORE the element is highlighted.",
+      "      - Ensure the target element exists and is visible before Driver.js tries to highlight it.",
+      "",
+      "   **C. Simulating User Input (Typing Only):**",
+      "      - For form inputs, use `onHighlighted` to animate typing with a simple setInterval:",
+      "        ```javascript",
+      "        onHighlighted: (element) => {",
+      "          const text = 'Hallo Marie';",
+      "          let i = 0;",
+      "          const interval = setInterval(() => {",
+      "            element.value = text.slice(0, ++i);",
+      "            element.dispatchEvent(new Event('input', { bubbles: true }));",
+      "            if (i >= text.length) clearInterval(interval);",
+      "          }, 50);",
+      "        }",
+      "        ```",
+      "      - **DO NOT call `driverObj.moveNext()`** — let the user click the 'Next' button in the popover.",
+      "      - **DO NOT auto-advance** after clicks, saves, or any other actions. The tour should pause at each step until the user manually continues.",
+      "",
+      "   **D. Simulating Button Clicks (No Auto-Advance):**",
+      "      - For buttons that need to be 'clicked' to show the action, use `onHighlighted` to trigger the click:",
+      "        ```javascript",
+      "        onHighlighted: (element) => {",
+      "          setTimeout(() => element.click(), 800);",
+      "        }",
+      "        ```",
+      "      - **DO NOT call `driverObj.moveNext()` after the click.** The user sees the action happen, then manually clicks 'Next'.",
+      "",
+      "   **E. Visual Styling:**",
+      "      - **Highlighted Element:** Use CSS to make `.driver-active-element` stand out with a colored box-shadow or border. Ensure it has a high `z-index`.",
+      "      - **No Rough Notation:** Do not use the rough-notation library.",
+      "",
+      "### 3. HANDLING DATA",
+      "   - **Mock API Calls:** The `/rest_api/*` endpoints do not exist. Use `setTimeout` and manual DOM updates to simulate success states.",
+      "   - **Realistic Data:** Use the specific data from conversation history. No 'Lorem Ipsum' or generic placeholders.",
+      "",
+      "### 4. VISUAL FIDELITY",
+      "   **Preserve the EXACT visual appearance from the history.**",
+      "   - **No Redesigns:** Copy the exact Tailwind/CSS classes from history HTML.",
+      "   - **AI Images:** Reuse EXACT `<ai-image>` prompts AND ratios from history.",
+      "   - **Copy, Don't Interpret:** When in doubt, copy exact HTML/CSS from history.",
+      "",
+      "### 5. Output Contract",
+      "   - Return **ONLY** the raw HTML code.",
+      "   - Use the standard library tags provided below (post-processor handles CDN replacement).",
+    ];
+  } else {
+    systemLines = [
       // Rules for Full HTML Page Generation
       "SYSTEM — Single-View HTML Application Generator (Full)",
       "",
@@ -156,6 +233,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "- Your own `data-id` attributes added to any element.",
       "- `data-id` attributes copied verbatim from previous HTML. Use `{{component:data-id}}` syntax instead for reuse.",
     ];
+  }
 
   if (!isJsonQuery && imageGenerationEnabled) {
     systemLines.push(
@@ -181,7 +259,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     );
   }
 
-  if (!isJsonQuery && enableStandardLibrary) {
+  if (!isJsonQuery && (enableStandardLibrary || tourMode)) {
     const librariesText = VAPORVIBE_LIBRARIES.map(
       (lib) =>
         `- **${lib.id}** (v${lib.version}): ${lib.description}. Usage: ${lib.tags}`
@@ -206,6 +284,14 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "  - Do NOT include large CSS resets or external Tailwind CDN links.",
       "- **DaisyUI**: Trust the provided classes for complex components (modals, cards, tabs). Use them directly in HTML (e.g., `<button class=\"btn btn-primary\">`) to avoid runtime errors."
     );
+
+    if (tourMode) {
+      systemLines.push(
+        "",
+        "### TOUR SPECIFIC LIBRARY REQUIREMENT",
+        "- **Driver.js**: You **MUST** use the `driver.js` library listed above to implement the tour functionality, regardless of previous library choices."
+      );
+    }
   }
 
   // --- Assemble final messages ---
@@ -257,25 +343,33 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "- Keep field names consistent with prior renders and recorded mutations.",
       "- If the UI likely triggered this query to refresh client-side state, include enough detail for immediate rendering.",
     ]
-    : [
-      "- Render ONLY the current view as a full HTML document.",
-      "- Include inline CSS/JS. No external dependencies.",
-      "- Align the response with the requested path AND parameters by inferring which link or form was activated in the previous HTML and how its fields map to the submitted values.",
-      "- Carry state forward via forms, query strings, or comments. Preserve comment-state from previous HTML.",
-      "- Reuse hierarchy: (1) whole page `<html>`, (2) shells `<head>/<body>`, (3) partials `<header>/<style>`, preferring newest history matches. Generate fresh markup if unsure.",
-      "- Placeholders `{{ }}` *are* the output for reused parts; don't expand them or add wrappers.",
-      "- Split reusable JS helpers from per-request `<script data-state-script>`. Never reuse the state script via placeholder.",
-      "- Provide clear CTAs.",
-      "- Use background fetch for REST API calls (fast mutations, slower queries on user action). Show loading states.",
-      "- Keep background fetch feedback lightweight (inline spinners/toasts).",
-      "- Avoid auto-fetching queries on initial render; synthesize start data, fetch only on explicit user action.",
-      "- Reflect mutation effects immediately in this render.",
-      '- Default non-submitting buttons to `type="button"`. Call `event.preventDefault()` before `fetch`.',
-      "- Mutation API returns only `{ success: true }`; update DOM client-side from submitted data.",
-      "- After mutation + DOM update, do NOT trigger full navigation/reload.",
-      "- Replace synthesized starter data with actual mutation history data once available.",
-      "- Only call mutation API with meaningful state changes.",
-    ];
+    : tourMode
+      ? [
+        "- Build a single-file SPA with shared shell elements and distinct view containers shown one at a time via switchView().",
+        "- Prevent full reloads entirely; convert links/forms to JS handlers and mock any /rest_api/* behavior with local DOM updates.",
+        "- Drive a scripted Driver.js walkthrough that switches views before highlighting targets and types into inputs during relevant steps.",
+        "- Keep the tour on-rails: block clicks outside highlights and make active elements visually prominent (pulse/overlay).",
+        "- Reuse `{{component:...}}` placeholders from history for unchanged regions before exporting fully expanded HTML.",
+      ]
+      : [
+        "- Render ONLY the current view as a full HTML document.",
+        "- Include inline CSS/JS. No external dependencies.",
+        "- Align the response with the requested path AND parameters by inferring which link or form was activated in the previous HTML and how its fields map to the submitted values.",
+        "- Carry state forward via forms, query strings, or comments. Preserve comment-state from previous HTML.",
+        "- Reuse hierarchy: (1) whole page `<html>`, (2) shells `<head>/<body>`, (3) partials `<header>/<style>`, preferring newest history matches. Generate fresh markup if unsure.",
+        "- Placeholders `{{ }}` *are* the output for reused parts; don't expand them or add wrappers.",
+        "- Split reusable JS helpers from per-request `<script data-state-script>`. Never reuse the state script via placeholder.",
+        "- Provide clear CTAs.",
+        "- Use background fetch for REST API calls (fast mutations, slower queries on user action). Show loading states.",
+        "- Keep background fetch feedback lightweight (inline spinners/toasts).",
+        "- Avoid auto-fetching queries on initial render; synthesize start data, fetch only on explicit user action.",
+        "- Reflect mutation effects immediately in this render.",
+        '- Default non-submitting buttons to `type="button"`. Call `event.preventDefault()` before `fetch`.',
+        "- Mutation API returns only `{ success: true }`; update DOM client-side from submitted data.",
+        "- After mutation + DOM update, do NOT trigger full navigation/reload.",
+        "- Replace synthesized starter data with actual mutation history data once available.",
+        "- Only call mutation API with meaningful state changes.",
+      ];
 
 
 

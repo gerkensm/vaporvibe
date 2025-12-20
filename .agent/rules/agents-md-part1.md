@@ -87,6 +87,7 @@ The admin console at `/vaporvibe` is a **React SPA** (built in `frontend/`) serv
 - **History Explorer**: Inspect every generated page (including REST API interactions), view token usage, raw HTML, and model reasoning traces fetched via `/api/admin/history`.
 - **A/B Comparisons (Forks)**: Initiate side-by-side experiments to compare alternative instructions, review the A/B workspace, and merge or discard branches when ready.
 - **Import/Export**: Download session snapshots (`GET /api/admin/history.json`) or prompt markdown (`GET /api/admin/history.md`). Upload snapshots via drag-drop (`POST /api/admin/history/import`). Certain actions (exports, purging) are temporarily disabled while a fork is in progress to avoid state conflicts.
+- **Download Tour (Clickthrough Prototypes)**: Export the session as a self-contained HTML file featuring an animated Driver.js walkthrough. The LLM consolidates all history into a single-page application, replaying the user's exact click path with typing animations and simulated interactions. See [Download Tour Architecture](#download-tour-clickthrough-prototypes) for technical details.
 
 ---
 
@@ -154,6 +155,3 @@ This section defines the desired visual style, UI patterns, and overall user exp
 - **Forms:**
   - **Layout:** Stack labels clearly above their corresponding inputs. Group related fields logically.
   - **Inputs:** Use rounded (`~14px-16px`), lightly bordered inputs, textareas, and selects with clear `:focus` states (e.g., blue outline/shadow).
-  - **Hints/Errors:** Provide helper text below inputs (`.admin-field__helper`) and display validation errors clearly, often below the field (`.admin-field__error`), potentially using red text/borders.
-  - _Reference:_ `.admin-field` structure, `TokenBudgetControl.css`, `ModelInspector.css` custom fields.
-- **Buttons:**
