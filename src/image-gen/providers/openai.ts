@@ -6,6 +6,7 @@ import type {
   ImageGenResult,
 } from "../types.js";
 import { logger } from "../../logger.js";
+import { withRetry } from "../retry.js";
 
 export class OpenAiImageGenClient implements ImageGenClient {
   async generateImage(opts: ImageGenOptions): Promise<ImageGenResult> {
@@ -33,16 +34,19 @@ export class OpenAiImageGenClient implements ImageGenClient {
 
     const sizeMap = model === "dall-e-3" ? DALLE_3_SIZES : GPT_1_5_SIZES;
     logger.info(
-      `Generating image with prompt "${opts.prompt}" and ratio ${
-        opts.ratio
+      `Generating image with prompt "${opts.prompt}" and ratio ${opts.ratio
       } (resolution ${sizeMap[opts.ratio]}) and model ${model}.`
     );
-    const response = await client.images.generate({
-      model,
-      prompt: opts.prompt,
-      size: sizeMap[opts.ratio] ?? "1024x1024",
-      n: 1,
-    });
+    const response = await withRetry(
+      () =>
+        client.images.generate({
+          model,
+          prompt: opts.prompt,
+          size: sizeMap[opts.ratio] ?? "1024x1024",
+          n: 1,
+        }),
+      `OpenAI image generation (model=${model})`
+    );
 
     const generatedImage = response.data?.[0];
 

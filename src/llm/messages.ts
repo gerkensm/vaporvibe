@@ -1,4 +1,4 @@
-import type { BriefAttachment, ChatMessage, HistoryEntry } from "../types.js";
+import type { BriefAttachment, ChatMessage, HistoryEntry, GeneratedImage } from "../types.js";
 import { VAPORVIBE_LIBRARIES } from "../config/library-manifest.js";
 
 const LINE_DIVIDER = "----------------------------------------";
@@ -27,6 +27,7 @@ export interface MessageContext {
   imageGenerationEnabled?: boolean;
   enableStandardLibrary?: boolean;
   tourMode?: boolean;
+  generatedImages?: GeneratedImage[];
 }
 
 export function buildMessages(context: MessageContext): ChatMessage[] {
@@ -54,6 +55,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     imageGenerationEnabled = false,
     enableStandardLibrary = true,
     tourMode = false,
+    generatedImages = [],
   } = context;
   const isJsonQuery = mode === "json-query";
   let systemLines: string[];
@@ -77,76 +79,156 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
   } else if (tourMode) {
     systemLines = [
       // ==================================================================================
-      // 🟢 TOUR / CLICKTHROUGH MODE PROMPT (SIMPLIFIED)
+      // 🟢 TOUR / CLICKTHROUGH MODE PROMPT
       // ==================================================================================
-      "SYSTEM — Interactive Clickthrough Prototype Architect",
+      "SYSTEM — Clickthrough Prototype Architect",
       "",
-      "### Your Mission: Consolidate & Automate 🎬",
-      "You are an expert Frontend Architect. Your task is to audit the entire conversation history and consolidate it into a **Single Page Application (SPA)** that features a fully automated **Driver.js** walkthrough.",
+      "Build a **single-file SPA** from conversation history with a **Driver.js** walkthrough replaying the user's journey EXACTLY, with every single navigation and discernible action, even if it seems unrelated.",
+      "You are not creating a tutorial, but a walkthrough of a website design, content and functionality, as a demonstration for implementation.",
+      "All details matter, so be exact in your SPA replica and include all pages and views verbatim, including copy that may seem irrelevant, headers, footers, design, font choices, copy, images, data submitted, etc. Showcase the user experience, do NOT create a tutorial.",
       "",
-      "### 1. The Consolidated SPA Structure (NO RELOADS)",
-      "   - **Single File:** Output exactly one valid `index.html` file.",
-      "   - **View Architecture:** Identify every distinct 'screen' or 'state' from the history (e.g., Login, Dashboard, Settings). Wrap each in a container (e.g., `<div id='view-login' class='app-view'>`). Use `display: none` to hide inactive views.",
-      "   - **Shared Shell:** Place static headers/sidebars *outside* the view containers.",
-      "   - **State Management:** Implement a `switchView(viewId)` function to show/hide views. Avoid framework-internal APIs (no `__x.$data` or similar)—use plain JavaScript or the framework's public API.",
-      "   - **INTERCEPT NAVIGATION:** Convert all `<a href>` links and `<form>` submissions to JavaScript handlers. **No browser refresh should ever occur.**",
+      "---",
       "",
-      "### 2. The 'Happy Path' Tour (Driver.js) — AUTO-START",
-      "   Use **Driver.js** (see libraries below) to create a step-by-step guided tour.",
-      "   **CRITICAL: Call `driverObj.drive()` immediately on page load** (e.g., at end of `<script>` or in `DOMContentLoaded`). Do NOT wait for user click.",
+      "## 1. SPA RULES",
       "",
-      "   **A. Sequence (Follow the User's Journey):**",
-      "      - Reconstruct the user's journey from the history.",
-      "      - Create a `steps` array that guides through the EXACT click path—same order, same screens, same actions.",
-      "      - **Preserve User Data:** Use the EXACT data values from history (form inputs, search queries). Do NOT substitute with placeholders.",
+      "- **One `index.html` file** — no external dependencies, no server calls.",
+      "- **Views as divs**: `<div id='view-{name}' class='app-view'>` with `display:none` for inactive.",
+      "- **`switchView(viewId)`** function to toggle views. Use plain JS, never `__x.$data`.",
+      "- **Intercept navigation**: Convert all `<a>` and `<form>` to JS handlers. **No page reloads.**",
+      "- **Mock APIs locally**: Forbid `fetch()`, `XMLHttpRequest`. Update state in-memory, show toasts.",
       "",
-      "   **B. Cross-View Navigation:**",
-      "      - Use `onHighlightStarted` to call `switchView()` BEFORE the element is highlighted.",
-      "      - Ensure the target element exists and is visible before Driver.js tries to highlight it.",
+      "---",
       "",
-      "   **C. Simulating User Input (Typing Only):**",
-      "      - For form inputs, use `onHighlighted` to animate typing with a simple setInterval:",
-      "        ```javascript",
-      "        onHighlighted: (element) => {",
-      "          const text = 'Hallo Marie';",
-      "          let i = 0;",
-      "          const interval = setInterval(() => {",
-      "            element.value = text.slice(0, ++i);",
-      "            element.dispatchEvent(new Event('input', { bubbles: true }));",
-      "            if (i >= text.length) clearInterval(interval);",
-      "          }, 50);",
-      "        }",
-      "        ```",
-      "      - **DO NOT call `driverObj.moveNext()`** — let the user click the 'Next' button in the popover.",
-      "      - **DO NOT auto-advance** after clicks, saves, or any other actions. The tour should pause at each step until the user manually continues.",
+      "## 2. DRIVER.JS TOUR",
       "",
-      "   **D. Simulating Button Clicks (No Auto-Advance):**",
-      "      - For buttons that need to be 'clicked' to show the action, use `onHighlighted` to trigger the click:",
-      "        ```javascript",
-      "        onHighlighted: (element) => {",
-      "          setTimeout(() => element.click(), 800);",
-      "        }",
-      "        ```",
-      "      - **DO NOT call `driverObj.moveNext()` after the click.** The user sees the action happen, then manually clicks 'Next'.",
+      "### Initialization",
+      "```javascript",
+      "// Access via window.driver.js.driver() — NEVER name your variable 'driver'!",
+      "const driverObj = window.driver.js.driver({",
+      "  showProgress: true,",
+      "  allowClose: false,",
+      "  steps: [...]",
+      "});",
+      "driverObj.drive();",
+      "```",
       "",
-      "   **E. Visual Styling:**",
-      "      - **Highlighted Element:** Use CSS to make `.driver-active-element` stand out with a colored box-shadow or border. Ensure it has a high `z-index`.",
-      "      - **No Rough Notation:** Do not use the rough-notation library.",
+      "### Tour Sequence",
+      "- Follow the **exact click path** from history — same order, screens, actions.",
+      "- Use `onHighlightStarted` to call `switchView()` before highlighting cross-view elements.",
+      "- **Never auto-advance** — no `driverObj.moveNext()`. User clicks 'Next' manually.",
       "",
-      "### 3. HANDLING DATA",
-      "   - **Mock API Calls:** The `/rest_api/*` endpoints do not exist. Use `setTimeout` and manual DOM updates to simulate success states.",
-      "   - **Realistic Data:** Use the specific data from conversation history. No 'Lorem Ipsum' or generic placeholders.",
+      "### Step Flow (CRITICAL)",
+      "Each tour step follows this sequence:",
+      "1. **Highlight with message**: Show the popover describing the element or what the user will do.",
+      "2. **Wait for 'Next'**: User reads the message and clicks 'Next' button.",
+      "3. **Execute action (if any)**: If this step involves an action (click, type), it occurs as the step transitions.",
       "",
-      "### 4. VISUAL FIDELITY",
-      "   **Preserve the EXACT visual appearance from the history.**",
-      "   - **No Redesigns:** Copy the exact Tailwind/CSS classes from history HTML.",
-      "   - **AI Images:** Reuse EXACT `<ai-image>` prompts AND ratios from history.",
-      "   - **Copy, Don't Interpret:** When in doubt, copy exact HTML/CSS from history.",
+      "**Showcase-only steps**: Some steps just highlight elements for context (e.g., 'Here is the navigation bar') — no action needed.",
+      "**Action steps**: Others replay a user interaction — use `onDeselected` to trigger the action AFTER clicking 'Next'.",
+      "```javascript",
+      "{",
+      "  element: '#submit-btn',",
+      "  popover: { title: 'Submit', description: 'Click to submit the form.' },",
+      "  onDeselected: (element) => {",
+      "    if (element?.isConnected) element.click();",
+      "  }",
+      "}",
+      "```",
       "",
-      "### 5. Output Contract",
-      "   - Return **ONLY** the raw HTML code.",
-      "   - Use the standard library tags provided below (post-processor handles CDN replacement).",
+      "### Simulating Typing (in onDeselected)",
+      "```javascript",
+      "onDeselected: (element) => {",
+      "  if (!element?.isConnected) return;",
+      "  const text = 'Hello'; let i = 0;",
+      "  const interval = setInterval(() => {",
+      "    if (!element?.isConnected) { clearInterval(interval); return; }",
+      "    element.value = text.slice(0, ++i);",
+      "    element.dispatchEvent(new Event('input', { bubbles: true }));",
+      "    if (i >= text.length) clearInterval(interval);",
+      "  }, 50);",
+      "}",
+      "```",
+      "",
+      "### Visual Styling",
+      "- Style `.driver-active-element` with box-shadow and high z-index.",
+      "- **Do NOT use** rough-notation library.",
+      "",
+      "---",
+      "",
+      "## 3. ELEMENT SELECTORS (CRITICAL)",
+      "",
+      "| ✅ Use | ❌ Never Use |",
+      "| --- | --- |",
+      "| `#id`, `.class`, `data-*` | `[x-text='...']`, `[@click='...']`, `[x-model='...']` |",
+      "",
+      "- Framework directives don't work as CSS selectors.",
+      "- Add `data-tour-step=\"step-1\"` for reliable targeting.",
+      "- Expose app state globally: `window.myAppState = this;` in Alpine `init()`.",
+      "",
+      "---",
+      "",
+      "## 4. IMAGE HANDLING (CRITICAL)",
+      "",
+      "**All image rules in one place:**",
+      "",
+      "1. **Use `data-image-id`** with the exact UUID from the manifest below. Do NOT invent IDs.",
+      "2. **Do NOT use** `data-id` (reserved for caching) or prompt-matching.",
+      "3. **Static prompts only** — no JS expressions, template literals, or loop variables:",
+      "   - ❌ `prompt=\"item.name + ' cheese'\"` — will fail",
+      "   - ❌ `prompt=\"${product.title}\"` — template literals forbidden",
+      "   - ✅ `prompt=\"Artisan cheddar slice, studio lighting\"` — static literal",
+      "4. **Omit images** not in the manifest — don't generate new ones.",
+      "",
+      "---",
+      "",
+      "## 5. DEFENSIVE PROGRAMMING",
+      "",
+      "```javascript",
+      "onHighlighted: (element) => {",
+      "  if (!element) return;                    // Always null-check",
+      "  const card = element.closest('.card');",
+      "  if (!card) return;                       // Check DOM queries",
+      "  const btn = card.querySelector('button');",
+      "  if (btn) setTimeout(() => btn.click(), 800);",
+      "}",
+      "```",
+      "",
+      "---",
+      "",
+      "## 6. VISUAL FIDELITY",
+      "",
+      "**Reproduce the COMPLETE page from history — every element, every view.**",
+      "",
+      "- Headers, footers, navigation, sidebars, menus, verbose copy — include them all, for each view.",
+      "- Copy all text content verbatim — buttons, labels, body copy.",
+      "- Preserve exact Tailwind/CSS classes — no redesigns.",
+      "- Use realistic data from history — no 'Lorem Ipsum'.",
+      "",
+      "---",
+      "",
+      "## 7. OUTPUT",
+      "",
+      "Return **only** raw HTML. Use `/libs/*` tags (post-processor handles CDN).",
     ];
+
+    if (generatedImages.length > 0) {
+      const imageManifest = generatedImages
+        .map(
+          (img) =>
+            `- ID: "${img.id}" | Ratio: ${img.ratio} | Prompt: "${img.prompt.replace(
+              /"/g,
+              '\\"'
+            )}"`
+        )
+        .join("\n");
+
+      systemLines.push(
+        "",
+        "### Available Images (Manifest)",
+        "EXCLUSIVELY Use these existing IDs to restore images from history. Do NOT generate new images.",
+        imageManifest
+      );
+    }
   } else {
     systemLines = [
       // Rules for Full HTML Page Generation
@@ -236,27 +318,53 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
   }
 
   if (!isJsonQuery && imageGenerationEnabled) {
-    systemLines.push(
-      "",
-      "### IMAGE GENERATION",
-      "You can request server-rendered images without writing JavaScript.",
-      "Use the custom element: <ai-image prompt=\"Describe the image\" ratio=\"16:9\"></ai-image>.",
-      "",
-      "CRITICAL RULES FOR IMAGES:",
-      "1. COST WARNING: Generating images is expensive. Use them SPARINGLY. On subsequent page generations, if you want to use the same image again, the ratio&prompt need to match EXACTLY to the previous image to reuse the same asset (generations are cached by the server).",
-      "2. LIMIT: Target 0-5 images per page for standard content. For image-heavy views (galleries, catalogs), you may exceed this if essential to the brief.",
-      "3. VALUE: Ensure every generated image serves a specific user goal (e.g., illustrating a product, setting a specific mood defined in the brief). Prefer CSS gradients/patterns for generic backgrounds.",
-      "4. RELEVANCE: If the brief doesn't explicitly ask for visuals, prefer CSS styling or SVG icons over generated images.",
-      "5. EXCEPTION: If the user explicitly requests more images or specific visuals in the brief or instructions, you may override these limits to satisfy the request.",
-      "6. DESCRIPTION: Construct image prompts using with at least the following information: Subject, Action/Context, Art Style/Mood, Lighting, Colors if relevant (e.g. when overlaying with text). Be concrete, detailed and verbose - especially if you overlay with text - to ensure the text is legible.",
-      "",
-      "Valid ratios: 1:1, 16:9, 9:16, and 4:3.",
-      "You may control sizing and layout with standard HTML attributes (width, style, class) on the <ai-image> tag.",
-      "Examples:",
-      "- Full width landscape: <ai-image prompt=\"A futuristic skyline\" ratio=\"16:9\" width=\"100%\"></ai-image>.",
-      "- Small floated square: <ai-image prompt=\"An icon of a robot\" ratio=\"1:1\" style=\"width: 200px; float: right; margin: 12px;\"></ai-image>.",
-      "Do NOT use Markdown images or raw <img> tags; the helper will swap in an <img> element automatically."
-    );
+    if (!tourMode) {
+      systemLines.push(
+        "",
+        "### IMAGE GENERATION",
+        "You can request server-rendered images without writing JavaScript.",
+        "Use the custom element: <ai-image prompt=\"Describe the image\" ratio=\"16:9\"></ai-image>.",
+        "",
+        "CRITICAL RULES FOR IMAGES:",
+        "1. COST WARNING: Generating images is expensive. Use them SPARINGLY. On subsequent page generations, if you want to use the same image again, the ratio&prompt need to match EXACTLY to the previous image to reuse the same asset (generations are cached by the server).",
+        "2. LIMIT: Target 0-5 images per page for standard content. For image-heavy views (galleries, catalogs), you may exceed this if essential to the brief.",
+        "3. VALUE: Ensure every generated image serves a specific user goal (e.g., illustrating a product, setting a specific mood defined in the brief). Prefer CSS gradients/patterns for generic backgrounds.",
+        "4. RELEVANCE: If the brief doesn't explicitly ask for visuals, prefer CSS styling or SVG icons over generated images.",
+        "5. EXCEPTION: If the user explicitly requests more images or specific visuals in the brief or instructions, you may override these limits to satisfy the request.",
+        "6. DESCRIPTION: Construct image prompts using with at least the following information: Subject, Action/Context, Art Style/Mood, Lighting, Colors if relevant (e.g. when overlaying with text). Be concrete, detailed and verbose - especially if you overlay with text - to ensure the text is legible.",
+        "",
+        "Valid ratios: 1:1, 16:9, 9:16, and 4:3.",
+        "You may control sizing and layout with standard HTML attributes (width, style, class) on the <ai-image> tag.",
+        "Examples:",
+        "- Full width landscape: <ai-image prompt=\"A futuristic skyline\" ratio=\"16:9\" width=\"100%\"></ai-image>.",
+        "- Small floated square: <ai-image prompt=\"An icon of a robot\" ratio=\"1:1\" style=\"width: 200px; float: right; margin: 12px;\"></ai-image>.",
+        "Do NOT use Markdown images or raw <img> tags; the helper will swap in an <img> element automatically."
+      );
+    }
+    else {
+      systemLines.push(
+        "",
+        "### IMAGE GENERATION",
+        "Image generation is disabled in tour mode. The history contains <ai-image> tags with prompts. These indicate what the image should show. You may only use images contained in the image manifest below and reference it with its ID as instructed.",
+        "",
+        "CRITICAL RULES FOR IMAGES:",
+        "1. COST WARNING: Generating images is expensive. Prefer using images that are in the image manifest, reference them using their `data-image-id` and use the same `prompt`. These have already been generated; you can use as many of these as you like.",
+        "2. Generate new images VERY SPARINGLY. On subsequent page generations, if you want to use the same image again, the ratio&prompt need to match EXACTLY to the previous image to reuse the same asset (generations are cached).",
+        "3. LIMIT: Target 0-2 new images per page for standard content. For image-heavy views (galleries, catalogs), you may exceed this if essential to the brief.",
+        "4. VALUE: Ensure every generated image serves a specific user goal (e.g., illustrating a product, setting a specific mood defined in the brief). Prefer CSS gradients/patterns for generic backgrounds.",
+        "5. RELEVANCE: If the brief doesn't explicitly ask for visuals, prefer CSS styling or SVG icons over generated images.",
+        "6. DESCRIPTION: Construct image prompts using with at least the following information: Subject, Action/Context, Art Style/Mood, Lighting, Colors or colot pallette (e.g. when overlaying with text). Be concrete, detailed and verbose - especially if you overlay with text - to ensure the text is legible.",
+        "",
+        "Valid ratios: 1:1, 16:9, 9:16, and 4:3.",
+        "You may control sizing and layout with standard HTML attributes (width, style, class) on the <ai-image> tag.",
+        "Examples:",
+        "- Full width landscape: <ai-image prompt=\"A futuristic skyline\" ratio=\"16:9\" width=\"100%\"></ai-image>.",
+        "- Small floated square: <ai-image prompt=\"An icon of a robot\" ratio=\"1:1\" style=\"width: 200px; float: right; margin: 12px;\"></ai-image>.",
+        "Do NOT use Markdown images or raw <img> tags; the helper will swap in an <img> element automatically."
+
+      );
+
+    }
   }
 
   if (!isJsonQuery && (enableStandardLibrary || tourMode)) {
@@ -289,7 +397,10 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       systemLines.push(
         "",
         "### TOUR SPECIFIC LIBRARY REQUIREMENT",
-        "- **Driver.js**: You **MUST** use the `driver.js` library listed above to implement the tour functionality, regardless of previous library choices."
+        "- **Driver.js**: You **MUST** use the `driver.js` library listed above to implement the tour functionality, regardless of previous library choices.",
+        "",
+        "### IMAGE HANDLING (CRITICAL)",
+        "- **Prompt Preservation**: When outputting `<ai-image>` tags, YOU MUST include the `prompt` attribute verbatim from the source history. This is used for precise client-side hydration."
       );
     }
   }

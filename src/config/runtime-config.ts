@@ -635,23 +635,26 @@ function getGroqKey(env: NodeJS.ProcessEnv): string | undefined {
   return env.GROQ_API_KEY || env.GROQ_KEY || undefined;
 }
 
-function lookupEnvApiKey(
+export function lookupEnvApiKey(
   provider: ModelProvider,
-  env: NodeJS.ProcessEnv
+  env: NodeJS.ProcessEnv = process.env
 ): string | undefined {
   if (provider === "openai") {
-    return getOpenAiKey(env);
+    return getOpenAiKey(env)?.trim() || undefined;
   }
   if (provider === "gemini") {
-    return getGeminiKey(env);
+    return getGeminiKey(env)?.trim() || undefined;
+  }
+  if (provider === "anthropic") {
+    return getAnthropicKey(env)?.trim() || undefined;
   }
   if (provider === "grok") {
-    return getGrokKey(env);
+    return getGrokKey(env)?.trim() || undefined;
   }
   if (provider === "groq") {
-    return getGroqKey(env);
+    return getGroqKey(env)?.trim() || undefined;
   }
-  return getAnthropicKey(env);
+  return undefined;
 }
 
 function applyProviderEnv(settings: ProviderSettings): void {

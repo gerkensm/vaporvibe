@@ -3,6 +3,10 @@ trigger: always_on
 globs: **/*
 ---
 
+│   │   └── *-client.ts   # Provider-specific API clients
+│   ├── config/           # Configuration loading
+│   ├── utils/            # Shared utilities (credentials, assets, history export)
+│   └── views/            # Server-side view helpers (loading shell)
 ├── scripts/              # Build/utility scripts (dev server, macOS packaging)
 ├── docs/                 # Documentation
 ├── package.json          # Project dependencies & scripts

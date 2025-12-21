@@ -51,6 +51,7 @@ import {
   buildMasterReusableCaches,
   prepareReusableCaches,
 } from "./component-cache.js";
+import { cloneAttachment } from "./brief-attachments.js";
 import { getNavigationInterceptorScript } from "../utils/navigation-interceptor.js";
 import { getInstructionsPanelScript } from "../utils/instructions-panel.js";
 import {
@@ -1168,9 +1169,6 @@ function attachReasoningStream(
   return true;
 }
 
-function cloneAttachment(attachment: BriefAttachment): BriefAttachment {
-  return { ...attachment };
-}
 
 function computeProviderReady(
   llmClient: LlmClient | null,

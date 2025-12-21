@@ -406,6 +406,8 @@ VaporVibe displays **live reasoning streams** from LLMs that support extended th
 **Prompt Location**: `src/llm/messages.ts` lines 77-145 (the `tourMode` conditional branch)
 
 **Key Design Decisions**:
+- **Driver.js v1.x API**: Use `window.driver.js.driver({...})` NOT `new Driver()` — the latter is the old v0.x syntax
+- **Variable naming**: NEVER name your variable `driver` — this shadows the global and causes initialization errors. Use `driverObj` instead.
 - No `driverObj.moveNext()` calls — user controls tour pace via Next button
 - No Rough Notation library — difficult to clean up annotations between steps
 - Simple `setInterval` typing preferred over Typewriter.js for reliability

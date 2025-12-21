@@ -4,6 +4,7 @@ import {
     transformLocalLibsToCdn,
     transformGeneratedImagesToDataUrls,
     transformAiImagesToDataUrls,
+    injectAiImageIds,
     prepareHtmlForExport,
 } from "../../src/utils/html-export-transform.js";
 import type { GeneratedImage } from "../../src/types.js";
@@ -173,8 +174,67 @@ describe("html-export-transform", () => {
         });
     });
 
+    describe("injectAiImageIds", () => {
+        const images: GeneratedImage[] = [
+            {
+                id: "gen-2",
+                cacheKey: "test-model:1:1:a beautiful sunset",
+                url: "/generated-images/test-model:1:1:a beautiful sunset.png",
+                prompt: "a beautiful sunset",
+                ratio: "1:1",
+                provider: "openai",
+                modelId: "dall-e-3",
+                base64: "iVBORw0KGgoAAAANSU==",
+                mimeType: "image/png",
+                createdAt: new Date().toISOString(),
+            },
+        ];
+
+        it("should inject data-image-id attribute into matching <ai-image> tags", () => {
+            const html = `<ai-image prompt="a beautiful sunset" ratio="1:1">`;
+            const result = injectAiImageIds(html, images);
+            expect(result).toContain('data-image-id="gen-2"');
+            expect(result).toContain('<ai-image prompt="a beautiful sunset" ratio="1:1" data-image-id="gen-2">');
+        });
+
+        it("should preserve existing attributes", () => {
+            const html = `<ai-image prompt="a beautiful sunset" class="hero" id="img1">`;
+            const result = injectAiImageIds(html, images);
+            expect(result).toContain('class="hero"');
+            expect(result).toContain('id="img1"');
+            expect(result).toContain('data-image-id="gen-2"');
+        });
+
+        it("should handle self-closing tags", () => {
+            const html = `<ai-image prompt="a beautiful sunset" />`;
+            const result = injectAiImageIds(html, images);
+            expect(result).toContain('data-image-id="gen-2"');
+            expect(result).toContain("/>");
+        });
+
+        it("should leave unmatched tags unchanged", () => {
+            const html = `<ai-image prompt="unknown">`;
+            const result = injectAiImageIds(html, images);
+            expect(result).toBe(html);
+        });
+
+        it("should not overwrite existing data-image-id", () => {
+            const html = `<ai-image prompt="a beautiful sunset" data-image-id="existing-id">`;
+            const result = injectAiImageIds(html, images);
+            expect(result).toBe(html);
+        });
+
+        it("should inject data-image-id even if data-id exists", () => {
+            // We ignore data-id because it might be a component ID (sl-gen-*)
+            const html = `<ai-image prompt="a beautiful sunset" data-id="sl-gen-123">`;
+            const result = injectAiImageIds(html, images);
+            expect(result).toContain('data-image-id="gen-2"');
+            expect(result).toContain('data-id="sl-gen-123"');
+        });
+    });
+
     describe("prepareHtmlForExport", () => {
-        it("should apply all transformations", () => {
+        it("should apply all transformations", async () => {
             const images: GeneratedImage[] = [
                 {
                     id: "gen-3",
@@ -202,32 +262,41 @@ describe("html-export-transform", () => {
 </body>
 </html>`;
 
-            const result = prepareHtmlForExport(html, images);
+            const result = await prepareHtmlForExport(html, images);
 
             // Check CDN replacement
             expect(result).toContain("https://cdn.jsdelivr.net/npm/daisyui@4.12.24/dist/full.css");
             expect(result).not.toContain("/libs/daisyui");
 
             // Check ai-image transformation
-            expect(result).not.toContain("<ai-image");
-            expect(result).toContain('class="logo"');
+            // Note: The string "<ai-image" appears in the injected hydration script, so we cannot check not.toContain("<ai-image") globally.
+            // But we can verify the tag now has the data-image-id
+            expect(result).toContain('<ai-image prompt="a logo" class="logo" data-image-id="gen-3">');
+
+            // Verify hydration script is present
+            expect(result).toContain('class AiImage extends HTMLElement');
 
             // Check generated image replacement
             expect(result).toContain("data:image/png;base64,abc123==");
-            expect(result).not.toContain("/generated-images/");
+
+            // Should replace src="/generated-images/..."
+            expect(result).not.toMatch(/src=["']\/generated-images\//);
+
+            // But the manifest WILL contain the path as a key, effectively 'containing' the string
+            expect(result).toContain('"gen-3":');
         });
 
-        it("should work with empty images array", () => {
+        it("should work with empty images array", async () => {
             const html = `<script src="/libs/alpinejs/3.14.3/alpine.min.js"></script>`;
-            const result = prepareHtmlForExport(html, []);
+            const result = await prepareHtmlForExport(html, []);
             expect(result).toBe(
                 `<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.3/dist/cdn.min.js"></script>`
             );
         });
 
-        it("should work with undefined images", () => {
+        it("should work with undefined images", async () => {
             const html = `<p>Hello world</p>`;
-            const result = prepareHtmlForExport(html);
+            const result = await prepareHtmlForExport(html);
             expect(result).toBe(html);
         });
     });

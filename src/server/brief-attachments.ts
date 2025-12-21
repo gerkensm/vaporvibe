@@ -45,3 +45,7 @@ export function processBriefAttachmentFiles(
 
   return { accepted, rejected };
 }
+
+export function cloneAttachment(attachment: BriefAttachment): BriefAttachment {
+  return { ...attachment };
+}

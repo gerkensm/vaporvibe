@@ -65,10 +65,12 @@ The LLM generates a single `index.html` file with this structure:
 
 ### 3. Driver.js Tour Configuration
 
-The generated tour uses Driver.js with these key settings:
+**IMPORTANT — v1.x API**: The IIFE bundle exposes `window.driver`.  
+**NEVER** name your variable `driver` — this shadows the global and causes `"Cannot access 'driver' before initialization"` errors!
 
 ```javascript
-const driverObj = driver.js.driver({
+// CORRECT v1.x initialization (use 'driverObj', NOT 'driver'):
+const driverObj = window.driver.js.driver({
     showProgress: true,
     allowClose: false,  // User can't escape the tour
     steps: [
@@ -147,12 +149,42 @@ The tour output uses the standard library assets available to all VaporVibe gene
 - **Alpine.js / Other frameworks** — If used in original pages
 - **Any other `/libs/*` assets** — Preserved from session
 
-## Limitations
+## Limitations & Pitfalls
+
+### Element Selectors ⚠️
+
+**Use ONLY static HTML attributes** for tour step selectors:
+- ✅ `id`, `data-*` attributes, class names
+- ❌ **NEVER** use framework directives like `[x-text='...']`, `[@click='...']`, `[x-model='...']`
+
+Framework directives are not valid CSS selectors! Always add unique `id` attributes to elements you need to target.
+
+### Defensive Callbacks
+
+**ALWAYS null-check** parameters in `onHighlighted`:
+
+```javascript
+onHighlighted: (element) => {
+    if (!element) return; // Element not found
+    const card = element.closest('.note-card');
+    if (!card) return; // Parent not found
+    const btn = card.querySelector('button');
+    if (btn) setTimeout(() => btn.click(), 800);
+}
+```
+
+### Offline Execution
+
+The exported tour runs from `file://` protocol — **all network requests will fail**!
+
+- ❌ No `fetch('/rest_api/...')` calls — they cause CORS errors
+- ✅ Mock ALL APIs with local state updates and `setTimeout` for feedback
+
+### Other Limitations
 
 1. **AI Images** — `<ai-image>` tags need the server to resolve; exported tours may have missing images unless converted to inline base64
-2. **API Calls** — `/rest_api/*` endpoints don't exist offline; LLM is instructed to mock these with local state
-3. **Complex State** — Multi-step wizards with complex state machines may not replay perfectly
-4. **Framework State Sync** — Alpine.js `x-model` bindings may need manual `dispatchEvent('input')` triggers
+2. **Complex State** — Multi-step wizards with complex state machines may not replay perfectly
+3. **Framework State Sync** — Alpine.js `x-model` bindings may need manual `dispatchEvent('input')` triggers
 
 ## File Location
 
