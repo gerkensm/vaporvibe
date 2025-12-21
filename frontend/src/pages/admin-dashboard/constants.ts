@@ -1,7 +1,7 @@
 import type { CustomModelConfig } from "../../components";
 import type { ProviderKey, TabKey } from "./types";
 
-export const TAB_ORDER: readonly TabKey[] = ["provider", "brief", "runtime", "history"];
+export const TAB_ORDER: readonly TabKey[] = ["brief", "provider", "runtime", "history"];
 
 export const TAB_LABELS: Record<TabKey, string> = {
     brief: "Brief",

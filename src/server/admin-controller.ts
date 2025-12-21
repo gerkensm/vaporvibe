@@ -1139,7 +1139,21 @@ export class AdminController {
         }
       }
 
-      const exportedHtml = await prepareHtmlForExport(ensuredHtml, existingImages, {
+      // Filter to only include images that are actually referenced in the tour HTML
+      const referencedPrompts = new Set(imageRequests.map((r) => r.prompt.toLowerCase().trim()));
+      const imagesToInclude = existingImages.filter((img) =>
+        referencedPrompts.has(img.prompt.toLowerCase().trim())
+      );
+
+      reqLogger.debug(
+        {
+          allImages: existingImages.length,
+          referencedImages: imagesToInclude.length,
+        },
+        "Filtered tour images for export"
+      );
+
+      const exportedHtml = await prepareHtmlForExport(ensuredHtml, imagesToInclude, {
         compressImages: true,
       });
 
@@ -1203,8 +1217,34 @@ export class AdminController {
     const isDownload = action === "download" || url.searchParams.get("download") === "1";
 
     // For downloads, transform HTML to be self-contained (CDN libs + embedded images)
+    // Always include this entry's images, plus look up any cross-referenced images from other pages
+    let imagesToInclude: GeneratedImage[] = [];
+    if (isDownload) {
+      // Start with images from this entry (they're likely referenced)
+      const entryImages = entry.generatedImages ?? [];
+      imagesToInclude.push(...entryImages);
+
+      // Extract prompts from HTML to find cross-referenced images from other pages
+      const referencedPrompts = extractAiImageRequests(entry.response.html)
+        .map((r) => r.prompt.toLowerCase().trim());
+
+      // Only add images from other entries if they're actually referenced
+      const entryPromptSet = new Set(entryImages.map((img) => img.prompt?.toLowerCase().trim() ?? ""));
+      for (const h of history) {
+        if (h === entry) continue; // Skip current entry (already added)
+        for (const img of h.generatedImages ?? []) {
+          const key = img.prompt?.toLowerCase().trim() ?? "";
+          if (referencedPrompts.includes(key) && !entryPromptSet.has(key)) {
+            imagesToInclude.push(img);
+            entryPromptSet.add(key); // Avoid duplicates
+          }
+        }
+      }
+    }
     const html = isDownload
-      ? prepareHtmlForExport(entry.response.html, entry.generatedImages)
+      ? await prepareHtmlForExport(entry.response.html, imagesToInclude, {
+        compressImages: true,
+      })
       : entry.response.html;
 
     res.statusCode = 200;
