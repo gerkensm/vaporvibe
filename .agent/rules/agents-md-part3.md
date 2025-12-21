@@ -101,8 +101,6 @@ globs: **/*
 **Prompt Location**: `src/llm/messages.ts` lines 77-145 (the `tourMode` conditional branch)
 
 **Key Design Decisions**:
-- **Driver.js v1.x API**: Use `window.driver.js.driver({...})` NOT `new Driver()` — the latter is the old v0.x syntax
-- **Variable naming**: NEVER name your variable `driver` — this shadows the global and causes initialization errors. Use `driverObj` instead.
 - No `driverObj.moveNext()` calls — user controls tour pace via Next button
 - No Rough Notation library — difficult to clean up annotations between steps
 - Simple `setInterval` typing preferred over Typewriter.js for reliability
@@ -151,3 +149,7 @@ gerkensm-vaporvibe/
 │   ├── llm/
 │   │   ├── messages.ts   # **CRUCIAL: Prompt engineering logic**
 │   │   ├── factory.ts    # Creates LLM client instances
+│   │   └── *-client.ts   # Provider-specific API clients
+│   ├── config/           # Configuration loading
+│   ├── utils/            # Shared utilities (credentials, assets, history export)
+│   └── views/            # Server-side view helpers (loading shell)

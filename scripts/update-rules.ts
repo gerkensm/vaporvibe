@@ -168,6 +168,30 @@ const CONFIGURATION: Record<string, RuleConfig> = {
         trigger: "glob",
         globs: ["src/server/rest-api-controller.ts", "src/types.ts"],
     },
+    "download-tour-docs.md": {
+        docs: ["docs/architecture/download-tour.md"],
+        trigger: "glob",
+        globs: [
+            "src/llm/messages.ts",
+            "src/server/admin-controller.ts",
+            "src/utils/html-export-transform.ts",
+            "src/utils/extract-ai-images.ts",
+            "src/utils/image-reencoder.ts",
+            "frontend/src/components/HistorySnapshotControls.tsx",
+            "scripts/verify-cdn-urls.ts",
+            "scripts/verify-cdn-content.ts",
+        ],
+    },
+    "standard-library-docs.md": {
+        docs: ["docs/STANDARD_LIBRARY.md"],
+        trigger: "glob",
+        globs: [
+            "src/config/library-manifest.ts",
+            "src/config/generated-lib-versions.ts",
+            "scripts/copy-libs.ts",
+            "frontend/public/libs/**",
+        ],
+    },
     "llm-test-architecture.md": {
         docs: ["tests/llm/README.md"],
         trigger: "glob",
