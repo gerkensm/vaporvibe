@@ -70,13 +70,24 @@ async function runFromFilesystem(distRoot) {
     let sea;
     try {
       sea = require("node:sea");
-    } catch {
+    } catch (e) {
+      console.error("SEA module not available:", e.message);
       sea = null;
     }
 
     const inSea = sea && typeof sea.isSea === "function" && sea.isSea();
+    console.log("SEA detection:", { inSea, hasSea: !!sea, isSea: sea?.isSea?.() });
+    
     if (!inSea) {
-      await runFromFilesystem(resolve(__dirname, "..", "..", "dist"));
+      const fallbackDist = resolve(__dirname, "..", "..", "dist");
+      console.log("Not in SEA, falling back to filesystem:", fallbackDist);
+      if (!fs.existsSync(fallbackDist)) {
+        console.error("Fallback dist directory does not exist:", fallbackDist);
+        console.error("Current __dirname:", __dirname);
+        console.error("process.execPath:", process.execPath);
+        process.exit(1);
+      }
+      await runFromFilesystem(fallbackDist);
       return;
     }
 
@@ -98,6 +109,16 @@ async function runFromFilesystem(distRoot) {
       const outputPath = join(extractRoot, key);
       fs.mkdirSync(dirname(outputPath), { recursive: true });
       fs.writeFileSync(outputPath, buffer);
+    }
+
+    // Set NODE_PATH so native modules (like sharp) can resolve from extracted node_modules
+    const nodeModulesPath = join(extractRoot, "node_modules");
+    process.env.NODE_PATH = nodeModulesPath;
+
+    // Register the module path for ESM resolution
+    const Module = require("node:module");
+    if (typeof Module._initPaths === "function") {
+      Module._initPaths();
     }
 
     await runFromFilesystem(distRoot);
@@ -192,11 +213,22 @@ if (fs.existsSync(pkgJsonPath) && fs.existsSync(nodeModulesDir)) {
       }
 
       const meta = packages[key];
-      if (!meta || !meta.dependencies) {
+      if (!meta) {
         continue;
       }
 
-      for (const childName of Object.keys(meta.dependencies)) {
+      // Traverse both dependencies AND optionalDependencies
+      // Sharp uses optionalDependencies for platform-specific native bindings
+      const allDeps = {
+        ...(meta.dependencies ?? {}),
+        ...(meta.optionalDependencies ?? {})
+      };
+      
+      if (Object.keys(allDeps).length === 0) {
+        continue;
+      }
+
+      for (const childName of Object.keys(allDeps)) {
         const nestedKey = `${key}/node_modules/${childName}`;
         if (packages[nestedKey] || fs.existsSync(path.join(rootDir, nestedKey))) {
           queue.push(nestedKey);
