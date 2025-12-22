@@ -262,6 +262,18 @@ const MODEL_COMPOSITE_SCORES: Record<string, ModelCompositeScores> = {
     responsiveness: 40,
     valueForMoney: 82,
   },
+  "openai:gpt-5.2": {
+    reasoning: 78,
+    codingSkill: 100,
+    responsiveness: 30,
+    valueForMoney: 48,
+  },
+  "openai:gpt-5.2-codex": {
+    reasoning: 80,
+    codingSkill: 100,
+    responsiveness: 20,
+    valueForMoney: 42,
+  },
   "openai:gpt-4o": {
     reasoning: 62,
     codingSkill: 48,
@@ -543,7 +555,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
     description:
       "OpenAI’s studio is the crowd favorite for polished UX, rich reasoning, and plug-and-play integrations.",
     placeholder: "sk-...",
-    defaultModel: "gpt-5.1",
+    defaultModel: "gpt-5.2",
     defaultReasoningMode: "none",
     reasoningModes: ["none", "low", "medium", "high"],
     maxOutputTokens: {
@@ -554,6 +566,72 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         "Most GPT and o-series models support 128K outputs, while GPT-4.1 variants stretch up to roughly 1.05M tokens.",
     },
     models: [
+      {
+        value: "gpt-5.2",
+        label: "GPT-5.2",
+        tagline: "Most advanced frontier model for professional work",
+        description:
+          "The most capable model series yet for professional knowledge work. Better at spreadsheets, presentations, code, images, long contexts, tool use, and complex multi-step projects.",
+        recommendedFor:
+          "Complex professional tasks, long-horizon agents, enterprise knowledge work, and agentic workflows requiring state-of-the-art reasoning.",
+        highlights: [
+          "State-of-the-art reasoning",
+          "Long-context understanding",
+          "Advanced tool calling",
+          "Enhanced vision",
+        ],
+        release: "2025-12-11",
+        contextWindow: 400_000,
+        contextWindowUnit: "tokens",
+        featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 128_000,
+          max: 128_000,
+          description: "GPT-5.2 supports up to 128K output tokens.",
+        },
+        supportsReasoningMode: true,
+        reasoningModes: ["none", "low", "medium", "high", "xhigh"],
+        cost: usdCost({ input: 1.75, output: 14 }),
+        compositeScores: compositeScoresFor("openai:gpt-5.2"),
+        reasoningModeNotes:
+          "Supports reasoning effort from 'none' to 'xhigh' for tasks where quality is most important.",
+      },
+      {
+        value: "gpt-5.2-codex",
+        label: "GPT-5.2 Codex",
+        tagline: "Advanced agentic coding and cybersecurity",
+        description:
+          "The most advanced agentic coding model for complex, real-world software engineering. Optimized for long-horizon work, context compaction, large refactors and migrations, Windows environments, and cybersecurity.",
+        recommendedFor:
+          "Professional software engineering, complex refactors, code migrations, security research, and long-running agentic coding tasks.",
+        highlights: [
+          "State-of-the-art agentic coding",
+          "Native context compaction",
+          "Stronger cybersecurity capabilities",
+          "Enhanced Windows support",
+        ],
+        release: "2025-12-18",
+        contextWindow: 400_000,
+        contextWindowUnit: "tokens",
+        featured: true,
+        isMultimodal: true,
+        supportsImageInput: true,
+        supportsPDFInput: true,
+        maxOutputTokens: {
+          default: 128_000,
+          max: 128_000,
+          description: "GPT-5.2 Codex supports up to 128K output tokens.",
+        },
+        supportsReasoningMode: true,
+        reasoningModes: ["low", "medium", "high", "xhigh"],
+        cost: usdCost({ input: 1.75, output: 14 }),
+        compositeScores: compositeScoresFor("openai:gpt-5.2-codex"),
+        reasoningModeNotes:
+          "Supports reasoning effort from 'low' to 'xhigh' for complex software engineering tasks.",
+      },
       {
         value: "gpt-5.1",
         label: "GPT-5.1",
@@ -570,7 +648,7 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         release: "2025-11-13",
         contextWindow: 400_000,
         contextWindowUnit: "tokens",
-        featured: true,
+        featured: false,
         isMultimodal: true,
         supportsImageInput: true,
         supportsPDFInput: true,

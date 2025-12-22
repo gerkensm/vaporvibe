@@ -82,6 +82,7 @@ export const REASONING_MODE_CHOICES: Array<{ value: ReasoningMode; label: string
   { value: "low", label: "Low", description: "Allow short reasoning bursts for tricky prompts." },
   { value: "medium", label: "Medium", description: "Balance latency and introspection for complex flows." },
   { value: "high", label: "High", description: "Maximize deliberate reasoning when quality is critical." },
+  { value: "xhigh", label: "Extra High", description: "Maximum reasoning for the most complex tasks (GPT-5.2+)." },
 ];
 
 export const PROVIDER_REASONING_CAPABILITIES: Record<ModelProvider, { mode: boolean; tokens: boolean }> = Object.fromEntries(

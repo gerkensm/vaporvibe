@@ -12,7 +12,7 @@ export type ImageModelId =
   | "imagen-3.0-generate-002"
   | "imagen-4.0-fast-generate-001";
 
-export type ReasoningMode = "none" | "low" | "medium" | "high" | "default";
+export type ReasoningMode = "none" | "low" | "medium" | "high" | "xhigh" | "default";
 
 export interface BriefAttachment {
   id: string;
