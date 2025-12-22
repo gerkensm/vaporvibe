@@ -112,9 +112,8 @@ export function SnapshotImportForm({
     <>
       {status ? (
         <div
-          className={`admin-status admin-status--${
-            status.tone === "error" ? "error" : "info"
-          }`}
+          className={`admin-status admin-status--${status.tone === "error" ? "error" : "info"
+            }`}
         >
           {status.message}
         </div>

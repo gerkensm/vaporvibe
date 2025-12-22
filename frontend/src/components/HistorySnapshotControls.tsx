@@ -10,9 +10,10 @@ interface HistorySnapshotControlsProps {
   onState: (state: AdminStateResponse) => void;
   onHistoryRefresh: () => void;
   forkActive: boolean;
+  onDownloadTour: () => Promise<void> | void;
+  tourLoading: boolean;
+  tourDisabled?: boolean;
 }
-
-type CollapsibleKey = "import" | "export";
 
 function HistorySnapshotControls({
   exportJsonUrl,
@@ -20,28 +21,25 @@ function HistorySnapshotControls({
   onState,
   onHistoryRefresh,
   forkActive,
+  onDownloadTour,
+  tourLoading,
+  tourDisabled = false,
 }: HistorySnapshotControlsProps) {
-  const [openSection, setOpenSection] = useState<CollapsibleKey | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [pendingDropFiles, setPendingDropFiles] = useState<File[] | null>(null);
   const [isDragActive, setIsDragActive] = useState(false);
 
-  const importOpen = openSection === "import";
-  const exportOpen = openSection === "export";
-
   useEffect(() => {
     if (forkActive) {
-      setOpenSection(null);
+      setImportOpen(false);
       setIsDragActive(false);
       setPendingDropFiles(null);
     }
   }, [forkActive]);
 
-  const toggleSection = useCallback(
-    (key: CollapsibleKey) => {
-      setOpenSection((current) => (current === key ? null : key));
-    },
-    []
-  );
+  const toggleImport = useCallback(() => {
+    setImportOpen((open) => !open);
+  }, []);
 
   const handleContainerDragEnter = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
@@ -51,7 +49,7 @@ function HistorySnapshotControls({
       event.preventDefault();
       event.stopPropagation();
       if (!importOpen) {
-        setOpenSection("import");
+        setImportOpen(true);
       }
       setIsDragActive(true);
     },
@@ -80,7 +78,7 @@ function HistorySnapshotControls({
     event.stopPropagation();
     const files = Array.from(event.dataTransfer.files);
     setPendingDropFiles(files);
-    setOpenSection("import");
+    setImportOpen(true);
     setIsDragActive(false);
   }, []);
 
@@ -90,16 +88,8 @@ function HistorySnapshotControls({
       : "Drop a snapshot file here or click to import.";
   }, [importOpen]);
 
-  const exportHint = useMemo(() => {
-    if (forkActive) {
-      return "Exports are disabled while an A/B comparison is active.";
-    }
-    return exportOpen
-      ? "Download the full history or prompt markdown."
-      : "Save a snapshot for safekeeping or sharing.";
-  }, [exportOpen, forkActive]);
-
   const exportDisabled = forkActive;
+  const tourButtonDisabled = exportDisabled || tourLoading || tourDisabled;
 
   const handleDisabledLink = useCallback(
     (event: MouseEvent<HTMLAnchorElement>) => {
@@ -118,78 +108,98 @@ function HistorySnapshotControls({
       onDragLeave={handleContainerDragLeave}
       onDrop={handleContainerDrop}
     >
-      <section
-        className={`history-snapshot-controls__section${importOpen ? " is-open" : ""}`}
-        aria-expanded={importOpen}
-      >
-        <header className="history-snapshot-controls__header">
-          <button
-            type="button"
-            className="history-snapshot-controls__toggle"
-            onClick={() => toggleSection("import")}
-            aria-expanded={importOpen}
-          >
-            <span className="history-snapshot-controls__label">
-              <span className="history-snapshot-controls__title">Import snapshot</span>
-              <span className="history-snapshot-controls__hint">{importHint}</span>
-            </span>
-            <span className="history-snapshot-controls__chevron" aria-hidden="true" />
-          </button>
-        </header>
+      {/* Import Section - simple drop zone card */}
+      <section className="export-cards">
+        <h3 className="export-cards__heading">Import</h3>
         {importOpen ? (
           <SnapshotImportForm
+            className="snapshot-import"
             context="admin"
             onState={onState}
             onHistoryRefresh={onHistoryRefresh}
             externalFiles={pendingDropFiles}
             onExternalFilesHandled={() => setPendingDropFiles(null)}
           />
-        ) : null}
-      </section>
-
-      <section
-        className={`history-snapshot-controls__section${exportOpen ? " is-open" : ""}`}
-        aria-expanded={exportOpen}
-      >
-        <header className="history-snapshot-controls__header">
+        ) : (
           <button
             type="button"
-            className="history-snapshot-controls__toggle"
-            disabled={exportDisabled}
-            onClick={() => toggleSection("export")}
-            aria-expanded={exportOpen}
+            className="export-card export-card--dropzone"
+            onClick={() => setImportOpen(true)}
           >
-            <span className="history-snapshot-controls__label">
-              <span className="history-snapshot-controls__title">Export session</span>
-              <span className="history-snapshot-controls__hint">{exportHint}</span>
+            <span className="export-card__icon" aria-hidden="true">📥</span>
+            <span className="export-card__content">
+              <span className="export-card__title">Import Snapshot</span>
+              <span className="export-card__desc">
+                Drop a snapshot file here or click to import a previous session.
+              </span>
             </span>
-            <span className="history-snapshot-controls__chevron" aria-hidden="true" />
           </button>
-        </header>
-        {exportOpen ? (
-          <div className="history-snapshot-controls__actions">
-            <a
-              className="admin-primary admin-primary--link"
-              href={exportJsonUrl}
-              download
-              aria-disabled={forkActive}
-              onClick={handleDisabledLink}
-              tabIndex={forkActive ? -1 : 0}
-            >
-              Download snapshot (.zip)
-            </a>
-            <a
-              className="admin-secondary admin-secondary--link"
-              href={exportMarkdownUrl}
-              download
-              aria-disabled={forkActive}
-              onClick={handleDisabledLink}
-              tabIndex={forkActive ? -1 : 0}
-            >
-              Download prompt.md
-            </a>
-          </div>
-        ) : null}
+        )}
+      </section>
+
+      {/* Export Section - always visible cards */}
+      <section className="export-cards">
+        <h3 className="export-cards__heading">Export &amp; Share</h3>
+        {forkActive && (
+          <p className="export-cards__warning">
+            Exports are disabled while an A/B comparison is active.
+          </p>
+        )}
+        <div className="export-cards__grid">
+          {/* Clickthrough Tour - featured card */}
+          <button
+            type="button"
+            className="export-card export-card--featured"
+            onClick={onDownloadTour}
+            disabled={tourButtonDisabled}
+          >
+            <span className="export-card__icon" aria-hidden="true">▶️</span>
+            <span className="export-card__content">
+              <span className="export-card__title">
+                {tourLoading ? "Generating…" : "Clickthrough Tour"}
+              </span>
+              <span className="export-card__desc">
+                Interactive demo with walkthrough. Uses your model—may take 1–2 minutes.
+              </span>
+            </span>
+          </button>
+
+          {/* Backup Snapshot */}
+          <a
+            className="export-card"
+            href={exportJsonUrl}
+            download
+            aria-disabled={exportDisabled}
+            onClick={handleDisabledLink}
+            tabIndex={exportDisabled ? -1 : 0}
+          >
+            <span className="export-card__icon" aria-hidden="true">📦</span>
+            <span className="export-card__content">
+              <span className="export-card__title">Backup Snapshot</span>
+              <span className="export-card__desc">
+                Save your entire session with images. Re-import later to continue where you left off.
+              </span>
+            </span>
+          </a>
+
+          {/* Copy as Prompt */}
+          <a
+            className="export-card"
+            href={exportMarkdownUrl}
+            download
+            aria-disabled={exportDisabled}
+            onClick={handleDisabledLink}
+            tabIndex={exportDisabled ? -1 : 0}
+          >
+            <span className="export-card__icon" aria-hidden="true">📝</span>
+            <span className="export-card__content">
+              <span className="export-card__title">Export as Prompt</span>
+              <span className="export-card__desc">
+                Markdown file for coding agents. Build it out with Cursor, GitHub Copilot, or Windsurf.
+              </span>
+            </span>
+          </a>
+        </div>
       </section>
     </div>
   );

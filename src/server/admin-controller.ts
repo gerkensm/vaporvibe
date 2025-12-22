@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { ServerResponse } from "node:http";
+import process from "node:process";
 import JSZip from "jszip";
 import type { Logger } from "pino";
 import { ADMIN_ROUTE_PREFIX } from "../constants.js";
@@ -42,6 +43,7 @@ import type {
 import { createHistoryArchiveZip } from "../utils/history-archive.js";
 import { createLlmClient } from "../llm/factory.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
+import { lookupEnvApiKey } from "../config/runtime-config.js";
 import { readBody } from "../utils/body.js";
 import type { ParsedFile } from "../utils/body.js";
 import { parseCookies } from "../utils/cookies.js";
@@ -55,11 +57,26 @@ import {
   writeImageCache,
 } from "../image-gen/cache.js";
 import { getGeneratedImagePath } from "../image-gen/paths.js";
+import { createImageGenClient } from "../image-gen/factory.js";
+import {
+  injectAiImageIds,
+  prepareHtmlForExport,
+} from "../utils/html-export-transform.js";
+import { buildMessages } from "../llm/messages.js";
+import { supportsImageInput } from "../llm/capabilities.js";
+import { ensureHtmlDocument } from "../utils/html.js";
+import {
+  applyReusablePlaceholders,
+  buildMasterReusableCaches,
+} from "./component-cache.js";
 import type { MutableServerState, RequestContext } from "./server.js";
 import { SessionStore } from "./session-store.js";
 import { getCredentialStore } from "../utils/credential-store.js";
 import { getConfigStore } from "../utils/config-store.js";
-import { processBriefAttachmentFiles } from "./brief-attachments.js";
+import {
+  cloneAttachment,
+  processBriefAttachmentFiles,
+} from "./brief-attachments.js";
 import type {
   AdminActiveForkSummary,
   AdminBriefAttachment,
@@ -73,10 +90,12 @@ import type {
   AdminStateResponse,
   AdminUpdateResponse,
 } from "../types/admin-api.js";
+import { extractAiImageRequests, findMissingImages } from "../utils/extract-ai-images.js";
 
 const JSON_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.json`;
 const ZIP_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.zip`;
 const MARKDOWN_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history/prompt.md`;
+const TOUR_EXPORT_PATH = "/api/project/default/generate-tour";
 
 interface AdminControllerOptions {
   state: MutableServerState;
@@ -130,6 +149,11 @@ export class AdminController {
   ): Promise<boolean> {
     const { method, path } = context;
     if (!path.startsWith(ADMIN_ROUTE_PREFIX)) {
+      const tourMatch = path.match(/^\/api\/project\/([^/]+)\/generate-tour$/);
+      if (method === "POST" && tourMatch) {
+        await this.handleTourGeneration(context, reqLogger, tourMatch[1]);
+        return true;
+      }
       if (path.startsWith("/api/admin")) {
         return this.handleApi(context, reqLogger);
       }
@@ -357,7 +381,9 @@ export class AdminController {
           : undefined;
       const snapshotInput = candidate ?? fallbackRaw;
 
-      if (snapshotInput == null) {
+      const hasFiles = Array.isArray(body.files) && body.files.length > 0;
+
+      if (snapshotInput == null && !hasFiles) {
         this.respondJson(
           res,
           {
@@ -619,7 +645,9 @@ export class AdminController {
     }
   }
 
-  private async computeProviderKeyStatuses(): Promise<
+  private async computeProviderKeyStatuses(
+    env: Record<string, string | undefined>
+  ): Promise<
     Record<
       "openai" | "gemini" | "anthropic" | "grok" | "groq",
       { hasKey: boolean; verified: boolean }
@@ -645,7 +673,7 @@ export class AdminController {
 
     for (const p of providers) {
       const storedKey = await this.credentialStore.getApiKey(p);
-      const envKey = lookupEnvApiKey(p);
+      const envKey = lookupEnvApiKey(p, env);
       const hasKey = Boolean(
         (storedKey && storedKey.trim().length > 0) ||
         (envKey && envKey.trim().length > 0)
@@ -689,6 +717,7 @@ export class AdminController {
     const sortedHistory = this.getSortedHistoryEntries();
     const sessionCount = new Set(sortedHistory.map((entry) => entry.sessionId))
       .size;
+    const primarySessionId = sortedHistory[0]?.sessionId ?? null;
     const attachments = (this.state.briefAttachments ?? []).map((attachment) =>
       this.toAdminBriefAttachment(attachment)
     );
@@ -732,7 +761,7 @@ export class AdminController {
       enableStandardLibrary: this.state.runtime.enableStandardLibrary,
     };
 
-    const providerKeyStatuses = await this.computeProviderKeyStatuses();
+    const providerKeyStatuses = await this.computeProviderKeyStatuses(process.env);
     const providers = Object.keys(PROVIDER_LABELS) as ModelProvider[];
     const modelOptions = Object.fromEntries(
       providers.map((provider) => [provider, getModelOptions(provider)])
@@ -764,8 +793,10 @@ export class AdminController {
       providerLocked: this.state.providerLocked,
       totalHistoryCount: sortedHistory.length,
       sessionCount,
+      primarySessionId,
       exportJsonUrl: ZIP_EXPORT_PATH,
       exportMarkdownUrl: MARKDOWN_EXPORT_PATH,
+      exportTourUrl: TOUR_EXPORT_PATH,
       providerKeyStatuses: providerKeyStatuses as Record<
         ModelProvider,
         { hasKey: boolean; verified: boolean }
@@ -829,7 +860,7 @@ export class AdminController {
     const snapshot = createHistorySnapshot({
       history,
       brief: this.state.brief,
-      briefAttachments: cloneAttachments(this.state.briefAttachments),
+      briefAttachments: this.state.briefAttachments?.map(cloneAttachment) ?? null,
       runtime: this.state.runtime,
       provider: this.state.provider,
     });
@@ -861,7 +892,7 @@ export class AdminController {
     const snapshot = createHistorySnapshot({
       history,
       brief: this.state.brief,
-      briefAttachments: cloneAttachments(this.state.briefAttachments),
+      briefAttachments: this.state.briefAttachments?.map(cloneAttachment) ?? null,
       runtime: this.state.runtime,
       provider: this.state.provider,
     });
@@ -905,7 +936,7 @@ export class AdminController {
     const markdown = createPromptMarkdown({
       history,
       brief: this.state.brief,
-      briefAttachments: cloneAttachments(this.state.briefAttachments),
+      briefAttachments: this.state.briefAttachments?.map(cloneAttachment) ?? null,
       runtime: this.state.runtime,
       provider: this.state.provider,
     });
@@ -913,6 +944,239 @@ export class AdminController {
     res.setHeader("Content-Type", "text/markdown; charset=utf-8");
     res.setHeader("Content-Disposition", "attachment; filename=prompt.md");
     res.end(markdown);
+  }
+
+  private async handleTourGeneration(
+    context: RequestContext,
+    reqLogger: Logger,
+    projectId: string
+  ): Promise<void> {
+    const { req, res, path, method, url } = context;
+    const body = await readBody(req);
+    const sessionIdInput = body.data?.sessionId;
+    const sessionId =
+      typeof sessionIdInput === "string" && sessionIdInput.trim().length > 0
+        ? sessionIdInput.trim()
+        : "";
+
+    if (!sessionId) {
+      this.respondJson(
+        res,
+        { success: false, message: "sessionId is required to generate a tour" },
+        400
+      );
+      return;
+    }
+
+    const history = this.sessionStore.getHistory(sessionId);
+    if (history.length === 0) {
+      this.respondJson(
+        res,
+        { success: false, message: "No history found for the requested session." },
+        404
+      );
+      return;
+    }
+
+    const includeAttachments = supportsImageInput(
+      this.state.provider.provider,
+      this.state.provider.model
+    );
+    const briefAttachments = includeAttachments
+      ? (this.state.briefAttachments ?? []).map((attachment) => ({
+        ...attachment,
+      }))
+      : [];
+    const omittedAttachmentCount = includeAttachments
+      ? 0
+      : (this.state.briefAttachments ?? []).length;
+
+    const lastHtmlEntry = [...history]
+      .reverse()
+      .find((entry) => entry.entryKind === "html");
+    const prevHtml = lastHtmlEntry?.response.html ?? "";
+
+    // Preprocess history to normalize image tags for the LLM
+    // This converts <ai-image> tags -> <img src="/generated-images/..."> so the LLM
+    // sees standard HTML and can copy/paste the valid URLs, which we then properly
+    // transform to data URIs in the fin al export step.
+    // Gather ALL generated images from the entire session.
+    // This is critical because an <ai-image> tag in entry N might have been originally
+    // generated in entry N-5. We need to find the matching ID regardless of where it came from.
+    const allGeneratedImages = this.collectGeneratedImages(history);
+
+    const preprocessedHistory = history.map((entry) => {
+      if (entry.entryKind !== "html" || !entry.response.html) return entry;
+      return {
+        ...entry,
+        response: {
+          ...entry.response,
+          html: injectAiImageIds(entry.response.html, allGeneratedImages),
+        },
+      };
+    });
+
+    const messages = buildMessages({
+      brief: this.state.brief ?? "",
+      briefAttachments,
+      omittedAttachmentCount,
+      method,
+      path,
+      query: Object.fromEntries(url.searchParams.entries()),
+      body: body.data ?? {},
+      prevHtml,
+      timestamp: new Date(),
+      includeInstructionPanel: this.state.runtime.includeInstructionPanel,
+      history: preprocessedHistory,
+      historyTotal: history.length,
+      historyLimit: history.length,
+      historyMaxBytes: Number.MAX_SAFE_INTEGER,
+      historyBytesUsed: Buffer.byteLength(prevHtml, "utf8"),
+      historyLimitOmitted: 0,
+      historyByteOmitted: 0,
+      adminPath: ADMIN_ROUTE_PREFIX,
+      imageGenerationEnabled: this.state.provider.imageGeneration.enabled,
+      enableStandardLibrary: true,
+      tourMode: true,
+      generatedImages: allGeneratedImages, // Pass ALL session images for manifest generation
+    });
+
+
+
+    try {
+      const llmClient = this.state.llmClient ?? createLlmClient(this.state.provider);
+      this.applyProviderEnv(llmClient.settings);
+
+      const result = await llmClient.generateHtml(messages);
+      const caches = buildMasterReusableCaches(history);
+      const placeholderResult = applyReusablePlaceholders(result.html, caches);
+
+      if (
+        placeholderResult.missingComponentIds.length > 0 ||
+        placeholderResult.missingStyleIds.length > 0
+      ) {
+        reqLogger.warn(
+          {
+            missingComponentIds: placeholderResult.missingComponentIds,
+            missingStyleIds: placeholderResult.missingStyleIds,
+          },
+          "Reusable placeholders could not be resolved for tour export"
+        );
+      }
+
+      const ensuredHtml = ensureHtmlDocument(placeholderResult.html, {
+        method: "GET",
+        path,
+      });
+
+      // Extract all <ai-image> tags from the generated tour HTML
+      const imageRequests = extractAiImageRequests(ensuredHtml);
+      const existingImages = this.collectGeneratedImages(history);
+      const missingImages = findMissingImages(imageRequests, existingImages);
+
+      reqLogger.debug(
+        {
+          totalRequests: imageRequests.length,
+          existing: existingImages.length,
+          missing: missingImages.length,
+        },
+        "Tour image analysis"
+      );
+
+      // Generate missing images on-demand
+      if (missingImages.length > 0 && this.state.provider.imageGeneration?.enabled) {
+        reqLogger.info({ count: missingImages.length }, "Generating missing tour images");
+
+        const imageGenClient = createImageGenClient(
+          this.state.provider.imageGeneration.provider
+        );
+        const apiKey = await this.lookupImageApiKey();
+
+        if (!apiKey) {
+          reqLogger.warn("No API key available for image generation");
+        } else {
+          for (const { prompt, ratio } of missingImages) {
+            try {
+              const result = await imageGenClient.generateImage({
+                prompt,
+                ratio,
+                apiKey,
+                modelId: this.state.provider.imageGeneration.modelId ?? "gpt-image-1.5",
+              });
+
+              const cacheKey = buildImageCacheKey({
+                provider: this.state.provider.imageGeneration.provider,
+                modelId: this.state.provider.imageGeneration.modelId ?? "gpt-image-1.5",
+                prompt,
+                ratio,
+              });
+
+              const base64 = result.url.startsWith("data:")
+                ? result.url.split(",")[1]
+                : Buffer.from(await (await fetch(result.url)).arrayBuffer()).toString("base64");
+
+              await writeImageCache(cacheKey, base64);
+
+              const { route } = getGeneratedImagePath(cacheKey);
+              existingImages.push({
+                id: randomUUID(),
+                cacheKey,
+                url: route,
+                prompt,
+                ratio,
+                provider: this.state.provider.imageGeneration.provider,
+                modelId: this.state.provider.imageGeneration.modelId ?? "gpt-image-1.5",
+                mimeType: "image/png",
+                base64,
+                createdAt: new Date().toISOString(),
+              });
+
+              reqLogger.debug({ prompt, ratio }, "Generated tour image");
+            } catch (error) {
+              reqLogger.error({ err: error, prompt }, "Failed to generate tour image");
+            }
+          }
+        }
+      }
+
+      // Filter to only include images that are actually referenced in the tour HTML
+      const referencedPrompts = new Set(imageRequests.map((r) => r.prompt.toLowerCase().trim()));
+      const imagesToInclude = existingImages.filter((img) =>
+        referencedPrompts.has(img.prompt.toLowerCase().trim())
+      );
+
+      reqLogger.debug(
+        {
+          allImages: existingImages.length,
+          referencedImages: imagesToInclude.length,
+        },
+        "Filtered tour images for export"
+      );
+
+      const exportedHtml = await prepareHtmlForExport(ensuredHtml, imagesToInclude, {
+        compressImages: true,
+      });
+
+      res.statusCode = 200;
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=\"prototype-tour.html\""
+      );
+      res.setHeader("Content-Type", "text/html");
+      res.end(exportedHtml);
+
+      reqLogger.info(
+        { sessionId, projectId },
+        "Prototype clickthrough tour generated"
+      );
+    } catch (error) {
+      reqLogger.error({ err: error }, "Failed to generate prototype tour");
+      this.respondJson(
+        res,
+        { success: false, message: "Failed to generate prototype tour" },
+        500
+      );
+    }
   }
 
   private respondJson(
@@ -950,12 +1214,43 @@ export class AdminController {
     }
 
     const filenameSafeId = entryId.replace(/[^a-z0-9-_]/gi, "-");
-    const html = entry.response.html;
+    const isDownload = action === "download" || url.searchParams.get("download") === "1";
+
+    // For downloads, transform HTML to be self-contained (CDN libs + embedded images)
+    // Always include this entry's images, plus look up any cross-referenced images from other pages
+    let imagesToInclude: GeneratedImage[] = [];
+    if (isDownload) {
+      // Start with images from this entry (they're likely referenced)
+      const entryImages = entry.generatedImages ?? [];
+      imagesToInclude.push(...entryImages);
+
+      // Extract prompts from HTML to find cross-referenced images from other pages
+      const referencedPrompts = extractAiImageRequests(entry.response.html)
+        .map((r) => r.prompt.toLowerCase().trim());
+
+      // Only add images from other entries if they're actually referenced
+      const entryPromptSet = new Set(entryImages.map((img) => img.prompt?.toLowerCase().trim() ?? ""));
+      for (const h of history) {
+        if (h === entry) continue; // Skip current entry (already added)
+        for (const img of h.generatedImages ?? []) {
+          const key = img.prompt?.toLowerCase().trim() ?? "";
+          if (referencedPrompts.includes(key) && !entryPromptSet.has(key)) {
+            imagesToInclude.push(img);
+            entryPromptSet.add(key); // Avoid duplicates
+          }
+        }
+      }
+    }
+    const html = isDownload
+      ? await prepareHtmlForExport(entry.response.html, imagesToInclude, {
+        compressImages: true,
+      })
+      : entry.response.html;
 
     res.statusCode = 200;
     res.setHeader("Content-Type", "text/html; charset=utf-8");
 
-    if (action === "download" || url.searchParams.get("download") === "1") {
+    if (isDownload) {
       res.setHeader(
         "Content-Disposition",
         `attachment; filename=history-${filenameSafeId}.html`
@@ -1130,7 +1425,7 @@ export class AdminController {
           apiKeyCandidate = storedKey;
           keySourceIsUI = true;
         } else {
-          const envKey = lookupEnvApiKey(provider);
+          const envKey = lookupEnvApiKey(provider, process.env);
           if (envKey) {
             apiKeyCandidate = envKey;
             keySourceIsUI = false;
@@ -1608,6 +1903,8 @@ export class AdminController {
     assets: Map<string, Buffer>
   ): Promise<void> {
     const writePromises: Promise<unknown>[] = [];
+    const assetKeys = Array.from(assets.keys());
+    reqLogger.debug({ assetKeysCount: assetKeys.length }, "Hydrating imported images from assets");
 
     for (const entry of historyEntries) {
       if (!entry.generatedImages?.length) {
@@ -1631,19 +1928,31 @@ export class AdminController {
           image.url && image.url.trim().length > 0
             ? image.url
             : getGeneratedImagePath(cacheKey).route;
+
         const base64 = (() => {
           if (typeof image.base64 === "string" && image.base64.trim().length > 0) {
+            reqLogger.debug({ imageId: image.id, cacheKey }, "Hydrating image from inline base64");
             return image.base64.trim();
           }
           const blobName =
             typeof image.blobName === "string" && image.blobName.trim().length > 0
               ? image.blobName.trim()
               : undefined;
-          if (blobName && assets.has(blobName)) {
-            return assets.get(blobName)?.toString("base64");
+
+          if (blobName) {
+            const found = assets.has(blobName);
+            if (found) {
+              reqLogger.debug({ imageId: image.id, blobName }, "Hydrating image from zip asset");
+              return assets.get(blobName)?.toString("base64");
+            } else {
+              reqLogger.warn({ imageId: image.id, blobName, availableAssets: assetKeys.slice(0, 5) }, "Image blob missing in zip assets");
+            }
+          } else {
+            reqLogger.debug({ imageId: image.id }, "No blobName or base64 for image");
           }
           return undefined;
         })();
+
         const blobName =
           typeof image.blobName === "string" && image.blobName.trim().length > 0
             ? image.blobName.trim()
@@ -1655,6 +1964,8 @@ export class AdminController {
               reqLogger.warn({ err: error }, "Failed to restore generated image cache");
             })
           );
+        } else {
+          reqLogger.warn({ imageId: image.id, prompt: image.prompt }, "Failed to modify image: no content found");
         }
 
         return {
@@ -1685,6 +1996,7 @@ export class AdminController {
 
     if (writePromises.length > 0) {
       await Promise.all(writePromises);
+      reqLogger.debug({ count: writePromises.length }, "Restored images to disk cache");
     }
   }
 
@@ -1826,7 +2138,7 @@ export class AdminController {
       createdAt: entry.createdAt,
       response: entry.response,
       briefAttachments: this.hydrateImportedAttachments(
-        cloneAttachments(entry.briefAttachments),
+        entry.briefAttachments?.map(cloneAttachment),
         assets
       ),
     }));
@@ -1852,7 +2164,7 @@ export class AdminController {
     } else {
       const latestAttachments = historyEntries.at(-1)?.briefAttachments;
       this.state.briefAttachments = this.hydrateImportedAttachments(
-        cloneAttachments(latestAttachments),
+        latestAttachments?.map(cloneAttachment),
         assets
       );
     }
@@ -1947,14 +2259,15 @@ export class AdminController {
     const nextProvider = this.state.provider.provider;
     let nextApiKey = previousApiKey;
 
-    if (nextProvider !== previousProvider) {
-      const storedKey = await this.credentialStore.getApiKey(nextProvider);
-      if (storedKey && storedKey.trim().length > 0) {
-        nextApiKey = storedKey.trim();
-      } else {
-        const envKey = lookupEnvApiKey(nextProvider);
-        nextApiKey = envKey?.trim() ?? "";
-      }
+    // Always look up the API key from credential store or environment.
+    // This ensures that even when the provider doesn't change, we pick up
+    // keys that exist in storage/env but weren't loaded into the session.
+    const storedKey = await this.credentialStore.getApiKey(nextProvider);
+    if (storedKey && storedKey.trim().length > 0) {
+      nextApiKey = storedKey.trim();
+    } else {
+      const envKey = lookupEnvApiKey(nextProvider, process.env);
+      nextApiKey = envKey?.trim() ?? "";
     }
 
     this.state.provider.apiKey = typeof nextApiKey === "string" ? nextApiKey : "";
@@ -1969,8 +2282,8 @@ export class AdminController {
       this.state.llmClient = createLlmClient(refreshedSettings);
       this.state.providerReady = true;
       this.state.providersWithKeys.add(nextProvider);
-      this.state.verifiedProviders[nextProvider] =
-        this.state.verifiedProviders[nextProvider] ?? false;
+      // Mark as verified since we have a valid key from credential store or env
+      this.state.verifiedProviders[nextProvider] = true;
       this.applyProviderEnv(refreshedSettings);
     } else {
       this.state.llmClient = null;
@@ -1982,10 +2295,10 @@ export class AdminController {
 
     this.state.providerSelectionRequired = !hasKey;
 
-    if (nextProvider !== previousProvider) {
-      this.state.providersWithKeys.delete(previousProvider);
-      delete this.state.verifiedProviders[previousProvider];
-    }
+    // NOTE: We intentionally do NOT delete the previous provider from
+    // providersWithKeys or verifiedProviders when switching providers.
+    // The previous provider still has a valid key in the keychain and
+    // should remain selectable in the UI.
 
     reqLogger.info(
       { entries: historyEntries.length },
@@ -2059,6 +2372,30 @@ export class AdminController {
     res.end("Not Found");
   }
 
+  private collectGeneratedImages(history: HistoryEntry[]): GeneratedImage[] {
+    const seen = new Set<string>();
+    const images: GeneratedImage[] = [];
+
+    for (const entry of history) {
+      if (!entry.generatedImages) {
+        continue;
+      }
+
+      for (const image of entry.generatedImages) {
+        const dedupeKey = image.id || image.cacheKey;
+        if (dedupeKey && seen.has(dedupeKey)) {
+          continue;
+        }
+        if (dedupeKey) {
+          seen.add(dedupeKey);
+        }
+        images.push(image);
+      }
+    }
+
+    return images;
+  }
+
   private toAdminBriefAttachment(
     attachment: BriefAttachment
   ): AdminBriefAttachment {
@@ -2090,7 +2427,7 @@ export class AdminController {
   private isKeyFromEnvironment(
     provider: ProviderSettings["provider"]
   ): boolean {
-    const envKey = lookupEnvApiKey(provider);
+    const envKey = lookupEnvApiKey(provider, process.env);
     return Boolean(envKey && envKey.trim().length > 0);
   }
 
@@ -2184,6 +2521,24 @@ export class AdminController {
         : undefined,
     };
   }
+  /**
+  * Looks up the API key for the currently configured image generation provider.
+  * Checks the credential store for the provider's key.
+  * @returns The API key if found, null otherwise
+  */
+  private async lookupImageApiKey(): Promise<string | null> {
+    const provider = this.state.provider.imageGeneration?.provider;
+    if (!provider) {
+      return null;
+    }
+
+    const storedKey = await this.credentialStore.getApiKey(provider);
+    if (storedKey && storedKey.trim().length > 0) {
+      return storedKey.trim();
+    }
+
+    return null;
+  }
 }
 
 function summarizeRecord(record: Record<string, unknown> | undefined): string {
@@ -2263,14 +2618,6 @@ function normalizeStringArray(value: unknown): string[] {
   return [];
 }
 
-function cloneAttachments(
-  attachments: BriefAttachment[] | undefined
-): BriefAttachment[] {
-  if (!attachments || attachments.length === 0) {
-    return [];
-  }
-  return attachments.map((attachment) => ({ ...attachment }));
-}
 
 function extractSnapshotCandidate(
   data: unknown
@@ -2431,30 +2778,7 @@ function clampReasoningTokens(
   return next;
 }
 
-function lookupEnvApiKey(
-  provider: ProviderSettings["provider"]
-): string | undefined {
-  if (provider === "openai") {
-    return process.env.OPENAI_API_KEY?.trim() || undefined;
-  }
-  if (provider === "gemini") {
-    return process.env.GEMINI_API_KEY?.trim() || undefined;
-  }
-  if (provider === "anthropic") {
-    return process.env.ANTHROPIC_API_KEY?.trim() || undefined;
-  }
-  if (provider === "grok") {
-    return (
-      process.env.XAI_API_KEY?.trim() ||
-      process.env.GROK_API_KEY?.trim() ||
-      undefined
-    );
-  }
-  if (provider === "groq") {
-    return process.env.GROQ_API_KEY?.trim() || process.env.GROQ_KEY?.trim() || undefined;
-  }
-  return undefined;
-}
+
 
 function sanitizeProvider(value: string): ProviderSettings["provider"] {
   const normalized = value.toLowerCase();

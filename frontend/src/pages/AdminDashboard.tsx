@@ -21,6 +21,7 @@ import {
   submitProviderUpdate,
   submitRuntimeUpdate,
   verifyProviderKey,
+  downloadClickthroughPrototype,
   type ProviderUpdatePayload,
   type RuntimeUpdatePayload,
 } from "../api/admin";
@@ -99,6 +100,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     string | null
   >(null);
   const [historyPurgingAll, setHistoryPurgingAll] = useState(false);
+  const [tourDownloadState, setTourDownloadState] = useState<AsyncStatus>("idle");
   const [activeTab, setActiveTab] = useState<TabKey>(() => {
     const initial = getTabFromPath(location.pathname);
     return initial ?? "provider";
@@ -305,12 +307,12 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   }, [showIntroStep, showSetupShell, scrollSetupToTop]);
 
   useEffect(() => {
-    if (needsProviderSetup) {
-      setSetupStep("provider");
-    } else if (needsBriefSetup) {
+    if (needsBriefSetup) {
       setSetupStep("brief");
-    } else {
+    } else if (needsProviderSetup) {
       setSetupStep("provider");
+    } else {
+      setSetupStep("brief");
     }
   }, [needsProviderSetup, needsBriefSetup]);
 
@@ -532,6 +534,46 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       setHistoryPurgingAll(false);
     }
   }, [historyPurgingAll, loadHistory, notify]);
+
+  const handleDownloadTour = useCallback(async () => {
+    const tourUrl = state?.exportTourUrl;
+    const sessionId = state?.primarySessionId ?? null;
+
+    if (!tourUrl) {
+      notify("error", "Tour download endpoint is unavailable.");
+      return;
+    }
+
+    if (!sessionId) {
+      notify("error", "No session history is available for tour generation.");
+      return;
+    }
+
+    if (tourDownloadState === "loading") {
+      return;
+    }
+
+    setTourDownloadState("loading");
+    try {
+      const blob = await downloadClickthroughPrototype(tourUrl, sessionId);
+      const blobUrl = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = blobUrl;
+      anchor.download = "prototype-tour.html";
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to generate clickthrough prototype";
+      notify("error", message);
+    } finally {
+      setTourDownloadState("idle");
+    }
+  }, [notify, state?.exportTourUrl, state?.primarySessionId, tourDownloadState]);
 
   useEffect(() => {
     if (showSetupShell) {
@@ -773,6 +815,9 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
                     onState={handleSnapshotHydrate}
                     onHistoryRefresh={handleHistoryRefresh}
                     forkActive={state.isForkActive}
+                    onDownloadTour={handleDownloadTour}
+                    tourLoading={tourDownloadState === "loading"}
+                    tourDisabled={!state.primarySessionId}
                   />
                 </>
               }
@@ -788,8 +833,12 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       attachmentsToRemove,
       briefDraft,
       handleBriefSubmit,
+      handleDownloadTour,
       handleHistoryLoadMore,
       handleHistoryRefresh,
+      handleSnapshotHydrate,
+      handleToggleAttachment,
+      handleToggleAutoRefresh,
       handleStateUpdate,
       historyItems,
       historyLoading,
@@ -814,6 +863,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
       loadState,
       submitState,
       state,
+      tourDownloadState,
       uploaderKey,
     ]
   );
@@ -863,8 +913,8 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   }
 
   const canSelectProvider = !state.providerLocked;
-  const providerStepNumber = 1;
-  const briefStepNumber = needsProviderSetup ? 2 : 1;
+  const briefStepNumber = 1;
+  const providerStepNumber = needsBriefSetup ? 2 : 1;
 
   const providerLabel =
     state.providerLabels[state.provider.provider] ?? state.provider.provider;
@@ -877,7 +927,8 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     : "Finish provider and brief setup to unlock the live app";
 
   const providerReady = !needsProviderSetup;
-  const activeSetupStep = providerReady ? setupStep : "provider";
+  const briefReady = Boolean(state.brief);
+  const activeSetupStep = briefReady ? setupStep : "brief";
 
   const launchPad = showLaunchPad ? (
     <div
@@ -1019,29 +1070,29 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     const providerButtonId = "setup-step-provider";
     const briefButtonId = "setup-step-brief";
     const heading =
-      activeSetupStep === "provider"
-        ? "Set up your canvas"
-        : "Tell the model what to build";
+      activeSetupStep === "brief"
+        ? "Describe what you want to build"
+        : "Set up your provider";
     const description =
-      activeSetupStep === "provider"
-        ? "VaporVibe hosts a living web canvas improvised by your chosen provider. Verify a key so we can start riffing."
-        : `Provider ready: ${providerMetric}. Share the tone, moments, and inspirations for the first render.`;
-
-    const providerButtonClasses = ["setup-card__step-button"];
-    if (activeSetupStep === "provider") providerButtonClasses.push("is-active");
-    if (providerReady && activeSetupStep !== "provider")
-      providerButtonClasses.push("is-complete");
+      activeSetupStep === "brief"
+        ? "Share the tone, moments, and inspirations for the first render. You can also resume a previous session."
+        : `Brief ready. Now verify an API key for ${providerLabel} so we can start riffing.`;
 
     const briefButtonClasses = ["setup-card__step-button"];
     if (activeSetupStep === "brief") briefButtonClasses.push("is-active");
-    if (!providerReady) briefButtonClasses.push("is-disabled");
+    if (briefReady && activeSetupStep !== "brief")
+      briefButtonClasses.push("is-complete");
+
+    const providerButtonClasses = ["setup-card__step-button"];
+    if (activeSetupStep === "provider") providerButtonClasses.push("is-active");
+    if (!briefReady) providerButtonClasses.push("is-disabled");
 
     return (
       <div className="admin-shell admin-shell--setup">
         <div className="setup-card">
           <header className="setup-card__header">
             <span className="setup-card__step">
-              {activeSetupStep === "provider" ? "Step 1 of 2" : "Step 2 of 2"}
+              {activeSetupStep === "brief" ? "Step 1 of 2" : "Step 2 of 2"}
             </span>
             <h1>{heading}</h1>
             <p className="setup-card__description">{description}</p>
@@ -1053,36 +1104,36 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
             aria-label="Setup steps"
           >
             <button
-              id={providerButtonId}
+              id={briefButtonId}
               type="button"
               role="tab"
-              aria-selected={activeSetupStep === "provider"}
-              className={providerButtonClasses.join(" ")}
-              onClick={() => setSetupStep("provider")}
-              tabIndex={activeSetupStep === "provider" ? 0 : -1}
+              aria-selected={activeSetupStep === "brief"}
+              className={briefButtonClasses.join(" ")}
+              onClick={() => setSetupStep("brief")}
+              tabIndex={activeSetupStep === "brief" ? 0 : -1}
             >
               <span className="setup-card__step-number">1</span>
-              <span className="setup-card__step-text">Provider</span>
-              {providerReady && activeSetupStep !== "provider" ? (
+              <span className="setup-card__step-text">Brief</span>
+              {briefReady && activeSetupStep !== "brief" ? (
                 <span className="setup-card__step-check" aria-hidden="true">
                   ✓
                 </span>
               ) : null}
             </button>
             <button
-              id={briefButtonId}
+              id={providerButtonId}
               type="button"
               role="tab"
-              aria-selected={activeSetupStep === "brief"}
-              className={briefButtonClasses.join(" ")}
-              onClick={() => providerReady && setSetupStep("brief")}
-              disabled={!providerReady}
+              aria-selected={activeSetupStep === "provider"}
+              className={providerButtonClasses.join(" ")}
+              onClick={() => briefReady && setSetupStep("provider")}
+              disabled={!briefReady}
               tabIndex={
-                activeSetupStep === "brief" ? 0 : providerReady ? -1 : undefined
+                activeSetupStep === "provider" ? 0 : briefReady ? -1 : undefined
               }
             >
               <span className="setup-card__step-number">2</span>
-              <span className="setup-card__step-text">Brief</span>
+              <span className="setup-card__step-text">Provider</span>
             </button>
           </div>
 
@@ -1093,23 +1144,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
               activeSetupStep === "provider" ? providerButtonId : briefButtonId
             }
           >
-            {activeSetupStep === "provider" ? (
-              <ProviderPanel
-                variant="setup"
-                stepNumber={providerStepNumber}
-                state={state}
-                saving={providerSaving}
-                status={providerStatus}
-                onStatus={setProviderStatus}
-                onSaving={setProviderSaving}
-                onState={handleStateUpdate}
-                modelOptions={state.modelOptions}
-                featuredModels={state.featuredModels}
-                providerChoices={state.providerChoices}
-                canSelectProvider={canSelectProvider}
-                providerLocked={state.providerLocked}
-              />
-            ) : (
+            {activeSetupStep === "brief" ? (
               <BriefSection
                 variant="setup"
                 stepNumber={briefStepNumber}
@@ -1132,39 +1167,55 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
                   />
                 }
               />
+            ) : (
+              <ProviderPanel
+                variant="setup"
+                stepNumber={providerStepNumber}
+                state={state}
+                saving={providerSaving}
+                status={providerStatus}
+                onStatus={setProviderStatus}
+                onSaving={setProviderSaving}
+                onState={handleStateUpdate}
+                modelOptions={state.modelOptions}
+                featuredModels={state.featuredModels}
+                providerChoices={state.providerChoices}
+                canSelectProvider={canSelectProvider}
+                providerLocked={state.providerLocked}
+              />
             )}
           </div>
 
           <footer
-            className={`setup-card__footer${activeSetupStep === "brief" ? " setup-card__footer--between" : ""
+            className={`setup-card__footer${activeSetupStep === "provider" ? " setup-card__footer--between" : ""
               }`}
           >
-            {activeSetupStep === "brief" ? (
+            {activeSetupStep === "provider" ? (
               <button
                 type="button"
                 className="admin-secondary"
-                onClick={() => setSetupStep("provider")}
+                onClick={() => setSetupStep("brief")}
               >
-                Back to provider
+                Back to brief
               </button>
             ) : (
               <span className="setup-card__footer-note">
-                {providerReady
-                  ? "Provider verified. Jump to the brief when you're ready."
-                  : "Verify a key to unlock the brief step."}
+                {briefReady
+                  ? "Brief saved. Continue to provider setup when ready."
+                  : "Describe your app to unlock the provider step."}
               </span>
             )}
-            {providerReady && activeSetupStep === "provider" ? (
+            {briefReady && activeSetupStep === "brief" ? (
               <button
                 type="button"
                 className="admin-primary setup-card__next"
-                onClick={() => setSetupStep("brief")}
+                onClick={() => setSetupStep("provider")}
               >
-                Continue to brief
+                Continue to provider
               </button>
-            ) : activeSetupStep === "brief" ? (
+            ) : activeSetupStep === "provider" ? (
               <span className="setup-card__footer-note">
-                Provider: {providerMetric}
+                Brief: {state.brief?.substring(0, 40)}...
               </span>
             ) : null}
           </footer>
@@ -2243,15 +2294,7 @@ function ProviderPanel({
           </p>
         </label>
 
-        <ImageModelSelector
-          enabled={imageGenerationEnabled}
-          modelId={imageGenerationModelId}
-          apiKey={imageGenerationApiKey}
-          hasStoredKey={state.provider.imageGeneration.hasApiKey}
-          onEnabledChange={setImageGenerationEnabled}
-          onModelChange={setImageGenerationModelId}
-          onApiKeyChange={setImageGenerationApiKey}
-        />
+
 
         <details
           className="admin-advanced"
@@ -2418,6 +2461,16 @@ function ProviderPanel({
             ) : null}
           </div>
         </details>
+
+        <ImageModelSelector
+          enabled={imageGenerationEnabled}
+          modelId={imageGenerationModelId}
+          apiKey={imageGenerationApiKey}
+          hasStoredKey={state.provider.imageGeneration.hasApiKey}
+          onEnabledChange={setImageGenerationEnabled}
+          onModelChange={setImageGenerationModelId}
+          onApiKeyChange={setImageGenerationApiKey}
+        />
 
         <div className="admin-actions">
           {providerUnlocked ? (

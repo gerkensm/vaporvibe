@@ -48,8 +48,10 @@ import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
 import { SessionStore } from "./session-store.js";
 import {
   applyReusablePlaceholders,
+  buildMasterReusableCaches,
   prepareReusableCaches,
 } from "./component-cache.js";
+import { cloneAttachment } from "./brief-attachments.js";
 import { getNavigationInterceptorScript } from "../utils/navigation-interceptor.js";
 import { getInstructionsPanelScript } from "../utils/instructions-panel.js";
 import {
@@ -302,43 +304,6 @@ function stripScriptById(html: string, scriptId: string): string {
     "gi"
   );
   return html.replace(pattern, "");
-}
-
-function buildMasterReusableCaches(
-  history: HistoryEntry[]
-): {
-  componentCache: Record<string, string>;
-  styleCache: Record<string, string>;
-} {
-  const componentCache: Record<string, string> = {};
-  const styleCache: Record<string, string> = {};
-
-  for (let index = history.length - 1; index >= 0; index -= 1) {
-    const entry = history[index];
-    if (entry.entryKind !== "html") {
-      continue;
-    }
-
-    const entryComponentCache = entry.componentCache;
-    if (entryComponentCache) {
-      for (const [componentId, markup] of Object.entries(entryComponentCache)) {
-        if (!(componentId in componentCache)) {
-          componentCache[componentId] = markup;
-        }
-      }
-    }
-
-    const entryStyleCache = entry.styleCache;
-    if (entryStyleCache) {
-      for (const [styleId, markup] of Object.entries(entryStyleCache)) {
-        if (!(styleId in styleCache)) {
-          styleCache[styleId] = markup;
-        }
-      }
-    }
-  }
-
-  return { componentCache, styleCache };
 }
 
 function deriveNextNumericId(
@@ -1204,9 +1169,6 @@ function attachReasoningStream(
   return true;
 }
 
-function cloneAttachment(attachment: BriefAttachment): BriefAttachment {
-  return { ...attachment };
-}
 
 function computeProviderReady(
   llmClient: LlmClient | null,

@@ -1,4 +1,4 @@
-import type { BriefAttachment, ChatMessage, HistoryEntry } from "../types.js";
+import type { BriefAttachment, ChatMessage, HistoryEntry, GeneratedImage } from "../types.js";
 import { VAPORVIBE_LIBRARIES } from "../config/library-manifest.js";
 
 const LINE_DIVIDER = "----------------------------------------";
@@ -26,6 +26,8 @@ export interface MessageContext {
   branchId?: string;
   imageGenerationEnabled?: boolean;
   enableStandardLibrary?: boolean;
+  tourMode?: boolean;
+  generatedImages?: GeneratedImage[];
 }
 
 export function buildMessages(context: MessageContext): ChatMessage[] {
@@ -52,12 +54,15 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     branchId,
     imageGenerationEnabled = false,
     enableStandardLibrary = true,
+    tourMode = false,
+    generatedImages = [],
   } = context;
   const isJsonQuery = mode === "json-query";
+  let systemLines: string[];
 
   // --- System Prompt Definition ---
-  const systemLines = isJsonQuery
-    ? [
+  if (isJsonQuery) {
+    systemLines = [
       // Rules for JSON generation via /rest_api/query/*
       "You are a JSON data generator for a 'sourcecodeless web app server'.",
       "Your job: reply with ONLY a valid, minified-or-pretty JSON document that answers the query for the current view.",
@@ -70,8 +75,162 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "5) STRUCTURE: Match the field names, nested structures, and conventions implied by the app history (your prior work). Prefer concise payloads that include only the fields the UI can display.",
       "6) SAFETY: Do not invent scripts or HTML. Return plain JSON with properly escaped strings.",
       "7) STATE HANDOFF: If new durable state should be remembered, ensure the UI also records it via a mutation endpoint.",
-    ]
-    : [
+    ];
+  } else if (tourMode) {
+    systemLines = [
+      // ==================================================================================
+      // 🟢 TOUR / CLICKTHROUGH MODE PROMPT
+      // ==================================================================================
+      "SYSTEM — Clickthrough Prototype Architect",
+      "",
+      "Build a **single-file SPA** from conversation history with a **Driver.js** walkthrough replaying the user's journey EXACTLY, with every single navigation and discernible action, even if it seems unrelated.",
+      "You are not creating a tutorial, but a walkthrough of a website design, content and functionality, as a demonstration for implementation.",
+      "All details matter, so be exact in your SPA replica and include all pages and views verbatim, including copy that may seem irrelevant, headers, footers, design, font choices, copy, images, data submitted, etc. Showcase the user experience, do NOT create a tutorial.",
+      "",
+      "---",
+      "",
+      "## 1. SPA RULES",
+      "",
+      "- **One `index.html` file** — no external dependencies, no server calls.",
+      "- **Views as divs**: `<div id='view-{name}' class='app-view'>` with `display:none` for inactive.",
+      "- **`switchView(viewId)`** function to toggle views. Use plain JS, never `__x.$data`.",
+      "- **Intercept navigation**: Convert all `<a>` and `<form>` to JS handlers. **No page reloads.**",
+      "- **Mock APIs locally**: Forbid `fetch()`, `XMLHttpRequest`. Update state in-memory, show toasts.",
+      "",
+      "---",
+      "",
+      "## 2. DRIVER.JS TOUR",
+      "",
+      "### Initialization",
+      "```javascript",
+      "// Access via window.driver.js.driver() — NEVER name your variable 'driver'!",
+      "const driverObj = window.driver.js.driver({",
+      "  showProgress: true,",
+      "  allowClose: false,",
+      "  steps: [...]",
+      "});",
+      "driverObj.drive();",
+      "```",
+      "",
+      "### Tour Sequence",
+      "- Follow the **exact click path** from history — same order, screens, actions.",
+      "- Use `onHighlightStarted` to call `switchView()` before highlighting cross-view elements.",
+      "- **Never auto-advance** — no `driverObj.moveNext()`. User clicks 'Next' manually.",
+      "",
+      "### Step Flow (CRITICAL)",
+      "Each tour step follows this sequence:",
+      "1. **Highlight with message**: Show the popover describing the element or what the user will do.",
+      "2. **Wait for 'Next'**: User reads the message and clicks 'Next' button.",
+      "3. **Execute action (if any)**: If this step involves an action (click, type), it occurs as the step transitions.",
+      "",
+      "**Showcase-only steps**: Some steps just highlight elements for context (e.g., 'Here is the navigation bar') — no action needed.",
+      "**Action steps**: Others replay a user interaction — use `onDeselected` to trigger the action AFTER clicking 'Next'.",
+      "```javascript",
+      "{",
+      "  element: '#submit-btn',",
+      "  popover: { title: 'Submit', description: 'Click to submit the form.' },",
+      "  onDeselected: (element) => {",
+      "    if (element?.isConnected) element.click();",
+      "  }",
+      "}",
+      "```",
+      "",
+      "### Simulating Typing (in onDeselected)",
+      "```javascript",
+      "onDeselected: (element) => {",
+      "  if (!element?.isConnected) return;",
+      "  const text = 'Hello'; let i = 0;",
+      "  const interval = setInterval(() => {",
+      "    if (!element?.isConnected) { clearInterval(interval); return; }",
+      "    element.value = text.slice(0, ++i);",
+      "    element.dispatchEvent(new Event('input', { bubbles: true }));",
+      "    if (i >= text.length) clearInterval(interval);",
+      "  }, 50);",
+      "}",
+      "```",
+      "",
+      "### Visual Styling",
+      "- Style `.driver-active-element` with box-shadow and high z-index.",
+      "- **Do NOT use** rough-notation library.",
+      "",
+      "---",
+      "",
+      "## 3. ELEMENT SELECTORS (CRITICAL)",
+      "",
+      "| ✅ Use | ❌ Never Use |",
+      "| --- | --- |",
+      "| `#id`, `.class`, `data-*` | `[x-text='...']`, `[@click='...']`, `[x-model='...']` |",
+      "",
+      "- Framework directives don't work as CSS selectors.",
+      "- Add `data-tour-step=\"step-1\"` for reliable targeting.",
+      "- Expose app state globally: `window.myAppState = this;` in Alpine `init()`.",
+      "",
+      "---",
+      "",
+      "## 4. IMAGE HANDLING (CRITICAL)",
+      "",
+      "**All image rules in one place:**",
+      "",
+      "1. **Use `data-image-id`** with the exact UUID from the manifest below. Do NOT invent IDs.",
+      "2. **Do NOT use** `data-id` (reserved for caching) or prompt-matching.",
+      "3. **Static prompts only** — no JS expressions, template literals, or loop variables:",
+      "   - ❌ `prompt=\"item.name + ' cheese'\"` — will fail",
+      "   - ❌ `prompt=\"${product.title}\"` — template literals forbidden",
+      "   - ✅ `prompt=\"Artisan cheddar slice, studio lighting\"` — static literal",
+      "4. **Omit images** not in the manifest — don't generate new ones.",
+      "",
+      "---",
+      "",
+      "## 5. DEFENSIVE PROGRAMMING",
+      "",
+      "```javascript",
+      "onHighlighted: (element) => {",
+      "  if (!element) return;                    // Always null-check",
+      "  const card = element.closest('.card');",
+      "  if (!card) return;                       // Check DOM queries",
+      "  const btn = card.querySelector('button');",
+      "  if (btn) setTimeout(() => btn.click(), 800);",
+      "}",
+      "```",
+      "",
+      "---",
+      "",
+      "## 6. VISUAL FIDELITY",
+      "",
+      "**Reproduce the COMPLETE page from history — every element, every view.**",
+      "",
+      "- Headers, footers, navigation, sidebars, menus, verbose copy — include them all, for each view.",
+      "- Copy all text content verbatim — buttons, labels, body copy.",
+      "- Preserve exact Tailwind/CSS classes — no redesigns.",
+      "- Use realistic data from history — no 'Lorem Ipsum'.",
+      "",
+      "---",
+      "",
+      "## 7. OUTPUT",
+      "",
+      "Return **only** raw HTML. Use `/libs/*` tags (post-processor handles CDN).",
+    ];
+
+    if (generatedImages.length > 0) {
+      const imageManifest = generatedImages
+        .map(
+          (img) =>
+            `- ID: "${img.id}" | Ratio: ${img.ratio} | Prompt: "${img.prompt.replace(
+              /"/g,
+              '\\"'
+            )}"`
+        )
+        .join("\n");
+
+      systemLines.push(
+        "",
+        "### Available Images (Manifest)",
+        "EXCLUSIVELY Use these existing IDs to restore images from history. Do NOT generate new images.",
+        imageManifest
+      );
+    }
+  } else {
+    systemLines = [
       // Rules for Full HTML Page Generation
       "SYSTEM — Single-View HTML Application Generator (Full)",
       "",
@@ -110,8 +269,8 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "### Non-negotiables (Core Rules)",
       '1) Single view, local-first interactivity. Generate the entire page for the current request. No client routers, virtual nav stacks, hash-nav, iframes, popups, or target="_blank".',
       enableStandardLibrary
-        ? "2) Self-contained. Inline all CSS and JS via <style> and <script>, OR use the **local** `/libs/*` route (see AVAILABLE LOCAL LIBRARIES below). Use inline SVG/CSS for visuals where possible. Avoid linking to external images or embedding large data-URLs. **No external CDNs** — only `/libs/*` paths are allowed for script/link tags."
-        : "2) Self-contained. Inline all CSS and JS via <style> and <script>. Use inline SVG/CSS for visuals where possible. Avoid linking to external images or embedding large data-URLs. **No external CDNs. No local libraries.** Use pure, dependency-free vanilla code only.",
+        ? "2) Self-contained. Inline all CSS and JS via <style> and <script>, OR use the **local** `/libs/*` route (see AVAILABLE LOCAL LIBRARIES below). Use inline SVG/CSS for visuals where possible. **NEVER use external image URLs** (no Unsplash, Pexels, Pixabay, placeholder.com, or any https:// image sources). For raster images, use ONLY <ai-image> elements. **No external CDNs** — only `/libs/*` paths are allowed for script/link tags."
+        : "2) Self-contained. Inline all CSS and JS via <style> and <script>. Use inline SVG/CSS for visuals where possible. **NEVER use external image URLs** (no Unsplash, Pexels, Pixabay, placeholder.com, or any https:// image sources). For raster images, use ONLY <ai-image> elements. **No external CDNs. No local libraries.** Use pure, dependency-free vanilla code only.",
       "3) Latency-aware.",
       "   - Full page reloads (links/forms) are **slow** (~30s to 3m). Use inline JS for local UI changes (tabs, modals, sorting/filtering existing data).",
       "   - Use the Virtual REST API (see Efficiency Tools) for background state changes or data loading.",
@@ -156,32 +315,102 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "- Your own `data-id` attributes added to any element.",
       "- `data-id` attributes copied verbatim from previous HTML. Use `{{component:data-id}}` syntax instead for reuse.",
     ];
-
-  if (!isJsonQuery && imageGenerationEnabled) {
-    systemLines.push(
-      "",
-      "### IMAGE GENERATION",
-      "You can request server-rendered images without writing JavaScript.",
-      "Use the custom element: <ai-image prompt=\"Describe the image\" ratio=\"16:9\"></ai-image>.",
-      "",
-      "CRITICAL RULES FOR IMAGES:",
-      "1. COST WARNING: Generating images is expensive. Use them SPARINGLY. On subsequent page generations, if you want to use the same image again, the ratio&prompt need to match EXACTLY to the previous image to reuse the same asset (generations are cached by the server).",
-      "2. LIMIT: Target 0-5 images per page for standard content. For image-heavy views (galleries, catalogs), you may exceed this if essential to the brief.",
-      "3. VALUE: Ensure every generated image serves a specific user goal (e.g., illustrating a product, setting a specific mood defined in the brief). Prefer CSS gradients/patterns for generic backgrounds.",
-      "4. RELEVANCE: If the brief doesn't explicitly ask for visuals, prefer CSS styling or SVG icons over generated images.",
-      "5. EXCEPTION: If the user explicitly requests more images or specific visuals in the brief or instructions, you may override these limits to satisfy the request.",
-      "6. DESCRIPTION: Construct image prompts using with at least the following information: Subject, Action/Context, Art Style/Mood, Lighting, Colors if relevant (e.g. when overlaying with text). Be concrete, detailed and verbose - especially if you overlay with text - to ensure the text is legible.",
-      "",
-      "Valid ratios: 1:1, 16:9, 9:16, and 4:3.",
-      "You may control sizing and layout with standard HTML attributes (width, style, class) on the <ai-image> tag.",
-      "Examples:",
-      "- Full width landscape: <ai-image prompt=\"A futuristic skyline\" ratio=\"16:9\" width=\"100%\"></ai-image>.",
-      "- Small floated square: <ai-image prompt=\"An icon of a robot\" ratio=\"1:1\" style=\"width: 200px; float: right; margin: 12px;\"></ai-image>.",
-      "Do NOT use Markdown images or raw <img> tags; the helper will swap in an <img> element automatically."
-    );
   }
 
-  if (!isJsonQuery && enableStandardLibrary) {
+  if (!isJsonQuery && imageGenerationEnabled) {
+    if (!tourMode) {
+      systemLines.push(
+        "",
+        "### IMAGE GENERATION",
+        "You can request server-rendered images without writing JavaScript.",
+        "Use the custom element: <ai-image prompt=\"Describe the image\" ratio=\"16:9\"></ai-image>.",
+        "",
+        "**MODEL CAPABILITIES**: The image models (Google Gemini Nano Banana Pro, OpenAI GPT Image) are state-of-the-art with exceptional prompt adherence, text rendering, camera control, and compositional understanding. Write detailed, multi-paragraph prompts with precise technical instructions — these models thrive on specificity.",
+        "",
+        "CRITICAL RULES FOR IMAGES:",
+        "1. COST WARNING: Generating images is expensive. Use them SPARINGLY. Reuse cached images by matching ratio & prompt EXACTLY.",
+        "2. LIMIT: Target 0-5 images per page. For galleries/catalogs, you may exceed if essential.",
+        "3. VALUE: Every image must serve a specific user goal. Prefer CSS gradients/patterns for generic backgrounds.",
+        "4. RELEVANCE: If the brief doesn't require visuals, use CSS styling or SVG icons instead.",
+        "5. EXCEPTION: If user explicitly requests more images, you may override limits.",
+        "",
+        "**PROMPT COMPOSITION FRAMEWORK** (include ALL 6 factors):",
+        "1. **Subject**: Who/what is in the image with precise detail (e.g., 'a bartender in a crisp white shirt', 'a wedge of aged Comté cheese')",
+        "2. **Composition**: Camera angle, framing, and spatial layout (e.g., 'low-angle shot', 'close-up', 'wide shot', 'the left third of the frame', 'centered composition')",
+        "3. **Action/Context**: What is happening, the setting/location (e.g., 'arranging artisanal cheeses on a dark slate board', 'futuristic cafe interior')",
+        "4. **Style**: Art type and visual treatment (e.g., 'cinematic food photography', 'Apple product photography style', 'Pixar character design', 'oil painting')",
+        "5. **Camera & Lighting**: Lens, shadows, and light details (e.g., 'shot at f/1.8 with shallow depth of field', 'soft key light from upper-right', 'long shadows', 'golden hour warm tones')",
+        "6. **Color Palette with Hex Values**: Specific colors for key regions, especially for text overlay zones",
+        "",
+        "**TEXT-SAFE ZONE REQUIREMENTS** (CRITICAL for hero images with overlaid text):",
+        "When an image will have text placed on top, you MUST specify:",
+        "- **Spatial region**: Which portion of the image (e.g., 'the left third', 'the upper-left quadrant', 'the bottom 25%')",
+        "- **Luminance threshold**: How dark that region needs to be (e.g., 'darker than 30% brightness', 'near-black', 'under 20% luminance')",
+        "- **Exact hex colors**: The background color AND intended text color (e.g., 'gradient from #0a0a0a to #1a1a2e for white (#ffffff) heading text')",
+        "- **Treatment type**: How the dark zone is achieved (e.g., 'soft vignette', 'darkened gradient overlay', 'naturally shadowed area', 'out-of-focus dark background')",
+        "",
+        "Valid ratios: 1:1, 16:9, 9:16, and 4:3.",
+        "You may control sizing and layout with standard HTML attributes (width, style, class) on the <ai-image> tag.",
+        "",
+        "**EXAMPLE PROMPTS** (notice the technical precision):",
+        "",
+        "Hero with text overlay:",
+        "<ai-image prompt=\"A sweeping aerial view of a coastal Mediterranean city at golden hour. Modern white villas with terracotta roofs cascade down hillsides toward a turquoise harbor filled with luxury yachts. Shot from a drone at 200ft altitude, 24mm wide-angle lens, f/8 for deep focus.",
+        "",
+        "TEXT-SAFE ZONE: The left 35% of the frame must be a darkened gradient zone, transitioning from near-black (#0d0d0d, under 10% luminance) at the far left edge to semi-transparent by the 35% mark. This creates a text-safe area for white (#ffffff) heading text and light gray (#e2e8f0) subheading text.",
+        "",
+        "Color grading: Warm golden tones in highlights, deep teal shadows, slightly desaturated midtones for a premium travel magazine aesthetic. 8K resolution, cinematic color science.\" ratio=\"16:9\" width=\"100%\"></ai-image>",
+        "",
+        "Product photography:",
+        "<ai-image prompt=\"Premium wireless over-ear headphones in matte charcoal with brushed copper accents on the hinges and logo. The headphones rest at a 15-degree angle on a black marble surface with subtle gold veining.",
+        "",
+        "LIGHTING: Single soft key light from upper-right (45-degree angle) creating a gentle highlight arc on the left earcup. Fill light at 20% intensity from lower-left. Background is pure black (#000000) with zero gradient.",
+        "",
+        "TEXT-SAFE ZONE: The upper 30% of the frame should remain predominantly dark (under 15% luminance, averaging #0a0a0a) with the product positioned in the lower 60%, leaving clean negative space for white text overlay.",
+        "",
+        "Shot at f/2.8 with subtle depth-of-field blur on the rear earcup. Style: Apple product photography — clean, minimal, perfect edge definition, creamy bokeh on any background elements.\" ratio=\"16:9\" width=\"100%\"></ai-image>",
+        "",
+        "Food/lifestyle:",
+        "<ai-image prompt=\"A curated selection of premium artisanal cheeses arranged on a dark slate board: a wedge of aged Comté with crystalline texture, a creamy Brillat-Savarin with bloomy rind, and a crumbly blue Roquefort. Accompanied by dried Mission figs, candied walnuts, and a small honeycomb glistening with golden honey.",
+        "",
+        "COMPOSITION: Overhead flat-lay shot. The slate board is positioned in the right two-thirds of the frame.",
+        "",
+        "TEXT-SAFE ZONE: The left third of the frame (from x=0% to x=33%) must be a darkened extension of the slate/background, with luminance under 25% (colors ranging from #1a1a1a to #2d2d2d) to ensure white (#ffffff) and cream (#fef3c7) text remains legible with WCAG AAA contrast.",
+        "",
+        "LIGHTING: Moody and sophisticated — soft directional light from upper-left creating long shadows extending toward bottom-right. Highlights on cheese surfaces and honey should be soft, not blown out. Muted warm color temperature around 3200K.",
+        "",
+        "STYLE: High-end editorial food photography for a Condé Nast publication. Shot at f/4 with medium depth of field, focus plane on the Comté wedge.\" ratio=\"16:9\" width=\"100%\"></ai-image>",
+        "",
+        "Do NOT use Markdown images or raw <img> tags; the helper will swap in an <img> element automatically."
+      );
+    }
+    else {
+      systemLines.push(
+        "",
+        "### IMAGE GENERATION",
+        "Image generation is disabled in tour mode. The history contains <ai-image> tags with prompts. These indicate what the image should show. You may only use images contained in the image manifest below and reference it with its ID as instructed.",
+        "",
+        "CRITICAL RULES FOR IMAGES:",
+        "1. COST WARNING: Generating images is expensive. Prefer using images that are in the image manifest, reference them using their `data-image-id` and use the same `prompt`. These have already been generated; you can use as many of these as you like.",
+        "2. Generate new images VERY SPARINGLY. On subsequent page generations, if you want to use the same image again, the ratio&prompt need to match EXACTLY to the previous image to reuse the same asset (generations are cached).",
+        "3. LIMIT: Target 0-2 new images per page for standard content. For image-heavy views (galleries, catalogs), you may exceed this if essential to the brief.",
+        "4. VALUE: Ensure every generated image serves a specific user goal (e.g., illustrating a product, setting a specific mood defined in the brief). Prefer CSS gradients/patterns for generic backgrounds.",
+        "5. RELEVANCE: If the brief doesn't explicitly ask for visuals, prefer CSS styling or SVG icons over generated images.",
+        "6. DESCRIPTION: Construct image prompts using at least the following information: Subject, Action/Context, Art Style/Mood, Lighting, Colors or color palette (e.g. when overlaying with text). Be concrete, detailed and verbose - especially if you overlay with text - to ensure the text is legible.",
+        "",
+        "Valid ratios: 1:1, 16:9, 9:16, and 4:3.",
+        "You may control sizing and layout with standard HTML attributes (width, style, class) on the <ai-image> tag.",
+        "Examples:",
+        "- Full width landscape: <ai-image prompt=\"A futuristic skyline\" ratio=\"16:9\" width=\"100%\"></ai-image>.",
+        "- Small floated square: <ai-image prompt=\"An icon of a robot\" ratio=\"1:1\" style=\"width: 200px; float: right; margin: 12px;\"></ai-image>.",
+        "Do NOT use Markdown images or raw <img> tags; the helper will swap in an <img> element automatically."
+
+      );
+
+    }
+  }
+
+  if (!isJsonQuery && (enableStandardLibrary || tourMode)) {
     const librariesText = VAPORVIBE_LIBRARIES.map(
       (lib) =>
         `- **${lib.id}** (v${lib.version}): ${lib.description}. Usage: ${lib.tags}`
@@ -206,6 +435,17 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "  - Do NOT include large CSS resets or external Tailwind CDN links.",
       "- **DaisyUI**: Trust the provided classes for complex components (modals, cards, tabs). Use them directly in HTML (e.g., `<button class=\"btn btn-primary\">`) to avoid runtime errors."
     );
+
+    if (tourMode) {
+      systemLines.push(
+        "",
+        "### TOUR SPECIFIC LIBRARY REQUIREMENT",
+        "- **Driver.js**: You **MUST** use the `driver.js` library listed above to implement the tour functionality, regardless of previous library choices.",
+        "",
+        "### IMAGE HANDLING (CRITICAL)",
+        "- **Prompt Preservation**: When outputting `<ai-image>` tags, YOU MUST include the `prompt` attribute verbatim from the source history. This is used for precise client-side hydration."
+      );
+    }
   }
 
   // --- Assemble final messages ---
@@ -257,25 +497,33 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "- Keep field names consistent with prior renders and recorded mutations.",
       "- If the UI likely triggered this query to refresh client-side state, include enough detail for immediate rendering.",
     ]
-    : [
-      "- Render ONLY the current view as a full HTML document.",
-      "- Include inline CSS/JS. No external dependencies.",
-      "- Align the response with the requested path AND parameters by inferring which link or form was activated in the previous HTML and how its fields map to the submitted values.",
-      "- Carry state forward via forms, query strings, or comments. Preserve comment-state from previous HTML.",
-      "- Reuse hierarchy: (1) whole page `<html>`, (2) shells `<head>/<body>`, (3) partials `<header>/<style>`, preferring newest history matches. Generate fresh markup if unsure.",
-      "- Placeholders `{{ }}` *are* the output for reused parts; don't expand them or add wrappers.",
-      "- Split reusable JS helpers from per-request `<script data-state-script>`. Never reuse the state script via placeholder.",
-      "- Provide clear CTAs.",
-      "- Use background fetch for REST API calls (fast mutations, slower queries on user action). Show loading states.",
-      "- Keep background fetch feedback lightweight (inline spinners/toasts).",
-      "- Avoid auto-fetching queries on initial render; synthesize start data, fetch only on explicit user action.",
-      "- Reflect mutation effects immediately in this render.",
-      '- Default non-submitting buttons to `type="button"`. Call `event.preventDefault()` before `fetch`.',
-      "- Mutation API returns only `{ success: true }`; update DOM client-side from submitted data.",
-      "- After mutation + DOM update, do NOT trigger full navigation/reload.",
-      "- Replace synthesized starter data with actual mutation history data once available.",
-      "- Only call mutation API with meaningful state changes.",
-    ];
+    : tourMode
+      ? [
+        "- Build a single-file SPA with shared shell elements and distinct view containers shown one at a time via switchView().",
+        "- Prevent full reloads entirely; convert links/forms to JS handlers and mock any /rest_api/* behavior with local DOM updates.",
+        "- Drive a scripted Driver.js walkthrough that switches views before highlighting targets and types into inputs during relevant steps.",
+        "- Keep the tour on-rails: block clicks outside highlights and make active elements visually prominent (pulse/overlay).",
+        "- Reuse `{{component:...}}` placeholders from history for unchanged regions before exporting fully expanded HTML.",
+      ]
+      : [
+        "- Render ONLY the current view as a full HTML document.",
+        "- Include inline CSS/JS. No external dependencies.",
+        "- Align the response with the requested path AND parameters by inferring which link or form was activated in the previous HTML and how its fields map to the submitted values.",
+        "- Carry state forward via forms, query strings, or comments. Preserve comment-state from previous HTML.",
+        "- Reuse hierarchy: (1) whole page `<html>`, (2) shells `<head>/<body>`, (3) partials `<header>/<style>`, preferring newest history matches. Generate fresh markup if unsure.",
+        "- Placeholders `{{ }}` *are* the output for reused parts; don't expand them or add wrappers.",
+        "- Split reusable JS helpers from per-request `<script data-state-script>`. Never reuse the state script via placeholder.",
+        "- Provide clear CTAs.",
+        "- Use background fetch for REST API calls (fast mutations, slower queries on user action). Show loading states.",
+        "- Keep background fetch feedback lightweight (inline spinners/toasts).",
+        "- Avoid auto-fetching queries on initial render; synthesize start data, fetch only on explicit user action.",
+        "- Reflect mutation effects immediately in this render.",
+        '- Default non-submitting buttons to `type="button"`. Call `event.preventDefault()` before `fetch`.',
+        "- Mutation API returns only `{ success: true }`; update DOM client-side from submitted data.",
+        "- After mutation + DOM update, do NOT trigger full navigation/reload.",
+        "- Replace synthesized starter data with actual mutation history data once available.",
+        "- Only call mutation API with meaningful state changes.",
+      ];
 
 
 

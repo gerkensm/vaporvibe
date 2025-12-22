@@ -109,6 +109,7 @@ graph TD
 | [**Token Optimization**](./architecture/token-optimization.md) | Component caching and placeholder resolution.             |
 | [**LLM Pipeline**](./architecture/llm-pipeline.md)             | Data flow, streaming, and reasoning extraction.           |
 | [**Transition UX**](./architecture/transition-ux.md)           | Loading shell, waiting effects, and overlay mechanics.    |
+| [**Download Tour**](./architecture/download-tour.md)           | Clickthrough prototypes with Driver.js walkthroughs.      |
 
 ### Module Documentation
 Detailed API references for specific subsystems:

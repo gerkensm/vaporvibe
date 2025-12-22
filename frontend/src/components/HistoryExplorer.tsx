@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -122,6 +122,17 @@ export function HistoryExplorer({
     }
   }, [items.length]);
 
+  const purgeConfirmRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (purgeConfirmVisible && purgeConfirmRef.current) {
+      purgeConfirmRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [purgeConfirmVisible]);
+
   const purgeDisabled =
     !onDeleteAll || items.length === 0 || deletingAll || loading || hasLockedEntries;
   const purgeButtonLabel = deletingAll
@@ -184,9 +195,9 @@ export function HistoryExplorer({
           ) : null}
         </div>
       </div>
-      {snapshotControls}
       {purgeConfirmVisible ? (
         <div
+          ref={purgeConfirmRef}
           className="history-purge-banner"
           role="alert"
         >
@@ -222,6 +233,7 @@ export function HistoryExplorer({
           </div>
         </div>
       ) : null}
+      {snapshotControls}
 
       {emptyState ? (
         <p className="history-empty">No history yet. Generate an experience to see it documented here.</p>

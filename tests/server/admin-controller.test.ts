@@ -9,6 +9,9 @@ import { createHistoryEntry } from "../test-utils/factories.js";
 import { createIncomingMessage } from "../test-utils/http.js";
 import { getLoggerMock } from "../test-utils/logger.js";
 import { getGeneratedImagePath } from "../../src/image-gen/paths.js";
+import { createHistoryArchiveZip } from "../../src/utils/history-archive.js";
+import { readBody } from "../../src/utils/body.js";
+import type { HistorySnapshot } from "../../src/types.js";
 
 const credentialStoreMock = {
   saveApiKey: vi.fn(),
@@ -23,6 +26,14 @@ const credentialStoreMock = {
 vi.mock("../../src/utils/credential-store.js", () => ({
   getCredentialStore: () => credentialStoreMock,
 }));
+
+vi.mock("../../src/utils/body.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../src/utils/body.js")>();
+  return {
+    ...actual,
+    readBody: vi.fn(actual.readBody),
+  };
+});
 
 class MockServerResponse {
   statusCode = 200;
@@ -514,4 +525,104 @@ describe("AdminController history import", () => {
 
     rmSync(filePath, { force: true });
   });
+
+  it("restores generated image caches from a ZIP archive during import", async () => {
+    const response = createResponse();
+    const sid = sessionStore.getOrCreateSessionId({}, response);
+    const imageBase64 = Buffer.from("zip-image-binary").toString("base64");
+
+    // 1. Create a snapshot with an image
+    const snapshot: HistorySnapshot = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      brief: "Zip Import Brief",
+      briefAttachments: [],
+      history: [
+        createHistoryEntry({
+          sessionId: "external-zip",
+          createdAt: "2024-03-01T00:00:00.000Z",
+          response: { html: "<html><body>Zip Image</body></html>" },
+          generatedImages: [
+            {
+              id: "img-zip-1",
+              cacheKey: "zip-cache-key-1",
+              url: "/generated-images/zip-cache-key-1.png",
+              prompt: "A zip image",
+              ratio: "1:1",
+              provider: "openai",
+              modelId: "gpt-image-1.5",
+              mimeType: "image/png",
+              base64: imageBase64,
+              createdAt: "2024-03-01T00:00:00.000Z",
+            },
+          ],
+        }),
+      ],
+      runtime: {
+        historyLimit: 100,
+        historyMaxBytes: 5_000_000,
+        includeInstructionPanel: true,
+      },
+      llm: {
+        provider: "openai",
+        model: "gpt-4o-mini",
+        maxOutputTokens: 2048,
+        reasoningMode: "default",
+      },
+    };
+
+    // 2. Create Zip (this moves base64 to assets)
+    const zipBuffer = await createHistoryArchiveZip(snapshot);
+
+    // 3. Mock readBody to return the zip file
+    vi.mocked(readBody).mockResolvedValueOnce({
+      raw: "",
+      data: {},
+      files: [
+        {
+          fieldName: "file",
+          filename: "history.zip",
+          mimeType: "application/zip",
+          size: zipBuffer.length,
+          data: zipBuffer,
+        },
+      ],
+    });
+
+    const res = createResponse();
+    const context = createContext(
+      "/api/admin/history/import",
+      "POST",
+      {
+        headers: {
+          "content-type": "multipart/form-data; boundary=boundary",
+          cookie: `sid=${sid}`,
+        },
+      },
+      res
+    );
+
+    // 4. Run Import
+    const handled = await controller.handle(context, Date.now(), logger);
+    expect(handled).toBe(true);
+    if (res.statusCode !== 200) {
+      console.log("Import failed:", res.statusCode, res.body);
+    }
+    expect(res.statusCode).toBe(200);
+
+    // 5. Verify Image Restoration
+    const history = sessionStore.getHistory(sid);
+    expect(history[0].generatedImages).toHaveLength(1);
+    const cacheKey = history[0].generatedImages?.[0]?.cacheKey ?? "";
+    const { filePath } = getGeneratedImagePath(cacheKey);
+
+    // Check debugging: The cache file should exist
+    expect(existsSync(filePath)).toBe(true);
+
+    // Cleanup
+    if (existsSync(filePath)) {
+      rmSync(filePath, { force: true });
+    }
+  });
 });
+

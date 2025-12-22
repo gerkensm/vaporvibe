@@ -1,9 +1,9 @@
 {
-  "generated": "2025-12-20T01:36:29.121Z",
+  "generated": "2025-12-21T21:22:34.327Z",
   "backend": {
     "basePath": "src",
-    "totalModules": 53,
-    "externalPackages": 21,
+    "totalModules": 57,
+    "externalPackages": 22,
     "modules": {
       "cli/args.ts": {
         "imports": {
@@ -89,7 +89,8 @@
           "external": {}
         },
         "importedBy": [
-          "index.ts"
+          "index.ts",
+          "server/admin-controller.ts"
         ],
         "importCount": 6
       },
@@ -245,6 +246,7 @@
           "external": {}
         },
         "importedBy": [
+          "server/admin-controller.ts",
           "server/rest-api-controller.ts"
         ],
         "importCount": 4
@@ -269,7 +271,8 @@
           "server/admin-controller.ts",
           "server/rest-api-controller.ts",
           "server/server.ts",
-          "server/session-store.ts"
+          "server/session-store.ts",
+          "utils/html-export-transform.ts"
         ],
         "importCount": 3
       },
@@ -278,6 +281,9 @@
           "internal": {
             "../../logger.js": [
               "logger"
+            ],
+            "../retry.js": [
+              "withRetry"
             ],
             "../types.js": [
               "ImageGenClient",
@@ -292,13 +298,16 @@
           }
         },
         "importedBy": [],
-        "importCount": 3
+        "importCount": 4
       },
       "image-gen/providers/openai.ts": {
         "imports": {
           "internal": {
             "../../logger.js": [
               "logger"
+            ],
+            "../retry.js": [
+              "withRetry"
             ],
             "../types.js": [
               "ImageGenClient",
@@ -313,7 +322,19 @@
           }
         },
         "importedBy": [],
-        "importCount": 3
+        "importCount": 4
+      },
+      "image-gen/retry.ts": {
+        "imports": {
+          "internal": {
+            "../logger.js": [
+              "logger"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 1
       },
       "image-gen/types.ts": {
         "imports": {
@@ -421,6 +442,7 @@
           "external": {}
         },
         "importedBy": [
+          "server/admin-controller.ts",
           "server/rest-api-controller.ts",
           "server/server.ts"
         ],
@@ -582,12 +604,14 @@
             "../types.js": [
               "BriefAttachment",
               "ChatMessage",
-              "HistoryEntry"
+              "HistoryEntry",
+              "GeneratedImage"
             ]
           },
           "external": {}
         },
         "importedBy": [
+          "server/admin-controller.ts",
           "server/rest-api-controller.ts",
           "server/server.ts"
         ],
@@ -681,6 +705,7 @@
           "config/runtime-config.ts",
           "dev/backend-dev-server.ts",
           "image-gen/cache.ts",
+          "image-gen/retry.ts",
           "index.ts",
           "llm/anthropic-client.ts",
           "llm/gemini-client.ts",
@@ -689,7 +714,9 @@
           "llm/openai-client.ts",
           "server/server.ts",
           "utils/config-store.ts",
-          "utils/credential-store.ts"
+          "utils/credential-store.ts",
+          "utils/html-export-transform.ts",
+          "utils/image-reencoder.ts"
         ],
         "importCount": 1
       },
@@ -729,6 +756,9 @@
             "../llm/verification.js": [
               "verifyProviderApiKey"
             ],
+            "../config/runtime-config.js": [
+              "lookupEnvApiKey"
+            ],
             "../utils/body.js": [
               "readBody",
               "ParsedFile"
@@ -750,6 +780,26 @@
             "../image-gen/paths.js": [
               "getGeneratedImagePath"
             ],
+            "../image-gen/factory.js": [
+              "createImageGenClient"
+            ],
+            "../utils/html-export-transform.js": [
+              "injectAiImageIds",
+              "prepareHtmlForExport"
+            ],
+            "../llm/messages.js": [
+              "buildMessages"
+            ],
+            "../llm/capabilities.js": [
+              "supportsImageInput"
+            ],
+            "../utils/html.js": [
+              "ensureHtmlDocument"
+            ],
+            "./component-cache.js": [
+              "applyReusablePlaceholders",
+              "buildMasterReusableCaches"
+            ],
             "./session-store.js": [
               "SessionStore"
             ],
@@ -760,7 +810,12 @@
               "getConfigStore"
             ],
             "./brief-attachments.js": [
+              "cloneAttachment",
               "processBriefAttachmentFiles"
+            ],
+            "../utils/extract-ai-images.js": [
+              "extractAiImageRequests",
+              "findMissingImages"
             ],
             "../types.js": [
               "BriefAttachment",
@@ -803,13 +858,16 @@
             "pino": [
               "Logger"
             ],
+            "node:process": [
+              "default as process"
+            ],
             "jszip": [
               "default as JSZip"
             ]
           }
         },
         "importedBy": [],
-        "importCount": 22
+        "importCount": 31
       },
       "server/brief-attachments.ts": {
         "imports": {
@@ -832,7 +890,11 @@
       },
       "server/component-cache.ts": {
         "imports": {
-          "internal": {},
+          "internal": {
+            "../types.js": [
+              "HistoryEntry"
+            ]
+          },
           "external": {
             "node-html-parser": [
               "parse",
@@ -841,7 +903,7 @@
           }
         },
         "importedBy": [],
-        "importCount": 1
+        "importCount": 2
       },
       "server/history-utils.ts": {
         "imports": {
@@ -976,7 +1038,11 @@
             ],
             "./component-cache.js": [
               "applyReusablePlaceholders",
+              "buildMasterReusableCaches",
               "prepareReusableCaches"
+            ],
+            "./brief-attachments.js": [
+              "cloneAttachment"
             ],
             "../utils/navigation-interceptor.js": [
               "getNavigationInterceptorScript"
@@ -1073,7 +1139,7 @@
           "dev/backend-dev-server.ts",
           "index.ts"
         ],
-        "importCount": 32
+        "importCount": 33
       },
       "server/session-store.ts": {
         "imports": {
@@ -1145,14 +1211,18 @@
           "llm/verification.ts",
           "server/admin-controller.ts",
           "server/brief-attachments.ts",
+          "server/component-cache.ts",
           "server/history-utils.ts",
           "server/rest-api-controller.ts",
           "server/server.ts",
           "server/session-store.ts",
           "types/admin-api.ts",
           "utils/config-store.ts",
+          "utils/extract-ai-images.ts",
           "utils/history-archive.ts",
           "utils/history-export.ts",
+          "utils/html-export-transform.ts",
+          "utils/image-reencoder.ts",
           "utils/instructions-panel.ts"
         ],
         "importCount": 0
@@ -1272,6 +1342,21 @@
         ],
         "importCount": 1
       },
+      "utils/extract-ai-images.ts": {
+        "imports": {
+          "internal": {
+            "../types.js": [
+              "GeneratedImage",
+              "ImageAspectRatio"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/admin-controller.ts"
+        ],
+        "importCount": 1
+      },
       "utils/frontend-assets.ts": {
         "imports": {
           "internal": {
@@ -1341,17 +1426,61 @@
         ],
         "importCount": 2
       },
+      "utils/html-export-transform.ts": {
+        "imports": {
+          "internal": {
+            "../image-gen/paths.js": [
+              "getGeneratedImagePath",
+              "GENERATED_IMAGES_ROUTE"
+            ],
+            "../logger.js": [
+              "logger"
+            ],
+            "./image-reencoder.js": [
+              "reencodeImagesForExport"
+            ],
+            "../types.js": [
+              "GeneratedImage"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [
+          "server/admin-controller.ts"
+        ],
+        "importCount": 4
+      },
       "utils/html.ts": {
         "imports": {
           "internal": {},
           "external": {}
         },
         "importedBy": [
+          "server/admin-controller.ts",
           "server/server.ts",
           "server/session-store.ts",
           "views/overlay-debug.ts"
         ],
         "importCount": 0
+      },
+      "utils/image-reencoder.ts": {
+        "imports": {
+          "internal": {
+            "../logger.js": [
+              "logger"
+            ],
+            "../types.js": [
+              "GeneratedImage"
+            ]
+          },
+          "external": {
+            "sharp": [
+              "default as sharp"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 3
       },
       "utils/instructions-panel.ts": {
         "imports": {
@@ -1528,9 +1657,10 @@
       "node:process": {
         "usedBy": [
           "dev/backend-dev-server.ts",
-          "index.ts"
+          "index.ts",
+          "server/admin-controller.ts"
         ],
-        "count": 2
+        "count": 3
       },
       "chokidar": {
         "usedBy": [
@@ -1653,6 +1783,12 @@
       "conf": {
         "usedBy": [
           "utils/config-store.ts"
+        ],
+        "count": 1
+      },
+      "sharp": {
+        "usedBy": [
+          "utils/image-reencoder.ts"
         ],
         "count": 1
       }
@@ -1813,6 +1949,7 @@
               "useCallback",
               "useEffect",
               "useMemo",
+              "useRef",
               "useState",
               "MouseEvent",
               "ReactNode"
@@ -2156,6 +2293,7 @@
               "submitProviderUpdate",
               "submitRuntimeUpdate",
               "verifyProviderKey",
+              "downloadClickthroughPrototype",
               "type ProviderUpdatePayload",
               "type RuntimeUpdatePayload"
             ],

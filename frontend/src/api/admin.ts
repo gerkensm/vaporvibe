@@ -348,3 +348,29 @@ export async function discardAbFork(
     "Failed to discard fork"
   );
 }
+
+export async function downloadClickthroughPrototype(
+  url: string,
+  sessionId: string | null
+): Promise<Blob> {
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/html,application/json",
+    },
+    body: JSON.stringify({ sessionId }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    const { message, details } = parseErrorPayload(
+      text,
+      `Failed to generate prototype tour (status ${response.status})`
+    );
+    throw new AdminApiError(response.status, message, details);
+  }
+
+  return await response.blob();
+}

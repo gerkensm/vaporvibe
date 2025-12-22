@@ -3,6 +3,14 @@ trigger: always_on
 globs: **/*
 ---
 
+- Intercepts navigation requests in service worker
+- Caches HTML responses in memory (90s TTL)
+- MessageChannel communication between interceptor and worker
+- Navigates via `window.location.replace()` after caching
+
+**Lifecycle**:
+1. Interceptor calls `ensureNavigationServiceWorker()` on load
+2. Waits for service worker controller activation
 3. On navigation: sends HTML via `postMessage({ type: "vaporvibe-cache-html", targetUrl, html })`
 4. Service worker caches payload and acknowledges
 5. Interceptor navigates to target URL
@@ -58,6 +66,46 @@ globs: **/*
 - **Workspace UI**: The `/vaporvibe/ab-test/:forkId` route renders `ABWorkspaceShell`, which loads both branches in synchronized iframes, supports draggable split view, and provides actions to keep or discard outcomes.
 - **Resolution**: Choosing a winning branch merges its accumulated history back into the primary timeline and clears fork metadata. Discarding abandons both branches and restores the pre-fork session state. While a fork is active, destructive history operations (export, purge, delete) are temporarily disabled.
 
+### Download Tour (Clickthrough Prototypes)
+
+**Purpose**: Export a session as a shareable, self-contained HTML prototype that replays the user's journey with an animated walkthrough.
+
+**Architecture** (`src/llm/messages.ts` → `tourMode` branch):
+
+1.  **Consolidation**: The LLM receives a special "tour mode" system prompt that instructs it to:
+    - Audit the entire conversation history
+    - Merge all distinct views/screens into a **single-page application** (SPA)
+    - Implement a `switchView(viewId)` function for client-side navigation
+    - **Prevent all browser reloads** — forms and links call JavaScript handlers instead
+
+2.  **Driver.js Tour**: The LLM generates a `steps` array that:
+    - Follows the user's **exact click path** from history (same order, same screens)
+    - Uses `onHighlightStarted` hooks to trigger `switchView()` before highlighting
+    - Preserves **exact user data** (form inputs, search queries, created content) from history
+    - Auto-starts immediately on page load via `driverObj.drive()`
+
+3.  **Simulated Interactions**:
+    - **Typing animations**: Uses `setInterval` to type character-by-character into form fields
+    - **Button clicks**: Uses `setTimeout` to trigger `element.click()` after a brief delay
+    - **No auto-advance**: User manually clicks "Next" in the popover to proceed (not automated skipping)
+
+4.  **Visual Fidelity**:
+    - Copies exact Tailwind/CSS classes from history HTML
+    - Reuses exact `<ai-image>` prompts and ratios
+    - Highlights active element with `.driver-active-element` CSS (box-shadow, high z-index)
+
+**Libraries Used**:
+- **Driver.js** (`driver.js@1.4.0`): Step-by-step tour overlay with popover descriptions
+- **Standard Library**: Tour output uses the same `/libs/*` assets available to normal generation
+
+**Prompt Location**: `src/llm/messages.ts` lines 77-145 (the `tourMode` conditional branch)
+
+**Key Design Decisions**:
+- No `driverObj.moveNext()` calls — user controls tour pace via Next button
+- No Rough Notation library — difficult to clean up annotations between steps
+- Simple `setInterval` typing preferred over Typewriter.js for reliability
+- Framework internals avoided (no `__x.$data`) — plain JS or public APIs only
+
 ### Token & Latency Tricks
 
 Hallucinating UI on every request is fun, but we still like responses under a lunar cycle. Here are the shortcuts that keep things snappy:
@@ -105,52 +153,3 @@ gerkensm-vaporvibe/
 │   ├── config/           # Configuration loading
 │   ├── utils/            # Shared utilities (credentials, assets, history export)
 │   └── views/            # Server-side view helpers (loading shell)
-├── scripts/              # Build/utility scripts (dev server, macOS packaging)
-├── docs/                 # Documentation
-├── package.json          # Project dependencies & scripts
-└── tsconfig.json         # TypeScript config for backend
-```
-
-- **`src/index.ts`**: CLI entry point, starts the server.
-- **`src/server/server.ts`**: Core HTTP server, SPA serving, LLM request orchestration.
-- **`src/server/admin-controller.ts`**: Handles `/api/admin/*` JSON endpoints.
-- **`src/llm/messages.ts`**: **Crucial file** for prompt engineering.
-- **`src/llm/*-client.ts`**: Provider-specific logic.
-- **`src/utils/credential-store.ts`**: Secure API key storage (OS keychain).
-- **`frontend/src/App.tsx`**: Defines SPA routes and structure.
-- **`frontend/src/pages/AdminDashboard.tsx`**: Main component for the admin UI.
-- **`frontend/src/api/admin.ts`**: Frontend functions for calling the backend API.
-
----
-
-## 7\. Development Workflow & Guidelines
-
-### Environment Setup
-
-- **Node.js**: Requires **v24.x**. Use `nvm use` in the repo root.
-- **Dependencies**: Run `npm install` in the root directory.
-
-### Running the Development Server
-
-- **Integrated Dev Harness**: `npm run dev`
-  - Spins up `src/dev/backend-dev-server.ts`, which watches backend files with **chokidar**, restarts on change, and snapshots session/provider state so you keep your brief/history during reloads.
-  - Boots Vite in **middleware mode** (`VAPORVIBE_PREFER_DEV_FRONTEND=1`) so the admin/setup SPA is served through the Node server—with full HMR and no need to rebuild `frontend/dist/` while iterating.
-  - Access everything via `http://localhost:3000/__setup` or `http://localhost:3000/vaporvibe` (no separate Vite port required).
-- **Backend Only**: `npm run dev:be` (runs the same harness directly via `tsx src/dev/backend-dev-server.ts`).
-- **Frontend Only**: `npm run dev:fe` (launches Vite standalone on `http://localhost:5173` if you want to isolate UI work).
-
-### Building for Production
-
-- **Full Build**: `npm run build`
-  - Runs `npm run build:fe` (compiles React SPA into `frontend/dist/`).
-  - Compiles backend TypeScript into `dist/`.
-  - Copies loading shell assets into `dist/`.
-- **Frontend Only**: `npm run build:fe` (runs `vite build` inside `frontend/`)
-
-### Running Compiled Code
-
-- `npm run start` executes the compiled backend from `dist/index.js`, serving the production frontend assets from `frontend/dist/`.
-
-### Testing
-
-- `npm test` (or `npm run test`) executes the Vitest suite once; `npm run test:watch` keeps it running while you iterate.

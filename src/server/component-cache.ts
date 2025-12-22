@@ -1,4 +1,5 @@
 import { parse, HTMLElement } from "node-html-parser";
+import type { HistoryEntry } from "../types.js";
 
 const STRUCTURAL_COMPONENT_TAGS = new Set([
   "header",
@@ -27,6 +28,11 @@ export interface ReusableCachePreparationResult {
   styleCache: Record<string, string>;
   nextComponentId: number;
   nextStyleId: number;
+}
+
+export interface MasterReusableCaches {
+  componentCache: Record<string, string>;
+  styleCache: Record<string, string>;
 }
 
 export function applyReusablePlaceholders(
@@ -71,6 +77,38 @@ export function applyReusablePlaceholders(
     replacedComponentIds,
     replacedStyleIds,
   };
+}
+
+export function buildMasterReusableCaches(history: HistoryEntry[]): MasterReusableCaches {
+  const componentCache: Record<string, string> = {};
+  const styleCache: Record<string, string> = {};
+
+  for (let index = history.length - 1; index >= 0; index -= 1) {
+    const entry = history[index];
+    if (entry.entryKind !== "html") {
+      continue;
+    }
+
+    const entryComponentCache = entry.componentCache;
+    if (entryComponentCache) {
+      for (const [componentId, markup] of Object.entries(entryComponentCache)) {
+        if (!(componentId in componentCache)) {
+          componentCache[componentId] = markup;
+        }
+      }
+    }
+
+    const entryStyleCache = entry.styleCache;
+    if (entryStyleCache) {
+      for (const [styleId, markup] of Object.entries(entryStyleCache)) {
+        if (!(styleId in styleCache)) {
+          styleCache[styleId] = markup;
+        }
+      }
+    }
+  }
+
+  return { componentCache, styleCache };
 }
 
 export function prepareReusableCaches(

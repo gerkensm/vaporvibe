@@ -3,6 +3,14 @@ trigger: glob
 globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+- From `./openai-client.js`: `OpenAiClient`
+- From `./gemini-client.js`: `GeminiClient`
+- From `./anthropic-client.js`: `AnthropicClient`
+- From `./grok-client.js`: `GrokClient`
+- From `./groq-client.js`: `GroqClient`
+- From `../types.js`: `ProviderSettings`
+- From `./client.js`: `LlmClient`
+
 #### `llm/gemini-client.ts`
 
 **Internal Imports:**
@@ -45,7 +53,7 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 **Internal Imports:**
 
 - From `../config/library-manifest.js`: `VAPORVIBE_LIBRARIES`
-- From `../types.js`: `BriefAttachment`, `ChatMessage`, `HistoryEntry`
+- From `../types.js`: `BriefAttachment`, `ChatMessage`, `HistoryEntry`, `GeneratedImage`
 
 #### `llm/model-catalog.ts`
 
@@ -91,16 +99,24 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 - From `../utils/history-archive.js`: `createHistoryArchiveZip`
 - From `../llm/factory.js`: `createLlmClient`
 - From `../llm/verification.js`: `verifyProviderApiKey`
+- From `../config/runtime-config.js`: `lookupEnvApiKey`
 - From `../utils/body.js`: `readBody`, `ParsedFile`
 - From `../utils/cookies.js`: `parseCookies`
 - From `../utils/sensitive.js`: `maskSensitive`
 - From `../utils/history-export.js`: `createHistorySnapshot`, `createPromptMarkdown`
 - From `../image-gen/cache.js`: `buildImageCacheKey`, `writeImageCache`
 - From `../image-gen/paths.js`: `getGeneratedImagePath`
+- From `../image-gen/factory.js`: `createImageGenClient`
+- From `../utils/html-export-transform.js`: `injectAiImageIds`, `prepareHtmlForExport`
+- From `../llm/messages.js`: `buildMessages`
+- From `../llm/capabilities.js`: `supportsImageInput`
+- From `../utils/html.js`: `ensureHtmlDocument`
+- From `./component-cache.js`: `applyReusablePlaceholders`, `buildMasterReusableCaches`
 - From `./session-store.js`: `SessionStore`
 - From `../utils/credential-store.js`: `getCredentialStore`
 - From `../utils/config-store.js`: `getConfigStore`
-- From `./brief-attachments.js`: `processBriefAttachmentFiles`
+- From `./brief-attachments.js`: `cloneAttachment`, `processBriefAttachmentFiles`
+- From `../utils/extract-ai-images.js`: `extractAiImageRequests`, `findMissingImages`
 - From `../types.js`: `BriefAttachment`, `GeneratedImage`, `HistoryEntry`, `ImageAspectRatio`, `ImageGenProvider`, `ImageModelId`, `ProviderSettings`, `ReasoningMode`, `ModelProvider`, `RestMutationRecord`, `RestQueryRecord`
 - From `./server.js`: `MutableServerState`, `RequestContext`
 - From `../types/admin-api.js`: `AdminActiveForkSummary`, `AdminBriefAttachment`, `AdminHistoryItem`, `AdminHistoryResponse`, `AdminProviderInfo`, `AdminRestItem`, `AdminRestMutationItem`, `AdminRestQueryItem`, `AdminRuntimeInfo`, `AdminStateResponse`, `AdminUpdateResponse`
@@ -110,6 +126,7 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 - From `node:crypto`: `randomUUID`
 - From `node:http`: `ServerResponse`
 - From `pino`: `Logger`
+- From `node:process`: `default as process`
 - From `jszip`: `default as JSZip`
 
 #### `server/brief-attachments.ts`
@@ -124,6 +141,10 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 - From `node:crypto`: `randomUUID`
 
 #### `server/component-cache.ts`
+
+**Internal Imports:**
+
+- From `../types.js`: `HistoryEntry`
 
 **External Imports:**
 
@@ -176,7 +197,8 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 - From `../utils/body.js`: `readBody`
 - From `../utils/html.js`: `ensureHtmlDocument`, `escapeHtml`
 - From `./session-store.js`: `SessionStore`
-- From `./component-cache.js`: `applyReusablePlaceholders`, `prepareReusableCaches`
+- From `./component-cache.js`: `applyReusablePlaceholders`, `buildMasterReusableCaches`, `prepareReusableCaches`
+- From `./brief-attachments.js`: `cloneAttachment`
 - From `../utils/navigation-interceptor.js`: `getNavigationInterceptorScript`
 - From `../utils/instructions-panel.js`: `getInstructionsPanelScript`
 - From `../views/loading-shell.js`: `renderLoadingShell`, `renderResultHydrationScript`, `renderLoaderErrorScript`
@@ -264,6 +286,12 @@ _No imports_
 
 - From `../logger.js`: `logger`
 
+#### `utils/extract-ai-images.ts`
+
+**Internal Imports:**
+
+- From `../types.js`: `GeneratedImage`, `ImageAspectRatio`
+
 #### `utils/frontend-assets.ts`
 
 **Internal Imports:**
@@ -294,70 +322,11 @@ _No imports_
 - From `./sensitive.js`: `maskSensitive`
 - From `../types.js`: `BriefAttachment`, `HistoryEntry`, `HistorySnapshot`, `ProviderSettings`, `ProviderSettingsSummary`, `RuntimeConfig`
 
-#### `utils/html.ts`
-
-_No imports_
-
-#### `utils/instructions-panel.ts`
+#### `utils/html-export-transform.ts`
 
 **Internal Imports:**
 
-- From `../constants.js`: `ADMIN_ROUTE_PREFIX`, `INSTRUCTIONS_FIELD`
-- From `./frontend-assets.js`: `resolveScriptSource`
-- From `../types.js`: `BranchLabel`
-
-#### `utils/navigation-interceptor.ts`
-
-**Internal Imports:**
-
-- From `../views/loading-shell/status-messages.js`: `getStatusMessages`
-- From `./frontend-assets.js`: `resolveScriptSource`
-
-#### `utils/sensitive.ts`
-
-_No imports_
-
-#### `views/loading-shell.ts`
-
-**Internal Imports:**
-
-- From `./loading-shell/status-messages.js`: `getStatusMessages`
-- From `../constants.js`: `LLM_REASONING_STREAM_ROUTE_PREFIX`
-
-**External Imports:**
-
-- From `node:fs`: `existsSync`, `readFileSync`
-- From `node:path`: `dirname`, `resolve`
-- From `node:url`: `fileURLToPath`
-
-#### `views/loading-shell/assets/hydrate.js`
-
-_No imports_
-
-#### `views/loading-shell/assets/reasoning-stream.js`
-
-_No imports_
-
-#### `views/loading-shell/assets/status-rotation.js`
-
-_No imports_
-
-#### `views/loading-shell/status-messages.ts`
-
-**External Imports:**
-
-- From `node:fs`: `existsSync`, `readFileSync`
-- From `node:path`: `dirname`, `resolve`
-- From `node:url`: `fileURLToPath`
-
-#### `views/overlay-debug.ts`
-
-**Internal Imports:**
-
-- From `../utils/html.js`: `escapeHtml`
-- From `../utils/navigation-interceptor.js`: `getNavigationInterceptorScript`
-
-
----
-
-## Frontend (frontend/src/)
+- From `../image-gen/paths.js`: `getGeneratedImagePath`, `GENERATED_IMAGES_ROUTE`
+- From `../logger.js`: `logger`
+- From `./image-reencoder.js`: `reencodeImagesForExport`
+- From `../types.js`: `GeneratedImage`

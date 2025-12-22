@@ -1010,6 +1010,114 @@
   color: rgba(148, 163, 184, 0.9);
 }
 
+/* Export Cards Section */
+.export-cards {
+  margin-top: 6px;
+}
+
+.export-cards__heading {
+  margin: 0 0 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.export-cards__warning {
+  margin: -6px 0 14px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  color: #b45309;
+  background: rgba(251, 191, 36, 0.12);
+  border-radius: 10px;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.export-cards__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.export-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  background: white;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.export-card:hover:not(:disabled):not([aria-disabled="true"]) {
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.export-card:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.export-card:disabled,
+.export-card[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.export-card--featured {
+  background: linear-gradient(135deg, #eff6ff, #f8fafc);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.export-card--featured:hover:not(:disabled) {
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.12);
+}
+
+.export-card--dropzone {
+  width: 100%;
+  border-style: dashed;
+  border-color: rgba(148, 163, 184, 0.45);
+  background: rgba(248, 250, 252, 0.5);
+}
+
+.export-card--dropzone:hover:not(:disabled) {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: rgba(239, 246, 255, 0.6);
+}
+
+.export-card__icon {
+  flex-shrink: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.export-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.export-card__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.export-card__desc {
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
 .history-item {
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 16px;
@@ -1256,7 +1364,7 @@
   list-style: disc;
 }
 
-.history-item__list--markdown li > p {
+.history-item__list--markdown li>p {
   margin: 0;
 }
 
@@ -1272,7 +1380,7 @@
   padding: 0 14px 14px;
 }
 
-.history-item__reasoning-detail > summary {
+.history-item__reasoning-detail>summary {
   cursor: pointer;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -1283,12 +1391,12 @@
   outline: none;
 }
 
-.history-item__reasoning-detail > summary:focus-visible {
+.history-item__reasoning-detail>summary:focus-visible {
   outline: 2px solid rgba(37, 99, 235, 0.35);
   border-radius: 8px;
 }
 
-.history-item__reasoning-detail[open] > summary {
+.history-item__reasoning-detail[open]>summary {
   border-bottom: 1px solid rgba(148, 163, 184, 0.2);
   margin-bottom: 12px;
 }
@@ -1338,7 +1446,7 @@
   background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
 }
 
-.history-item__images > summary {
+.history-item__images>summary {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1346,11 +1454,11 @@
   list-style: none;
 }
 
-.history-item__images > summary::-webkit-details-marker {
+.history-item__images>summary::-webkit-details-marker {
   display: none;
 }
 
-.history-item__images[open] > summary {
+.history-item__images[open]>summary {
   margin-bottom: 12px;
 }
 
@@ -1637,6 +1745,7 @@
     justify-content: center;
   }
 }
+
 .launch-pad__card:focus-visible {
   outline: 3px solid rgba(29, 78, 216, 0.3);
   outline-offset: 4px;
@@ -1767,7 +1876,7 @@
   background: linear-gradient(145deg, rgba(226, 232, 240, 0.55), rgba(191, 219, 254, 0.35));
   box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
   display: grid;
-  gap: 18px;
+  gap: 8px;
 }
 
 .snapshot-import .admin-status {
@@ -1777,9 +1886,17 @@
 .snapshot-import .attachment-uploader__dropzone {
   border-style: solid;
   border-width: 1px;
-  border-color: rgba(59, 130, 246, 0.45);
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(14, 165, 233, 0.08));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  border-color: rgba(59, 130, 246, 0.35);
+  background: linear-gradient(135deg, rgba(240, 248, 255, 0.95), rgba(224, 242, 254, 0.9));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.snapshot-import .admin-import__helper {
+  margin: 0;
+}
+
+.snapshot-import .admin-import__actions {
+  margin-top: 4px;
 }
 
 .brief-extra-slot {

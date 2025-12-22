@@ -3,6 +3,85 @@ trigger: glob
 globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+#### `utils/html.ts`
+
+_No imports_
+
+#### `utils/image-reencoder.ts`
+
+**Internal Imports:**
+
+- From `../logger.js`: `logger`
+- From `../types.js`: `GeneratedImage`
+
+**External Imports:**
+
+- From `sharp`: `default as sharp`
+
+#### `utils/instructions-panel.ts`
+
+**Internal Imports:**
+
+- From `../constants.js`: `ADMIN_ROUTE_PREFIX`, `INSTRUCTIONS_FIELD`
+- From `./frontend-assets.js`: `resolveScriptSource`
+- From `../types.js`: `BranchLabel`
+
+#### `utils/navigation-interceptor.ts`
+
+**Internal Imports:**
+
+- From `../views/loading-shell/status-messages.js`: `getStatusMessages`
+- From `./frontend-assets.js`: `resolveScriptSource`
+
+#### `utils/sensitive.ts`
+
+_No imports_
+
+#### `views/loading-shell.ts`
+
+**Internal Imports:**
+
+- From `./loading-shell/status-messages.js`: `getStatusMessages`
+- From `../constants.js`: `LLM_REASONING_STREAM_ROUTE_PREFIX`
+
+**External Imports:**
+
+- From `node:fs`: `existsSync`, `readFileSync`
+- From `node:path`: `dirname`, `resolve`
+- From `node:url`: `fileURLToPath`
+
+#### `views/loading-shell/assets/hydrate.js`
+
+_No imports_
+
+#### `views/loading-shell/assets/reasoning-stream.js`
+
+_No imports_
+
+#### `views/loading-shell/assets/status-rotation.js`
+
+_No imports_
+
+#### `views/loading-shell/status-messages.ts`
+
+**External Imports:**
+
+- From `node:fs`: `existsSync`, `readFileSync`
+- From `node:path`: `dirname`, `resolve`
+- From `node:url`: `fileURLToPath`
+
+#### `views/overlay-debug.ts`
+
+**Internal Imports:**
+
+- From `../utils/html.js`: `escapeHtml`
+- From `../utils/navigation-interceptor.js`: `getNavigationInterceptorScript`
+
+
+---
+
+## Frontend (frontend/src/)
+
 **Total Modules**: 28  
 **External Packages**: 5
 
@@ -173,7 +252,7 @@ _No imports_
 
 **External Imports:**
 
-- From `react`: `useCallback`, `useEffect`, `useMemo`, `useState`, `MouseEvent`, `ReactNode`
+- From `react`: `useCallback`, `useEffect`, `useMemo`, `useRef`, `useState`, `MouseEvent`, `ReactNode`
 - From `react-markdown`: `default as ReactMarkdown`
 - From `remark-gfm`: `default as remarkGfm`
 
@@ -323,7 +402,7 @@ _No imports_
 **Internal Imports:**
 
 - From `../components`: `AttachmentUploader`, `ModelSelector`, `ImageModelSelector`, `TokenBudgetControl`, `CustomModelConfig`
-- From `../api/admin`: `fetchAdminState`, `fetchAdminHistory`, `deleteHistoryEntry`, `deleteAllHistoryEntries`, `submitBriefUpdate`, `submitProviderUpdate`, `submitRuntimeUpdate`, `verifyProviderKey`, `type ProviderUpdatePayload`, `type RuntimeUpdatePayload`
+- From `../api/admin`: `fetchAdminState`, `fetchAdminHistory`, `deleteHistoryEntry`, `deleteAllHistoryEntries`, `submitBriefUpdate`, `submitProviderUpdate`, `submitRuntimeUpdate`, `verifyProviderKey`, `downloadClickthroughPrototype`, `type ProviderUpdatePayload`, `type RuntimeUpdatePayload`
 - From `../constants/runtime`: `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`, `DEFAULT_HISTORY_MAX_BYTES`
 - From `../components/Notifications`: `useNotifications`
 - From `./admin-dashboard/types`: `type AdminDashboardProps`, `type AdminLocationState`, `type AsyncStatus`, `type NullableStatus`, `type ProviderKey`, `type QueuedAttachment`, `type TabKey`
@@ -343,23 +422,3 @@ _No imports_
 #### `pages/SetupWizard.tsx`
 
 **Internal Imports:**
-
-- From `./AdminDashboard`: `default as AdminDashboard`
-
-#### `vite-env.d.ts`
-
-_No imports_
-
-
----
-
-## Regenerating This Documentation
-
-To update this file when imports change:
-
-```bash
-npm run gen:codebase-map
-```
-
-This will re-analyze both backend and frontend source files and regenerate both this markdown documentation and the machine-readable JSON file (`docs/codebase-graph.json`).
-

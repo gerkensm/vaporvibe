@@ -6,6 +6,7 @@ import type {
   ImageGenResult,
 } from "../types.js";
 import { logger } from "../../logger.js";
+import { withRetry } from "../retry.js";
 
 export class GoogleImageGenClient implements ImageGenClient {
   async generateImage(opts: ImageGenOptions): Promise<ImageGenResult> {
@@ -24,15 +25,19 @@ export class GoogleImageGenClient implements ImageGenClient {
     if (useGenerateContent) {
       logger.debug("Using generateContent API");
       // Both Gemini models use generateContent API (2.5 Flash and 3 Pro)
-      const response = await client.models.generateContent({
-        model: modelId,
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: opts.prompt }],
-          },
-        ],
-      });
+      const response = await withRetry(
+        () =>
+          client.models.generateContent({
+            model: modelId,
+            contents: [
+              {
+                role: "user",
+                parts: [{ text: opts.prompt }],
+              },
+            ],
+          }),
+        `Google generateContent (model=${modelId})`
+      );
 
       // Extract the image from the response
       const candidates = response.candidates;
@@ -73,14 +78,18 @@ export class GoogleImageGenClient implements ImageGenClient {
       const validRatios = ["1:1", "3:4", "4:3", "9:16", "16:9"];
       const ratio = validRatios.includes(opts.ratio) ? opts.ratio : "1:1";
 
-      const response = await client.models.generateImages({
-        model: modelId,
-        prompt: opts.prompt,
-        config: {
-          numberOfImages: 1,
-          aspectRatio: ratio,
-        },
-      });
+      const response = await withRetry(
+        () =>
+          client.models.generateImages({
+            model: modelId,
+            prompt: opts.prompt,
+            config: {
+              numberOfImages: 1,
+              aspectRatio: ratio,
+            },
+          }),
+        `Google generateImages (model=${modelId})`
+      );
 
       logger.info(response);
 
