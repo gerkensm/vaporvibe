@@ -212,8 +212,11 @@ import {
       });
       if (response.status === 404) {
         if (attempt < HYDRATE_MAX_ATTEMPTS) {
-          const delay = Math.round(
-            HYDRATE_RETRY_DELAY_MS * Math.pow(1.2, Math.max(0, attempt - 1))
+          const delay = Math.min(
+            HYDRATE_MAX_DELAY_MS,
+            Math.round(
+              HYDRATE_RETRY_DELAY_MS * Math.pow(1.2, Math.max(0, attempt - 1))
+            )
           );
           window.setTimeout(() => {
             void pollForResult(renderUrl, destination, attempt + 1);
@@ -248,8 +251,11 @@ import {
       return;
     } catch (error) {
       if (attempt < HYDRATE_MAX_ATTEMPTS) {
-        const delay = Math.round(
-          HYDRATE_RETRY_DELAY_MS * Math.pow(1.2, Math.max(0, attempt - 1))
+        const delay = Math.min(
+          HYDRATE_MAX_DELAY_MS,
+          Math.round(
+            HYDRATE_RETRY_DELAY_MS * Math.pow(1.2, Math.max(0, attempt - 1))
+          )
         );
         console.warn(
           `vaporvibe hydrate attempt ${attempt} failed:`,
@@ -742,8 +748,9 @@ import {
   const demosceneMelodyPattern = [330, 392, 415, 440, 494, 523, 494, 440];
   const demosceneBassPattern = [110, 147, 123, 98];
   const LLM_REASONING_STREAM_ROUTE_PREFIX = "/__vaporvibe/reasoning";
-  const HYDRATE_MAX_ATTEMPTS = 15;
+  const HYDRATE_MAX_ATTEMPTS = 200;
   const HYDRATE_RETRY_DELAY_MS = 2000;
+  const HYDRATE_MAX_DELAY_MS = 30000;
   const iframeContext = window.frameElement as HTMLIFrameElement | null;
   const activeBranchId = resolveActiveBranchId({
     href: window.location.href,

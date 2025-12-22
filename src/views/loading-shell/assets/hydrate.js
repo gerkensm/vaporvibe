@@ -1,12 +1,13 @@
-window.__vaporVibeHydrateFromToken = function(token, path) {
+window.__vaporVibeHydrateFromToken = function (token, path) {
   if (!token || typeof token !== "string") return;
   if (window.__vaporVibeHydrateFromTokenBusy) return;
   window.__vaporVibeHydrateFromTokenBusy = true;
   var prefix = __RESULT_ROUTE_PREFIX__;
   var originPath = typeof path === "string" && path.trim().length > 0 ? path : __ORIGINAL_PATH__;
   var requestUrl = prefix.replace(/\/$/, "") + "/" + token.replace(/^\/+/, "");
-  var MAX_ATTEMPTS = 3;
-  var RETRY_DELAY_MS = 3000;
+  var MAX_ATTEMPTS = 200;
+  var RETRY_DELAY_MS = 2000;
+  var MAX_DELAY_MS = 30000;
 
   function onSuccess(htmlString) {
     try {
@@ -34,17 +35,21 @@ window.__vaporVibeHydrateFromToken = function(token, path) {
       credentials: "same-origin",
       cache: "no-store",
       headers: { "Accept": "text/html" }
-    }).then(function(response) {
+    }).then(function (response) {
       if (!response.ok) {
         throw new Error("Unexpected status " + response.status);
       }
       return response.text();
-    }).then(onSuccess).catch(function(error) {
+    }).then(onSuccess).catch(function (error) {
       if (attempt < MAX_ATTEMPTS) {
         console.warn("vaporvibe hydrate attempt " + attempt + " failed:", error);
-        window.setTimeout(function() {
+        var delay = Math.min(
+          MAX_DELAY_MS,
+          Math.round(RETRY_DELAY_MS * Math.pow(1.2, Math.max(0, attempt - 1)))
+        );
+        window.setTimeout(function () {
           attemptFetch(attempt + 1);
-        }, RETRY_DELAY_MS * attempt);
+        }, delay);
         return;
       }
       onFailure(error);
@@ -54,7 +59,7 @@ window.__vaporVibeHydrateFromToken = function(token, path) {
   attemptFetch(1);
 };
 
-window.__vaporVibeHydrateError = function(message, detail) {
+window.__vaporVibeHydrateError = function (message, detail) {
   var container = document.querySelector("main");
   if (!container) return;
   var detailHtml = "";
