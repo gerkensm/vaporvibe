@@ -137,4 +137,54 @@ describe("App Config Persistence", () => {
         // We didn't mock defaults but we can check it's not gemini-pro
         expect(config.provider.model).not.toBe("gemini-pro");
     });
+
+    it("should skip model selector for returning users with persisted settings and valid key", async () => {
+        // Setup: Persisted settings for gemini (user has completed setup before)
+        configStoreMock.getLlmSettings.mockReturnValue({
+            provider: "gemini",
+            model: "gemini-1.5-pro",
+            maxOutputTokens: 8192,
+            reasoningMode: "low",
+        });
+
+        // Setup: Stored credential exists
+        credentialStoreMock.getApiKey.mockImplementation(async (provider) =>
+            provider === "gemini" ? "stored-gemini-key" : null
+        );
+
+        // User starts app with NO CLI options (typical returning user scenario)
+        const options: CliOptions = {};
+        const env = createEnv();
+
+        const config = await resolveAppConfig(options, env);
+
+        // Should be ready to go - no model selector needed
+        expect(config.provider.provider).toBe("gemini");
+        expect(config.provider.model).toBe("gemini-1.5-pro");
+        expect(config.providerReady).toBe(true);
+        expect(config.providerSelectionRequired).toBe(false);
+    });
+
+    it("should require model selection if persisted settings exist but no API key", async () => {
+        // Setup: Persisted settings for openai (user configured before but key is gone)
+        configStoreMock.getLlmSettings.mockReturnValue({
+            provider: "openai",
+            model: "gpt-4o",
+            maxOutputTokens: 4096,
+        });
+
+        // Setup: No credentials
+        credentialStoreMock.getApiKey.mockResolvedValue(null);
+
+        const options: CliOptions = {};
+        const env = createEnv();
+
+        const config = await resolveAppConfig(options, env);
+
+        // Should still require setup since no key is available
+        expect(config.provider.provider).toBe("openai");
+        expect(config.providerReady).toBe(false);
+        expect(config.providerSelectionRequired).toBe(true);
+    });
 });
+

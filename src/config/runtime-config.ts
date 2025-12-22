@@ -57,11 +57,26 @@ export async function resolveAppConfig(
   }
 
   const providersWithKeys = providerResolution.providersWithKeys;
-  const providerSelectionRequired = !(
-    providerConfiguredViaCli && modelConfiguredViaCli
+
+  // Check if we have valid persisted settings - if so, skip the model selector
+  const configStore = getConfigStore();
+  const persistedLlm = configStore.getLlmSettings();
+  const hasPersistedSettings = Boolean(
+    persistedLlm?.provider &&
+    persistedLlm?.model &&
+    persistedLlm.provider === providerSettings.provider
   );
+
+  // Provider selection is only required if:
+  // 1. Not configured via CLI AND
+  // 2. Not previously configured via persisted settings (with a valid key)
+  const providerSelectionRequired = !(
+    (providerConfiguredViaCli && modelConfiguredViaCli) ||
+    (hasPersistedSettings && hasApiKey)
+  );
+
   const providerReady =
-    hasApiKey && providerConfiguredViaCli && modelConfiguredViaCli;
+    hasApiKey && !providerSelectionRequired;
 
   return {
     provider: providerSettings,
