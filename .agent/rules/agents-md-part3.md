@@ -3,6 +3,9 @@ trigger: always_on
 globs: **/*
 ---
 
+**Purpose**: Enable seamless client-side navigation without full page reload.
+
+**Implementation** (`frontend/public/vaporvibe-interceptor-sw.js`):
 - Intercepts navigation requests in service worker
 - Caches HTML responses in memory (90s TTL)
 - MessageChannel communication between interceptor and worker
@@ -151,5 +154,3 @@ gerkensm-vaporvibe/
 │   │   ├── factory.ts    # Creates LLM client instances
 │   │   └── *-client.ts   # Provider-specific API clients
 │   ├── config/           # Configuration loading
-│   ├── utils/            # Shared utilities (credentials, assets, history export)
-│   └── views/            # Server-side view helpers (loading shell)

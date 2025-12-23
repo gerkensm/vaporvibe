@@ -54,13 +54,13 @@ A Node.js/Express server that acts as the orchestrator.
 ### LLM Layer (`src/llm/`)
 An adapter layer that normalizes different providers into a standard interface.
 -   **Client Interface**: `generateHtml()` and `stream()`.
--   **Providers**: OpenAI, Anthropic, Gemini, Grok, Groq.
+-   **Providers**: OpenAI, Anthropic, Gemini, Grok, Groq, OpenRouter.
 -   **Reasoning**: Extracts "hidden" thought chains from models that support them.
 *   👉 [Deep Dive: LLM Pipeline](./architecture/llm-pipeline.md)
 
 ### Image Generation Layer (`src/image-gen/`)
 A modular system for generating images on-demand.
--   **Provider Clients**: OpenAI (DALL-E, GPT Image) and Google (Imagen, Nano Banana).
+-   **Provider Clients**: OpenAI (DALL-E, GPT Image), Google (Imagen, Nano Banana), and OpenRouter (Flux, Gemini via OpenRouter).
 -   **Caching**: In-memory cache keyed by `modelId:ratio:prompt` to prevent redundant API calls.
 -   **REST Endpoint**: Exposed via `/rest_api/image/generate` for LLM-generated apps.
 
@@ -121,6 +121,7 @@ Implementation details for each supported model family:
 *   [**Google Gemini**](../docs/modules/llm/providers/gemini.md) (1.5 Pro, 2.0 Flash)
 *   [**xAI Grok**](../docs/modules/llm/providers/grok.md) (Grok 2/3)
 *   [**Groq**](../docs/modules/llm/providers/groq.md) (Llama 3, Mixtral)
+*   [**OpenRouter**](../docs/modules/llm/providers/openrouter.md) (200+ models from multiple providers)
 
 ### Codebase Map
 *   [**Visual Dependency Graph**](./CODEBASE_MAP.md)

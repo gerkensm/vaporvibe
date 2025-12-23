@@ -25,8 +25,8 @@ Welcome! This guide provides the high-level context, architectural details, and 
 
 - **Primary Goal**: To function as a "rapid-prototyping cheat code," allowing you to validate a UX flow or interaction idea without writing any frontend or backend code.
 - **Core Philosophy**: It's an "intentionally unserious" and "cheeky thought experiment". The joy is in watching the model "make it up as it goes," embracing the creative chaos of generative AI.
-- **Key Feature**: It supports multiple LLM providers (OpenAI, Google Gemini, Anthropic, xAI Grok, and Groq), allowing you to see how different models interpret the same brief.
-- **Image Generation**: It can generate images on the fly using OpenAI (DALL-E, GPT Image 1.5) or Google (Imagen, Nano Banana, Nano Banana Pro) models, caching them in memory to prevent redundant costs.
+- **Key Feature**: It supports multiple LLM providers (OpenAI, Google Gemini, Anthropic, xAI Grok, Groq, and OpenRouter), allowing you to see how different models interpret the same brief.
+- **Image Generation**: It can generate images on the fly using OpenAI (DALL-E, GPT Image 1.5), Google (Imagen, Nano Banana, Nano Banana Pro), or OpenRouter (Flux, Gemini via OpenRouter) models, caching them in memory to prevent redundant costs.
 
 ---
 
@@ -53,7 +53,7 @@ graph TD
     end
 
     subgraph "LLM Provider"
-      D -- Sends Prompt --> LLM[OpenAI / Gemini / Anthropic / Grok / Groq];
+      D -- Sends Prompt --> LLM[OpenAI / Gemini / Anthropic / Grok / Groq / OpenRouter];
       LLM -- Generates Full HTML --> E(Receives HTML);
     end
 
