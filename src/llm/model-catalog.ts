@@ -54,6 +54,13 @@ export interface ModelMetadata {
   readonly reasoningModes?: ReasoningMode[];
   readonly defaultReasoningMode?: ReasoningMode;
   readonly supportsMediaResolution?: boolean;
+  readonly usage?: ModelUsageMetrics;
+}
+
+export interface ModelUsageMetrics {
+  readonly totalPromptTokens?: number;
+  readonly totalCompletionTokens?: number;
+  readonly totalTokens?: number;
 }
 
 type RawModelReasoningTokens =
