@@ -86,7 +86,7 @@ Some libraries require specific handling in `scripts/copy-libs.ts` to ensure LLM
 
 ### Reasoning Stream Display (Live Model Thinking)
 
-VaporVibe displays **live reasoning streams** from LLMs that support extended thinking (Anthropic, Gemini, Groq, OpenAI o-series). The reasoning visualization appears in **two contexts**:
+VaporVibe displays **live reasoning streams** from LLMs that support extended thinking (Anthropic, Gemini, Groq, OpenAI o-series, and OpenRouter models with reasoning support). The reasoning visualization appears in **two contexts**:
 
 #### A. Navigation Interceptor Overlay (`frontend/src/interceptor.ts`)
 
@@ -131,6 +131,7 @@ VaporVibe displays **live reasoning streams** from LLMs that support extended th
 - **Gemini**: Handles Pro (thinkingLevel) vs Flash (thinkingBudget) split, emits thoughts
 - **Groq**: Uses string buffers (`summaryBuffer`, `detailBuffer`) to accumulate deltas and prevent fragmentation
 - **OpenAI o-series**: Future support placeholder
+- **OpenRouter**: Emits reasoning via `delta.reasoning` or `delta.reasoning_content` depending on upstream provider
 
 **Frontend Rendering:**
 - `buildSnapshot()`: Constructs reasoning log state from accumulated buffers
@@ -159,7 +160,3 @@ VaporVibe displays **live reasoning streams** from LLMs that support extended th
 **Result**: Reasoning displays as a single coherent block instead of fragmenting into multiple steps.
 
 ### Service Worker for Navigation Caching
-
-**Purpose**: Enable seamless client-side navigation without full page reload.
-
-**Implementation** (`frontend/public/vaporvibe-interceptor-sw.js`):

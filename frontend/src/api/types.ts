@@ -14,7 +14,7 @@ export interface AdminGeneratedImage {
   downloadUrl: string;
   prompt: string;
   ratio: "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
-  provider: "openai" | "gemini";
+  provider: "openai" | "gemini" | "openrouter";
   modelId: string;
   mimeType: string;
   createdAt: string;
@@ -120,7 +120,7 @@ export interface AdminRuntimeInfo {
 
 export interface AdminImageGenerationInfo {
   enabled: boolean;
-  provider?: "openai" | "gemini";
+  provider?: "openai" | "gemini" | "openrouter";
   modelId: string;
   hasApiKey: boolean;
 }
@@ -237,6 +237,7 @@ export interface AdminStateResponse {
     { mode: boolean; tokens: boolean }
   >;
   providerMediaResolutionCapabilities: Record<string, boolean>;
+  imageModelCatalog: Record<string, Array<{ value: string; label: string }>>
 }
 
 export interface AdminHistoryResponse {

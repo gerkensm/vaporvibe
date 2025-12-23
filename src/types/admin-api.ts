@@ -35,7 +35,7 @@ export interface AdminRuntimeInfo {
 
 export interface AdminImageGenerationInfo {
   enabled: boolean;
-  provider?: "openai" | "gemini";
+  provider?: "openai" | "gemini" | "openrouter";
   modelId: string;
   hasApiKey: boolean;
 }
@@ -173,6 +173,7 @@ export interface AdminStateResponse {
     { mode: boolean; tokens: boolean }
   >;
   providerMediaResolutionCapabilities: Record<ModelProvider, boolean>;
+  imageModelCatalog: Record<ImageGenProvider, Array<{ value: string; label: string }>>
 }
 
 export interface AdminHistoryResponse {

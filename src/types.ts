@@ -1,6 +1,6 @@
-export type ModelProvider = "openai" | "gemini" | "anthropic" | "grok" | "groq";
+export type ModelProvider = "openai" | "gemini" | "anthropic" | "grok" | "groq" | "openrouter";
 
-export type ImageGenProvider = "openai" | "gemini";
+export type ImageGenProvider = "openai" | "gemini" | "openrouter";
 
 export type ImageAspectRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4";
 
@@ -10,7 +10,8 @@ export type ImageModelId =
   | "gemini-2.5-flash-image"
   | "gemini-3-pro-image-preview"
   | "imagen-3.0-generate-002"
-  | "imagen-4.0-fast-generate-001";
+  | "imagen-4.0-fast-generate-001"
+  | (string & {});
 
 export type ReasoningMode = "none" | "low" | "medium" | "high" | "xhigh" | "default";
 

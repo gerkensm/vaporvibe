@@ -1,4 +1,4 @@
-import type { ModelProvider, ReasoningMode } from "../types.js";
+import type { ModelProvider, ReasoningMode, ImageGenProvider } from "../types.js";
 import {
   PROVIDER_METADATA,
   type ProviderMetadata,
@@ -66,6 +66,7 @@ export const DEFAULT_MODEL_BY_PROVIDER: Record<ModelProvider, string> = {
   anthropic: PROVIDER_METADATA.anthropic.defaultModel,
   grok: PROVIDER_METADATA.grok.defaultModel,
   groq: PROVIDER_METADATA.groq.defaultModel,
+  openrouter: PROVIDER_METADATA.openrouter.defaultModel,
 };
 
 export const DEFAULT_MAX_TOKENS_BY_PROVIDER: Record<ModelProvider, number> = {
@@ -74,6 +75,7 @@ export const DEFAULT_MAX_TOKENS_BY_PROVIDER: Record<ModelProvider, number> = {
   anthropic: PROVIDER_METADATA.anthropic.maxOutputTokens.default,
   grok: PROVIDER_METADATA.grok.maxOutputTokens.default,
   groq: PROVIDER_METADATA.groq.maxOutputTokens.default,
+  openrouter: PROVIDER_METADATA.openrouter.maxOutputTokens.default,
 };
 
 export const REASONING_MODE_CHOICES: Array<{ value: ReasoningMode; label: string; description: string }> = [
@@ -160,4 +162,19 @@ export const PROVIDER_MODEL_METADATA: Record<ModelProvider, ModelMetadata[]> = O
   ]),
 ) as Record<ModelProvider, ModelMetadata[]>;
 
-export { getModelOptions, getModelMetadata, getFeaturedModels };
+export { getModelOptions, getModelMetadata, getFeaturedModels, type ModelMetadata };
+
+export interface ImageModelOption {
+  value: string;
+  label: string;
+  provider: ImageGenProvider;
+}
+
+export const STATIC_IMAGE_MODELS: ImageModelOption[] = [
+  { value: "gpt-image-1.5", label: "GPT Image 1.5 (recommended)", provider: "openai" },
+  { value: "dall-e-3", label: "DALL·E 3", provider: "openai" },
+  { value: "gemini-3-pro-image-preview", label: "Nano Banana Pro (Gemini 3)", provider: "gemini" },
+  { value: "gemini-2.5-flash-image", label: "Nano Banana (Gemini 2.5)", provider: "gemini" },
+  { value: "imagen-4.0-fast-generate-001", label: "Imagen 4 (Fast)", provider: "gemini" },
+  { value: "imagen-3.0-generate-002", label: "Imagen 3", provider: "gemini" },
+];

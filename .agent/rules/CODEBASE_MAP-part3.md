@@ -3,6 +3,71 @@ trigger: always_on
 globs: **/*
 ---
 
+- From `conf`: `default as Conf`
+
+#### `utils/cookies.ts`
+
+**External Imports:**
+
+- From `node:http`: `ServerResponse`
+
+#### `utils/credential-store.ts`
+
+**Internal Imports:**
+
+- From `../logger.js`: `logger`
+
+#### `utils/extract-ai-images.ts`
+
+**Internal Imports:**
+
+- From `../types.js`: `GeneratedImage`, `ImageAspectRatio`
+
+#### `utils/frontend-assets.ts`
+
+**Internal Imports:**
+
+- From `../constants.js`: `ADMIN_ROUTE_PREFIX`
+
+**External Imports:**
+
+- From `node:fs`: `existsSync`
+- From `node:path`: `dirname`, `resolve`
+- From `node:url`: `fileURLToPath`
+
+#### `utils/history-archive.ts`
+
+**Internal Imports:**
+
+- From `./history-export.js`: `createHistorySnapshot`
+- From `../types.js`: `BriefAttachment`, `GeneratedImage`, `HistoryEntry`, `HistorySnapshot`
+
+**External Imports:**
+
+- From `jszip`: `default as JSZip`
+
+#### `utils/history-export.ts`
+
+**Internal Imports:**
+
+- From `./sensitive.js`: `maskSensitive`
+- From `../types.js`: `BriefAttachment`, `HistoryEntry`, `HistorySnapshot`, `ProviderSettings`, `ProviderSettingsSummary`, `RuntimeConfig`
+
+#### `utils/html-export-transform.ts`
+
+**Internal Imports:**
+
+- From `../image-gen/paths.js`: `getGeneratedImagePath`, `GENERATED_IMAGES_ROUTE`
+- From `../logger.js`: `logger`
+- From `./image-reencoder.js`: `reencodeImagesForExport`
+- From `../types.js`: `GeneratedImage`
+
+#### `utils/html.ts`
+
+_No imports_
+
+#### `utils/image-reencoder.ts`
+
 **Internal Imports:**
 
 - From `../logger.js`: `logger`
@@ -263,10 +328,6 @@ _No imports_
 
 #### `components/ImageModelSelector.tsx`
 
-**Internal Imports:**
-
-- From `../api/types`: `AdminImageGenerationInfo`
-
 **External Imports:**
 
 - From `react`: `useMemo`
@@ -398,30 +459,3 @@ _No imports_
 - From `../components`: `AttachmentUploader`, `ModelSelector`, `ImageModelSelector`, `TokenBudgetControl`, `CustomModelConfig`
 - From `../api/admin`: `fetchAdminState`, `fetchAdminHistory`, `deleteHistoryEntry`, `deleteAllHistoryEntries`, `submitBriefUpdate`, `submitProviderUpdate`, `submitRuntimeUpdate`, `verifyProviderKey`, `downloadClickthroughPrototype`, `type ProviderUpdatePayload`, `type RuntimeUpdatePayload`
 - From `../constants/runtime`: `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`, `DEFAULT_HISTORY_MAX_BYTES`
-- From `../components/Notifications`: `useNotifications`
-- From `./admin-dashboard/types`: `type AdminDashboardProps`, `type AdminLocationState`, `type AsyncStatus`, `type NullableStatus`, `type ProviderKey`, `type QueuedAttachment`, `type TabKey`
-- From `./admin-dashboard/constants`: `HISTORY_PAGE_SIZE`, `HISTORY_REFRESH_INTERVAL_MS`, `HISTORY_TIME_FORMATTER`, `PROVIDER_SORT_ORDER`, `TAB_LABELS`, `TAB_ORDER`, `SETUP_INTRO_STORAGE_KEY`, `DEFAULT_CUSTOM_MODEL_CONFIG`
-- From `./admin-dashboard/utils`: `clamp`, `createDefaultCustomConfig`, `createTabPath`, `getTabFromPath`, `isAdminPath`, `normalizeAdminPath`
-- From `../api/types`: `AdminBriefAttachment`, `AdminHistoryItem`, `AdminStateResponse`
-- From `../components/HistoryExplorer`: `default as HistoryExplorer`
-- From `../components/HistorySnapshotControls`: `default as HistorySnapshotControls`
-- From `../components/ResumeSessionCallout`: `default as ResumeSessionCallout`
-- From `../assets/vaporvibe-icon-both.svg`: `default as vaporvibeLogoUrl`
-
-**External Imports:**
-
-- From `react`: `useCallback`, `useEffect`, `useMemo`, `useRef`, `useState`, `ReactNode`
-- From `react-router-dom`: `useLocation`, `useNavigate`
-
-#### `pages/SetupWizard.tsx`
-
-**Internal Imports:**
-
-- From `./AdminDashboard`: `default as AdminDashboard`
-
-#### `vite-env.d.ts`
-
-_No imports_
-
-
----

@@ -25,6 +25,7 @@ const GEMINI_METADATA = PROVIDER_METADATA.gemini;
 const ANTHROPIC_METADATA = PROVIDER_METADATA.anthropic;
 const GROK_METADATA = PROVIDER_METADATA.grok;
 const GROQ_METADATA = PROVIDER_METADATA.groq;
+const OPENROUTER_METADATA = PROVIDER_METADATA.openrouter;
 
 export const DEFAULT_MAX_OUTPUT_TOKENS =
   OPENAI_METADATA.maxOutputTokens.default;
@@ -35,6 +36,7 @@ export const DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS =
 export const DEFAULT_GEMINI_MODEL = GEMINI_METADATA.defaultModel;
 export const DEFAULT_GROK_MODEL = GROK_METADATA.defaultModel;
 export const DEFAULT_GROQ_MODEL = GROQ_METADATA.defaultModel;
+export const DEFAULT_OPENROUTER_MODEL = OPENROUTER_METADATA.defaultModel;
 export const DEFAULT_HISTORY_LIMIT = 300;
 export const DEFAULT_HISTORY_MAX_BYTES = 2_000_000;
 export const HISTORY_LIMIT_MIN = 1;
@@ -52,6 +54,7 @@ export const DEFAULT_REASONING_TOKENS: Record<
   anthropic: ANTHROPIC_METADATA.reasoningTokens?.default,
   grok: GROK_METADATA.reasoningTokens?.default,
   groq: GROQ_METADATA.reasoningTokens?.default,
+  openrouter: OPENROUTER_METADATA.reasoningTokens?.default,
 };
 
 export const BRIEF_FORM_ROUTE = "/__set-brief";

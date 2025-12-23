@@ -1,9 +1,9 @@
 {
-  "generated": "2025-12-21T21:22:34.327Z",
+  "generated": "2025-12-23T21:23:11.875Z",
   "backend": {
     "basePath": "src",
-    "totalModules": 57,
-    "externalPackages": 22,
+    "totalModules": 60,
+    "externalPackages": 23,
     "modules": {
       "cli/args.ts": {
         "imports": {
@@ -55,6 +55,7 @@
               "DEFAULT_GROQ_MODEL",
               "DEFAULT_MAX_OUTPUT_TOKENS",
               "DEFAULT_OPENAI_MODEL",
+              "DEFAULT_OPENROUTER_MODEL",
               "DEFAULT_PORT",
               "DEFAULT_ANTHROPIC_MODEL",
               "DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS",
@@ -133,7 +134,8 @@
             ],
             "../types.js": [
               "ModelProvider",
-              "ReasoningMode"
+              "ReasoningMode",
+              "ImageGenProvider"
             ]
           },
           "external": {}
@@ -239,6 +241,9 @@
             "./providers/openai.js": [
               "OpenAiImageGenClient"
             ],
+            "./providers/openrouter.js": [
+              "OpenRouterImageGenClient"
+            ],
             "./types.js": [
               "ImageGenClient"
             ]
@@ -249,7 +254,7 @@
           "server/admin-controller.ts",
           "server/rest-api-controller.ts"
         ],
-        "importCount": 4
+        "importCount": 5
       },
       "image-gen/paths.ts": {
         "imports": {
@@ -323,6 +328,26 @@
         },
         "importedBy": [],
         "importCount": 4
+      },
+      "image-gen/providers/openrouter.ts": {
+        "imports": {
+          "internal": {
+            "../../logger.js": [
+              "logger"
+            ],
+            "../retry.js": [
+              "withRetry"
+            ],
+            "../types.js": [
+              "ImageGenClient",
+              "ImageGenOptions",
+              "ImageGenResult"
+            ]
+          },
+          "external": {}
+        },
+        "importedBy": [],
+        "importCount": 3
       },
       "image-gen/retry.ts": {
         "imports": {
@@ -484,6 +509,9 @@
             "./groq-client.js": [
               "GroqClient"
             ],
+            "./openrouter-client.js": [
+              "OpenRouterClient"
+            ],
             "../types.js": [
               "ProviderSettings"
             ],
@@ -498,7 +526,7 @@
           "server/admin-controller.ts",
           "server/server.ts"
         ],
-        "importCount": 7
+        "importCount": 8
       },
       "llm/gemini-client.ts": {
         "imports": {
@@ -662,6 +690,60 @@
         "importedBy": [],
         "importCount": 4
       },
+      "llm/openrouter-client.ts": {
+        "imports": {
+          "internal": {
+            "../logger.js": [
+              "logger"
+            ],
+            "../types.js": [
+              "ChatMessage",
+              "LlmReasoningTrace",
+              "LlmUsageMetrics",
+              "ProviderSettings",
+              "VerificationResult"
+            ],
+            "./client.js": [
+              "LlmClient",
+              "LlmGenerateOptions",
+              "LlmResult",
+              "LlmStreamObserver"
+            ]
+          },
+          "external": {
+            "@openrouter/sdk": [
+              "OpenRouter"
+            ]
+          }
+        },
+        "importedBy": [],
+        "importCount": 4
+      },
+      "llm/openrouter-models.ts": {
+        "imports": {
+          "internal": {
+            "../types.js": [
+              "ModelProvider",
+              "ReasoningMode"
+            ],
+            "../logger.js": [
+              "logger"
+            ],
+            "./model-catalog.js": [
+              "ModelMetadata"
+            ]
+          },
+          "external": {
+            "@openrouter/sdk": [
+              "OpenRouter"
+            ]
+          }
+        },
+        "importedBy": [
+          "server/admin-controller.ts"
+        ],
+        "importCount": 4
+      },
       "llm/verification.ts": {
         "imports": {
           "internal": {
@@ -680,6 +762,9 @@
             "./groq-client.js": [
               "verifyGroqApiKey"
             ],
+            "./openrouter-client.js": [
+              "verifyOpenRouterApiKey"
+            ],
             "../types.js": [
               "ModelProvider",
               "VerificationResult"
@@ -690,7 +775,7 @@
         "importedBy": [
           "server/admin-controller.ts"
         ],
-        "importCount": 6
+        "importCount": 7
       },
       "logger.ts": {
         "imports": {
@@ -712,6 +797,9 @@
           "llm/grok-client.ts",
           "llm/groq-client.ts",
           "llm/openai-client.ts",
+          "llm/openrouter-client.ts",
+          "llm/openrouter-models.ts",
+          "server/admin-controller.ts",
           "server/server.ts",
           "utils/config-store.ts",
           "utils/credential-store.ts",
@@ -723,6 +811,9 @@
       "server/admin-controller.ts": {
         "imports": {
           "internal": {
+            "../logger.js": [
+              "logger"
+            ],
             "../constants.js": [
               "ADMIN_ROUTE_PREFIX",
               "HISTORY_LIMIT_MIN",
@@ -743,9 +834,11 @@
               "REASONING_MODE_CHOICES",
               "getModelOptions",
               "getModelMetadata",
+              "type ModelMetadata",
               "getFeaturedModels",
               "PROVIDER_MODEL_METADATA",
-              "CUSTOM_MODEL_DESCRIPTION"
+              "CUSTOM_MODEL_DESCRIPTION",
+              "STATIC_IMAGE_MODELS"
             ],
             "../utils/history-archive.js": [
               "createHistoryArchiveZip"
@@ -755,6 +848,10 @@
             ],
             "../llm/verification.js": [
               "verifyProviderApiKey"
+            ],
+            "../llm/openrouter-models.js": [
+              "fetchOpenRouterLlmModels",
+              "fetchOpenRouterImageModels"
             ],
             "../config/runtime-config.js": [
               "lookupEnvApiKey"
@@ -768,6 +865,9 @@
             ],
             "../utils/sensitive.js": [
               "maskSensitive"
+            ],
+            "../utils/navigation-interceptor.js": [
+              "getNavigationInterceptorScript"
             ],
             "../utils/history-export.js": [
               "createHistorySnapshot",
@@ -867,7 +967,7 @@
           }
         },
         "importedBy": [],
-        "importCount": 31
+        "importCount": 34
       },
       "server/brief-attachments.ts": {
         "imports": {
@@ -1008,6 +1108,7 @@
               "DEFAULT_ANTHROPIC_MODEL",
               "DEFAULT_GROK_MODEL",
               "DEFAULT_GROQ_MODEL",
+              "DEFAULT_OPENROUTER_MODEL",
               "DEFAULT_MAX_OUTPUT_TOKENS",
               "DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS",
               "LLM_RESULT_ROUTE_PREFIX",
@@ -1196,6 +1297,7 @@
           "image-gen/factory.ts",
           "image-gen/providers/google.ts",
           "image-gen/providers/openai.ts",
+          "image-gen/providers/openrouter.ts",
           "image-gen/types.ts",
           "index.ts",
           "llm/anthropic-client.ts",
@@ -1208,6 +1310,8 @@
           "llm/messages.ts",
           "llm/model-catalog.ts",
           "llm/openai-client.ts",
+          "llm/openrouter-client.ts",
+          "llm/openrouter-models.ts",
           "llm/verification.ts",
           "server/admin-controller.ts",
           "server/brief-attachments.ts",
@@ -1516,6 +1620,7 @@
           "external": {}
         },
         "importedBy": [
+          "server/admin-controller.ts",
           "server/server.ts",
           "views/overlay-debug.ts"
         ],
@@ -1724,6 +1829,13 @@
         ],
         "count": 1
       },
+      "@openrouter/sdk": {
+        "usedBy": [
+          "llm/openrouter-client.ts",
+          "llm/openrouter-models.ts"
+        ],
+        "count": 2
+      },
       "pino": {
         "usedBy": [
           "logger.ts",
@@ -1826,7 +1938,6 @@
           "components/ABWorkspaceShell.tsx",
           "components/HistoryExplorer.tsx",
           "components/HistorySnapshotControls.tsx",
-          "components/ImageModelSelector.tsx",
           "components/ModelInspector.tsx",
           "components/ModelSelector.tsx",
           "components/ResumeSessionCallout.tsx",
@@ -1995,11 +2106,7 @@
       },
       "components/ImageModelSelector.tsx": {
         "imports": {
-          "internal": {
-            "../api/types": [
-              "AdminImageGenerationInfo"
-            ]
-          },
+          "internal": {},
           "external": {
             "react": [
               "useMemo"
@@ -2007,7 +2114,7 @@
           }
         },
         "importedBy": [],
-        "importCount": 2
+        "importCount": 1
       },
       "components/index.ts": {
         "imports": {

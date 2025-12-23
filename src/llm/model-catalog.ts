@@ -54,6 +54,13 @@ export interface ModelMetadata {
   readonly reasoningModes?: ReasoningMode[];
   readonly defaultReasoningMode?: ReasoningMode;
   readonly supportsMediaResolution?: boolean;
+  readonly usage?: ModelUsageMetrics;
+}
+
+export interface ModelUsageMetrics {
+  readonly totalPromptTokens?: number;
+  readonly totalCompletionTokens?: number;
+  readonly totalTokens?: number;
 }
 
 type RawModelReasoningTokens =
@@ -2508,6 +2515,26 @@ const RAW_PROVIDER_METADATA: Record<ModelProvider, RawProviderMetadata> = {
         },
       },
     ],
+  },
+  openrouter: {
+    provider: "openrouter",
+    name: "OpenRouter",
+    shortName: "OpenRouter",
+    tagline: "Unified access to 200+ models from multiple providers",
+    description:
+      "OpenRouter provides a single API to access models from OpenAI, Anthropic, Google, Meta, and many others. Models are fetched dynamically.",
+    placeholder: "sk-or-v1-...",
+    defaultModel: "anthropic/claude-3.5-sonnet",
+    defaultReasoningMode: "none",
+    reasoningModes: ["none", "low", "medium", "high"],
+    maxOutputTokens: {
+      default: 16_384,
+      max: 200_000,
+      min: 1,
+      description:
+        "OpenRouter model limits vary by model. Dynamic models provide their specific limits at runtime.",
+    },
+    models: [],
   },
 };
 

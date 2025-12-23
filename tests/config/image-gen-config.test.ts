@@ -145,4 +145,25 @@ describe("Image Generation Config Resolution", () => {
         expect(config.provider.imageGeneration?.provider).toBe("openai");
         expect(config.provider.imageGeneration?.modelId).toBe("gpt-image-1.5");
     });
+
+    it("parses openrouter provider from environment variables", async () => {
+        credentialStoreMock.getApiKey.mockResolvedValue(null);
+        configStoreMock.getImageGeneration.mockReturnValue(undefined);
+        configStoreMock.getLlmSettings.mockReturnValue(undefined);
+
+        const options: CliOptions = { provider: "openrouter", model: "google/gemini-2.0-flash-001" };
+        const env = createEnv({
+            OPENROUTER_API_KEY: "openrouter-key",
+            IMAGE_GENERATION_ENABLED: "true",
+            IMAGE_GENERATION_PROVIDER: "openrouter",
+            IMAGE_GENERATION_MODEL: "google/gemini-2.0-flash-001",
+        });
+
+        const config = await resolveAppConfig(options, env);
+
+        expect(config.provider.imageGeneration?.enabled).toBe(true);
+        expect(config.provider.imageGeneration?.provider).toBe("openrouter");
+        expect(config.provider.imageGeneration?.modelId).toBe("google/gemini-2.0-flash-001");
+    });
 });
+

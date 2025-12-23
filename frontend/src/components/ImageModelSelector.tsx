@@ -1,25 +1,9 @@
 import { useMemo } from "react";
-import type { AdminImageGenerationInfo } from "../api/types";
 import "./ImageModelSelector.css";
 
-type ImageProvider = "openai" | "gemini";
+type ImageProvider = "openai" | "gemini" | "openrouter";
 
-interface ImageModelOption {
-    value: string;
-    label: string;
-    provider: ImageProvider;
-}
-
-const IMAGE_MODELS: ImageModelOption[] = [
-    { value: "gpt-image-1.5", label: "GPT Image 1.5 (recommended)", provider: "openai" },
-    { value: "dall-e-3", label: "DALL·E 3", provider: "openai" },
-    { value: "gemini-3-pro-image-preview", label: "Nano Banana Pro (Gemini 3)", provider: "gemini" },
-    { value: "gemini-2.5-flash-image", label: "Nano Banana (Gemini 2.5)", provider: "gemini" },
-    { value: "imagen-4.0-fast-generate-001", label: "Imagen 4 (Fast)", provider: "gemini" },
-    { value: "imagen-3.0-generate-002", label: "Imagen 3", provider: "gemini" },
-];
-
-const PROVIDER_INFO: Record<ImageProvider, { title: string; models: string }> = {
+const PROVIDER_INFO: Record<string, { title: string; models: string }> = {
     openai: {
         title: "OpenAI",
         models: "GPT Image, DALL·E",
@@ -28,18 +12,18 @@ const PROVIDER_INFO: Record<ImageProvider, { title: string; models: string }> = 
         title: "Google",
         models: "Imagen, Nano Banana",
     },
+    openrouter: {
+        title: "OpenRouter",
+        models: "Any Model",
+    },
 };
-
-function getProviderFromModel(modelId: string): ImageProvider {
-    const model = IMAGE_MODELS.find((m) => m.value === modelId);
-    return model?.provider ?? "openai";
-}
 
 export interface ImageModelSelectorProps {
     enabled: boolean;
     modelId: string;
     apiKey: string;
     hasStoredKey: boolean;
+    catalog: Record<string, Array<{ value: string; label: string }>>;
     onEnabledChange: (enabled: boolean) => void;
     onModelChange: (modelId: string) => void;
     onApiKeyChange: (apiKey: string) => void;
@@ -50,23 +34,43 @@ export function ImageModelSelector({
     modelId,
     apiKey,
     hasStoredKey,
+    catalog,
     onEnabledChange,
     onModelChange,
     onApiKeyChange,
 }: ImageModelSelectorProps) {
-    const currentProvider = useMemo(() => getProviderFromModel(modelId), [modelId]);
+
+    // Flatten catalog to find current provider easily
+    const allModels = useMemo(() => {
+        const models: Array<{ value: string; label: string; provider: string }> = [];
+        Object.entries(catalog).forEach(([provider, items]) => {
+            items.forEach((item) => {
+                models.push({ ...item, provider });
+            });
+        });
+        return models;
+    }, [catalog]);
+
+    const getProviderFromModel = (id: string): string => {
+        const found = allModels.find(m => m.value === id);
+        return found?.provider ?? "openai";
+    };
+
+    const currentProvider = useMemo(() => getProviderFromModel(modelId), [modelId, allModels]);
 
     const modelsForProvider = useMemo(
-        () => IMAGE_MODELS.filter((m) => m.provider === currentProvider),
-        [currentProvider]
+        () => catalog[currentProvider] || [],
+        [catalog, currentProvider]
     );
 
-    const handleProviderChange = (provider: ImageProvider) => {
-        const firstModel = IMAGE_MODELS.find((m) => m.provider === provider);
-        if (firstModel) {
-            onModelChange(firstModel.value);
+    const handleProviderChange = (provider: string) => {
+        const models = catalog[provider];
+        if (models && models.length > 0) {
+            onModelChange(models[0].value);
         }
     };
+
+    const availableProviders = useMemo(() => Object.keys(catalog), [catalog]);
 
     return (
         <div className="image-model-selector">
@@ -98,8 +102,8 @@ export function ImageModelSelector({
 
             <div className={`image-model-selector__body${enabled ? "" : " is-disabled"}`}>
                 <div className="image-model-selector__providers">
-                    {(["openai", "gemini"] as const).map((provider) => {
-                        const info = PROVIDER_INFO[provider];
+                    {availableProviders.map((provider) => {
+                        const info = PROVIDER_INFO[provider] || { title: provider, models: "Custom" };
                         const isActive = currentProvider === provider;
                         return (
                             <button
