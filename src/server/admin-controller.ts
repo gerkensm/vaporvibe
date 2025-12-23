@@ -55,6 +55,7 @@ import { readBody } from "../utils/body.js";
 import type { ParsedFile } from "../utils/body.js";
 import { parseCookies } from "../utils/cookies.js";
 import { maskSensitive } from "../utils/sensitive.js";
+import { getNavigationInterceptorScript } from "../utils/navigation-interceptor.js";
 import {
   createHistorySnapshot,
   createPromptMarkdown,
@@ -1424,11 +1425,37 @@ export class AdminController {
         }
       }
     }
-    const html = isDownload
+    let html = isDownload
       ? await prepareHtmlForExport(entry.response.html, imagesToInclude, {
         compressImages: true,
       })
       : entry.response.html;
+
+    // Inject runtime scripts for viewing (non-download) so that the page behaves like a normal VaporVibe page
+    if (!isDownload) {
+      // Inject navigation interceptor for link/form interception
+      const interceptorScriptTag = getNavigationInterceptorScript();
+      if (/\<\/body\s*\>/i.test(html)) {
+        html = html.replace(
+          /(\<\/body\s*\>)/i,
+          `${interceptorScriptTag}$1`
+        );
+      } else {
+        html = `${html}${interceptorScriptTag}`;
+      }
+
+      // Inject ai-image.js so that <ai-image> elements render
+      const imageRuntimeScript =
+        '<script src="/runtime/ai-image.js" defer></script>';
+      if (/\<\/body\s*\>/i.test(html)) {
+        html = html.replace(
+          /(\<\/body\s*\>)/i,
+          `${imageRuntimeScript}$1`
+        );
+      } else {
+        html = `${html}${imageRuntimeScript}`;
+      }
+    }
 
     res.statusCode = 200;
     res.setHeader("Content-Type", "text/html; charset=utf-8");
