@@ -3,11 +3,34 @@ trigger: glob
 globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+- From `./client.js`: `LlmClient`, `LlmGenerateOptions`, `LlmResult`, `LlmStreamObserver`
+
+**External Imports:**
+
+- From `@anthropic-ai/sdk`: `default as Anthropic`
+
+#### `llm/capabilities.ts`
+
+**Internal Imports:**
+
+- From `../types.js`: `ModelProvider`
+
+#### `llm/client.ts`
+
+**Internal Imports:**
+
+- From `../types.js`: `ChatMessage`, `LlmReasoningTrace`, `LlmUsageMetrics`, `ProviderSettings`
+
+#### `llm/factory.ts`
+
+**Internal Imports:**
+
 - From `./openai-client.js`: `OpenAiClient`
 - From `./gemini-client.js`: `GeminiClient`
 - From `./anthropic-client.js`: `AnthropicClient`
 - From `./grok-client.js`: `GrokClient`
 - From `./groq-client.js`: `GroqClient`
+- From `./openrouter-client.js`: `OpenRouterClient`
 - From `../types.js`: `ProviderSettings`
 - From `./client.js`: `LlmClient`
 
@@ -73,6 +96,30 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 
 - From `openai`: `default as OpenAI`
 
+#### `llm/openrouter-client.ts`
+
+**Internal Imports:**
+
+- From `../logger.js`: `logger`
+- From `../types.js`: `ChatMessage`, `LlmReasoningTrace`, `LlmUsageMetrics`, `ProviderSettings`, `VerificationResult`
+- From `./client.js`: `LlmClient`, `LlmGenerateOptions`, `LlmResult`, `LlmStreamObserver`
+
+**External Imports:**
+
+- From `@openrouter/sdk`: `OpenRouter`
+
+#### `llm/openrouter-models.ts`
+
+**Internal Imports:**
+
+- From `../types.js`: `ModelProvider`, `ReasoningMode`
+- From `../logger.js`: `logger`
+- From `./model-catalog.js`: `ModelMetadata`
+
+**External Imports:**
+
+- From `@openrouter/sdk`: `OpenRouter`
+
 #### `llm/verification.ts`
 
 **Internal Imports:**
@@ -82,6 +129,7 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 - From `./anthropic-client.js`: `verifyAnthropicApiKey`
 - From `./grok-client.js`: `verifyGrokApiKey`
 - From `./groq-client.js`: `verifyGroqApiKey`
+- From `./openrouter-client.js`: `verifyOpenRouterApiKey`
 - From `../types.js`: `ModelProvider`, `VerificationResult`
 
 #### `logger.ts`
@@ -94,15 +142,18 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 
 **Internal Imports:**
 
+- From `../logger.js`: `logger`
 - From `../constants.js`: `ADMIN_ROUTE_PREFIX`, `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`
-- From `../constants/providers.js`: `PROVIDER_CHOICES`, `PROVIDER_LABELS`, `PROVIDER_PLACEHOLDERS`, `PROVIDER_REASONING_CAPABILITIES`, `PROVIDER_MEDIA_RESOLUTION_CAPABILITIES`, `PROVIDER_REASONING_MODES`, `PROVIDER_TOKEN_GUIDANCE`, `DEFAULT_MODEL_BY_PROVIDER`, `DEFAULT_MAX_TOKENS_BY_PROVIDER`, `REASONING_MODE_CHOICES`, `getModelOptions`, `getModelMetadata`, `getFeaturedModels`, `PROVIDER_MODEL_METADATA`, `CUSTOM_MODEL_DESCRIPTION`
+- From `../constants/providers.js`: `PROVIDER_CHOICES`, `PROVIDER_LABELS`, `PROVIDER_PLACEHOLDERS`, `PROVIDER_REASONING_CAPABILITIES`, `PROVIDER_MEDIA_RESOLUTION_CAPABILITIES`, `PROVIDER_REASONING_MODES`, `PROVIDER_TOKEN_GUIDANCE`, `DEFAULT_MODEL_BY_PROVIDER`, `DEFAULT_MAX_TOKENS_BY_PROVIDER`, `REASONING_MODE_CHOICES`, `getModelOptions`, `getModelMetadata`, `type ModelMetadata`, `getFeaturedModels`, `PROVIDER_MODEL_METADATA`, `CUSTOM_MODEL_DESCRIPTION`, `STATIC_IMAGE_MODELS`
 - From `../utils/history-archive.js`: `createHistoryArchiveZip`
 - From `../llm/factory.js`: `createLlmClient`
 - From `../llm/verification.js`: `verifyProviderApiKey`
+- From `../llm/openrouter-models.js`: `fetchOpenRouterLlmModels`, `fetchOpenRouterImageModels`
 - From `../config/runtime-config.js`: `lookupEnvApiKey`
 - From `../utils/body.js`: `readBody`, `ParsedFile`
 - From `../utils/cookies.js`: `parseCookies`
 - From `../utils/sensitive.js`: `maskSensitive`
+- From `../utils/navigation-interceptor.js`: `getNavigationInterceptorScript`
 - From `../utils/history-export.js`: `createHistorySnapshot`, `createPromptMarkdown`
 - From `../image-gen/cache.js`: `buildImageCacheKey`, `writeImageCache`
 - From `../image-gen/paths.js`: `getGeneratedImagePath`
@@ -189,7 +240,7 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 
 **Internal Imports:**
 
-- From `../constants.js`: `ADMIN_ROUTE_PREFIX`, `AUTO_IGNORED_PATHS`, `BRIEF_FORM_ROUTE`, `INSTRUCTIONS_FIELD`, `SETUP_ROUTE`, `OVERLAY_DEBUG_ROUTE`, `SETUP_VERIFY_ROUTE`, `DEFAULT_OPENAI_MODEL`, `DEFAULT_GEMINI_MODEL`, `DEFAULT_ANTHROPIC_MODEL`, `DEFAULT_GROK_MODEL`, `DEFAULT_GROQ_MODEL`, `DEFAULT_MAX_OUTPUT_TOKENS`, `DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS`, `LLM_RESULT_ROUTE_PREFIX`, `LLM_REASONING_STREAM_ROUTE_PREFIX`
+- From `../constants.js`: `ADMIN_ROUTE_PREFIX`, `AUTO_IGNORED_PATHS`, `BRIEF_FORM_ROUTE`, `INSTRUCTIONS_FIELD`, `SETUP_ROUTE`, `OVERLAY_DEBUG_ROUTE`, `SETUP_VERIFY_ROUTE`, `DEFAULT_OPENAI_MODEL`, `DEFAULT_GEMINI_MODEL`, `DEFAULT_ANTHROPIC_MODEL`, `DEFAULT_GROK_MODEL`, `DEFAULT_GROQ_MODEL`, `DEFAULT_OPENROUTER_MODEL`, `DEFAULT_MAX_OUTPUT_TOKENS`, `DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS`, `LLM_RESULT_ROUTE_PREFIX`, `LLM_REASONING_STREAM_ROUTE_PREFIX`
 - From `../constants/providers.js`: `DEFAULT_MAX_TOKENS_BY_PROVIDER`, `PROVIDER_REASONING_CAPABILITIES`
 - From `../llm/messages.js`: `buildMessages`
 - From `../llm/capabilities.js`: `supportsImageInput`
@@ -268,65 +319,3 @@ _No imports_
 **Internal Imports:**
 
 - From `../logger.js`: `logger`
-- From `../types.js`: `ImageGenProvider`, `ImageModelId`, `ModelProvider`, `ReasoningMode`
-
-**External Imports:**
-
-- From `conf`: `default as Conf`
-
-#### `utils/cookies.ts`
-
-**External Imports:**
-
-- From `node:http`: `ServerResponse`
-
-#### `utils/credential-store.ts`
-
-**Internal Imports:**
-
-- From `../logger.js`: `logger`
-
-#### `utils/extract-ai-images.ts`
-
-**Internal Imports:**
-
-- From `../types.js`: `GeneratedImage`, `ImageAspectRatio`
-
-#### `utils/frontend-assets.ts`
-
-**Internal Imports:**
-
-- From `../constants.js`: `ADMIN_ROUTE_PREFIX`
-
-**External Imports:**
-
-- From `node:fs`: `existsSync`
-- From `node:path`: `dirname`, `resolve`
-- From `node:url`: `fileURLToPath`
-
-#### `utils/history-archive.ts`
-
-**Internal Imports:**
-
-- From `./history-export.js`: `createHistorySnapshot`
-- From `../types.js`: `BriefAttachment`, `GeneratedImage`, `HistoryEntry`, `HistorySnapshot`
-
-**External Imports:**
-
-- From `jszip`: `default as JSZip`
-
-#### `utils/history-export.ts`
-
-**Internal Imports:**
-
-- From `./sensitive.js`: `maskSensitive`
-- From `../types.js`: `BriefAttachment`, `HistoryEntry`, `HistorySnapshot`, `ProviderSettings`, `ProviderSettingsSummary`, `RuntimeConfig`
-
-#### `utils/html-export-transform.ts`
-
-**Internal Imports:**
-
-- From `../image-gen/paths.js`: `getGeneratedImagePath`, `GENERATED_IMAGES_ROUTE`
-- From `../logger.js`: `logger`
-- From `./image-reencoder.js`: `reencodeImagesForExport`
-- From `../types.js`: `GeneratedImage`

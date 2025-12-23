@@ -1,6 +1,6 @@
 {
   "name": "vaporvibe",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "Sourcecodeless web app server powered by LLMs.",
   "type": "module",
   "main": "dist/index.js",
