@@ -21,7 +21,7 @@ export interface ImageGenClient {
   generateImage(options: ImageGenOptions): Promise<ImageGenResult>;
 }
 
-export const VALID_IMAGE_PROVIDERS: ImageGenProvider[] = ["openai", "gemini"];
+export const VALID_IMAGE_PROVIDERS: ImageGenProvider[] = ["openai", "gemini", "openrouter"];
 
 export const VALID_IMAGE_MODELS: ImageModelId[] = [
   "gpt-image-1.5",

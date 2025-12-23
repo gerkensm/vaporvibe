@@ -3,6 +3,7 @@ import type { ServerResponse } from "node:http";
 import process from "node:process";
 import JSZip from "jszip";
 import type { Logger } from "pino";
+import { logger } from "../logger.js";
 import { ADMIN_ROUTE_PREFIX } from "../constants.js";
 import {
   PROVIDER_CHOICES,
@@ -17,9 +18,11 @@ import {
   REASONING_MODE_CHOICES,
   getModelOptions,
   getModelMetadata,
+  type ModelMetadata,
   getFeaturedModels,
   PROVIDER_MODEL_METADATA,
   CUSTOM_MODEL_DESCRIPTION,
+  STATIC_IMAGE_MODELS,
 } from "../constants/providers.js";
 import {
   HISTORY_LIMIT_MIN,
@@ -43,6 +46,10 @@ import type {
 import { createHistoryArchiveZip } from "../utils/history-archive.js";
 import { createLlmClient } from "../llm/factory.js";
 import { verifyProviderApiKey } from "../llm/verification.js";
+import {
+  fetchOpenRouterLlmModels,
+  fetchOpenRouterImageModels,
+} from "../llm/openrouter-models.js";
 import { lookupEnvApiKey } from "../config/runtime-config.js";
 import { readBody } from "../utils/body.js";
 import type { ParsedFile } from "../utils/body.js";
@@ -649,7 +656,7 @@ export class AdminController {
     env: Record<string, string | undefined>
   ): Promise<
     Record<
-      "openai" | "gemini" | "anthropic" | "grok" | "groq",
+      "openai" | "gemini" | "anthropic" | "grok" | "groq" | "openrouter",
       { hasKey: boolean; verified: boolean }
     >
   > {
@@ -659,9 +666,10 @@ export class AdminController {
       "anthropic",
       "grok",
       "groq",
+      "openrouter",
     ];
     const result: Record<
-      "openai" | "gemini" | "anthropic" | "grok" | "groq",
+      "openai" | "gemini" | "anthropic" | "grok" | "groq" | "openrouter",
       { hasKey: boolean; verified: boolean }
     > = {
       openai: { hasKey: false, verified: false },
@@ -669,6 +677,7 @@ export class AdminController {
       anthropic: { hasKey: false, verified: false },
       grok: { hasKey: false, verified: false },
       groq: { hasKey: false, verified: false },
+      openrouter: { hasKey: false, verified: false },
     };
 
     for (const p of providers) {
@@ -693,7 +702,7 @@ export class AdminController {
         currentVerified || previouslyVerified || startupVerified
       );
 
-      result[p as "openai" | "gemini" | "anthropic" | "grok" | "groq"] = {
+      result[p as "openai" | "gemini" | "anthropic" | "grok" | "groq" | "openrouter"] = {
         hasKey,
         verified,
       };
@@ -702,7 +711,78 @@ export class AdminController {
     return result;
   }
 
+  /**
+   * Build a dynamic model catalog that includes:
+   * - Static models from PROVIDER_MODEL_METADATA for most providers
+   * - Dynamically fetched models for OpenRouter when an API key is available
+   */
+  private async buildModelCatalog(
+    providerKeyStatuses: Record<ModelProvider, { hasKey: boolean; verified: boolean }>
+  ): Promise<Record<string, ModelMetadata[]>> {
+    // Start with the static model metadata
+    const catalog: Record<string, ModelMetadata[]> = {};
+
+    // Deep copy static metadata
+    for (const [provider, models] of Object.entries(PROVIDER_MODEL_METADATA)) {
+      catalog[provider] = [...models];
+    }
+
+    // If OpenRouter has a key, try to fetch models dynamically
+    const openRouterStatus = providerKeyStatuses.openrouter;
+    if (openRouterStatus?.hasKey) {
+      try {
+        // Get the OpenRouter API key
+        const store = await getCredentialStore();
+        const storedKey = await store.getApiKey("openrouter");
+        const envKey = lookupEnvApiKey("openrouter");
+        const apiKey = storedKey || envKey || this.state.provider.apiKey;
+
+        // Use the key if we found one
+        const effectiveKey = apiKey || (this.state.provider.provider === "openrouter" ? this.state.provider.apiKey : "");
+
+        if (effectiveKey) {
+          const openRouterModels = await fetchOpenRouterLlmModels(effectiveKey);
+          if (openRouterModels.length > 0) {
+            // Replace static OpenRouter list with dynamic list
+            catalog.openrouter = openRouterModels;
+          }
+        }
+      } catch (err) {
+        logger.warn(
+          { err },
+          "Failed to fetch dynamic OpenRouter models for catalog"
+        );
+      }
+    }
+
+    // ALWAYS ensure OpenRouter has at least one entry
+    if (!catalog.openrouter || catalog.openrouter.length === 0) {
+      if (!catalog.openrouter) catalog.openrouter = [];
+      catalog.openrouter.push({
+        value: "google/gemini-2.0-flash-001",
+        label: "Gemini 2.0 Flash (via OpenRouter)",
+        description: "Gemini 2.0 Flash served via OpenRouter",
+        reasoningTokens: { supported: false }
+      });
+      catalog.openrouter.push({
+        value: "google/gemini-2.0-pro-exp-02-05",
+        label: "Gemini 2.0 Pro Experimental (via OpenRouter)",
+        description: "Gemini 2.0 Pro Experimental served via OpenRouter",
+        reasoningTokens: { supported: false }
+      });
+      catalog.openrouter.push({
+        value: "deepseek/deepseek-r1",
+        label: "DeepSeek R1 (via OpenRouter)",
+        description: "DeepSeek R1 served via OpenRouter",
+        reasoningTokens: { supported: false }
+      });
+    }
+
+    return catalog;
+  }
+
   private async hasImageProviderKey(provider: ImageGenProvider): Promise<boolean> {
+    // 1. Check active provider key in memory
     if (
       provider === this.state.provider.provider &&
       this.state.provider.apiKey.trim().length > 0
@@ -710,7 +790,90 @@ export class AdminController {
       return true;
     }
 
-    return await this.credentialStore.hasStoredKey(provider);
+    // 2. Check credential store
+    if (await this.credentialStore.hasStoredKey(provider)) {
+      return true;
+    }
+
+    // 3. Check environment variable
+    const envKey = lookupEnvApiKey(provider as ModelProvider);
+    return !!envKey && envKey.trim().length > 0;
+  }
+
+  private async buildImageModelCatalog(): Promise<
+    Record<ImageGenProvider, Array<{ value: string; label: string }>>
+  > {
+    // Initialize with empty arrays for all known providers
+    const catalog: Record<ImageGenProvider, Array<{ value: string; label: string }>> = {
+      openai: [],
+      gemini: [],
+      openrouter: [],
+    };
+
+    // Populate from static definitions
+    for (const model of STATIC_IMAGE_MODELS) {
+      // Safety check in case a new provider is added to static models but not initialized
+      if (!catalog[model.provider]) {
+        catalog[model.provider] = [];
+      }
+      catalog[model.provider].push({
+        value: model.value,
+        label: model.label,
+      });
+    }
+
+    // Dynamic fetching for OpenRouter
+    try {
+      // Try to find an API key for OpenRouter
+      // 1. Check if it's the current LLM provider and we have a key
+      let openRouterKey =
+        this.state.provider.provider === "openrouter"
+          ? this.state.provider.apiKey
+          : "";
+
+      // 2. Check credential store (saved specifically for image gen or previously used)
+      if (!openRouterKey) {
+        openRouterKey = (await this.credentialStore.getApiKey("openrouter")) || "";
+      }
+
+      // 3. Check environment variable
+      if (!openRouterKey) {
+        openRouterKey = lookupEnvApiKey("openrouter") || "";
+      }
+
+      if (openRouterKey) {
+        const dynamicModels = await fetchOpenRouterImageModels(openRouterKey);
+        for (const model of dynamicModels) {
+          catalog.openrouter.push({
+            value: model.value,
+            label: model.label,
+          });
+        }
+      }
+    } catch (err) {
+      logger.warn(
+        { err },
+        "Failed to fetch dynamic OpenRouter image models for catalog"
+      );
+    }
+
+    // ALWAYS ensure OpenRouter has at least one entry so it can be selected in the UI
+    // If the list is empty (no key or fetch failed), add a placeholder
+    // This allows the user to select the provider and then enter a key
+    if (catalog.openrouter.length === 0) {
+      catalog.openrouter.push({
+        value: "google/gemini-2.0-flash-001", // Default recommendation
+        label: "Gemini 2.0 Flash (via OpenRouter)",
+      });
+      catalog.openrouter.push({
+        value: "black-forest-labs/flux-1.1-pro",
+        label: "Flux 1.1 Pro (via OpenRouter)",
+      });
+    }
+
+    logger.info(`Image model catalog keys: ${Object.keys(catalog).join(", ")}`);
+
+    return catalog;
   }
 
   private async buildAdminStateResponse(): Promise<AdminStateResponse> {
@@ -762,26 +925,45 @@ export class AdminController {
     };
 
     const providerKeyStatuses = await this.computeProviderKeyStatuses(process.env);
-    const providers = Object.keys(PROVIDER_LABELS) as ModelProvider[];
+
+    // Build the full catalog once (including dynamic OpenRouter models)
+    const modelCatalog = await this.buildModelCatalog(providerKeyStatuses);
+
+    // Derive options directly from the catalog so dynamic models appear
     const modelOptions = Object.fromEntries(
-      providers.map((provider) => [provider, getModelOptions(provider)])
-    ) as Record<
-      ModelProvider,
-      Array<{ value: string; label: string; tagline?: string }>
-    >;
-    const featuredModels = Object.fromEntries(
-      providers.map((provider) => [
+      Object.entries(modelCatalog).map(([provider, models]) => [
         provider,
-        getFeaturedModels(provider).map((model) => ({
-          value: model.value,
-          label: model.label,
-          tagline: model.tagline,
+        models.map((m) => ({
+          value: m.value,
+          label: m.label,
+          tagline: m.tagline,
         })),
       ])
     ) as Record<
       ModelProvider,
       Array<{ value: string; label: string; tagline?: string }>
     >;
+
+    // Use the same list for featured models but filtered by the featured flag
+    const featuredModels = Object.fromEntries(
+      Object.entries(modelCatalog).map(([provider, models]) => [
+        provider,
+        models
+          .filter((m) => m.featured)
+          .map((m) => ({
+            value: m.value,
+            label: m.label,
+            tagline: m.tagline,
+          })),
+      ])
+    ) as Record<
+      ModelProvider,
+      Array<{ value: string; label: string; tagline?: string }>
+    >;
+
+    // Build image model catalog
+    // Build image model catalog
+    const imageModelCatalog = await this.buildImageModelCatalog();
 
     return {
       brief: this.state.brief,
@@ -801,6 +983,7 @@ export class AdminController {
         ModelProvider,
         { hasKey: boolean; verified: boolean }
       >,
+      imageModelCatalog,
       providerChoices: PROVIDER_CHOICES,
       providerLabels: PROVIDER_LABELS,
       providerPlaceholders: PROVIDER_PLACEHOLDERS,
@@ -809,7 +992,7 @@ export class AdminController {
       providerTokenGuidance: PROVIDER_TOKEN_GUIDANCE,
       reasoningModeChoices: REASONING_MODE_CHOICES,
       customModelDescription: CUSTOM_MODEL_DESCRIPTION,
-      modelCatalog: PROVIDER_MODEL_METADATA,
+      modelCatalog,
       modelOptions,
       featuredModels,
       providerReasoningModes: PROVIDER_REASONING_MODES,
@@ -1539,25 +1722,18 @@ export class AdminController {
         ? data.enabled
         : this.state.provider.imageGeneration.enabled;
 
-    const allowedImageModels: ImageModelId[] = [
-      "gpt-image-1.5",
-      "dall-e-3",
-      "gemini-2.5-flash-image",
-      "gemini-3-pro-image-preview",
-      "imagen-3.0-generate-002",
-      "imagen-4.0-fast-generate-001",
-    ];
-
     const modelId =
-      typeof data.modelId === "string" &&
-        allowedImageModels.includes(data.modelId as ImageModelId)
+      typeof data.modelId === "string" && data.modelId.trim() !== ""
         ? (data.modelId as ImageModelId)
         : this.state.provider.imageGeneration.modelId;
 
-    const provider: ImageGenProvider =
-      modelId.startsWith("gemini") || modelId.startsWith("imagen")
-        ? "gemini"
-        : "openai";
+    let provider: ImageGenProvider = "openai";
+
+    if (modelId.includes("/")) {
+      provider = "openrouter";
+    } else if (modelId.startsWith("gemini") || modelId.startsWith("imagen")) {
+      provider = "gemini";
+    }
 
     const apiKey = typeof data.apiKey === "string" ? data.apiKey.trim() : "";
 
@@ -2785,7 +2961,8 @@ function sanitizeProvider(value: string): ProviderSettings["provider"] {
   if (
     normalized === "gemini" ||
     normalized === "anthropic" ||
-    normalized === "openai"
+    normalized === "openai" ||
+    normalized === "openrouter"
   ) {
     return normalized;
   }

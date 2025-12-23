@@ -50,7 +50,9 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.0",
     "@google/genai": "^1.30.0",
+    "@openrouter/sdk": "^0.3.10",
     "conf": "^15.0.2",
+    "dotenv": "^17.2.3",
     "jszip": "^3.10.1",
     "keytar": "^7.9.0",
     "node-html-parser": "^7.0.1",

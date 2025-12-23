@@ -4,6 +4,7 @@ import {
   DEFAULT_GROQ_MODEL,
   DEFAULT_MAX_OUTPUT_TOKENS,
   DEFAULT_OPENAI_MODEL,
+  DEFAULT_OPENROUTER_MODEL,
   DEFAULT_PORT,
   DEFAULT_ANTHROPIC_MODEL,
   DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS,
@@ -155,7 +156,7 @@ function resolveImageGenConfig(
     (env.IMAGE_GENERATION_ENABLED ?? "").toLowerCase() === "true" ||
     (persisted?.enabled ?? false);
   const provider =
-    (env.IMAGE_GENERATION_PROVIDER as "openai" | "gemini" | undefined) ??
+    (env.IMAGE_GENERATION_PROVIDER as "openai" | "gemini" | "openrouter" | undefined) ??
     persisted?.provider ??
     defaultProvider;
   const modelId =
@@ -331,6 +332,31 @@ async function resolveProviderSettings(
     };
   }
 
+  if (provider === "openrouter") {
+    const model =
+      modelFromCli ||
+      env.OPENROUTER_MODEL?.trim() ||
+      env.MODEL?.trim() ||
+      persistedForProvider?.model ||
+      DEFAULT_OPENROUTER_MODEL;
+    const maxOutputTokens =
+      maxOverride ??
+      persistedForProvider?.maxOutputTokens ??
+      DEFAULT_MAX_OUTPUT_TOKENS;
+    const reasoningMode = reasoning.modeExplicit
+      ? reasoning.mode
+      : persistedForProvider?.reasoningMode ?? "low";
+    return {
+      provider,
+      apiKey,
+      model,
+      maxOutputTokens,
+      reasoningMode,
+      reasoningTokens: undefined,
+      imageGeneration,
+    };
+  }
+
   const model =
     modelFromCli ||
     env.ANTHROPIC_MODEL?.trim() ||
@@ -476,6 +502,8 @@ async function detectProvidersWithKeys(
     detected.push("anthropic");
   if (getGrokKey(env) || (await hasStoredKey("grok"))) detected.push("grok");
   if (getGroqKey(env) || (await hasStoredKey("groq"))) detected.push("groq");
+  if (getOpenRouterKey(env) || (await hasStoredKey("openrouter")))
+    detected.push("openrouter");
   return detected;
 }
 
@@ -610,6 +638,7 @@ function parseProviderValue(value: unknown): ModelProvider | undefined {
   if (normalized === "grok" || normalized === "xai" || normalized === "x.ai")
     return "grok";
   if (normalized === "groq") return "groq";
+  if (normalized === "openrouter") return "openrouter";
   return undefined;
 }
 
@@ -650,6 +679,10 @@ function getGroqKey(env: NodeJS.ProcessEnv): string | undefined {
   return env.GROQ_API_KEY || env.GROQ_KEY || undefined;
 }
 
+function getOpenRouterKey(env: NodeJS.ProcessEnv): string | undefined {
+  return env.OPENROUTER_API_KEY || env.OPENROUTER_KEY || undefined;
+}
+
 export function lookupEnvApiKey(
   provider: ModelProvider,
   env: NodeJS.ProcessEnv = process.env
@@ -668,6 +701,9 @@ export function lookupEnvApiKey(
   }
   if (provider === "groq") {
     return getGroqKey(env)?.trim() || undefined;
+  }
+  if (provider === "openrouter") {
+    return getOpenRouterKey(env)?.trim() || undefined;
   }
   return undefined;
 }
@@ -690,6 +726,10 @@ function applyProviderEnv(settings: ProviderSettings): void {
   }
   if (settings.provider === "groq") {
     process.env.GROQ_API_KEY = settings.apiKey;
+    return;
+  }
+  if (settings.provider === "openrouter") {
+    process.env.OPENROUTER_API_KEY = settings.apiKey;
     return;
   }
   process.env.ANTHROPIC_API_KEY = settings.apiKey;

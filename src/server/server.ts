@@ -20,6 +20,7 @@ import {
   DEFAULT_ANTHROPIC_MODEL,
   DEFAULT_GROK_MODEL,
   DEFAULT_GROQ_MODEL,
+  DEFAULT_OPENROUTER_MODEL,
   DEFAULT_MAX_OUTPUT_TOKENS,
   DEFAULT_ANTHROPIC_MAX_OUTPUT_TOKENS,
   LLM_RESULT_ROUTE_PREFIX,
@@ -2296,6 +2297,8 @@ function getDefaultModelForProvider(
       return DEFAULT_GROK_MODEL;
     case "groq":
       return DEFAULT_GROQ_MODEL;
+    case "openrouter":
+      return DEFAULT_OPENROUTER_MODEL;
     default:
       return DEFAULT_OPENAI_MODEL;
   }

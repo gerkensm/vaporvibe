@@ -2467,6 +2467,7 @@ function ProviderPanel({
           modelId={imageGenerationModelId}
           apiKey={imageGenerationApiKey}
           hasStoredKey={state.provider.imageGeneration.hasApiKey}
+          catalog={state.imageModelCatalog}
           onEnabledChange={setImageGenerationEnabled}
           onModelChange={setImageGenerationModelId}
           onApiKeyChange={setImageGenerationApiKey}

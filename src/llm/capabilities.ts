@@ -42,6 +42,9 @@ export function supportsImageInput(
       );
     case "groq":
       return GROQ_IMAGE_MODELS.has(normalizedModel);
+    case "openrouter":
+      // OpenRouter supports multimodal inputs for most models via its unified API
+      return true;
     default:
       return false;
   }
