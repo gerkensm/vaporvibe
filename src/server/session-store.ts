@@ -1036,7 +1036,10 @@ function normalizeGeneratedImages(
       const ratio = allowedRatios.includes(image.ratio as ImageAspectRatio)
         ? (image.ratio as ImageAspectRatio)
         : "1:1";
-      const provider = image.provider === "gemini" ? "gemini" : "openai";
+      const validProviders = ["gemini", "openai", "openrouter"] as const;
+      const provider = validProviders.includes(image.provider as typeof validProviders[number])
+        ? (image.provider as typeof validProviders[number])
+        : "openai";
       const modelId =
         typeof image.modelId === "string"
           ? (image.modelId as ImageModelId)
