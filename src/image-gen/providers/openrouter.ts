@@ -15,7 +15,7 @@ export class OpenRouterImageGenClient implements ImageGenClient {
         logger.info(`OpenRouter generating image with model=${model}`);
 
         const response = await withRetry(
-            () => this.fetchImage(opts.apiKey, model, opts.prompt, opts.ratio),
+            () => this.fetchImage(opts.apiKey, model, opts.prompt, opts.ratio, opts.inputImages),
             `OpenRouter image generation (model=${model})`
         );
 
@@ -30,19 +30,34 @@ export class OpenRouterImageGenClient implements ImageGenClient {
         apiKey: string,
         model: string,
         prompt: string,
-        ratio?: string
+        ratio?: string,
+        inputImages?: Array<{ base64: string; mimeType: string }>
     ): Promise<{ imageUrl: string }> {
         const requestBody: Record<string, any> = {
             model,
             messages: [
                 {
                     role: "user",
-                    content: `Generate an image: ${prompt}`,
+                    content: [
+                        { type: "text", text: `Generate an image: ${prompt}` },
+                    ],
                 }
             ],
             modalities: ["image", "text"],
             stream: false,
         };
+
+        if (inputImages?.length) {
+            const target = requestBody.messages[0].content as Array<any>;
+            for (const image of inputImages) {
+                target.push({
+                    type: "image_url",
+                    image_url: {
+                        url: `data:${image.mimeType || "image/png"};base64,${image.base64}`,
+                    }
+                });
+            }
+        }
 
         // Add aspect ratio config for models that support it
         const imageConfig = this.buildImageConfig(ratio);

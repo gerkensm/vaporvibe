@@ -17,7 +17,7 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
   {
     id: "tailwindcss",
     filename: "tailwind.js",
-    description: "Tailwind CSS Runtime (Script-based). Required for ANY and ALL Tailwind utility classes (e.g. flex, p-4, items-center), arbitrary values, and responsive variants.",
+    description: "Tailwind CSS Runtime (Script-based). Required for ANY and ALL Tailwind utility classes (e.g. flex, p-4, items-center), arbitrary values, and responsive variants. Note that it is libs/tailwind/ and NOT libs/tailwindcss/ !",
     tags: `<script src="/libs/tailwind/${v('tailwind')}/tailwind.js"></script>`,
     inject: "on-request",
     version: v('tailwind')

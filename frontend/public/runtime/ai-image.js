@@ -1,6 +1,6 @@
 class AIImage extends HTMLElement {
   static get observedAttributes() {
-    return ["prompt", "ratio"];
+    return ["prompt", "ratio", "input-base64", "input-mime-type", "input-field"];
   }
 
   constructor() {
@@ -9,19 +9,27 @@ class AIImage extends HTMLElement {
     this.style.overflow = "hidden";
     this._lastRenderedPrompt = null;
     this._lastRenderedRatio = null;
+    this._lastRenderedInput = null;
     this._isLoading = false;
   }
 
   connectedCallback() {
     const prompt = this.getAttribute("prompt") || "";
     const ratio = this.getAttribute("ratio") || "1:1";
+    const inputBase64 = this.getAttribute("input-base64") || "";
+    const inputMimeType = this.getAttribute("input-mime-type") || "image/png";
+    const inputField = this.getAttribute("input-field") || "";
 
     // Skip if prompt is empty (waiting for reactive framework to populate it)
     if (!prompt.trim()) {
       return;
     }
 
-    this.#render(prompt, ratio);
+    this.#render(prompt, ratio, {
+      base64: inputBase64.trim(),
+      mimeType: inputMimeType.trim() || "image/png",
+      fieldName: inputField.trim() || undefined,
+    });
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -32,6 +40,9 @@ class AIImage extends HTMLElement {
 
     const prompt = this.getAttribute("prompt") || "";
     const ratio = this.getAttribute("ratio") || "1:1";
+    const inputBase64 = this.getAttribute("input-base64") || "";
+    const inputMimeType = this.getAttribute("input-mime-type") || "image/png";
+    const inputField = this.getAttribute("input-field") || "";
 
     // Skip if prompt is empty (waiting for reactive framework to populate it)
     if (!prompt.trim()) {
@@ -39,14 +50,22 @@ class AIImage extends HTMLElement {
     }
 
     // Only re-render if prompt or ratio actually changed from what we last rendered
-    if (prompt === this._lastRenderedPrompt && ratio === this._lastRenderedRatio) {
+    if (
+      prompt === this._lastRenderedPrompt &&
+      ratio === this._lastRenderedRatio &&
+      inputBase64 === this._lastRenderedInput
+    ) {
       return;
     }
 
-    this.#render(prompt, ratio);
+    this.#render(prompt, ratio, {
+      base64: inputBase64.trim(),
+      mimeType: inputMimeType.trim() || "image/png",
+      fieldName: inputField.trim() || undefined,
+    });
   }
 
-  #render(prompt, ratio) {
+  #render(prompt, ratio, input) {
     // Avoid concurrent requests for the same element
     if (this._isLoading) {
       return;
@@ -54,6 +73,7 @@ class AIImage extends HTMLElement {
 
     this._lastRenderedPrompt = prompt;
     this._lastRenderedRatio = ratio;
+    this._lastRenderedInput = input?.base64 || "";
     this._isLoading = true;
 
     // Extract colors from page context
@@ -85,10 +105,21 @@ class AIImage extends HTMLElement {
         ">Generating...</span>
       </div>`;
 
+    const payload = { prompt, ratio };
+    if (input?.base64) {
+      payload.inputImages = [
+        {
+          base64: input.base64,
+          mimeType: input.mimeType || "image/png",
+          fieldName: input.fieldName,
+        },
+      ];
+    }
+
     fetch("/rest_api/image/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, ratio }),
+      body: JSON.stringify(payload),
     })
       .then((response) => response.json())
       .then((data) => {
@@ -116,6 +147,9 @@ class AIImage extends HTMLElement {
           // Skip internal/specially-handled host attributes
           // We skip 'src' and 'id' to avoid conflicts or overwriting the generated URL
           if (["prompt", "ratio", "data-rendered", "src", "id"].includes(name)) {
+            continue;
+          }
+          if (["input-base64", "input-mime-type", "input-field"].includes(name)) {
             continue;
           }
 

@@ -1,4 +1,10 @@
-import type { BriefAttachment, ChatMessage, HistoryEntry, GeneratedImage } from "../types.js";
+import type {
+  BriefAttachment,
+  ChatMessage,
+  HistoryEntry,
+  GeneratedImage,
+  RequestFile,
+} from "../types.js";
 import { VAPORVIBE_LIBRARIES } from "../config/library-manifest.js";
 
 const LINE_DIVIDER = "----------------------------------------";
@@ -29,6 +35,7 @@ export interface MessageContext {
   tourMode?: boolean;
   prototypeMode?: boolean;
   generatedImages?: GeneratedImage[];
+  requestFiles?: RequestFile[];
 }
 
 export function buildMessages(context: MessageContext): ChatMessage[] {
@@ -58,6 +65,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     tourMode = false,
     prototypeMode = false,
     generatedImages = [],
+    requestFiles = [],
   } = context;
   const isJsonQuery = mode === "json-query";
   let systemLines: string[];
@@ -77,6 +85,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "5) STRUCTURE: Match the field names, nested structures, and conventions implied by the app history (your prior work). Prefer concise payloads that include only the fields the UI can display.",
       "6) SAFETY: Do not invent scripts or HTML. Return plain JSON with properly escaped strings.",
       "7) STATE HANDOFF: If new durable state should be remembered, ensure the UI also records it via a mutation endpoint.",
+      "8) FILE INPUTS: Uploaded files for this request are attached (see Request Files). Large base64 strings in the body are replaced with placeholders like '[Start of... extracted to attachment: ...]'. Use the attached files to answer (e.g., parse PDFs, read images).",
     ];
   } else if (tourMode) {
     systemLines = [
@@ -498,6 +507,14 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "   - **Magic:** The server (using another LLM call guided by *your* HTML) will reply with JSON in *exactly the shape your UI expects* based on history. Focus on making the request clear.",
       "   - Use background `fetch` for these; update the DOM optimistically for mutations.",
       "   - Use the query endpoint also for live chat widgets, etc., to create a realistic user experience.",
+      "   - **File Uploads:** To send files (PDFs, images, documents) for analysis via query, use `FormData`:",
+      "     ```javascript",
+      "     const formData = new FormData();",
+      "     formData.append('file', fileInput.files[0]);",
+      "     formData.append('action', 'analyze'); // optional JSON fields",
+      "     const response = await fetch('/rest_api/query/document-analysis', { method: 'POST', body: formData });",
+      "     ```",
+      "     The server will extract files and pass them to the LLM for processing (e.g., PDF parsing, OCR, image analysis). Files up to 4MB are supported; larger files are truncated.",
       "",
       "**2. Templating Engine (for Speed & Consistency):**",
       "   - Reuse unchanged parts of previous HTML renders (from history) using placeholders to save tokens and keep consistent chrome.",
@@ -534,6 +551,10 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
       "   - Semantic, accessible HTML (labels, roles, focus order, keyboard access, contrast, aria-live for async feedback).",
       '   - Realistic content only; no placeholders ("Lorem Ipsum", "John Doe", fake numbers, "TODO" text).',
       "8) Output contract. Return exactly one `<html>…</html>` document. No Markdown, explanations, or extra text.",
+      "9) User uploads.",
+      "   - Request files (images, PDFs, etc.) for this request are provided below and attached; use them for parsing, summaries, or conditioning visual output. Large files may be truncated to ~4MB; acknowledge if fidelity might be impacted.",
+      "   - To feed a user-selected image into generation, set `input-base64` on `<ai-image>` (plus optional `input-mime-type` like `image/png` and `input-field` for the originating form field). The runtime will forward it to image providers that support image inputs (Gemini/OpenRouter).",
+      "   - Convert uploads to base64 via FileReader in client-side JS before setting the attribute, and keep payloads tight (resize or compress if needed).",
       "",
       "### Design & Behavior Rules",
       '- Primary actions are obvious (clear CTAs). Default non-submitting buttons to type="button".',
@@ -574,6 +595,7 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
         "### IMAGE GENERATION",
         "You can request server-rendered images without writing JavaScript.",
         "Use the custom element: <ai-image prompt=\"Describe the image\" ratio=\"16:9\"></ai-image>.",
+        "- If you have a user-provided image (e.g., from <input type=\"file\">), set `input-base64` on the `<ai-image>` with the Base64 string and optional `input-mime-type` (e.g., image/png). The runtime forwards it to providers that support image inputs (Gemini/OpenRouter) so you can do image-to-image prompts.",
         "",
         "**MODEL CAPABILITIES**: The image models (Google Gemini Nano Banana Pro, OpenAI GPT Image) are state-of-the-art with exceptional prompt adherence, text rendering, camera control, and compositional understanding. Write detailed, multi-paragraph prompts with precise technical instructions — these models thrive on specificity.",
         "",
@@ -797,6 +819,16 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     `- Query Params (URL-decoded JSON): ${JSON.stringify(query, null, 2)}`,
     `- Body Params (URL-decoded JSON): ${JSON.stringify(body, null, 2)}`
   );
+  if (requestFiles.length > 0) {
+    dynamicSections.push(
+      "",
+      "Request Files:",
+      ...requestFiles.map((file, index) =>
+        `- [${index + 1}] ${file.name} (${file.mimeType}, ${file.size} bytes${file.truncated ? ", truncated to 4MB" : ""
+        }${file.fieldName ? ` from field "${file.fieldName}"` : ""})`
+      )
+    );
+  }
   dynamicSections.push(
     "",
     "Previous HTML (Your last output, including server-injected data-ids for reuse reference. Use history for older states.):",
@@ -825,6 +857,9 @@ export function buildMessages(context: MessageContext): ChatMessage[] {
     role: "user",
     content: dynamicSections.join("\n"),
   };
+  if (requestFiles.length > 0) {
+    dynamicMessage.attachments = requestFiles.map((file) => ({ ...file }));
+  }
 
   return [systemMessage, stableMessage, ...historyMessages, dynamicMessage];
 }
@@ -912,6 +947,15 @@ function formatHistoryEntry(entry: HistoryEntry, index: number): string {
     `Query Params (JSON): ${formatJson(entry.request.query ?? {})}`,
     `Body Params (JSON): ${formatJson(entry.request.body ?? {})}`,
   ];
+  if (entry.request.files?.length) {
+    lines.push("Request Files:");
+    entry.request.files.forEach((file, idx) => {
+      lines.push(
+        `  - [${idx + 1}] ${file.name} (${file.mimeType}, ${file.size} bytes${file.truncated ? ", truncated to 4MB" : ""
+        }${file.fieldName ? ` from field "${file.fieldName}"` : ""})`
+      );
+    });
+  }
   if (entry.request.instructions) {
     lines.push(`Instructions Provided: ${entry.request.instructions}`);
   }

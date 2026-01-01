@@ -15,14 +15,20 @@ export type ImageModelId =
 
 export type ReasoningMode = "none" | "low" | "medium" | "high" | "xhigh" | "default";
 
-export interface BriefAttachment {
+export interface PromptAttachment {
   id: string;
   name: string;
   mimeType: string;
   size: number;
   base64?: string;
   blobName?: string;
+  fieldName?: string;
+  truncated?: boolean;
 }
+
+export interface BriefAttachment extends PromptAttachment {}
+
+export interface RequestFile extends PromptAttachment {}
 
 export interface CacheControlSettings {
   type: "ephemeral";
@@ -32,7 +38,7 @@ export interface CacheControlSettings {
 export interface ChatMessage {
   role: "system" | "user";
   content: string;
-  attachments?: BriefAttachment[];
+  attachments?: PromptAttachment[];
   cacheControl?: CacheControlSettings;
 }
 
@@ -81,6 +87,7 @@ export interface HistoryEntry {
     path: string;
     query: Record<string, unknown>;
     body: Record<string, unknown>;
+    files?: RequestFile[];
     instructions?: string;
   };
   response: {
@@ -127,6 +134,7 @@ export interface RestHistoryMetadata {
     path: string;
     query: Record<string, unknown>;
     body: Record<string, unknown>;
+    files?: RequestFile[];
   };
   response?: unknown;
   rawResponse?: string;
@@ -140,6 +148,7 @@ export interface RestMutationRecord {
   method: string;
   query: Record<string, unknown>;
   body: Record<string, unknown>;
+  files?: RequestFile[];
   createdAt: string;
 }
 
@@ -149,6 +158,7 @@ export interface RestQueryRecord {
   method: string;
   query: Record<string, unknown>;
   body: Record<string, unknown>;
+  files?: RequestFile[];
   createdAt: string;
   ok: boolean;
   response: unknown;
