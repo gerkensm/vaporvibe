@@ -22,6 +22,7 @@ import {
   submitRuntimeUpdate,
   verifyProviderKey,
   downloadClickthroughPrototype,
+  downloadShareablePrototype,
   type ProviderUpdatePayload,
   type RuntimeUpdatePayload,
 } from "../api/admin";
@@ -101,6 +102,7 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
   >(null);
   const [historyPurgingAll, setHistoryPurgingAll] = useState(false);
   const [tourDownloadState, setTourDownloadState] = useState<AsyncStatus>("idle");
+  const [prototypeDownloadState, setPrototypeDownloadState] = useState<AsyncStatus>("idle");
   const [activeTab, setActiveTab] = useState<TabKey>(() => {
     const initial = getTabFromPath(location.pathname);
     return initial ?? "provider";
@@ -575,6 +577,46 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
     }
   }, [notify, state?.exportTourUrl, state?.primarySessionId, tourDownloadState]);
 
+  const handleDownloadPrototype = useCallback(async () => {
+    const prototypeUrl = state?.exportPrototypeUrl;
+    const sessionId = state?.primarySessionId ?? null;
+
+    if (!prototypeUrl) {
+      notify("error", "Prototype download endpoint is unavailable.");
+      return;
+    }
+
+    if (!sessionId) {
+      notify("error", "No session history is available for prototype generation.");
+      return;
+    }
+
+    if (prototypeDownloadState === "loading") {
+      return;
+    }
+
+    setPrototypeDownloadState("loading");
+    try {
+      const blob = await downloadShareablePrototype(prototypeUrl, sessionId);
+      const blobUrl = window.URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = blobUrl;
+      anchor.download = "shareable-prototype.html";
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to generate shareable prototype";
+      notify("error", message);
+    } finally {
+      setPrototypeDownloadState("idle");
+    }
+  }, [notify, state?.exportPrototypeUrl, state?.primarySessionId, prototypeDownloadState]);
+
   useEffect(() => {
     if (showSetupShell) {
       setActiveTab("brief");
@@ -818,6 +860,9 @@ export function AdminDashboard({ mode = "auto" }: AdminDashboardProps) {
                     onDownloadTour={handleDownloadTour}
                     tourLoading={tourDownloadState === "loading"}
                     tourDisabled={!state.primarySessionId}
+                    onDownloadPrototype={handleDownloadPrototype}
+                    prototypeLoading={prototypeDownloadState === "loading"}
+                    prototypeDisabled={!state.primarySessionId}
                   />
                 </>
               }

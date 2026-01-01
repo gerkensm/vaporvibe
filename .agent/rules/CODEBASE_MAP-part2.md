@@ -141,7 +141,7 @@ globs: **/*
 **Internal Imports:**
 
 - From `../logger.js`: `logger`
-- From `../constants.js`: `ADMIN_ROUTE_PREFIX`, `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`
+- From `../constants.js`: `ADMIN_ROUTE_PREFIX`, `MAX_EXPORT_NEW_IMAGES`, `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`
 - From `../constants/providers.js`: `PROVIDER_CHOICES`, `PROVIDER_LABELS`, `PROVIDER_PLACEHOLDERS`, `PROVIDER_REASONING_CAPABILITIES`, `PROVIDER_MEDIA_RESOLUTION_CAPABILITIES`, `PROVIDER_REASONING_MODES`, `PROVIDER_TOKEN_GUIDANCE`, `DEFAULT_MODEL_BY_PROVIDER`, `DEFAULT_MAX_TOKENS_BY_PROVIDER`, `REASONING_MODE_CHOICES`, `getModelOptions`, `getModelMetadata`, `type ModelMetadata`, `getFeaturedModels`, `PROVIDER_MODEL_METADATA`, `CUSTOM_MODEL_DESCRIPTION`, `STATIC_IMAGE_MODELS`
 - From `../utils/history-archive.js`: `createHistoryArchiveZip`
 - From `../llm/factory.js`: `createLlmClient`
@@ -165,7 +165,7 @@ globs: **/*
 - From `../utils/credential-store.js`: `getCredentialStore`
 - From `../utils/config-store.js`: `getConfigStore`
 - From `./brief-attachments.js`: `cloneAttachment`, `processBriefAttachmentFiles`
-- From `../utils/extract-ai-images.js`: `extractAiImageRequests`, `findMissingImages`
+- From `../utils/extract-ai-images.js`: `extractAiImageRequests`, `findMissingImages`, `filterImagesByUnused`
 - From `../types.js`: `BriefAttachment`, `GeneratedImage`, `HistoryEntry`, `ImageAspectRatio`, `ImageGenProvider`, `ImageModelId`, `ProviderSettings`, `ReasoningMode`, `ModelProvider`, `RestMutationRecord`, `RestQueryRecord`
 - From `./server.js`: `MutableServerState`, `RequestContext`
 - From `../types/admin-api.js`: `AdminActiveForkSummary`, `AdminBriefAttachment`, `AdminHistoryItem`, `AdminHistoryResponse`, `AdminProviderInfo`, `AdminRestItem`, `AdminRestMutationItem`, `AdminRestQueryItem`, `AdminRuntimeInfo`, `AdminStateResponse`, `AdminUpdateResponse`
@@ -317,6 +317,3 @@ _No imports_
 **Internal Imports:**
 
 - From `../logger.js`: `logger`
-- From `../types.js`: `ImageGenProvider`, `ImageModelId`, `ModelProvider`, `ReasoningMode`
-
-**External Imports:**

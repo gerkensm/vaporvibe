@@ -65,3 +65,6 @@ export const ADMIN_ROUTE_PREFIX = "/vaporvibe";
 export const INSTRUCTIONS_PANEL_ROUTE = "/__vaporvibe/vaporvibe-instructions-panel.js";
 export const LLM_RESULT_ROUTE_PREFIX = "/__vaporvibe/result";
 export const LLM_REASONING_STREAM_ROUTE_PREFIX = "/__vaporvibe/reasoning";
+
+/** Maximum number of new images to generate during export (tour/prototype) */
+export const MAX_EXPORT_NEW_IMAGES = 20;

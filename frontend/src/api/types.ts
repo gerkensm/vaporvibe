@@ -195,6 +195,7 @@ export interface AdminStateResponse {
   exportJsonUrl: string;
   exportMarkdownUrl: string;
   exportTourUrl: string;
+  exportPrototypeUrl: string;
   isForkActive: boolean;
   activeForks: AdminActiveForkSummary[];
   providerKeyStatuses: Record<

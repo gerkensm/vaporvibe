@@ -374,3 +374,29 @@ export async function downloadClickthroughPrototype(
 
   return await response.blob();
 }
+
+export async function downloadShareablePrototype(
+  url: string,
+  sessionId: string | null
+): Promise<Blob> {
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/html,application/json",
+    },
+    body: JSON.stringify({ sessionId }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    const { message, details } = parseErrorPayload(
+      text,
+      `Failed to generate shareable prototype (status ${response.status})`
+    );
+    throw new AdminApiError(response.status, message, details);
+  }
+
+  return await response.blob();
+}

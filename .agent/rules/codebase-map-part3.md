@@ -3,6 +3,9 @@ trigger: glob
 globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+**Internal Imports:**
+
+- From `../logger.js`: `logger`
 - From `../types.js`: `ImageGenProvider`, `ImageModelId`, `ModelProvider`, `ReasoningMode`
 
 **External Imports:**
@@ -461,4 +464,3 @@ _No imports_
 **Internal Imports:**
 
 - From `../components`: `AttachmentUploader`, `ModelSelector`, `ImageModelSelector`, `TokenBudgetControl`, `CustomModelConfig`
-- From `../api/admin`: `fetchAdminState`, `fetchAdminHistory`, `deleteHistoryEntry`, `deleteAllHistoryEntries`, `submitBriefUpdate`, `submitProviderUpdate`, `submitRuntimeUpdate`, `verifyProviderKey`, `downloadClickthroughPrototype`, `type ProviderUpdatePayload`, `type RuntimeUpdatePayload`

@@ -3,6 +3,10 @@ trigger: always_on
 globs: **/*
 ---
 
+- From `../types.js`: `ImageGenProvider`, `ImageModelId`, `ModelProvider`, `ReasoningMode`
+
+**External Imports:**
+
 - From `conf`: `default as Conf`
 
 #### `utils/cookies.ts`
@@ -457,5 +461,4 @@ _No imports_
 **Internal Imports:**
 
 - From `../components`: `AttachmentUploader`, `ModelSelector`, `ImageModelSelector`, `TokenBudgetControl`, `CustomModelConfig`
-- From `../api/admin`: `fetchAdminState`, `fetchAdminHistory`, `deleteHistoryEntry`, `deleteAllHistoryEntries`, `submitBriefUpdate`, `submitProviderUpdate`, `submitRuntimeUpdate`, `verifyProviderKey`, `downloadClickthroughPrototype`, `type ProviderUpdatePayload`, `type RuntimeUpdatePayload`
-- From `../constants/runtime`: `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`, `DEFAULT_HISTORY_MAX_BYTES`
+- From `../api/admin`: `fetchAdminState`, `fetchAdminHistory`, `deleteHistoryEntry`, `deleteAllHistoryEntries`, `submitBriefUpdate`, `submitProviderUpdate`, `submitRuntimeUpdate`, `verifyProviderKey`, `downloadClickthroughPrototype`, `downloadShareablePrototype`, `type ProviderUpdatePayload`, `type RuntimeUpdatePayload`
