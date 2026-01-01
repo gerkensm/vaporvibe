@@ -8,6 +8,11 @@ export function ensureHtmlDocument(
     return trimmed;
   }
 
+  const repaired = repairIncompleteHtml(trimmed);
+  if (repaired) {
+    return repaired;
+  }
+
   const escaped = escapeHtml(trimmed);
   return `<!DOCTYPE html>
 <html lang="en">
@@ -159,4 +164,17 @@ function startsLikeHtml(value: string): boolean {
 
 function looksLikeHtmlDocument(content: string): boolean {
   return /<\s*html[\s>]/i.test(content) && /<\s*\/\s*html\s*>/i.test(content);
+}
+
+function repairIncompleteHtml(content: string): string | null {
+  const hasHead = /<head[\s>]/i.test(content);
+  const hasBody = /<body[\s>]/i.test(content);
+
+  if (hasHead && hasBody && !/<\s*html[\s>]/i.test(content)) {
+    return `<!DOCTYPE html>
+<html lang="en">
+${content}
+</html>`;
+  }
+  return null;
 }
