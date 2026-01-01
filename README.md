@@ -93,8 +93,12 @@ graph TD
 - **AI-Powered Hot-Fixes:** Use the floating AI Assist panel to give the model live feedback. "Make the buttons rounder" or "Fix this layout bug"—and watch it regenerate the page.
 - **Model "Thinking" Traces:** Enable reasoning mode to see the model's chain-of-thought, giving you a peek into how it decided to render the page.
 - **A/B Comparisons:** Fork any point in your history, give the model alternative instructions, and review the resulting A & B experiences side-by-side before choosing which path to keep.
-- **Download Tour (Clickthrough Prototypes):** Export your entire session as a self-contained HTML file with an embedded Driver.js walkthrough. The tour auto-plays through your exact click path—typing animations, button clicks, view transitions—all bundled into a single shareable file. Perfect for stakeholder demos or handing off to designers who want to experience the UX flow without running the server.
-- **AI Image Generation:** Bring prototypes to life with on-the-fly image generation via OpenAI (DALL-E, GPT Image) or Google (Imagen, Nano Banana). Images are cached in-memory to prevent redundant API costs.
+- **Export & Share:** Two export options for your sessions:
+  - **Clickthrough Tour** — A Driver.js walkthrough that auto-plays through your exact click path with typing animations and view transitions. Perfect for stakeholder demos.
+  - **Shareable Prototype** — A clean interactive SPA without tour overlays. Ideal for designer handoffs and usability testing.
+  Both are self-contained HTML files that work offline.
+- **AI Image Generation:** Bring prototypes to life with on-the-fly image generation via OpenAI (DALL-E, GPT Image), Google (Imagen, Nano Banana (Pro)), or OpenRouter (Flux, OpenAI, Gemini,...). Supports **image-to-image** transformations—upload a photo and watch the AI restyle it. Images are cached to prevent redundant API costs.
+- **File Uploads:** Generated apps can accept file uploads for document analysis, PDF parsing, and image processing—all handled by the (multimodal) LLM.
 
 ---
 

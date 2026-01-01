@@ -3,6 +3,7 @@ trigger: always_on
 globs: **/*
 ---
 
+- From `../api/admin`: `fetchAdminState`, `fetchAdminHistory`, `deleteHistoryEntry`, `deleteAllHistoryEntries`, `submitBriefUpdate`, `submitProviderUpdate`, `submitRuntimeUpdate`, `verifyProviderKey`, `downloadClickthroughPrototype`, `downloadShareablePrototype`, `type ProviderUpdatePayload`, `type RuntimeUpdatePayload`
 - From `../constants/runtime`: `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`, `DEFAULT_HISTORY_MAX_BYTES`
 - From `../components/Notifications`: `useNotifications`
 - From `./admin-dashboard/types`: `type AdminDashboardProps`, `type AdminLocationState`, `type AsyncStatus`, `type NullableStatus`, `type ProviderKey`, `type QueuedAttachment`, `type TabKey`

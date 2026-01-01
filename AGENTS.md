@@ -197,7 +197,7 @@ The admin UI is functional but has some minor inconsistencies the LLM should _no
 
 ### Standard Library & Offline Assets
 
-- **Concept**: To prevent dependency on external CDNs (which might be blocked or flaky) and ensure consistent LLM outputs, VaporVibe serves a curated "Standard Library" of ~40 popular libraries (DaisyUI, Phaser, Chart.js, etc.) directly from `frontend/public/libs/`.
+- **Concept**: To prevent dependency on external CDNs (which might be blocked or flaky) and ensure consistent LLM outputs, VaporVibe serves a curated "Standard Library" of ~60 popular libraries (DaisyUI, Phaser, Chart.js, GSAP, etc.) directly from `frontend/public/libs/`.
 - **Composition Pipeline**:
   1.  **Build (`scripts/copy-libs.ts`)**: Copies assets from `frontend/node_modules/` to `frontend/public/libs/` and locks generic versions (e.g., `daisyui` -> `daisyui/4.12.24/full.css`).
   2.  **Manifest (`src/config/library-manifest.ts`)**: Defines available libraries, their descriptions, and injection rules (`always` vs `on-request`).
