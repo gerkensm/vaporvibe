@@ -80,6 +80,23 @@ const NPM_MAPPING: Record<string, string> = {
 
   // UI Components & Widgets
   'editorjs.umd.js': '@editorjs/editorjs/dist/editorjs.umd.js',
+  'editorjs-header.js': '@editorjs/header/dist/header.umd.js',
+  'editorjs-list.js': '@editorjs/list/dist/editorjs-list.umd.js',
+  'editorjs-checklist.js': '@editorjs/checklist/dist/checklist.umd.js',
+  'editorjs-image.js': '@editorjs/image/dist/image.umd.js',
+  'editorjs-quote.js': '@editorjs/quote/dist/quote.umd.js',
+  'editorjs-code.js': '@editorjs/code/dist/code.umd.js',
+  'editorjs-delimiter.js': '@editorjs/delimiter/dist/delimiter.umd.js',
+  'editorjs-inline-code.js': '@editorjs/inline-code/dist/inline-code.umd.js',
+  'editorjs-marker.js': '@editorjs/marker/dist/marker.umd.js',
+  'editorjs-table.js': '@editorjs/table/dist/table.umd.js',
+  'editorjs-embed.js': '@editorjs/embed/dist/embed.umd.js',
+  'editorjs-warning.js': '@editorjs/warning/dist/warning.umd.js',
+  'editorjs-link.js': '@editorjs/link/dist/link.umd.js',
+  'editorjs-raw.js': '@editorjs/raw/dist/raw.umd.js',
+  'editorjs-simple-image.js': '@editorjs/simple-image/dist/simple-image.umd.js',
+  'editorjs-attaches.js': '@editorjs/attaches/dist/attaches.umd.js',
+  'editorjs-personality.js': '@editorjs/personality/dist/bundle.js',
   'uppy.min.js': 'uppy/dist/uppy.min.js',
   'uppy.min.css': 'uppy/dist/uppy.min.css',
   'medium-zoom.min.js': 'medium-zoom/dist/medium-zoom.min.js',
@@ -316,10 +333,8 @@ async function main(): Promise<void> {
   const animeSrc = path.resolve(MODULES_DIR, 'animejs/lib/anime.min.js');
   fs.copyFileSync(animeSrc, path.join(animeDestDir, 'anime.min.js'));
 
-  /*
-   * CodeMirror (Bundled)
-   */
-  await bundleLib('codemirror', 'dist/index.js', 'codemirror.bundle.js', 'CodeMirror');
+  // NOTE: CodeMirror is handled below in createGlobalBundle with a custom wrapper
+  //       that includes language modes and exposes EditorState, EditorView etc.
 
   /*
    * Custom Global Bundles
@@ -354,8 +369,10 @@ async function main(): Promise<void> {
         minify: true,
         outfile: outFile,
         format: 'iife',
+        globalName: globalName,
         platform: 'browser',
         target: ['es2020'],
+        absWorkingDir: path.resolve(process.cwd(), 'frontend'),
       });
       console.log(`📦 Bundled ${pkgName} -> ${outFile} (Global: ${globalName})`);
     } catch (e) {
@@ -376,29 +393,21 @@ async function main(): Promise<void> {
 
   // CodeMirror (Comprehensive Bundle)
   const codeMirrorWrapper = `
-    import { basicSetup, minimalSetup } from 'codemirror';
-    import * as View from '@codemirror/view';
-    import * as State from '@codemirror/state';
-    import * as Language from '@codemirror/language';
-    import * as Commands from '@codemirror/commands';
-    import * as Search from '@codemirror/search';
-    import * as Autocomplete from '@codemirror/autocomplete';
-    import * as Lint from '@codemirror/lint';
+import { basicSetup, minimalSetup } from 'codemirror';
+import { EditorView } from '@codemirror/view';
+import { EditorState } from '@codemirror/state';
+import { javascript } from '@codemirror/lang-javascript';
+import { html } from '@codemirror/lang-html';
+import { css } from '@codemirror/lang-css';
+import { json } from '@codemirror/lang-json';
+import { markdown } from '@codemirror/lang-markdown';
 
-    if (typeof window !== 'undefined') {
-      window.CodeMirror = {
-        basicSetup,
-        minimalSetup,
-        ...View,
-        ...State,
-        ...Language,
-        ...Commands,
-        ...Search,
-        ...Autocomplete,
-        ...Lint
-      };
-    }
+const CM = { basicSetup, minimalSetup, EditorView, EditorState, javascript, html, css, json, markdown };
+window.CodeMirror = CM;
+export { basicSetup, minimalSetup, EditorView, EditorState, javascript, html, css, json, markdown };
+export default CM;
   `;
+
   await createGlobalBundle('codemirror', 'CodeMirror', 'codemirror.bundle.js', { customContent: codeMirrorWrapper });
 
 

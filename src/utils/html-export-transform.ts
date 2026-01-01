@@ -6,10 +6,26 @@
  * 2. Replacing <ai-image> custom elements with embedded data URL images
  */
 
-import { getGeneratedImagePath, GENERATED_IMAGES_ROUTE } from "../image-gen/paths.js";
+import { getGeneratedImagePath, GENERATED_IMAGES_ROUTE, RUNTIME_SOURCE_DIR } from "../image-gen/paths.js";
 import type { GeneratedImage } from "../types.js";
 import { logger } from "../logger.js";
 import { reencodeImagesForExport } from "./image-reencoder.js";
+import fs from "node:fs";
+import path from "node:path";
+
+/**
+ * Packages that should be inlined directly into the HTML instead of CDN-linked.
+ * Required for custom bundles (CodeMirror, AutoAnimate) or internal dependency order (Three.js/Vanta).
+ */
+const INLINE_PACKAGES = new Set([
+    'codemirror',
+    'three',
+    'formkit-auto-animate',
+    'geopattern',
+    'floating-ui-dom',
+    'ms',
+    'vanta'
+]);
 
 /**
  * CDN URL mappings for libraries that need special handling.
@@ -88,9 +104,9 @@ const SPECIAL_CDN_MAPPINGS: Record<string, (version: string, file: string) => st
     chart: (v, f) => `https://cdn.jsdelivr.net/npm/chart.js@${v}/dist/${f}`,
     dayjs: (v, f) => `https://cdn.jsdelivr.net/npm/dayjs@${v}/${f}`,
     gridjs: (v, f) => {
-        // Theme files use different naming: theme-mermaid.min.css → mermaid.css
+        // Theme files use different naming: theme-mermaid.min.css → mermaid.min.css
         if (f.startsWith('theme-') && f.endsWith('.min.css')) {
-            const themeName = f.replace('theme-', '').replace('.min.css', '.css');
+            const themeName = f.replace('theme-', '');
             return `https://cdn.jsdelivr.net/npm/gridjs@${v}/dist/theme/${themeName}`;
         }
         return `https://cdn.jsdelivr.net/npm/gridjs@${v}/dist/${f}`;
@@ -119,8 +135,27 @@ const SPECIAL_CDN_MAPPINGS: Record<string, (version: string, file: string) => st
     apexcharts: (v, f) => `https://cdn.jsdelivr.net/npm/apexcharts@${v}/dist/${f}`,
 
     // UI & Widgets
-    "floating-ui-dom": (v, f) => `https://cdn.jsdelivr.net/npm/@floating-ui/dom@${v}/dist/${f}`,
+    "floating-ui-dom": (v, f) => f.includes('bundle')
+        ? `https://cdn.jsdelivr.net/npm/@floating-ui/dom@${v}/dist/floating-ui.dom.umd.min.js`
+        : `https://cdn.jsdelivr.net/npm/@floating-ui/dom@${v}/dist/${f}`,
     "editorjs-editorjs": (v, f) => `https://cdn.jsdelivr.net/npm/@editorjs/editorjs@${v}/dist/${f}`,
+    "editorjs-header": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/header@${v}/dist/header.umd.js`,
+    "editorjs-list": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/list@${v}/dist/editorjs-list.umd.js`, // Note: list uses editorjs-list.umd.js
+    "editorjs-checklist": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/checklist@${v}/dist/checklist.umd.js`,
+    "editorjs-quote": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/quote@${v}/dist/quote.umd.js`,
+    "editorjs-code": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/code@${v}/dist/code.umd.js`,
+    "editorjs-delimiter": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/delimiter@${v}/dist/delimiter.umd.js`,
+    "editorjs-inline-code": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/inline-code@${v}/dist/inline-code.umd.js`,
+    "editorjs-marker": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/marker@${v}/dist/marker.umd.js`,
+    "editorjs-table": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/table@${v}/dist/table.umd.js`,
+    "editorjs-embed": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/embed@${v}/dist/embed.umd.js`,
+    "editorjs-warning": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/warning@${v}/dist/warning.umd.js`,
+    "editorjs-link": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/link@${v}/dist/link.umd.js`,
+    "editorjs-raw": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/raw@${v}/dist/raw.umd.js`,
+    "editorjs-simple-image": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/simple-image@${v}/dist/simple-image.umd.js`,
+    "editorjs-image": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/image@${v}/dist/image.umd.js`,
+    "editorjs-attaches": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/attaches@${v}/dist/attaches.umd.js`,
+    "editorjs-personality": (v) => `https://cdn.jsdelivr.net/npm/@editorjs/personality@${v}/dist/bundle.js`,
     uppy: (v, f) => `https://cdn.jsdelivr.net/npm/uppy@${v}/dist/${f}`,
     "medium-zoom": (v, f) => `https://cdn.jsdelivr.net/npm/medium-zoom@${v}/dist/${f}`,
     photoswipe: (v, f) => f.includes('umd')
@@ -419,6 +454,54 @@ function escapeHtmlAttr(str: string): string {
 }
 
 /**
+ * Helpher for async string replacement
+ */
+async function replaceAsync(str: string, regex: RegExp, asyncFn: (match: any, ...args: any[]) => Promise<string>) {
+    const promises: Promise<string>[] = [];
+    str.replace(regex, (match, ...args) => {
+        promises.push(asyncFn(match, ...args));
+        return match;
+    });
+    const data = await Promise.all(promises);
+    return str.replace(regex, () => data.shift()!);
+}
+
+/**
+ * Inlines specific local library scripts directly into the HTML.
+ * Used for libraries where we use custom bundles that don't exist on CDNs (e.g. CodeMirror, Three.js wrapper).
+ */
+export async function inlineLocalLibraryScripts(html: string): Promise<string> {
+    const LIBS_DIR = path.resolve(RUNTIME_SOURCE_DIR, '../libs');
+    // Match <script src="/libs/pkg/ver/file"></script>
+    // Capture groups: 1=pre-attrs, 2=full-path, 3=pkg, 4=ver, 5=file, 6=post-attrs
+    const regex = /<script\s+([^>]*?)src=["'](\/libs\/([^/]+)\/([^/]+)\/([^"']+))["']([^>]*?)>\s*<\/script>/gi;
+
+    return replaceAsync(html, regex, async (fullMatch, preAttrs, fullPath, pkg, ver, file, postAttrs) => {
+        // Check if this package should be inlined
+        if (INLINE_PACKAGES.has(pkg)) {
+            try {
+                // Construct absolute path to the local file
+                const localPath = path.join(LIBS_DIR, pkg, ver, file);
+
+                if (fs.existsSync(localPath)) {
+                    const content = await fs.promises.readFile(localPath, 'utf-8');
+                    logger.debug({ pkg, file }, "Inlining local library script for export");
+                    // Return script tag with inline content, preserving other attributes (like defer/type)
+                    return `<script ${preAttrs} ${postAttrs} data-inlined-source="${fullPath}">${content}</script>`;
+                } else {
+                    logger.warn({ pkg, file, localPath }, "Failed to inline library: File not found");
+                }
+            } catch (err) {
+                logger.error({ pkg, err }, "Error inlining library script");
+            }
+        }
+
+        // If not inlined, return original match unchanged
+        return fullMatch;
+    });
+}
+
+/**
  * Options for HTML export transformation
  */
 export interface PrepareHtmlForExportOptions {
@@ -448,7 +531,13 @@ export async function prepareHtmlForExport(
         '<script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css" />'
     );
 
-    // 1. Replace local /libs/ paths with CDN URLs
+    // Inject offline polyfills for file:// protocol support (fixes tsParticles, etc.)
+    result = injectFileProtocolPolyfills(result);
+
+    // 1. Inline custom library bundles (CodeMirror, Three.js, etc.) that don't exist on CDNs
+    result = await inlineLocalLibraryScripts(result);
+
+    // 2. Replace remaining local /libs/ paths with CDN URLs
     result = transformLocalLibsToCdn(result);
 
     // 2. Replace /generated-images/ URLs with data URLs (for standard img tags that survived)
@@ -743,3 +832,58 @@ export function injectAiImageIds(
 }
 
 
+
+/**
+ * Injects a script to polyfill missing features or fix security restrictions
+ * when running from the file:// protocol.
+ */
+function injectFileProtocolPolyfills(html: string): string {
+    const polyfillScript = `
+    <script>
+    (function() {
+      // VaporVibe Offline Polyfills: Fixes for file:// protocol restrictions
+      
+      // 0. Inform user about file:// limitations
+      if (window.location.protocol === 'file:') {
+          console.warn(
+              '%c VaporVibe Offline Export detected ', 
+              'background: #222; color: #bada55; font-size: 14px; padding: 4px; border-radius: 4px;'
+          );
+          console.warn('Some features (like tsParticles, Web Workers, or external APIs) may be restricted by browser security policies when opening files directly.');
+          console.info('👉 For the best experience, serve this file locally: npx serve .');
+      }
+
+      // 1. Disable Web Workers (e.g., for tsParticles)
+      // Workers often fail security checks on local files
+      try { window.Worker = undefined; } catch(e) {}
+      
+      // 1.1 Disable OffscreenCanvas to force main thread canvas rendering
+      // This often fixes rendering issues in file:// protocol where detached canvases are restricted
+      try { window.OffscreenCanvas = undefined; } catch(e) {}
+
+      // 2. Patch postMessage to prevent "Failed to execute 'postMessage' on 'DOMWindow'" 
+      // when origin is "null" (file://) but targetOrigin matches window.location
+      var originalPostMessage = window.postMessage;
+      window.postMessage = function(message, targetOrigin, transfer) {
+          // If we are on file:// (origin is "null") and targetOrigin looks local...
+          if (window.location.protocol === 'file:' && targetOrigin) {
+              if (targetOrigin.startsWith('file:') || targetOrigin === window.location.origin || targetOrigin === 'null') {
+                  // ...force catch-all origin to bypass security check
+                  return originalPostMessage.call(window, message, '*', transfer);
+              }
+          }
+          return originalPostMessage.apply(window, arguments);
+      };
+    })();
+    </script>
+    `;
+
+    // Inject as early as possible in <head>, fallback to <html> if weirdly missing
+    if (html.includes('<head>')) {
+        return html.replace('<head>', `<head>${polyfillScript}`);
+    } else if (html.includes('<html>')) {
+        return html.replace('<html>', `<html><head>${polyfillScript}</head>`);
+    } else {
+        return polyfillScript + html;
+    }
+}
