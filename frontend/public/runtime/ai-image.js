@@ -1,36 +1,88 @@
 class AIImage extends HTMLElement {
+  static get observedAttributes() {
+    return ["prompt", "ratio"];
+  }
+
   constructor() {
     super();
     this.style.display = "block";
     this.style.overflow = "hidden";
+    this._lastRenderedPrompt = null;
+    this._lastRenderedRatio = null;
+    this._isLoading = false;
   }
 
   connectedCallback() {
-    if (this.hasAttribute("data-rendered")) {
+    const prompt = this.getAttribute("prompt") || "";
+    const ratio = this.getAttribute("ratio") || "1:1";
+
+    // Skip if prompt is empty (waiting for reactive framework to populate it)
+    if (!prompt.trim()) {
       return;
     }
-    this.setAttribute("data-rendered", "true");
+
+    this.#render(prompt, ratio);
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    // Skip if not connected to DOM yet or values haven't actually changed
+    if (!this.isConnected || oldValue === newValue) {
+      return;
+    }
 
     const prompt = this.getAttribute("prompt") || "";
     const ratio = this.getAttribute("ratio") || "1:1";
 
+    // Skip if prompt is empty (waiting for reactive framework to populate it)
+    if (!prompt.trim()) {
+      return;
+    }
+
+    // Only re-render if prompt or ratio actually changed from what we last rendered
+    if (prompt === this._lastRenderedPrompt && ratio === this._lastRenderedRatio) {
+      return;
+    }
+
+    this.#render(prompt, ratio);
+  }
+
+  #render(prompt, ratio) {
+    // Avoid concurrent requests for the same element
+    if (this._isLoading) {
+      return;
+    }
+
+    this._lastRenderedPrompt = prompt;
+    this._lastRenderedRatio = ratio;
+    this._isLoading = true;
+
+    // Extract colors from page context
+    const colors = this.#extractPageColors();
+
+    // Create blob loading animation
     this.innerHTML = `
       <div class="ai-image-skeleton" style="
         aspect-ratio: ${this.#ratioToCss(ratio)};
         width: 100%;
         height: auto;
-        background: #f3f4f6;
+        background: ${colors.bg};
         border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #9ca3af;
-        font-size: 0.85rem;
-        border: 1px solid #e5e7eb;
-        animation: ai-image-pulse 2s infinite;
+        position: relative;
         overflow: hidden;
+        border: 1px solid ${colors.border};
       ">
-         <span aria-live="polite" style="padding: 10px; text-align: center;">Generating: ${this.#escape(prompt).slice(0, 20)}...</span>
+        ${this.#generateBlobs(colors.accents)}
+        <span aria-live="polite" style="
+          position: relative;
+          z-index: 10;
+          padding: 10px;
+          text-align: center;
+          color: ${colors.text};
+          font-size: 0.85rem;
+          text-shadow: 0 0 8px ${colors.bg}, 0 0 12px ${colors.bg};
+          display: block;
+          margin: auto;
+        ">Generating...</span>
       </div>`;
 
     fetch("/rest_api/image/generate", {
@@ -84,10 +136,76 @@ class AIImage extends HTMLElement {
 
         this.innerHTML = "";
         this.appendChild(img);
+        this._isLoading = false;
       })
       .catch((err) => {
         console.error("AI Image Generation Error:", err);
-        this.innerHTML = `<div style="background: #fef2f2; color: #b91c1c; padding: 12px; border-radius: 10px; border: 1px solid #fecdd3; font-size: 0.9rem;">Image generation failed. Try again.</div>`;
+
+        // Extract colors for error state too
+        const colors = this.#extractPageColors();
+        const errorOverlay = this.#isLightColor(colors.bg)
+          ? 'rgba(239, 68, 68, 0.08)'  // Light red tint on light backgrounds
+          : 'rgba(239, 68, 68, 0.12)'; // Slightly more visible on dark backgrounds
+
+        this.innerHTML = `
+          <div style="
+            aspect-ratio: ${this.#ratioToCss(this._lastRenderedRatio || '1:1')};
+            width: 100%;
+            height: auto;
+            background: ${colors.bg};
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+          ">
+            <div style="
+              position: absolute;
+              inset: 0;
+              background: ${errorOverlay};
+            "></div>
+            <div class="ai-image-error-blob" style="
+              position: absolute;
+              width: 120px;
+              height: 120px;
+              left: 50%;
+              top: 50%;
+              background: #ef4444;
+              border-radius: 50%;
+              filter: blur(50px);
+              opacity: 0.15;
+              animation: ai-error-pulse 2s ease-in-out infinite;
+              transform: translate(-50%, -50%);
+            "></div>
+            <div style="
+              position: relative;
+              z-index: 10;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100%;
+              padding: 16px;
+              text-align: center;
+            ">
+              <svg style="width: 32px; height: 32px; margin-bottom: 8px; opacity: 0.6;" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <div style="
+                color: #dc2626;
+                font-size: 0.9rem;
+                font-weight: 500;
+              ">Generation failed</div>
+              <div style="
+                color: ${colors.text};
+                opacity: 0.6;
+                font-size: 0.8rem;
+                margin-top: 4px;
+              ">Try again or check connection</div>
+            </div>
+          </div>`;
+        this._isLoading = false;
       });
   }
 
@@ -105,6 +223,89 @@ class AIImage extends HTMLElement {
   #escape(value) {
     return (value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
   }
+
+  #extractPageColors() {
+    // Sample colors from page context
+    const computed = window.getComputedStyle(document.body);
+    const bgColor = computed.backgroundColor || "#000000";
+
+    // Try to extract accent colors from CSS variables or page elements
+    const accents = [];
+
+    // Check common CSS custom properties
+    const root = getComputedStyle(document.documentElement);
+    for (const prop of ['--primary', '--accent', '--secondary', '--color-primary', '--color-accent']) {
+      const val = root.getPropertyValue(prop).trim();
+      if (val && val !== '') accents.push(val);
+    }
+
+    // Sample from visible elements if we don't have enough colors
+    if (accents.length < 2) {
+      const elements = document.querySelectorAll('button, a, h1, h2, .accent, .primary, [class*="btn"]');
+      for (let i = 0; i < Math.min(elements.length, 10); i++) {
+        const el = elements[i];
+        const color = getComputedStyle(el).backgroundColor;
+        if (color && color !== 'rgba(0, 0, 0, 0)' && color !== 'transparent') {
+          accents.push(color);
+        }
+      }
+    }
+
+    // Fallback colors
+    const defaultAccents = ['#3b82f6', '#f59e0b', '#8b5cf6'];
+    const finalAccents = accents.length > 0
+      ? accents.slice(0, 3)
+      : defaultAccents;
+
+    // Determine text color based on background brightness
+    const textColor = this.#isLightColor(bgColor) ? '#1f2937' : '#f3f4f6';
+    const borderColor = this.#isLightColor(bgColor) ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+
+    return {
+      bg: bgColor,
+      text: textColor,
+      border: borderColor,
+      accents: finalAccents
+    };
+  }
+
+  #isLightColor(color) {
+    // Simple brightness check
+    const rgb = color.match(/\d+/g);
+    if (!rgb || rgb.length < 3) return false;
+    const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
+    return brightness > 128;
+  }
+
+  #generateBlobs(colors) {
+    const blobCount = 4 + Math.floor(Math.random() * 3); // 4-6 blobs
+    let html = '';
+
+    for (let i = 0; i < blobCount; i++) {
+      const color = colors[i % colors.length];
+      const size = 80 + Math.random() * 120; // 80-200px
+      const left = Math.random() * 100;
+      const top = Math.random() * 100;
+      const delay = Math.random() * 3;
+      const duration = 3 + Math.random() * 4; // 3-7s
+
+      html += `<div class="ai-image-blob" style="
+        position: absolute;
+        width: ${size}px;
+        height: ${size}px;
+        left: ${left}%;
+        top: ${top}%;
+        background: ${color};
+        border-radius: 50%;
+        filter: blur(40px);
+        opacity: 0;
+        animation: ai-blob-wave ${duration}s ease-in-out ${delay}s infinite;
+        transform: translate(-50%, -50%);
+      "></div>`;
+    }
+
+    return html;
+  }
 }
 
 if (!customElements.get("ai-image")) {
@@ -114,6 +315,36 @@ if (!customElements.get("ai-image")) {
 if (!document.getElementById("ai-image-style")) {
   const style = document.createElement("style");
   style.id = "ai-image-style";
-  style.textContent = `@keyframes ai-image-pulse { 0% { opacity: 1; } 50% { opacity: 0.65; } 100% { opacity: 1; } }`;
+  style.textContent = `
+    @keyframes ai-blob-wave {
+      0%, 100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+      }
+      15% {
+        opacity: 0.3;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(1.2);
+      }
+      85% {
+        opacity: 0.3;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+    
+    @keyframes ai-error-pulse {
+      0%, 100% {
+        opacity: 0.15;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      50% {
+        opacity: 0.25;
+        transform: translate(-50%, -50%) scale(1.1);
+      }
+    }
+  `;
   document.head.appendChild(style);
 }
