@@ -1,5 +1,5 @@
 {
-  "generated": "2026-01-01T01:21:35.998Z",
+  "generated": "2026-01-01T02:27:48.457Z",
   "backend": {
     "basePath": "src",
     "totalModules": 60,
@@ -35,16 +35,12 @@
               "LIB_VERSIONS"
             ]
           },
-          "external": {
-            "/libs/three.module.js": [
-              "* as THREE"
-            ]
-          }
+          "external": {}
         },
         "importedBy": [
           "llm/messages.ts"
         ],
-        "importCount": 2
+        "importCount": 1
       },
       "config/runtime-config.ts": {
         "imports": {

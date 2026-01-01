@@ -58,6 +58,41 @@ const NPM_MAPPING: Record<string, string> = {
   'zdog.dist.min.js': 'zdog/dist/zdog.dist.min.js',
   'marked.min.js': 'marked/lib/marked.umd.js',
 
+  // Animation & Motion
+  'gsap.min.js': 'gsap/dist/gsap.min.js',
+  'ScrollTrigger.min.js': 'gsap/dist/ScrollTrigger.min.js',
+  'motion.js': 'motion/dist/motion.js',
+  'lottie.min.js': 'lottie-web/build/player/lottie.min.js',
+
+  'lenis.min.js': 'lenis/dist/lenis.min.js',
+  'lenis.css': 'lenis/dist/lenis.css',
+
+  // SPA & Routing
+  'barba.umd.js': '@barba/core/dist/barba.umd.js',
+  'Swup.umd.js': 'swup/dist/Swup.umd.js',
+
+  // Maps & Graphs
+  'leaflet.js': 'leaflet/dist/leaflet.js',
+  'leaflet.css': 'leaflet/dist/leaflet.css',
+  'cytoscape.min.js': 'cytoscape/dist/cytoscape.min.js',
+  'echarts.min.js': 'echarts/dist/echarts.min.js',
+  'apexcharts.min.js': 'apexcharts/dist/apexcharts.min.js',
+
+  // UI Components & Widgets
+  'editorjs.umd.js': '@editorjs/editorjs/dist/editorjs.umd.js',
+  'uppy.min.js': 'uppy/dist/uppy.min.js',
+  'uppy.min.css': 'uppy/dist/uppy.min.css',
+  'medium-zoom.min.js': 'medium-zoom/dist/medium-zoom.min.js',
+  'photoswipe.umd.min.js': 'photoswipe/dist/umd/photoswipe.umd.min.js',
+  'photoswipe-lightbox.umd.min.js': 'photoswipe/dist/umd/photoswipe-lightbox.umd.min.js',
+  'photoswipe.css': 'photoswipe/dist/photoswipe.css',
+
+  // Rich Effects
+  'tsparticles.bundle.min.js': 'tsparticles/tsparticles.bundle.min.js',
+  'vanta.net.min.js': 'vanta/dist/vanta.net.min.js',
+  'vanta.waves.min.js': 'vanta/dist/vanta.waves.min.js',
+  'vanta.birds.min.js': 'vanta/dist/vanta.birds.min.js', // Include a few popular ones
+
   // Data / Math / Charts
   'chart.umd.js': 'chart.js/dist/chart.umd.js',
   'dayjs.min.js': 'dayjs/dayjs.min.js',
@@ -74,7 +109,6 @@ const NPM_MAPPING: Record<string, string> = {
 
   // Complex Assets
   'katex': 'katex',
-  'leaflet': 'leaflet',
   'font-inter': '@fontsource/inter',
   'font-jetbrains': '@fontsource/jetbrains-mono',
   'font-press-start': '@fontsource/press-start-2p',
@@ -282,11 +316,91 @@ async function main(): Promise<void> {
   const animeSrc = path.resolve(MODULES_DIR, 'animejs/lib/anime.min.js');
   fs.copyFileSync(animeSrc, path.join(animeDestDir, 'anime.min.js'));
 
-  // Special copy for Three.js (needs full build dir for relative imports)
-  const threeVer = getPackageVersion('three').version;
-  libVersions['three'] = threeVer;
-  ensureDir(path.join(DEST_DIR, 'three', threeVer));
-  copyFolderSync(path.join(MODULES_DIR, 'three/build'), path.join(DEST_DIR, 'three', threeVer));
+  /*
+   * CodeMirror (Bundled)
+   */
+  await bundleLib('codemirror', 'dist/index.js', 'codemirror.bundle.js', 'CodeMirror');
+
+  /*
+   * Custom Global Bundles
+   * Some libraries (Three.js, AutoAnimate, CodeMirror) are modular and don't expose globals by default.
+   * We create wrapper scripts to assign them to window explicitly.
+   */
+  async function createGlobalBundle(pkgName: string, globalName: string, destName: string, options: { isNamespace?: boolean, customContent?: string } = {}) {
+    const { version } = getPackageVersion(pkgName);
+    const libKey = deriveLibKey(pkgName, destName);
+    libVersions[libKey] = version;
+
+    const versionedDestDir = path.join(DEST_DIR, libKey, version);
+    ensureDir(versionedDestDir);
+    const outFile = path.join(versionedDestDir, destName);
+
+    if (fs.existsSync(outFile)) return;
+
+    const wrapperPath = path.join(MODULES_DIR, `.${libKey}.wrapper.js`);
+    let content = options.customContent;
+
+    if (!content) {
+      const importStmt = options.isNamespace ? `import * as Lib from '${pkgName}';` : `import Lib from '${pkgName}';`;
+      content = `${importStmt}\nwindow.${globalName} = Lib;`;
+    }
+
+    fs.writeFileSync(wrapperPath, content);
+
+    try {
+      await build({
+        entryPoints: [wrapperPath],
+        bundle: true,
+        minify: true,
+        outfile: outFile,
+        format: 'iife',
+        platform: 'browser',
+        target: ['es2020'],
+      });
+      console.log(`📦 Bundled ${pkgName} -> ${outFile} (Global: ${globalName})`);
+    } catch (e) {
+      console.error(`❌ Failed to bundle ${pkgName}:`, e);
+    } finally {
+      if (fs.existsSync(wrapperPath)) fs.unlinkSync(wrapperPath);
+    }
+  }
+
+  // Three.js (Namespace import)
+  await createGlobalBundle('three', 'THREE', 'three.min.js', { isNamespace: true });
+
+  // AutoAnimate (Default import)
+  await createGlobalBundle('@formkit/auto-animate', 'autoAnimate', 'auto-animate.bundle.js', { isNamespace: false });
+
+  // Floating UI (Bundles Core + DOM)
+  await createGlobalBundle('@floating-ui/dom', 'FloatingUIDOM', 'floating-ui.dom.bundle.js', { isNamespace: true });
+
+  // CodeMirror (Comprehensive Bundle)
+  const codeMirrorWrapper = `
+    import { basicSetup, minimalSetup } from 'codemirror';
+    import * as View from '@codemirror/view';
+    import * as State from '@codemirror/state';
+    import * as Language from '@codemirror/language';
+    import * as Commands from '@codemirror/commands';
+    import * as Search from '@codemirror/search';
+    import * as Autocomplete from '@codemirror/autocomplete';
+    import * as Lint from '@codemirror/lint';
+
+    if (typeof window !== 'undefined') {
+      window.CodeMirror = {
+        basicSetup,
+        minimalSetup,
+        ...View,
+        ...State,
+        ...Language,
+        ...Commands,
+        ...Search,
+        ...Autocomplete,
+        ...Lint
+      };
+    }
+  `;
+  await createGlobalBundle('codemirror', 'CodeMirror', 'codemirror.bundle.js', { customContent: codeMirrorWrapper });
+
 
   // Special copy for Lit and its dependencies (needed for resolution)
   const litPackages = ["lit", "lit-html", "lit-element", "@lit/reactive-element"];

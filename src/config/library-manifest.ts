@@ -221,6 +221,38 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     version: v('animejs')
   },
   {
+    id: "motion",
+    filename: "motion.js",
+    description: "Motion (Motion One) - Modern Web Animations API wrapper (Global: Motion.animate(...))",
+    tags: `<script src="/libs/motion/${v('motion')}/motion.js"></script>`,
+    inject: "on-request",
+    version: v('motion')
+  },
+  {
+    id: "gsap",
+    filename: "gsap.min.js",
+    description: "Professional animation library (Global: gsap). Includes ScrollTrigger (Global: ScrollTrigger).",
+    tags: `<script src="/libs/gsap/${v('gsap')}/gsap.min.js"></script>\n<script src="/libs/gsap/${v('gsap')}/ScrollTrigger.min.js"></script>`,
+    inject: "on-request",
+    version: v('gsap')
+  },
+  {
+    id: "lottie",
+    filename: "lottie.min.js",
+    description: "Render After Effects animations (Global: lottie.loadAnimation(...))",
+    tags: `<script src="/libs/lottie-web/${v('lottie-web')}/lottie.min.js"></script>`,
+    inject: "on-request",
+    version: v('lottie-web')
+  },
+  {
+    id: "formkit-auto-animate",
+    filename: "auto-animate.bundle.js",
+    description: "Automatic animations (Global: autoAnimate(el))",
+    tags: `<script src="/libs/formkit-auto-animate/${v('formkit-auto-animate')}/auto-animate.bundle.js"></script>`,
+    inject: "on-request",
+    version: v('formkit-auto-animate')
+  },
+  {
     id: "aos",
     filename: "aos.js",
     description: "Animate On Scroll library (Global: AOS.init()). NOTE: Use 'data-aos' attributes on elements; can be combined with 'animate' library for custom effects.",
@@ -500,6 +532,30 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     inject: "on-request",
     version: v('winbox')
   },
+  {
+    id: "lenis",
+    filename: "lenis.min.js",
+    description: "Smooth scrolling library (Global: new Lenis())",
+    tags: `<link rel="stylesheet" href="/libs/lenis/${v('lenis')}/lenis.css">\n<script src="/libs/lenis/${v('lenis')}/lenis.min.js"></script>`,
+    inject: "on-request",
+    version: v('lenis')
+  },
+  {
+    id: "barba",
+    filename: "barba.umd.js",
+    description: "Smooth page transitions & SPA routing (Global: barba.init())",
+    tags: `<script src="/libs/barba-core/${v('barba-core')}/barba.umd.js"></script>`,
+    inject: "on-request",
+    version: v('barba-core')
+  },
+  {
+    id: "swup",
+    filename: "Swup.umd.js",
+    description: "Page transition library (Global: new Swup())",
+    tags: `<script src="/libs/swup/${v('swup')}/Swup.umd.js"></script>`,
+    inject: "on-request",
+    version: v('swup')
+  },
 
   // TIER E: CHARTS / DATA / MEDIA
   {
@@ -527,6 +583,94 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     version: v('gridjs')
   },
   {
+    id: "cytoscape",
+    filename: "cytoscape.min.js",
+    description: "Graph theory / network visualization (Global: cytoscape({ ... }))",
+    tags: `<script src="/libs/cytoscape/${v('cytoscape')}/cytoscape.min.js"></script>`,
+    inject: "on-request",
+    version: v('cytoscape')
+  },
+  {
+    id: "echarts",
+    filename: "echarts.min.js",
+    description: "Powerful visualization library (Global: echarts.init(dom))",
+    tags: `<script src="/libs/echarts/${v('echarts')}/echarts.min.js"></script>`,
+    inject: "on-request",
+    version: v('echarts')
+  },
+  {
+    id: "apexcharts",
+    filename: "apexcharts.min.js",
+    description: "Modern & interactive charts (Global: new ApexCharts(el, options))",
+    tags: `<script src="/libs/apexcharts/${v('apexcharts')}/apexcharts.min.js"></script>`,
+    inject: "on-request",
+    version: v('apexcharts')
+  },
+  {
+    id: "floating-ui",
+    filename: "floating-ui.dom.bundle.js",
+    description: "Positioning library for tooltips/popovers (Global: FloatingUIDOM)",
+    tags: `<script src="/libs/floating-ui-dom/${v('floating-ui-dom')}/floating-ui.dom.bundle.js"></script>`,
+    inject: "on-request",
+    version: v('floating-ui-dom')
+  },
+  {
+    id: "editorjs",
+    filename: "editorjs.umd.js",
+    description: "Block-styled editor (Global: new EditorJS())",
+    tags: `<script src="/libs/editorjs-editorjs/${v('editorjs-editorjs')}/editorjs.umd.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-editorjs')
+  },
+  {
+    id: "codemirror",
+    filename: "codemirror.bundle.js",
+    description: "Code editor (Global: CodeMirror.{EditorState, EditorView, basicSetup, ...})",
+    tags: `<script src="/libs/codemirror/${v('codemirror')}/codemirror.bundle.js"></script>`,
+    inject: "on-request",
+    version: v('codemirror')
+  },
+  {
+    id: "uppy",
+    filename: "uppy.min.js",
+    description: "Modular file uploader (Global: new Uppy.Uppy())",
+    tags: `<link rel="stylesheet" href="/libs/uppy/${v('uppy')}/uppy.min.css">\n<script src="/libs/uppy/${v('uppy')}/uppy.min.js"></script>`,
+    inject: "on-request",
+    version: v('uppy')
+  },
+  {
+    id: "medium-zoom",
+    filename: "medium-zoom.min.js",
+    description: "Image zooming like Medium (Global: mediumZoom(img))",
+    tags: `<script src="/libs/medium-zoom/${v('medium-zoom')}/medium-zoom.min.js"></script>`,
+    inject: "on-request",
+    version: v('medium-zoom')
+  },
+  {
+    id: "photoswipe",
+    filename: "photoswipe.umd.min.js",
+    description: "JavaScript image gallery (Global: PhotoSwipe, PhotoSwipeLightbox)",
+    tags: `<link rel="stylesheet" href="/libs/photoswipe/${v('photoswipe')}/photoswipe.css">\n<script src="/libs/photoswipe/${v('photoswipe')}/photoswipe.umd.min.js"></script>\n<script src="/libs/photoswipe/${v('photoswipe')}/photoswipe-lightbox.umd.min.js"></script>`,
+    inject: "on-request",
+    version: v('photoswipe')
+  },
+  {
+    id: "tsparticles",
+    filename: "tsparticles.bundle.min.js",
+    description: "Particle effects (Global: tsParticles.load(...))",
+    tags: `<script src="/libs/tsparticles/${v('tsparticles')}/tsparticles.bundle.min.js"></script>`,
+    inject: "on-request",
+    version: v('tsparticles')
+  },
+  {
+    id: "vanta",
+    filename: "vanta.net.min.js",
+    description: "Animated website backgrounds (Waves, Net, etc.)",
+    tags: `<script src="/libs/three/${v('three')}/three.min.js"></script>\n<script src="/libs/vanta/${v('vanta')}/vanta.net.min.js"></script>\n<script src="/libs/vanta/${v('vanta')}/vanta.waves.min.js"></script>`,
+    inject: "on-request",
+    version: v('vanta')
+  },
+  {
     id: "prism",
     filename: "prism.js",
     description: "Syntax highlighting (Global: Prism.highlightAll())",
@@ -552,9 +696,9 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
   },
   {
     id: "three",
-    filename: "three.module.js",
-    description: "3D graphics engine (ESM required: import * as THREE from '/libs/three.module.js')",
-    tags: `<script type="module" src="/libs/three/${v('three')}/three.module.js"></script>`,
+    filename: "three.min.js",
+    description: "3D graphics engine (Global: THREE)",
+    tags: `<script src="/libs/three/${v('three')}/three.min.js"></script>`,
     inject: "on-request",
     version: v('three')
   },

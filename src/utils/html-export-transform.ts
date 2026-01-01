@@ -104,6 +104,35 @@ const SPECIAL_CDN_MAPPINGS: Record<string, (version: string, file: string) => st
     zdog: (v, f) => `https://cdn.jsdelivr.net/npm/zdog@${v}/dist/${f}`,
     phaser: (v, f) => `https://cdn.jsdelivr.net/npm/phaser@${v}/dist/${f}`,
 
+    // Animation & SPA Libraries
+    motion: (v, f) => `https://cdn.jsdelivr.net/npm/motion@${v}/dist/${f}`,
+    gsap: (v, f) => `https://cdn.jsdelivr.net/npm/gsap@${v}/dist/${f}`,
+    "lottie-web": (v, f) => `https://cdn.jsdelivr.net/npm/lottie-web@${v}/build/player/${f}`,
+    "formkit-auto-animate": (v, f) => (f === 'auto-animate.min.js' || f === 'auto-animate.bundle.js')
+        ? `https://cdn.jsdelivr.net/npm/@formkit/auto-animate@${v}/index.min.js`
+        : `https://cdn.jsdelivr.net/npm/@formkit/auto-animate@${v}/${f}`,
+    lenis: (v, f) => `https://cdn.jsdelivr.net/npm/lenis@${v}/dist/${f}`,
+    "barba-core": (v, f) => `https://cdn.jsdelivr.net/npm/@barba/core@${v}/dist/${f}`,
+    swup: (v, f) => `https://cdn.jsdelivr.net/npm/swup@${v}/dist/${f}`,
+    cytoscape: (v, f) => `https://cdn.jsdelivr.net/npm/cytoscape@${v}/dist/${f}`,
+    echarts: (v, f) => `https://cdn.jsdelivr.net/npm/echarts@${v}/dist/${f}`,
+    apexcharts: (v, f) => `https://cdn.jsdelivr.net/npm/apexcharts@${v}/dist/${f}`,
+
+    // UI & Widgets
+    "floating-ui-dom": (v, f) => `https://cdn.jsdelivr.net/npm/@floating-ui/dom@${v}/dist/${f}`,
+    "editorjs-editorjs": (v, f) => `https://cdn.jsdelivr.net/npm/@editorjs/editorjs@${v}/dist/${f}`,
+    uppy: (v, f) => `https://cdn.jsdelivr.net/npm/uppy@${v}/dist/${f}`,
+    "medium-zoom": (v, f) => `https://cdn.jsdelivr.net/npm/medium-zoom@${v}/dist/${f}`,
+    photoswipe: (v, f) => f.includes('umd')
+        ? `https://cdn.jsdelivr.net/npm/photoswipe@${v}/dist/umd/${f}`
+        : `https://cdn.jsdelivr.net/npm/photoswipe@${v}/dist/${f}`, // css is in dist/
+
+    // Particles & Effects
+    tsparticles: (v, f) => `https://cdn.jsdelivr.net/npm/tsparticles@${v}/${f}`, // Bundle is in root
+    vanta: (v, f) => `https://cdn.jsdelivr.net/npm/vanta@${v}/dist/${f}`,
+
+    // Fontsource fonts use @fontsource/ scope
+
     // Fontsource fonts use @fontsource/ scope
     inter: (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/inter@${v}/${f}`,
     "jetbrains-mono": (v, f) => `https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@${v}/${f}`,
