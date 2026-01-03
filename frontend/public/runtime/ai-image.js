@@ -1,42 +1,185 @@
 class AIImage extends HTMLElement {
+  static get observedAttributes() {
+    return ["prompt", "ratio", "input-base64", "input-mime-type", "input-field"];
+  }
+
   constructor() {
     super();
     this.style.display = "block";
     this.style.overflow = "hidden";
+    this._lastRenderedPrompt = null;
+    this._lastRenderedRatio = null;
+    this._lastRenderedInput = null;
+    this._isLoading = false;
+    this._abortController = null;
+    this._debounceTimer = null;
+  }
+
+  /**
+   * Parse input-base64 value tolerantly - accepts both raw base64 and data URLs.
+   * Returns { base64, mimeType } with the extracted/inferred values.
+   */
+  #parseInputBase64(value, fallbackMimeType = "image/png") {
+    if (!value) {
+      return { base64: "", mimeType: fallbackMimeType };
+    }
+
+    // Avoid expensive trim on massive strings if not needed
+    // Just check start/end roughly or trust the substring logic
+    const isDataUrl = value.trimStart().startsWith("data:");
+
+    if (isDataUrl) {
+      const commaIndex = value.indexOf(",");
+      if (commaIndex !== -1) {
+        const header = value.substring(0, commaIndex);
+        const base64 = value.substring(commaIndex + 1).trim();
+
+        // Extract mime from header (e.g. "data:image/png;base64")
+        const mimeMatch = header.match(/^data:([^ ;,]+)/);
+        const mimeType = mimeMatch ? mimeMatch[1] : fallbackMimeType;
+
+        return { base64, mimeType };
+      }
+    }
+
+    // Otherwise treat as raw base64
+    return { base64: value.trim(), mimeType: fallbackMimeType };
   }
 
   connectedCallback() {
-    if (this.hasAttribute("data-rendered")) {
+    const prompt = this.getAttribute("prompt") || "";
+    const ratio = this.getAttribute("ratio") || "1:1";
+    const inputBase64Raw = this.getAttribute("input-base64") || "";
+    const inputMimeType = this.getAttribute("input-mime-type") || "image/png";
+    const inputField = this.getAttribute("input-field") || "";
+
+    // Skip if prompt is empty (waiting for reactive framework to populate it)
+    if (!prompt.trim()) {
       return;
     }
-    this.setAttribute("data-rendered", "true");
+
+    // Parse input tolerantly - handles both raw base64 and data URLs
+    const parsed = this.#parseInputBase64(inputBase64Raw, inputMimeType);
+
+    this.#scheduleRender(prompt, ratio, {
+      base64: parsed.base64,
+      mimeType: parsed.mimeType,
+      fieldName: inputField.trim() || undefined,
+    });
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    // Skip if not connected to DOM yet or values haven't actually changed
+    if (!this.isConnected || oldValue === newValue) {
+      return;
+    }
 
     const prompt = this.getAttribute("prompt") || "";
     const ratio = this.getAttribute("ratio") || "1:1";
+    const inputBase64Raw = this.getAttribute("input-base64") || "";
+    const inputMimeType = this.getAttribute("input-mime-type") || "image/png";
+    const inputField = this.getAttribute("input-field") || "";
 
+    // Skip if prompt is empty (waiting for reactive framework to populate it)
+    if (!prompt.trim()) {
+      return;
+    }
+
+    // Parse input tolerantly - handles both raw base64 and data URLs
+    const parsed = this.#parseInputBase64(inputBase64Raw, inputMimeType);
+
+    // Only re-render if prompt or ratio actually changed from what we last rendered
+    if (
+      prompt === this._lastRenderedPrompt &&
+      ratio === this._lastRenderedRatio &&
+      parsed.base64 === this._lastRenderedInput
+    ) {
+      return;
+    }
+
+    this.#scheduleRender(prompt, ratio, {
+      base64: parsed.base64,
+      mimeType: parsed.mimeType,
+      fieldName: inputField.trim() || undefined,
+    });
+  }
+
+  #scheduleRender(prompt, ratio, input) {
+    if (this._debounceTimer) {
+      clearTimeout(this._debounceTimer);
+    }
+
+    // Debounce to allow multiple attributes (like Alpine x-binds) to settle
+    // and prevent double-fetching (first empty, then with input)
+    this._debounceTimer = setTimeout(() => {
+      this._debounceTimer = null;
+      this.#render(prompt, ratio, input);
+    }, 50);
+  }
+
+  #render(prompt, ratio, input) {
+    console.log("Rendering image", { prompt, ratio, input });
+
+    // Abort any pending request
+    if (this._abortController) {
+      this._abortController.abort();
+    }
+
+    // Create new controller for this request
+    this._abortController = new AbortController();
+    const signal = this._abortController.signal;
+
+    this._lastRenderedPrompt = prompt;
+    this._lastRenderedRatio = ratio;
+    this._lastRenderedInput = input?.base64 || "";
+    this._isLoading = true;
+
+    // Extract colors from page context
+    const colors = this.#extractPageColors();
+
+    // Create blob loading animation
     this.innerHTML = `
       <div class="ai-image-skeleton" style="
         aspect-ratio: ${this.#ratioToCss(ratio)};
         width: 100%;
         height: auto;
-        background: #f3f4f6;
+        background: ${colors.bg};
         border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #9ca3af;
-        font-size: 0.85rem;
-        border: 1px solid #e5e7eb;
-        animation: ai-image-pulse 2s infinite;
+        position: relative;
         overflow: hidden;
+        border: 1px solid ${colors.border};
       ">
-         <span aria-live="polite" style="padding: 10px; text-align: center;">Generating: ${this.#escape(prompt).slice(0, 20)}...</span>
+        ${this.#generateBlobs(colors.accents)}
+        <span aria-live="polite" style="
+          position: relative;
+          z-index: 10;
+          padding: 10px;
+          text-align: center;
+          color: ${colors.text};
+          font-size: 0.85rem;
+          text-shadow: 0 0 8px ${colors.bg}, 0 0 12px ${colors.bg};
+          display: block;
+          margin: auto;
+        ">Generating...</span>
       </div>`;
+
+    const payload = { prompt, ratio };
+    if (input?.base64) {
+      payload.inputImages = [
+        {
+          base64: input.base64,
+          mimeType: input.mimeType || "image/png",
+          fieldName: input.fieldName,
+        },
+      ];
+      console.log("[AI-Image] Including input image in payload:", { mimeType: payload.inputImages[0].mimeType, base64Length: payload.inputImages[0].base64.length });
+    }
 
     fetch("/rest_api/image/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, ratio }),
+      body: JSON.stringify(payload),
+      signal,
     })
       .then((response) => response.json())
       .then((data) => {
@@ -66,6 +209,9 @@ class AIImage extends HTMLElement {
           if (["prompt", "ratio", "data-rendered", "src", "id"].includes(name)) {
             continue;
           }
+          if (["input-base64", "input-mime-type", "input-field"].includes(name)) {
+            continue;
+          }
 
           if (name === "style") {
             // Merge styles: internal defaults first (set above), then user styles to allow overrides
@@ -84,10 +230,83 @@ class AIImage extends HTMLElement {
 
         this.innerHTML = "";
         this.appendChild(img);
+        this._isLoading = false;
+        this._abortController = null;
       })
       .catch((err) => {
+        if (err.name === 'AbortError') {
+          console.log("Image generation aborted due to new request");
+          return;
+        }
+
         console.error("AI Image Generation Error:", err);
-        this.innerHTML = `<div style="background: #fef2f2; color: #b91c1c; padding: 12px; border-radius: 10px; border: 1px solid #fecdd3; font-size: 0.9rem;">Image generation failed. Try again.</div>`;
+
+        // Extract colors for error state too
+        const colors = this.#extractPageColors();
+        const errorOverlay = this.#isLightColor(colors.bg)
+          ? 'rgba(239, 68, 68, 0.08)'  // Light red tint on light backgrounds
+          : 'rgba(239, 68, 68, 0.12)'; // Slightly more visible on dark backgrounds
+
+        this.innerHTML = `
+          <div style="
+            aspect-ratio: ${this.#ratioToCss(this._lastRenderedRatio || '1:1')};
+            width: 100%;
+            height: auto;
+            background: ${colors.bg};
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+          ">
+            <div style="
+              position: absolute;
+              inset: 0;
+              background: ${errorOverlay};
+            "></div>
+            <div class="ai-image-error-blob" style="
+              position: absolute;
+              width: 120px;
+              height: 120px;
+              left: 50%;
+              top: 50%;
+              background: #ef4444;
+              border-radius: 50%;
+              filter: blur(50px);
+              opacity: 0.15;
+              animation: ai-error-pulse 2s ease-in-out infinite;
+              transform: translate(-50%, -50%);
+            "></div>
+            <div style="
+              position: relative;
+              z-index: 10;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100%;
+              padding: 16px;
+              text-align: center;
+            ">
+              <svg style="width: 32px; height: 32px; margin-bottom: 8px; opacity: 0.6;" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <div style="
+                color: #dc2626;
+                font-size: 0.9rem;
+                font-weight: 500;
+              ">Generation failed</div>
+              <div style="
+                color: ${colors.text};
+                opacity: 0.6;
+                font-size: 0.8rem;
+                margin-top: 4px;
+              ">Try again or check connection</div>
+            </div>
+          </div>`;
+        this._isLoading = false;
+        this._abortController = null;
       });
   }
 
@@ -105,6 +324,89 @@ class AIImage extends HTMLElement {
   #escape(value) {
     return (value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
   }
+
+  #extractPageColors() {
+    // Sample colors from page context
+    const computed = window.getComputedStyle(document.body);
+    const bgColor = computed.backgroundColor || "#000000";
+
+    // Try to extract accent colors from CSS variables or page elements
+    const accents = [];
+
+    // Check common CSS custom properties
+    const root = getComputedStyle(document.documentElement);
+    for (const prop of ['--primary', '--accent', '--secondary', '--color-primary', '--color-accent']) {
+      const val = root.getPropertyValue(prop).trim();
+      if (val && val !== '') accents.push(val);
+    }
+
+    // Sample from visible elements if we don't have enough colors
+    if (accents.length < 2) {
+      const elements = document.querySelectorAll('button, a, h1, h2, .accent, .primary, [class*="btn"]');
+      for (let i = 0; i < Math.min(elements.length, 10); i++) {
+        const el = elements[i];
+        const color = getComputedStyle(el).backgroundColor;
+        if (color && color !== 'rgba(0, 0, 0, 0)' && color !== 'transparent') {
+          accents.push(color);
+        }
+      }
+    }
+
+    // Fallback colors
+    const defaultAccents = ['#3b82f6', '#f59e0b', '#8b5cf6'];
+    const finalAccents = accents.length > 0
+      ? accents.slice(0, 3)
+      : defaultAccents;
+
+    // Determine text color based on background brightness
+    const textColor = this.#isLightColor(bgColor) ? '#1f2937' : '#f3f4f6';
+    const borderColor = this.#isLightColor(bgColor) ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+
+    return {
+      bg: bgColor,
+      text: textColor,
+      border: borderColor,
+      accents: finalAccents
+    };
+  }
+
+  #isLightColor(color) {
+    // Simple brightness check
+    const rgb = color.match(/\d+/g);
+    if (!rgb || rgb.length < 3) return false;
+    const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
+    return brightness > 128;
+  }
+
+  #generateBlobs(colors) {
+    const blobCount = 4 + Math.floor(Math.random() * 3); // 4-6 blobs
+    let html = '';
+
+    for (let i = 0; i < blobCount; i++) {
+      const color = colors[i % colors.length];
+      const size = 80 + Math.random() * 120; // 80-200px
+      const left = Math.random() * 100;
+      const top = Math.random() * 100;
+      const delay = Math.random() * 3;
+      const duration = 3 + Math.random() * 4; // 3-7s
+
+      html += `<div class="ai-image-blob" style="
+        position: absolute;
+        width: ${size}px;
+        height: ${size}px;
+        left: ${left}%;
+        top: ${top}%;
+        background: ${color};
+        border-radius: 50%;
+        filter: blur(40px);
+        opacity: 0;
+        animation: ai-blob-wave ${duration}s ease-in-out ${delay}s infinite;
+        transform: translate(-50%, -50%);
+      "></div>`;
+    }
+
+    return html;
+  }
 }
 
 if (!customElements.get("ai-image")) {
@@ -114,6 +416,36 @@ if (!customElements.get("ai-image")) {
 if (!document.getElementById("ai-image-style")) {
   const style = document.createElement("style");
   style.id = "ai-image-style";
-  style.textContent = `@keyframes ai-image-pulse { 0% { opacity: 1; } 50% { opacity: 0.65; } 100% { opacity: 1; } }`;
+  style.textContent = `
+    @keyframes ai-blob-wave {
+      0%, 100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+      }
+      15% {
+        opacity: 0.3;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: translate(-50%, -50%) scale(1.2);
+      }
+      85% {
+        opacity: 0.3;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+    
+    @keyframes ai-error-pulse {
+      0%, 100% {
+        opacity: 0.15;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      50% {
+        opacity: 0.25;
+        transform: translate(-50%, -50%) scale(1.1);
+      }
+    }
+  `;
   document.head.appendChild(style);
 }

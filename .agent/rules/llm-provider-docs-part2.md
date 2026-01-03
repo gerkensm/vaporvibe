@@ -83,6 +83,8 @@ The client supports image attachments for models that accept multimodal input.
 -   **Format**: Base64 data URLs (`data:image/...;base64,...`)
 -   **Non-Image Attachments**: Injected as Base64 text content
 -   **Universal Support**: OpenRouter's unified API handles multimodal routing
+-   **⚠️ User Role Only**: OpenRouter requires multimodal content arrays (with `image_url` parts) to be on `user` role messages only. System and assistant messages with attachments are automatically flattened to text descriptions.
+-   **SDK Casing**: The SDK uses camelCase internally (`imageUrl`) and transforms to snake_case (`image_url`) when sending to the API. Code must use `imageUrl` to pass SDK validation.
 
 ### 4. Streaming
 Uses `client.chat.send()` with `stream: true` to receive server-sent events.

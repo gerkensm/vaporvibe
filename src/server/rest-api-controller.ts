@@ -1,16 +1,18 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { Buffer } from "node:buffer";
 import { existsSync } from "node:fs";
 import type { Logger } from "pino";
 import { supportsImageInput } from "../llm/capabilities.js";
 import { buildMessages } from "../llm/messages.js";
 import type { LlmClient } from "../llm/client.js";
 import { parseCookies } from "../utils/cookies.js";
-import { readBody } from "../utils/body.js";
+import { convertParsedFilesToRequestFiles, readBody } from "../utils/body.js";
 import type {
   BriefAttachment,
   HistoryEntry,
   ImageAspectRatio,
   ImageGenProvider,
+  RequestFile,
   RestMutationRecord,
   RestQueryRecord,
   RuntimeConfig,
@@ -136,9 +138,22 @@ export class RestApiController {
 
     const body = await readBody(req);
     const data = body.data ?? {};
+    const requestFiles = convertParsedFilesToRequestFiles(body.files ?? []);
     const prompt =
       typeof data.prompt === "string" ? data.prompt.trim() : undefined;
     const ratio = this.normalizeAspectRatio(data.ratio);
+    const inputImages = this.normalizeInputImages(
+      data.inputImages ?? data.input ?? data.sourceImages
+    );
+    const inputHash = this.buildInputImageHash(inputImages);
+
+    // Debug logging for input images
+    reqLogger.debug({
+      inputImagesCount: inputImages.length,
+      hasInputImages: inputImages.length > 0,
+      inputImageMimeTypes: inputImages.map((img) => img.mimeType),
+      inputImageBase64Lengths: inputImages.map((img) => img.base64?.length ?? 0),
+    }, "Image generation request received");
 
     const rawQueryEntries = Array.from(url.searchParams.entries());
     let branchId = context.branchId;
@@ -164,7 +179,13 @@ export class RestApiController {
 
     const provider: ImageGenProvider = env.provider.imageGeneration.provider;
     const modelId = env.provider.imageGeneration.modelId ?? "gpt-image-1.5";
-    const cacheKey = buildImageCacheKey({ provider, modelId, prompt, ratio });
+    const cacheKey = buildImageCacheKey({
+      provider,
+      modelId,
+      prompt,
+      ratio,
+      inputHash,
+    });
     const { filePath, route } = getGeneratedImagePath(cacheKey);
 
     await ensureImageCacheDir();
@@ -211,6 +232,8 @@ export class RestApiController {
         ratio,
         apiKey,
         modelId,
+        inputImages,
+        inputHash,
       });
       const { base64, mimeType } = await this.persistImage(
         result,
@@ -285,6 +308,14 @@ export class RestApiController {
     const query = sanitizeQuery(url);
     const parsedBody = await readBody(req);
     const bodySource = parsedBody.data ?? {};
+    let requestFiles = convertParsedFilesToRequestFiles(parsedBody.files ?? []);
+
+    // Auto-detect base64 files in JSON body and convert to attachments
+    const extractedFiles = this.extractAttachmentsFromBody(bodySource);
+    if (extractedFiles.length > 0) {
+      requestFiles = [...requestFiles, ...extractedFiles];
+    }
+
     const bodyBranch = extractBranchId(bodySource[BRANCH_FIELD]);
     if (!branchId && bodyBranch) {
       branchId = bodyBranch;
@@ -297,6 +328,7 @@ export class RestApiController {
       method,
       query,
       body,
+      files: requestFiles,
       createdAt: new Date().toISOString(),
     };
 
@@ -363,9 +395,18 @@ export class RestApiController {
 
     const query = sanitizeQuery(url);
     let bodyData: Record<string, unknown> = {};
+    let requestFiles: RequestFile[] = [];
     if (method === "POST") {
       const parsedBody = await readBody(req);
       const bodySource = parsedBody.data ?? {};
+      requestFiles = convertParsedFilesToRequestFiles(parsedBody.files ?? []);
+
+      // Auto-detect base64 files in JSON body and convert to attachments
+      const extractedFiles = this.extractAttachmentsFromBody(bodySource);
+      if (extractedFiles.length > 0) {
+        requestFiles = [...requestFiles, ...extractedFiles];
+      }
+
       const bodyBranch = extractBranchId(bodySource[BRANCH_FIELD]);
       if (!branchId && bodyBranch) {
         branchId = bodyBranch;
@@ -392,6 +433,7 @@ export class RestApiController {
       path,
       query,
       body: bodyData,
+      requestFiles,
       prevHtml: promptContext.prevHtml,
       timestamp: new Date(),
       includeInstructionPanel: env.runtime.includeInstructionPanel,
@@ -423,6 +465,7 @@ export class RestApiController {
           method,
           query,
           body: bodyData,
+          files: requestFiles,
           createdAt: new Date().toISOString(),
           ok: false,
           response: null,
@@ -468,6 +511,7 @@ export class RestApiController {
         method,
         query,
         body: bodyData,
+        files: requestFiles,
         createdAt: new Date().toISOString(),
         ok: true,
         response: parsed,
@@ -510,6 +554,7 @@ export class RestApiController {
         method,
         query,
         body: bodyData,
+        files: requestFiles,
         createdAt: new Date().toISOString(),
         ok: false,
         response: null,
@@ -610,6 +655,79 @@ export class RestApiController {
     return "image/png";
   }
 
+  /**
+   * Strips the data URL prefix (e.g., "data:image/jpeg;base64,") from a base64 string
+   * and extracts the MIME type. Returns the raw base64 and inferred MIME type.
+   */
+  private stripDataUrlPrefix(input: string): { base64: string; inferredMimeType?: string } {
+    // Match data URL format: data:[<mediatype>][;base64],<data>
+    const dataUrlPattern = /^data:([^;,]+)?(?:;base64)?,(.*)$/i;
+    const match = input.match(dataUrlPattern);
+    if (match) {
+      const inferredMimeType = match[1] || undefined;
+      const base64 = match[2] || "";
+      return { base64, inferredMimeType };
+    }
+    // Not a data URL, return as-is
+    return { base64: input };
+  }
+
+  private normalizeInputImages(raw: unknown): Array<{ base64: string; mimeType: string; fieldName?: string }> {
+    if (!raw) return [];
+    const items = Array.isArray(raw) ? raw : [raw];
+    const normalized: Array<{ base64: string; mimeType: string; fieldName?: string }> = [];
+    const maxBase64Length = Math.ceil((4 * 1024 * 1024 * 4) / 3); // ~4MB payload cap
+    for (const item of items) {
+      if (!item) continue;
+      if (typeof item === "string") {
+        const trimmed = item.trim();
+        if (trimmed.length === 0) continue;
+        const { base64: rawBase64, inferredMimeType } = this.stripDataUrlPrefix(trimmed);
+        const base64 = rawBase64.slice(0, maxBase64Length);
+        if (base64.length > 0) {
+          normalized.push({ base64, mimeType: inferredMimeType || "image/png" });
+        }
+        continue;
+      }
+      if (typeof item === "object") {
+        const base64Value =
+          typeof (item as any).base64 === "string"
+            ? (item as any).base64.trim()
+            : undefined;
+        if (!base64Value) continue;
+
+        // Strip data URL prefix if present
+        const { base64: rawBase64, inferredMimeType } = this.stripDataUrlPrefix(base64Value);
+        const base64 = rawBase64.slice(0, maxBase64Length);
+        if (!base64) continue;
+
+        // Use explicit mimeType if provided, otherwise use inferred from data URL, fallback to png
+        const explicitMimeType =
+          typeof (item as any).mimeType === "string" && (item as any).mimeType.trim().length > 0
+            ? (item as any).mimeType.trim()
+            : undefined;
+        const mimeType = explicitMimeType || inferredMimeType || "image/png";
+
+        const fieldName =
+          typeof (item as any).fieldName === "string" && (item as any).fieldName.trim().length > 0
+            ? (item as any).fieldName.trim()
+            : undefined;
+        normalized.push({ base64, mimeType, fieldName });
+      }
+    }
+    return normalized.slice(0, 3);
+  }
+
+  private buildInputImageHash(inputImages: Array<{ base64: string; mimeType: string }>): string | undefined {
+    if (!inputImages.length) return undefined;
+    const hash = createHash("sha256");
+    for (const image of inputImages) {
+      hash.update(image.mimeType || "image/png");
+      hash.update(image.base64.slice(0, 8_192));
+    }
+    return hash.digest("hex");
+  }
+
   private preparePromptContext(
     sid: string,
     runtime: RuntimeConfig,
@@ -671,6 +789,58 @@ export class RestApiController {
       omittedAttachmentCount,
     };
   }
+
+  private extractAttachmentsFromBody(
+    body: Record<string, unknown>
+  ): RequestFile[] {
+    const files: RequestFile[] = [];
+
+    if (
+      !body ||
+      typeof body !== "object" ||
+      !Array.isArray(body.attachments)
+    ) {
+      return files;
+    }
+
+    const attachments = body.attachments;
+    const validAttachments: any[] = [];
+
+    for (const item of attachments) {
+      if (
+        item &&
+        typeof item === "object" &&
+        typeof item.name === "string" &&
+        typeof item.mimeType === "string" &&
+        typeof item.base64 === "string"
+      ) {
+        try {
+          const buffer = Buffer.from(item.base64, "base64");
+          files.push({
+            id: randomUUID(),
+            name: item.name,
+            mimeType: item.mimeType,
+            size: buffer.length,
+            base64: item.base64,
+            fieldName: "attachments",
+          });
+          validAttachments.push(item);
+        } catch {
+          // Ignore invalid base64
+        }
+      }
+    }
+
+    // Replace the attachments array with a summary to save tokens
+    if (files.length > 0) {
+      body.attachments = files.map(
+        (f) =>
+          `[Attachment: ${f.name} (${f.mimeType}), ${f.size} bytes]`
+      );
+    }
+
+    return files;
+  }
 }
 
 function sanitizeQuery(url: URL): Record<string, unknown> {
@@ -721,3 +891,5 @@ function extractBranchId(value: unknown): string | undefined {
   }
   return undefined;
 }
+
+

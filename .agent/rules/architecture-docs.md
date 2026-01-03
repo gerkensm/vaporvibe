@@ -100,16 +100,16 @@ graph TD
 ## 📚 Documentation Index
 
 ### Architecture Deep Dives
-| Topic                                                          | Description                                               |
-| :------------------------------------------------------------- | :-------------------------------------------------------- |
-| [**A/B Testing**](./architecture/ab-testing.md)                | Branching logic, fork data models, and UI isolation.      |
-| [**Virtual REST API**](./architecture/virtual-rest-api.md)     | Fake backend, mutation recording, and state persistence.  |
-| [**Admin Control Plane**](./architecture/admin-api.md)         | Configuration, API key management, and security.          |
-| [**Session Lifecycle**](./architecture/session-lifecycle.md)   | In-memory storage, eviction policies, and history format. |
-| [**Token Optimization**](./architecture/token-optimization.md) | Component caching and placeholder resolution.             |
-| [**LLM Pipeline**](./architecture/llm-pipeline.md)             | Data flow, streaming, and reasoning extraction.           |
-| [**Transition UX**](./architecture/transition-ux.md)           | Loading shell, waiting effects, and overlay mechanics.    |
-| [**Download Tour**](./architecture/download-tour.md)           | Clickthrough prototypes with Driver.js walkthroughs.      |
+| Topic                                                          | Description                                                      |
+| :------------------------------------------------------------- | :--------------------------------------------------------------- |
+| [**A/B Testing**](./architecture/ab-testing.md)                | Branching logic, fork data models, and UI isolation.             |
+| [**Virtual REST API**](./architecture/virtual-rest-api.md)     | Fake backend, mutation recording, and state persistence.         |
+| [**Admin Control Plane**](./architecture/admin-api.md)         | Configuration, API key management, and security.                 |
+| [**Session Lifecycle**](./architecture/session-lifecycle.md)   | In-memory storage, eviction policies, and history format.        |
+| [**Token Optimization**](./architecture/token-optimization.md) | Component caching and placeholder resolution.                    |
+| [**LLM Pipeline**](./architecture/llm-pipeline.md)             | Data flow, streaming, and reasoning extraction.                  |
+| [**Transition UX**](./architecture/transition-ux.md)           | Loading shell, waiting effects, and overlay mechanics.           |
+| [**Download Exports**](./architecture/download-exports.md)     | Clickthrough tours and shareable prototypes for offline sharing. |
 
 ### Module Documentation
 Detailed API references for specific subsystems:

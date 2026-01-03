@@ -4,7 +4,7 @@ import process from "node:process";
 import JSZip from "jszip";
 import type { Logger } from "pino";
 import { logger } from "../logger.js";
-import { ADMIN_ROUTE_PREFIX } from "../constants.js";
+import { ADMIN_ROUTE_PREFIX, MAX_EXPORT_NEW_IMAGES } from "../constants.js";
 import {
   PROVIDER_CHOICES,
   PROVIDER_LABELS,
@@ -98,12 +98,17 @@ import type {
   AdminStateResponse,
   AdminUpdateResponse,
 } from "../types/admin-api.js";
-import { extractAiImageRequests, findMissingImages } from "../utils/extract-ai-images.js";
+import {
+  extractAiImageRequests,
+  findMissingImages,
+  filterImagesByUnused,
+} from "../utils/extract-ai-images.js";
 
 const JSON_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.json`;
 const ZIP_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history.zip`;
 const MARKDOWN_EXPORT_PATH = `${ADMIN_ROUTE_PREFIX}/history/prompt.md`;
 const TOUR_EXPORT_PATH = "/api/project/default/generate-tour";
+const PROTOTYPE_EXPORT_PATH = "/api/project/default/generate-prototype";
 
 interface AdminControllerOptions {
   state: MutableServerState;
@@ -160,6 +165,11 @@ export class AdminController {
       const tourMatch = path.match(/^\/api\/project\/([^/]+)\/generate-tour$/);
       if (method === "POST" && tourMatch) {
         await this.handleTourGeneration(context, reqLogger, tourMatch[1]);
+        return true;
+      }
+      const prototypeMatch = path.match(/^\/api\/project\/([^/]+)\/generate-prototype$/);
+      if (method === "POST" && prototypeMatch) {
+        await this.handlePrototypeGeneration(context, reqLogger, prototypeMatch[1]);
         return true;
       }
       if (path.startsWith("/api/admin")) {
@@ -980,6 +990,7 @@ export class AdminController {
       exportJsonUrl: ZIP_EXPORT_PATH,
       exportMarkdownUrl: MARKDOWN_EXPORT_PATH,
       exportTourUrl: TOUR_EXPORT_PATH,
+      exportPrototypeUrl: PROTOTYPE_EXPORT_PATH,
       providerKeyStatuses: providerKeyStatuses as Record<
         ModelProvider,
         { hasKey: boolean; verified: boolean }
@@ -1269,7 +1280,15 @@ export class AdminController {
 
       // Generate missing images on-demand
       if (missingImages.length > 0 && this.state.provider.imageGeneration?.enabled) {
-        reqLogger.info({ count: missingImages.length }, "Generating missing tour images");
+        const imagesToGenerate = missingImages.slice(0, MAX_EXPORT_NEW_IMAGES);
+        const skipped = missingImages.length - imagesToGenerate.length;
+        if (skipped > 0) {
+          reqLogger.warn(
+            { total: missingImages.length, generating: imagesToGenerate.length, skipped },
+            `Limiting tour image generation to ${MAX_EXPORT_NEW_IMAGES} images`
+          );
+        }
+        reqLogger.info({ count: imagesToGenerate.length }, "Generating missing tour images");
 
         const imageGenClient = createImageGenClient(
           this.state.provider.imageGeneration.provider
@@ -1279,7 +1298,7 @@ export class AdminController {
         if (!apiKey) {
           reqLogger.warn("No API key available for image generation");
         } else {
-          for (const { prompt, ratio } of missingImages) {
+          for (const { prompt, ratio } of imagesToGenerate) {
             try {
               const result = await imageGenClient.generateImage({
                 prompt,
@@ -1323,11 +1342,16 @@ export class AdminController {
         }
       }
 
-      // Filter to only include images that are actually referenced in the tour HTML
-      const referencedPrompts = new Set(imageRequests.map((r) => r.prompt.toLowerCase().trim()));
-      const imagesToInclude = existingImages.filter((img) =>
-        referencedPrompts.has(img.prompt.toLowerCase().trim())
-      );
+      // 1. Inject IDs into the HTML first
+      // This is crucial: if the LLM generated <ai-image prompt="foo"> but no ID,
+      // and we just generated the image for "foo", we must inject the new ID into the HTML
+      // so that the greedy search (filterImagesByUnused) can find it.
+      const htmlWithIds = injectAiImageIds(ensuredHtml, existingImages);
+
+      // 2. Filter images using "Greedy Search"
+      // We simply keep any image whose ID appears *anywhere* in the HTML string.
+      // This covers data-image-id attributes, JS variables, and the IDs we just injected.
+      const imagesToInclude = filterImagesByUnused(htmlWithIds, existingImages);
 
       reqLogger.debug(
         {
@@ -1358,6 +1382,243 @@ export class AdminController {
       this.respondJson(
         res,
         { success: false, message: "Failed to generate prototype tour" },
+        500
+      );
+    }
+  }
+
+  private async handlePrototypeGeneration(
+    context: RequestContext,
+    reqLogger: Logger,
+    projectId: string
+  ): Promise<void> {
+    const { req, res, path, method, url } = context;
+    const body = await readBody(req);
+    const sessionIdInput = body.data?.sessionId;
+    const sessionId =
+      typeof sessionIdInput === "string" && sessionIdInput.trim().length > 0
+        ? sessionIdInput.trim()
+        : "";
+
+    if (!sessionId) {
+      this.respondJson(
+        res,
+        { success: false, message: "sessionId is required to generate a prototype" },
+        400
+      );
+      return;
+    }
+
+    const history = this.sessionStore.getHistory(sessionId);
+    if (history.length === 0) {
+      this.respondJson(
+        res,
+        { success: false, message: "No history found for the requested session." },
+        404
+      );
+      return;
+    }
+
+    const includeAttachments = supportsImageInput(
+      this.state.provider.provider,
+      this.state.provider.model
+    );
+    const briefAttachments = includeAttachments
+      ? (this.state.briefAttachments ?? []).map((attachment) => ({
+        ...attachment,
+      }))
+      : [];
+    const omittedAttachmentCount = includeAttachments
+      ? 0
+      : (this.state.briefAttachments ?? []).length;
+
+    const lastHtmlEntry = [...history]
+      .reverse()
+      .find((entry) => entry.entryKind === "html");
+    const prevHtml = lastHtmlEntry?.response.html ?? "";
+
+    // Preprocess history to normalize image tags for the LLM
+    const allGeneratedImages = this.collectGeneratedImages(history);
+
+    const preprocessedHistory = history.map((entry) => {
+      if (entry.entryKind !== "html" || !entry.response.html) return entry;
+      return {
+        ...entry,
+        response: {
+          ...entry.response,
+          html: injectAiImageIds(entry.response.html, allGeneratedImages),
+        },
+      };
+    });
+
+    const messages = buildMessages({
+      brief: this.state.brief ?? "",
+      briefAttachments,
+      omittedAttachmentCount,
+      method,
+      path,
+      query: Object.fromEntries(url.searchParams.entries()),
+      body: body.data ?? {},
+      prevHtml,
+      timestamp: new Date(),
+      includeInstructionPanel: this.state.runtime.includeInstructionPanel,
+      history: preprocessedHistory,
+      historyTotal: history.length,
+      historyLimit: history.length,
+      historyMaxBytes: Number.MAX_SAFE_INTEGER,
+      historyBytesUsed: Buffer.byteLength(prevHtml, "utf8"),
+      historyLimitOmitted: 0,
+      historyByteOmitted: 0,
+      adminPath: ADMIN_ROUTE_PREFIX,
+      imageGenerationEnabled: this.state.provider.imageGeneration.enabled,
+      enableStandardLibrary: true,
+      prototypeMode: true,
+      generatedImages: allGeneratedImages,
+    });
+
+    try {
+      const llmClient = this.state.llmClient ?? createLlmClient(this.state.provider);
+      this.applyProviderEnv(llmClient.settings);
+
+      const result = await llmClient.generateHtml(messages);
+      const caches = buildMasterReusableCaches(history);
+      const placeholderResult = applyReusablePlaceholders(result.html, caches);
+
+      if (
+        placeholderResult.missingComponentIds.length > 0 ||
+        placeholderResult.missingStyleIds.length > 0
+      ) {
+        reqLogger.warn(
+          {
+            missingComponentIds: placeholderResult.missingComponentIds,
+            missingStyleIds: placeholderResult.missingStyleIds,
+          },
+          "Reusable placeholders could not be resolved for prototype export"
+        );
+      }
+
+      const ensuredHtml = ensureHtmlDocument(placeholderResult.html, {
+        method: "GET",
+        path,
+      });
+
+      // Extract all <ai-image> tags from the generated prototype HTML
+      const imageRequests = extractAiImageRequests(ensuredHtml);
+      const existingImages = this.collectGeneratedImages(history);
+      const missingImages = findMissingImages(imageRequests, existingImages);
+
+      reqLogger.debug(
+        {
+          totalRequests: imageRequests.length,
+          existing: existingImages.length,
+          missing: missingImages.length,
+        },
+        "Prototype image analysis"
+      );
+
+      // Generate missing images on-demand
+      if (missingImages.length > 0 && this.state.provider.imageGeneration?.enabled) {
+        const imagesToGenerate = missingImages.slice(0, MAX_EXPORT_NEW_IMAGES);
+        const skipped = missingImages.length - imagesToGenerate.length;
+        if (skipped > 0) {
+          reqLogger.warn(
+            { total: missingImages.length, generating: imagesToGenerate.length, skipped },
+            `Limiting prototype image generation to ${MAX_EXPORT_NEW_IMAGES} images`
+          );
+        }
+        reqLogger.info({ count: imagesToGenerate.length }, "Generating missing prototype images");
+
+        const imageGenClient = createImageGenClient(
+          this.state.provider.imageGeneration.provider
+        );
+        const apiKey = await this.lookupImageApiKey();
+
+        if (!apiKey) {
+          reqLogger.warn("No API key available for image generation");
+        } else {
+          for (const { prompt, ratio } of imagesToGenerate) {
+            try {
+              const result = await imageGenClient.generateImage({
+                prompt,
+                ratio,
+                apiKey,
+                modelId: this.state.provider.imageGeneration.modelId ?? "gpt-image-1.5",
+              });
+
+              const cacheKey = buildImageCacheKey({
+                provider: this.state.provider.imageGeneration.provider,
+                modelId: this.state.provider.imageGeneration.modelId ?? "gpt-image-1.5",
+                prompt,
+                ratio,
+              });
+
+              const base64 = result.url.startsWith("data:")
+                ? result.url.split(",")[1]
+                : Buffer.from(await (await fetch(result.url)).arrayBuffer()).toString("base64");
+
+              await writeImageCache(cacheKey, base64);
+
+              const { route } = getGeneratedImagePath(cacheKey);
+              existingImages.push({
+                id: randomUUID(),
+                cacheKey,
+                url: route,
+                prompt,
+                ratio,
+                provider: this.state.provider.imageGeneration.provider,
+                modelId: this.state.provider.imageGeneration.modelId ?? "gpt-image-1.5",
+                mimeType: "image/png",
+                base64,
+                createdAt: new Date().toISOString(),
+              });
+
+              reqLogger.debug({ prompt, ratio }, "Generated prototype image");
+            } catch (error) {
+              reqLogger.error({ err: error, prompt }, "Failed to generate prototype image");
+            }
+          }
+        }
+      }
+
+      // 1. Inject IDs into the HTML first
+      // This matches the logic in handleTourGeneration to ensure robust image detection
+      const htmlWithIds = injectAiImageIds(ensuredHtml, existingImages);
+
+      // 2. Filter images using "Greedy Search"
+      // We simply keep any image whose ID appears *anywhere* in the HTML string.
+      // This includes images referenced by prompt (static <ai-image>) converted to IDs by step 1,
+      // as well as data-image-id attributes and JS variables.
+      const imagesToInclude = filterImagesByUnused(htmlWithIds, existingImages);
+
+      reqLogger.debug(
+        {
+          allImages: existingImages.length,
+          referencedImages: imagesToInclude.length,
+        },
+        "Filtered prototype images for export"
+      );
+
+      const exportedHtml = await prepareHtmlForExport(ensuredHtml, imagesToInclude, {
+        compressImages: true,
+      });
+
+      res.statusCode = 200;
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=\"prototype.html\""
+      );
+      res.setHeader("Content-Type", "text/html");
+      res.end(exportedHtml);
+
+      reqLogger.info(
+        { sessionId, projectId },
+        "Shareable prototype generated"
+      );
+    } catch (error) {
+      reqLogger.error({ err: error }, "Failed to generate shareable prototype");
+      this.respondJson(
+        res,
+        { success: false, message: "Failed to generate shareable prototype" },
         500
       );
     }

@@ -58,6 +58,58 @@ const NPM_MAPPING: Record<string, string> = {
   'zdog.dist.min.js': 'zdog/dist/zdog.dist.min.js',
   'marked.min.js': 'marked/lib/marked.umd.js',
 
+  // Animation & Motion
+  'gsap.min.js': 'gsap/dist/gsap.min.js',
+  'ScrollTrigger.min.js': 'gsap/dist/ScrollTrigger.min.js',
+  'motion.js': 'motion/dist/motion.js',
+  'lottie.min.js': 'lottie-web/build/player/lottie.min.js',
+
+  'lenis.min.js': 'lenis/dist/lenis.min.js',
+  'lenis.css': 'lenis/dist/lenis.css',
+
+  // SPA & Routing
+  'barba.umd.js': '@barba/core/dist/barba.umd.js',
+  'Swup.umd.js': 'swup/dist/Swup.umd.js',
+
+  // Maps & Graphs
+  'leaflet.js': 'leaflet/dist/leaflet.js',
+  'leaflet.css': 'leaflet/dist/leaflet.css',
+  'cytoscape.min.js': 'cytoscape/dist/cytoscape.min.js',
+  'echarts.min.js': 'echarts/dist/echarts.min.js',
+  'apexcharts.min.js': 'apexcharts/dist/apexcharts.min.js',
+
+  // UI Components & Widgets
+  'editorjs.umd.js': '@editorjs/editorjs/dist/editorjs.umd.js',
+  'editorjs-header.js': '@editorjs/header/dist/header.umd.js',
+  'editorjs-list.js': '@editorjs/list/dist/editorjs-list.umd.js',
+  'editorjs-checklist.js': '@editorjs/checklist/dist/checklist.umd.js',
+  'editorjs-image.js': '@editorjs/image/dist/image.umd.js',
+  'editorjs-quote.js': '@editorjs/quote/dist/quote.umd.js',
+  'editorjs-code.js': '@editorjs/code/dist/code.umd.js',
+  'editorjs-delimiter.js': '@editorjs/delimiter/dist/delimiter.umd.js',
+  'editorjs-inline-code.js': '@editorjs/inline-code/dist/inline-code.umd.js',
+  'editorjs-marker.js': '@editorjs/marker/dist/marker.umd.js',
+  'editorjs-table.js': '@editorjs/table/dist/table.umd.js',
+  'editorjs-embed.js': '@editorjs/embed/dist/embed.umd.js',
+  'editorjs-warning.js': '@editorjs/warning/dist/warning.umd.js',
+  'editorjs-link.js': '@editorjs/link/dist/link.umd.js',
+  'editorjs-raw.js': '@editorjs/raw/dist/raw.umd.js',
+  'editorjs-simple-image.js': '@editorjs/simple-image/dist/simple-image.umd.js',
+  'editorjs-attaches.js': '@editorjs/attaches/dist/attaches.umd.js',
+  'editorjs-personality.js': '@editorjs/personality/dist/bundle.js',
+  'uppy.min.js': 'uppy/dist/uppy.min.js',
+  'uppy.min.css': 'uppy/dist/uppy.min.css',
+  'medium-zoom.min.js': 'medium-zoom/dist/medium-zoom.min.js',
+  'photoswipe.umd.min.js': 'photoswipe/dist/umd/photoswipe.umd.min.js',
+  'photoswipe-lightbox.umd.min.js': 'photoswipe/dist/umd/photoswipe-lightbox.umd.min.js',
+  'photoswipe.css': 'photoswipe/dist/photoswipe.css',
+
+  // Rich Effects
+  'tsparticles.bundle.min.js': 'tsparticles/tsparticles.bundle.min.js',
+  'vanta.net.min.js': 'vanta/dist/vanta.net.min.js',
+  'vanta.waves.min.js': 'vanta/dist/vanta.waves.min.js',
+  'vanta.birds.min.js': 'vanta/dist/vanta.birds.min.js', // Include a few popular ones
+
   // Data / Math / Charts
   'chart.umd.js': 'chart.js/dist/chart.umd.js',
   'dayjs.min.js': 'dayjs/dayjs.min.js',
@@ -74,7 +126,6 @@ const NPM_MAPPING: Record<string, string> = {
 
   // Complex Assets
   'katex': 'katex',
-  'leaflet': 'leaflet',
   'font-inter': '@fontsource/inter',
   'font-jetbrains': '@fontsource/jetbrains-mono',
   'font-press-start': '@fontsource/press-start-2p',
@@ -282,11 +333,83 @@ async function main(): Promise<void> {
   const animeSrc = path.resolve(MODULES_DIR, 'animejs/lib/anime.min.js');
   fs.copyFileSync(animeSrc, path.join(animeDestDir, 'anime.min.js'));
 
-  // Special copy for Three.js (needs full build dir for relative imports)
-  const threeVer = getPackageVersion('three').version;
-  libVersions['three'] = threeVer;
-  ensureDir(path.join(DEST_DIR, 'three', threeVer));
-  copyFolderSync(path.join(MODULES_DIR, 'three/build'), path.join(DEST_DIR, 'three', threeVer));
+  // NOTE: CodeMirror is handled below in createGlobalBundle with a custom wrapper
+  //       that includes language modes and exposes EditorState, EditorView etc.
+
+  /*
+   * Custom Global Bundles
+   * Some libraries (Three.js, AutoAnimate, CodeMirror) are modular and don't expose globals by default.
+   * We create wrapper scripts to assign them to window explicitly.
+   */
+  async function createGlobalBundle(pkgName: string, globalName: string, destName: string, options: { isNamespace?: boolean, customContent?: string } = {}) {
+    const { version } = getPackageVersion(pkgName);
+    const libKey = deriveLibKey(pkgName, destName);
+    libVersions[libKey] = version;
+
+    const versionedDestDir = path.join(DEST_DIR, libKey, version);
+    ensureDir(versionedDestDir);
+    const outFile = path.join(versionedDestDir, destName);
+
+    if (fs.existsSync(outFile)) return;
+
+    const wrapperPath = path.join(MODULES_DIR, `.${libKey}.wrapper.js`);
+    let content = options.customContent;
+
+    if (!content) {
+      const importStmt = options.isNamespace ? `import * as Lib from '${pkgName}';` : `import Lib from '${pkgName}';`;
+      content = `${importStmt}\nwindow.${globalName} = Lib;`;
+    }
+
+    fs.writeFileSync(wrapperPath, content);
+
+    try {
+      await build({
+        entryPoints: [wrapperPath],
+        bundle: true,
+        minify: true,
+        outfile: outFile,
+        format: 'iife',
+        globalName: globalName,
+        platform: 'browser',
+        target: ['es2020'],
+        absWorkingDir: path.resolve(process.cwd(), 'frontend'),
+      });
+      console.log(`📦 Bundled ${pkgName} -> ${outFile} (Global: ${globalName})`);
+    } catch (e) {
+      console.error(`❌ Failed to bundle ${pkgName}:`, e);
+    } finally {
+      if (fs.existsSync(wrapperPath)) fs.unlinkSync(wrapperPath);
+    }
+  }
+
+  // Three.js (Namespace import)
+  await createGlobalBundle('three', 'THREE', 'three.min.js', { isNamespace: true });
+
+  // AutoAnimate (Default import)
+  await createGlobalBundle('@formkit/auto-animate', 'autoAnimate', 'auto-animate.bundle.js', { isNamespace: false });
+
+  // Floating UI (Bundles Core + DOM)
+  await createGlobalBundle('@floating-ui/dom', 'FloatingUIDOM', 'floating-ui.dom.bundle.js', { isNamespace: true });
+
+  // CodeMirror (Comprehensive Bundle)
+  const codeMirrorWrapper = `
+import { basicSetup, minimalSetup } from 'codemirror';
+import { EditorView } from '@codemirror/view';
+import { EditorState } from '@codemirror/state';
+import { javascript } from '@codemirror/lang-javascript';
+import { html } from '@codemirror/lang-html';
+import { css } from '@codemirror/lang-css';
+import { json } from '@codemirror/lang-json';
+import { markdown } from '@codemirror/lang-markdown';
+
+const CM = { basicSetup, minimalSetup, EditorView, EditorState, javascript, html, css, json, markdown };
+window.CodeMirror = CM;
+export { basicSetup, minimalSetup, EditorView, EditorState, javascript, html, css, json, markdown };
+export default CM;
+  `;
+
+  await createGlobalBundle('codemirror', 'CodeMirror', 'codemirror.bundle.js', { customContent: codeMirrorWrapper });
+
 
   // Special copy for Lit and its dependencies (needed for resolution)
   const litPackages = ["lit", "lit-html", "lit-element", "@lit/reactive-element"];

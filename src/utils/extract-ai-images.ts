@@ -75,3 +75,26 @@ function normalizeRatio(value: string): ImageAspectRatio {
         ? (value as ImageAspectRatio)
         : "1:1";
 }
+
+/**
+ * Filters the provided list of images, returning only those whose IDs appear
+ * anywhere in the HTML string. This is a "greedy search" strategy that remains
+ * robust regardless of how the ID is used (attribute, JS variable, comment, etc).
+ */
+export function filterImagesByUnused(
+    html: string,
+    images: GeneratedImage[]
+): GeneratedImage[] {
+    const usedImages: GeneratedImage[] = [];
+
+    for (const image of images) {
+        if (!image.id) continue;
+
+        // Simple substring check - fast and robust
+        if (html.includes(image.id)) {
+            usedImages.push(image);
+        }
+    }
+
+    return usedImages;
+}

@@ -8,6 +8,8 @@ export interface ImageGenOptions {
   ratio: ImageAspectRatio;
   apiKey: string;
   modelId?: ImageModelId;
+  inputImages?: Array<{ base64: string; mimeType: string; fieldName?: string }>;
+  inputHash?: string;
 }
 
 export interface ImageGenResult {

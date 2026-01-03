@@ -1,11 +1,43 @@
-# Download Tour (Clickthrough Prototypes)
+# Download Exports (Offline Prototypes)
 
-> **Feature Overview**: Export your VaporVibe session as a self-contained HTML file with an embedded Driver.js walkthrough that replays the user's exact journey.
+> **Feature Overview**: Export your VaporVibe session as self-contained HTML files for offline sharing. Choose between an **animated Clickthrough Tour** with Driver.js walkthrough or a **clean Shareable Prototype** without tour animations.
+
+## Export Types
+
+VaporVibe offers two export formats:
+
+### 📽️ Clickthrough Tour
+An **animated walkthrough** that replays the user's exact journey through the application:
+- Auto-starts Driver.js tour on page load
+- Shows typing animations for form inputs
+- Simulates button clicks and view transitions
+- Includes popover descriptions for each step
+- **Best for**: Stakeholder demos, training materials, feature documentation
+
+### 📄 Shareable Prototype  
+A **clean, static prototype** with all features intact but no tour animations:
+- Full application functionality preserved
+- No auto-start tour or animations
+- User has complete control over navigation
+- Smaller file size (no Driver.js overhead)
+- **Best for**: Designer handoffs, usability testing, clean code samples
+
+## Common Features
+
+Both export types share these characteristics:
+- **Fully offline** — Runs entirely in the browser without a server
+- **Self-contained** — All AI-generated images embedded as base64
+- **CDN libraries** — Uses public CDNs for Tailwind, Alpine.js, etc.
+- **Cross-platform** — Works in any modern browser
+
+---
 
 ## Table of Contents
 
-- [Purpose](#purpose)
+- [Export Types](#export-types)
 - [Usage](#usage)
+  - [Clickthrough Tour](#clickthrough-tour)
+  - [Shareable Prototype](#shareable-prototype-1)
 - [How It Works](#how-it-works)
 - [API Reference](#api-reference)
 - [LLM Prompt Architecture](#llm-prompt-architecture)
@@ -20,34 +52,25 @@
 
 ---
 
-## Purpose
-
-The Download Tour feature addresses a key use case: **sharing prototypes with stakeholders who don't have access to the VaporVibe server**. Instead of explaining the UX flow in a meeting or recording a video, you can hand off a single HTML file that:
-
-- Plays through the exact click path the user took
-- Shows typing animations for form inputs
-- Simulates button clicks and view transitions
-- Runs entirely offline in any browser
-- Includes all AI-generated images embedded as base64
-
-This is perfect for:
-- **Stakeholder demos** — Share prototypes without running a server
-- **Designer handoffs** — Let designers experience the UX flow firsthand
-- **Documentation** — Create interactive walkthroughs of features
-- **Archiving** — Preserve session experiences for future reference
-
----
-
 ## Usage
 
-### From the Admin Console
+### Clickthrough Tour
 
 1. Navigate to the **History** tab in the Admin Console (`/vaporvibe`)
 2. Locate the **Export & Share** section
-3. Click the **Clickthrough Tour** card (featured with ▶️ icon)
+3. Click the **Clickthrough Tour** card (▶️ icon)
 4. Wait 1-2 minutes while the LLM generates the consolidated SPA
 5. The browser will download `prototype-tour.html`
-6. Open the file in any browser — no server needed!
+6. Open the file in any browser — the tour auto-starts!
+
+### Shareable Prototype
+
+1. Navigate to the **History** tab in the Admin Console (`/vaporvibe`)
+2. Locate the **Export & Share** section
+3. Click the **Shareable Prototype** card (📄 icon)
+4. Wait 1-2 minutes while the LLM generates the consolidated SPA
+5. The browser will download `prototype.html`
+6. Open the file in any browser — explore freely without tour guidance!
 
 ### Requirements
 

@@ -3,6 +3,47 @@ trigger: glob
 globs: **/src/llm/messages.ts, **/src/server/admin-controller.ts, **/src/utils/html-export-transform.ts, **/src/utils/extract-ai-images.ts, **/src/utils/image-reencoder.ts, **/frontend/src/components/HistorySnapshotControls.tsx, **/scripts/verify-cdn-urls.ts, **/scripts/verify-cdn-content.ts
 ---
 
+The reencoder uses Sharp to detect if transparency is actually **used**:
+
+```typescript
+// Check if alpha channel has values < 255 (actual transparency)
+const stats = await sharp(buffer).stats();
+if (stats.channels[3].min < 255) {
+    // Has real transparency - keep as PNG
+}
+```
+
+This prevents converting images with unused alpha channels to bloated PNGs.
+
+#### Logging
+
+The reencoder logs compression results:
+
+```
+Re-encoded 5 images, saved 847KB (62%)
+```
+
+### Image Tag Attributes
+
+```html
+<!-- Input (from LLM) -->
+<ai-image 
+    data-image-id="abc123"
+    prompt="A futuristic cityscape at sunset"
+    ratio="16:9"
+    width="100%">
+</ai-image>
+
+<!-- Output (after processing) -->
+<img 
+    src="data:image/jpeg;base64,/9j/4AAQSkZJRg..."
+    data-image-id="abc123"
+    alt="A futuristic cityscape at sunset"
+    width="100%">
+```
+
+### Manifest Matching
+
 The LLM receives a manifest of available images and should reference them by ID:
 - ✅ `data-image-id="abc123"` — Uses existing image
 - ❌ New prompts — Will generate new images (slow, costly)

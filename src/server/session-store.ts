@@ -755,6 +755,7 @@ export class SessionStore {
       path: record.path,
       query: record.query,
       body: record.body,
+      files: record.files,
     };
 
     const formattedJson = formatJsonForHtml(

@@ -13,6 +13,9 @@ interface HistorySnapshotControlsProps {
   onDownloadTour: () => Promise<void> | void;
   tourLoading: boolean;
   tourDisabled?: boolean;
+  onDownloadPrototype: () => Promise<void> | void;
+  prototypeLoading: boolean;
+  prototypeDisabled?: boolean;
 }
 
 function HistorySnapshotControls({
@@ -24,6 +27,9 @@ function HistorySnapshotControls({
   onDownloadTour,
   tourLoading,
   tourDisabled = false,
+  onDownloadPrototype,
+  prototypeLoading,
+  prototypeDisabled = false,
 }: HistorySnapshotControlsProps) {
   const [importOpen, setImportOpen] = useState(false);
   const [pendingDropFiles, setPendingDropFiles] = useState<File[] | null>(null);
@@ -90,6 +96,8 @@ function HistorySnapshotControls({
 
   const exportDisabled = forkActive;
   const tourButtonDisabled = exportDisabled || tourLoading || tourDisabled;
+  const prototypeButtonDisabled = exportDisabled || prototypeLoading || prototypeDisabled;
+
 
   const handleDisabledLink = useCallback(
     (event: MouseEvent<HTMLAnchorElement>) => {
@@ -160,6 +168,24 @@ function HistorySnapshotControls({
               </span>
               <span className="export-card__desc">
                 Interactive demo with walkthrough. Uses your model—may take 1–2 minutes.
+              </span>
+            </span>
+          </button>
+
+          {/* Shareable Prototype */}
+          <button
+            type="button"
+            className="export-card"
+            onClick={onDownloadPrototype}
+            disabled={prototypeButtonDisabled}
+          >
+            <span className="export-card__icon" aria-hidden="true">📄</span>
+            <span className="export-card__content">
+              <span className="export-card__title">
+                {prototypeLoading ? "Generating…" : "Shareable Prototype"}
+              </span>
+              <span className="export-card__desc">
+                Standalone HTML file with all features. No tour or animations.
               </span>
             </span>
           </button>

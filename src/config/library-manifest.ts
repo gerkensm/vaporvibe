@@ -17,7 +17,7 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
   {
     id: "tailwindcss",
     filename: "tailwind.js",
-    description: "Tailwind CSS Runtime (Script-based). Required for ANY and ALL Tailwind utility classes (e.g. flex, p-4, items-center), arbitrary values, and responsive variants.",
+    description: "Tailwind CSS Runtime (Script-based). Required for ANY and ALL Tailwind utility classes (e.g. flex, p-4, items-center), arbitrary values, and responsive variants. Note that it is libs/tailwind/ and NOT libs/tailwindcss/ !",
     tags: `<script src="/libs/tailwind/${v('tailwind')}/tailwind.js"></script>`,
     inject: "on-request",
     version: v('tailwind')
@@ -219,6 +219,38 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     tags: `<script src="/libs/animejs/${v('animejs')}/anime.min.js"></script>`,
     inject: "on-request",
     version: v('animejs')
+  },
+  {
+    id: "motion",
+    filename: "motion.js",
+    description: "Motion (Motion One) - Modern Web Animations API wrapper (Global: Motion.animate(...))",
+    tags: `<script src="/libs/motion/${v('motion')}/motion.js"></script>`,
+    inject: "on-request",
+    version: v('motion')
+  },
+  {
+    id: "gsap",
+    filename: "gsap.min.js",
+    description: "Professional animation library (Global: gsap). Includes ScrollTrigger (Global: ScrollTrigger).",
+    tags: `<script src="/libs/gsap/${v('gsap')}/gsap.min.js"></script>\n<script src="/libs/gsap/${v('gsap')}/ScrollTrigger.min.js"></script>`,
+    inject: "on-request",
+    version: v('gsap')
+  },
+  {
+    id: "lottie",
+    filename: "lottie.min.js",
+    description: "Render After Effects animations (Global: lottie.loadAnimation(...))",
+    tags: `<script src="/libs/lottie-web/${v('lottie-web')}/lottie.min.js"></script>`,
+    inject: "on-request",
+    version: v('lottie-web')
+  },
+  {
+    id: "formkit-auto-animate",
+    filename: "auto-animate.bundle.js",
+    description: "Automatic animations (Global: autoAnimate(el))",
+    tags: `<script src="/libs/formkit-auto-animate/${v('formkit-auto-animate')}/auto-animate.bundle.js"></script>`,
+    inject: "on-request",
+    version: v('formkit-auto-animate')
   },
   {
     id: "aos",
@@ -500,6 +532,30 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     inject: "on-request",
     version: v('winbox')
   },
+  {
+    id: "lenis",
+    filename: "lenis.min.js",
+    description: "Smooth scrolling library (Global: new Lenis())",
+    tags: `<link rel="stylesheet" href="/libs/lenis/${v('lenis')}/lenis.css">\n<script src="/libs/lenis/${v('lenis')}/lenis.min.js"></script>`,
+    inject: "on-request",
+    version: v('lenis')
+  },
+  {
+    id: "barba",
+    filename: "barba.umd.js",
+    description: "Smooth page transitions & SPA routing (Global: barba.init())",
+    tags: `<script src="/libs/barba-core/${v('barba-core')}/barba.umd.js"></script>`,
+    inject: "on-request",
+    version: v('barba-core')
+  },
+  {
+    id: "swup",
+    filename: "Swup.umd.js",
+    description: "Page transition library (Global: new Swup())",
+    tags: `<script src="/libs/swup/${v('swup')}/Swup.umd.js"></script>`,
+    inject: "on-request",
+    version: v('swup')
+  },
 
   // TIER E: CHARTS / DATA / MEDIA
   {
@@ -527,6 +583,230 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
     version: v('gridjs')
   },
   {
+    id: "cytoscape",
+    filename: "cytoscape.min.js",
+    description: "Graph theory / network visualization (Global: cytoscape({ ... }))",
+    tags: `<script src="/libs/cytoscape/${v('cytoscape')}/cytoscape.min.js"></script>`,
+    inject: "on-request",
+    version: v('cytoscape')
+  },
+  {
+    id: "echarts",
+    filename: "echarts.min.js",
+    description: "Powerful visualization library (Global: echarts.init(dom))",
+    tags: `<script src="/libs/echarts/${v('echarts')}/echarts.min.js"></script>`,
+    inject: "on-request",
+    version: v('echarts')
+  },
+  {
+    id: "apexcharts",
+    filename: "apexcharts.min.js",
+    description: "Modern & interactive charts (Global: new ApexCharts(el, options))",
+    tags: `<script src="/libs/apexcharts/${v('apexcharts')}/apexcharts.min.js"></script>`,
+    inject: "on-request",
+    version: v('apexcharts')
+  },
+  {
+    id: "floating-ui",
+    filename: "floating-ui.dom.bundle.js",
+    description: "Positioning library for tooltips/popovers (Global: FloatingUIDOM)",
+    tags: `<script src="/libs/floating-ui-dom/${v('floating-ui-dom')}/floating-ui.dom.bundle.js"></script>`,
+    inject: "on-request",
+    version: v('floating-ui-dom')
+  },
+  {
+    id: "editorjs",
+    filename: "editorjs.umd.js",
+    description: "Block-styled editor (Global: new EditorJS())",
+    tags: `<script src="/libs/editorjs-editorjs/${v('editorjs-editorjs')}/editorjs.umd.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-editorjs')
+  },
+  {
+    id: "editorjs-header",
+    filename: "editorjs-header.js",
+    description: "Header tool for Editor.js (Global: Header)",
+    tags: `<script src="/libs/editorjs-header/${v('editorjs-header')}/editorjs-header.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-header')
+  },
+  {
+    id: "editorjs-list",
+    filename: "editorjs-list.js",
+    description: "List tool for Editor.js (Global: EditorjsList)",
+    tags: `<script src="/libs/editorjs-list/${v('editorjs-list')}/editorjs-list.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-list')
+  },
+  {
+    id: "editorjs-checklist",
+    filename: "editorjs-checklist.js",
+    description: "Checklist tool for Editor.js (Global: Checklist)",
+    tags: `<script src="/libs/editorjs-checklist/${v('editorjs-checklist')}/editorjs-checklist.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-checklist')
+  },
+  {
+    id: "editorjs-image",
+    filename: "editorjs-image.js",
+    description: "Image tool for Editor.js (Global: ImageTool)",
+    tags: `<script src="/libs/editorjs-image/${v('editorjs-image')}/editorjs-image.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-image')
+  },
+  {
+    id: "editorjs-quote",
+    filename: "editorjs-quote.js",
+    description: "Quote tool for Editor.js (Global: Quote)",
+    tags: `<script src="/libs/editorjs-quote/${v('editorjs-quote')}/editorjs-quote.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-quote')
+  },
+  {
+    id: "editorjs-code",
+    filename: "editorjs-code.js",
+    description: "Code tool for Editor.js (Global: CodeTool)",
+    tags: `<script src="/libs/editorjs-code/${v('editorjs-code')}/editorjs-code.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-code')
+  },
+  {
+    id: "editorjs-delimiter",
+    filename: "editorjs-delimiter.js",
+    description: "Delimiter tool for Editor.js (Global: Delimiter)",
+    tags: `<script src="/libs/editorjs-delimiter/${v('editorjs-delimiter')}/editorjs-delimiter.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-delimiter')
+  },
+  {
+    id: "editorjs-inline-code",
+    filename: "editorjs-inline-code.js",
+    description: "Inline Code tool for Editor.js (Global: InlineCode)",
+    tags: `<script src="/libs/editorjs-inline-code/${v('editorjs-inline-code')}/editorjs-inline-code.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-inline-code')
+  },
+  {
+    id: "editorjs-marker",
+    filename: "editorjs-marker.js",
+    description: "Marker tool for Editor.js (Global: Marker)",
+    tags: `<script src="/libs/editorjs-marker/${v('editorjs-marker')}/editorjs-marker.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-marker')
+  },
+  {
+    id: "editorjs-table",
+    filename: "editorjs-table.js",
+    description: "Table tool for Editor.js (Global: Table)",
+    tags: `<script src="/libs/editorjs-table/${v('editorjs-table')}/editorjs-table.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-table')
+  },
+  {
+    id: "editorjs-embed",
+    filename: "editorjs-embed.js",
+    description: "Embed tool for Editor.js (Global: Embed)",
+    tags: `<script src="/libs/editorjs-embed/${v('editorjs-embed')}/editorjs-embed.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-embed')
+  },
+  {
+    id: "editorjs-warning",
+    filename: "editorjs-warning.js",
+    description: "Warning tool for Editor.js (Global: Warning)",
+    tags: `<script src="/libs/editorjs-warning/${v('editorjs-warning')}/editorjs-warning.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-warning')
+  },
+  {
+    id: "editorjs-link",
+    filename: "editorjs-link.js",
+    description: "Link tool for Editor.js (Global: LinkTool)",
+    tags: `<script src="/libs/editorjs-link/${v('editorjs-link')}/editorjs-link.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-link')
+  },
+  {
+    id: "editorjs-raw",
+    filename: "editorjs-raw.js",
+    description: "Raw HTML tool for Editor.js (Global: RawTool)",
+    tags: `<script src="/libs/editorjs-raw/${v('editorjs-raw')}/editorjs-raw.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-raw')
+  },
+  {
+    id: "editorjs-simple-image",
+    filename: "editorjs-simple-image.js",
+    description: "Simple Image tool for Editor.js (Global: SimpleImage)",
+    tags: `<script src="/libs/editorjs-simple-image/${v('editorjs-simple-image')}/editorjs-simple-image.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-simple-image')
+  },
+  {
+    id: "editorjs-attaches",
+    filename: "editorjs-attaches.js",
+    description: "Attaches tool for Editor.js (Global: AttachesTool)",
+    tags: `<script src="/libs/editorjs-attaches/${v('editorjs-attaches')}/editorjs-attaches.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-attaches')
+  },
+  {
+    id: "editorjs-personality",
+    filename: "editorjs-personality.js",
+    description: "Personality tool for Editor.js (Global: Personality)",
+    tags: `<script src="/libs/editorjs-personality/${v('editorjs-personality')}/editorjs-personality.js"></script>`,
+    inject: "on-request",
+    version: v('editorjs-personality')
+  },
+  {
+    id: "codemirror",
+    filename: "codemirror.bundle.js",
+    description: "Code editor with syntax highlighting. Usage: `new CodeMirror.EditorView({ state: CodeMirror.EditorState.create({ doc: code, extensions: [CodeMirror.basicSetup, CodeMirror.javascript()] }), parent: el })`. Language modes: `CodeMirror.javascript()`, `CodeMirror.html()`, `CodeMirror.css()`, `CodeMirror.json()`, `CodeMirror.markdown()`.",
+    tags: `<script src="/libs/codemirror/${v('codemirror')}/codemirror.bundle.js"></script>`,
+    inject: "on-request",
+    version: v('codemirror')
+  },
+  {
+    id: "uppy",
+    filename: "uppy.min.js",
+    description: "Modular file uploader (Global: new Uppy.Uppy())",
+    tags: `<link rel="stylesheet" href="/libs/uppy/${v('uppy')}/uppy.min.css">\n<script src="/libs/uppy/${v('uppy')}/uppy.min.js"></script>`,
+    inject: "on-request",
+    version: v('uppy')
+  },
+  {
+    id: "medium-zoom",
+    filename: "medium-zoom.min.js",
+    description: "Image zooming like Medium (Global: mediumZoom(img))",
+    tags: `<script src="/libs/medium-zoom/${v('medium-zoom')}/medium-zoom.min.js"></script>`,
+    inject: "on-request",
+    version: v('medium-zoom')
+  },
+  {
+    id: "photoswipe",
+    filename: "photoswipe.umd.min.js",
+    description: "JavaScript image gallery (Global: PhotoSwipe, PhotoSwipeLightbox)",
+    tags: `<link rel="stylesheet" href="/libs/photoswipe/${v('photoswipe')}/photoswipe.css">\n<script src="/libs/photoswipe/${v('photoswipe')}/photoswipe.umd.min.js"></script>\n<script src="/libs/photoswipe/${v('photoswipe')}/photoswipe-lightbox.umd.min.js"></script>`,
+    inject: "on-request",
+    version: v('photoswipe')
+  },
+  {
+    id: "tsparticles",
+    filename: "tsparticles.bundle.min.js",
+    description: "Particle effects (Global: tsParticles.load(...))",
+    tags: `<script src="/libs/tsparticles/${v('tsparticles')}/tsparticles.bundle.min.js"></script>`,
+    inject: "on-request",
+    version: v('tsparticles')
+  },
+  {
+    id: "vanta",
+    filename: "vanta.net.min.js",
+    description: "Animated website backgrounds (Waves, Net, etc.)",
+    tags: `<script src="/libs/three/${v('three')}/three.min.js"></script>\n<script src="/libs/vanta/${v('vanta')}/vanta.net.min.js"></script>\n<script src="/libs/vanta/${v('vanta')}/vanta.waves.min.js"></script>`,
+    inject: "on-request",
+    version: v('vanta')
+  },
+  {
     id: "prism",
     filename: "prism.js",
     description: "Syntax highlighting (Global: Prism.highlightAll())",
@@ -552,9 +832,9 @@ export const VAPORVIBE_LIBRARIES: VaporVibeLibrary[] = [
   },
   {
     id: "three",
-    filename: "three.module.js",
-    description: "3D graphics engine (ESM required: import * as THREE from '/libs/three.module.js')",
-    tags: `<script type="module" src="/libs/three/${v('three')}/three.module.js"></script>`,
+    filename: "three.min.js",
+    description: "3D graphics engine (Global: THREE)",
+    tags: `<script src="/libs/three/${v('three')}/three.min.js"></script>`,
     inject: "on-request",
     version: v('three')
   },

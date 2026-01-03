@@ -34,7 +34,18 @@ export class CachedImageGenClient implements ImageGenClient {
   }
 
   private getCacheKey(options: ImageGenOptions): string {
-    return `${options.modelId || "default"}:${options.ratio}:${options.prompt.trim()}`;
+    const inputHash =
+      options.inputHash ??
+      (options.inputImages && options.inputImages.length > 0
+        ? createHash("sha256")
+          .update(
+            options.inputImages
+              .map((img) => `${img.mimeType}:${img.base64.slice(0, 2048)}`)
+              .join("|")
+          )
+          .digest("hex")
+        : "");
+    return `${options.modelId || "default"}:${options.ratio}:${options.prompt.trim()}:${inputHash}`;
   }
 }
 
@@ -43,10 +54,11 @@ export function buildImageCacheKey(options: {
   modelId: ImageModelId;
   prompt: string;
   ratio: ImageAspectRatio;
+  inputHash?: string;
 }): string {
-  const { provider, modelId, prompt, ratio } = options;
+  const { provider, modelId, prompt, ratio, inputHash } = options;
   return createHash("sha256")
-    .update(`${provider}:${modelId}:${prompt}:${ratio}`)
+    .update(`${provider}:${modelId}:${prompt}:${ratio}:${inputHash ?? ""}`)
     .digest("hex");
 }
 

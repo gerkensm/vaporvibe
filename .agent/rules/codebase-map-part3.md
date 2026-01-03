@@ -3,6 +3,15 @@ trigger: glob
 globs: **/package.json, **/src/**, **/frontend/src/**
 ---
 
+- From `node:http`: `IncomingMessage`
+- From `node:crypto`: `default as crypto`
+- From `node:querystring`: `default as querystring`
+
+#### `utils/config-store.ts`
+
+**Internal Imports:**
+
+- From `../logger.js`: `logger`
 - From `../types.js`: `ImageGenProvider`, `ImageModelId`, `ModelProvider`, `ReasoningMode`
 
 **External Imports:**
@@ -61,10 +70,15 @@ globs: **/package.json, **/src/**, **/frontend/src/**
 
 **Internal Imports:**
 
-- From `../image-gen/paths.js`: `getGeneratedImagePath`, `GENERATED_IMAGES_ROUTE`
+- From `../image-gen/paths.js`: `getGeneratedImagePath`, `GENERATED_IMAGES_ROUTE`, `RUNTIME_SOURCE_DIR`
 - From `../logger.js`: `logger`
 - From `./image-reencoder.js`: `reencodeImagesForExport`
 - From `../types.js`: `GeneratedImage`
+
+**External Imports:**
+
+- From `node:fs`: `default as fs`
+- From `node:path`: `default as path`
 
 #### `utils/html.ts`
 
@@ -459,6 +473,3 @@ _No imports_
 #### `pages/AdminDashboard.tsx`
 
 **Internal Imports:**
-
-- From `../components`: `AttachmentUploader`, `ModelSelector`, `ImageModelSelector`, `TokenBudgetControl`, `CustomModelConfig`
-- From `../api/admin`: `fetchAdminState`, `fetchAdminHistory`, `deleteHistoryEntry`, `deleteAllHistoryEntries`, `submitBriefUpdate`, `submitProviderUpdate`, `submitRuntimeUpdate`, `verifyProviderKey`, `downloadClickthroughPrototype`, `type ProviderUpdatePayload`, `type RuntimeUpdatePayload`

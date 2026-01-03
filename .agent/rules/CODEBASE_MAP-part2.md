@@ -3,8 +3,6 @@ trigger: always_on
 globs: **/*
 ---
 
-**External Imports:**
-
 - From `@anthropic-ai/sdk`: `default as Anthropic`
 
 #### `llm/capabilities.ts`
@@ -74,7 +72,7 @@ globs: **/*
 **Internal Imports:**
 
 - From `../config/library-manifest.js`: `VAPORVIBE_LIBRARIES`
-- From `../types.js`: `BriefAttachment`, `ChatMessage`, `HistoryEntry`, `GeneratedImage`
+- From `../types.js`: `BriefAttachment`, `ChatMessage`, `HistoryEntry`, `GeneratedImage`, `RequestFile`
 
 #### `llm/model-catalog.ts`
 
@@ -141,7 +139,7 @@ globs: **/*
 **Internal Imports:**
 
 - From `../logger.js`: `logger`
-- From `../constants.js`: `ADMIN_ROUTE_PREFIX`, `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`
+- From `../constants.js`: `ADMIN_ROUTE_PREFIX`, `MAX_EXPORT_NEW_IMAGES`, `HISTORY_LIMIT_MIN`, `HISTORY_LIMIT_MAX`, `HISTORY_MAX_BYTES_MIN`, `HISTORY_MAX_BYTES_MAX`
 - From `../constants/providers.js`: `PROVIDER_CHOICES`, `PROVIDER_LABELS`, `PROVIDER_PLACEHOLDERS`, `PROVIDER_REASONING_CAPABILITIES`, `PROVIDER_MEDIA_RESOLUTION_CAPABILITIES`, `PROVIDER_REASONING_MODES`, `PROVIDER_TOKEN_GUIDANCE`, `DEFAULT_MODEL_BY_PROVIDER`, `DEFAULT_MAX_TOKENS_BY_PROVIDER`, `REASONING_MODE_CHOICES`, `getModelOptions`, `getModelMetadata`, `type ModelMetadata`, `getFeaturedModels`, `PROVIDER_MODEL_METADATA`, `CUSTOM_MODEL_DESCRIPTION`, `STATIC_IMAGE_MODELS`
 - From `../utils/history-archive.js`: `createHistoryArchiveZip`
 - From `../llm/factory.js`: `createLlmClient`
@@ -165,7 +163,7 @@ globs: **/*
 - From `../utils/credential-store.js`: `getCredentialStore`
 - From `../utils/config-store.js`: `getConfigStore`
 - From `./brief-attachments.js`: `cloneAttachment`, `processBriefAttachmentFiles`
-- From `../utils/extract-ai-images.js`: `extractAiImageRequests`, `findMissingImages`
+- From `../utils/extract-ai-images.js`: `extractAiImageRequests`, `findMissingImages`, `filterImagesByUnused`
 - From `../types.js`: `BriefAttachment`, `GeneratedImage`, `HistoryEntry`, `ImageAspectRatio`, `ImageGenProvider`, `ImageModelId`, `ProviderSettings`, `ReasoningMode`, `ModelProvider`, `RestMutationRecord`, `RestQueryRecord`
 - From `./server.js`: `MutableServerState`, `RequestContext`
 - From `../types/admin-api.js`: `AdminActiveForkSummary`, `AdminBriefAttachment`, `AdminHistoryItem`, `AdminHistoryResponse`, `AdminProviderInfo`, `AdminRestItem`, `AdminRestMutationItem`, `AdminRestQueryItem`, `AdminRuntimeInfo`, `AdminStateResponse`, `AdminUpdateResponse`
@@ -216,7 +214,7 @@ globs: **/*
 - From `../llm/capabilities.js`: `supportsImageInput`
 - From `../llm/messages.js`: `buildMessages`
 - From `../utils/cookies.js`: `parseCookies`
-- From `../utils/body.js`: `readBody`
+- From `../utils/body.js`: `convertParsedFilesToRequestFiles`, `readBody`
 - From `./history-utils.js`: `selectHistoryForPrompt`
 - From `./session-store.js`: `SessionStore`
 - From `../image-gen/factory.js`: `createImageGenClient`
@@ -224,13 +222,14 @@ globs: **/*
 - From `../image-gen/cache.js`: `buildImageCacheKey`, `readImageCacheBase64`, `ensureImageCacheDir`, `writeImageCache`
 - From `../utils/credential-store.js`: `getCredentialStore`
 - From `../llm/client.js`: `LlmClient`
-- From `../types.js`: `BriefAttachment`, `HistoryEntry`, `ImageAspectRatio`, `ImageGenProvider`, `RestMutationRecord`, `RestQueryRecord`, `RuntimeConfig`, `ProviderSettings`
+- From `../types.js`: `BriefAttachment`, `HistoryEntry`, `ImageAspectRatio`, `ImageGenProvider`, `RequestFile`, `RestMutationRecord`, `RestQueryRecord`, `RuntimeConfig`, `ProviderSettings`
 - From `./server.js`: `RequestContext`
 - From `../image-gen/types.js`: `ImageGenResult`
 
 **External Imports:**
 
-- From `node:crypto`: `randomUUID`
+- From `node:crypto`: `createHash`, `randomUUID`
+- From `node:buffer`: `Buffer`
 - From `node:fs`: `existsSync`
 - From `pino`: `Logger`
 
@@ -243,7 +242,7 @@ globs: **/*
 - From `../llm/messages.js`: `buildMessages`
 - From `../llm/capabilities.js`: `supportsImageInput`
 - From `../utils/cookies.js`: `parseCookies`
-- From `../utils/body.js`: `readBody`
+- From `../utils/body.js`: `convertParsedFilesToRequestFiles`, `readBody`
 - From `../utils/html.js`: `ensureHtmlDocument`, `escapeHtml`
 - From `./session-store.js`: `SessionStore`
 - From `./component-cache.js`: `applyReusablePlaceholders`, `buildMasterReusableCaches`, `prepareReusableCaches`
@@ -260,7 +259,7 @@ globs: **/*
 - From `./rest-api-controller.js`: `RestApiController`
 - From `./history-utils.js`: `selectHistoryForPrompt`
 - From `../image-gen/paths.js`: `GENERATED_IMAGES_DIR`, `GENERATED_IMAGES_ROUTE`, `RUNTIME_DIST_DIR`, `RUNTIME_SOURCE_DIR`
-- From `../types.js`: `BriefAttachment`, `ChatMessage`, `HistoryEntry`, `RuntimeConfig`, `ProviderSettings`, `ReasoningMode`, `ModelProvider`
+- From `../types.js`: `BriefAttachment`, `ChatMessage`, `HistoryEntry`, `RuntimeConfig`, `ProviderSettings`, `ReasoningMode`, `ModelProvider`, `RequestFile`
 - From `../llm/client.js`: `LlmClient`
 
 **External Imports:**
@@ -307,16 +306,10 @@ _No imports_
 
 #### `utils/body.ts`
 
+**Internal Imports:**
+
+- From `../types.js`: `RequestFile`
+
 **External Imports:**
 
 - From `node:http`: `IncomingMessage`
-- From `node:querystring`: `default as querystring`
-
-#### `utils/config-store.ts`
-
-**Internal Imports:**
-
-- From `../logger.js`: `logger`
-- From `../types.js`: `ImageGenProvider`, `ImageModelId`, `ModelProvider`, `ReasoningMode`
-
-**External Imports:**

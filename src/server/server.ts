@@ -38,13 +38,14 @@ import type {
   ProviderSettings,
   ReasoningMode,
   ModelProvider,
+  RequestFile,
 } from "../types.js";
 import type { LlmClient } from "../llm/client.js";
 import { buildMessages } from "../llm/messages.js";
 import { spawnSync } from "node:child_process";
 import { supportsImageInput } from "../llm/capabilities.js";
 import { parseCookies } from "../utils/cookies.js";
-import { readBody } from "../utils/body.js";
+import { convertParsedFilesToRequestFiles, readBody } from "../utils/body.js";
 import { ensureHtmlDocument, escapeHtml } from "../utils/html.js";
 import { SessionStore } from "./session-store.js";
 import {
@@ -1637,10 +1638,12 @@ async function handleLlmRequest(
   }
 
   let bodyData: Record<string, unknown> = {};
+  let requestFiles: RequestFile[] = [];
   let isInterceptorBody = false;
   if (method === "POST" || method === "PUT" || method === "PATCH") {
     const parsed = await readBody(req);
     bodyData = parsed.data ?? {};
+    requestFiles = convertParsedFilesToRequestFiles(parsed.files ?? []);
     const interceptorMarker = bodyData["__vaporvibe"];
     const hasInterceptorMarker =
       interceptorMarker === "interceptor" ||
@@ -1784,6 +1787,7 @@ async function handleLlmRequest(
     branchId,
     imageGenerationEnabled: state.provider.imageGeneration.enabled,
     enableStandardLibrary: state.runtime.enableStandardLibrary,
+    requestFiles,
   });
   reqLogger.debug(`LLM prompt:\n${formatMessagesForLog(messages)}`);
 
@@ -2024,6 +2028,7 @@ async function handleLlmRequest(
         path,
         query,
         body: bodyData,
+        files: requestFiles,
         instructions,
       },
       response: { html: promptHtml },

@@ -1,5 +1,7 @@
+import crypto from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import querystring from "node:querystring";
+import type { RequestFile } from "../types.js";
 
 export interface ParsedBody {
   raw: string;
@@ -13,7 +15,10 @@ export interface ParsedFile {
   mimeType: string;
   size: number;
   data: Buffer;
+  base64?: string;
 }
+
+const DEFAULT_MAX_FILE_BYTES = 4 * 1024 * 1024; // 4MB safety cap to avoid ballooning prompts
 
 export async function readBody(req: IncomingMessage): Promise<ParsedBody> {
   const chunks: Buffer[] = [];
@@ -152,6 +157,7 @@ function parseMultipartFormData(
         mimeType,
         size: contentBuffer.length,
         data: contentBuffer,
+        base64: contentBuffer.toString("base64"),
       });
     } else {
       appendFieldValue(fields, fieldName, contentBuffer.toString("utf8"));
@@ -176,4 +182,30 @@ function appendFieldValue(
   } else {
     fields[name] = value;
   }
+}
+
+export function convertParsedFilesToRequestFiles(
+  files: ParsedFile[],
+  maxBytes: number = DEFAULT_MAX_FILE_BYTES
+): RequestFile[] {
+  return files.map((file) => {
+    const safeMime =
+      file.mimeType && file.mimeType.trim().length > 0
+        ? file.mimeType
+        : "application/octet-stream";
+    const size = typeof file.size === "number" ? file.size : file.data.length;
+    const max = Math.max(0, maxBytes);
+    const buffer = max > 0 && file.data.length > max ? file.data.subarray(0, max) : file.data;
+    const truncated = max > 0 && file.data.length > max;
+    const base64 = buffer.toString("base64");
+    return {
+      id: crypto.randomUUID(),
+      name: file.filename || file.fieldName || "upload",
+      mimeType: safeMime,
+      size,
+      base64,
+      fieldName: file.fieldName || undefined,
+      truncated,
+    };
+  });
 }

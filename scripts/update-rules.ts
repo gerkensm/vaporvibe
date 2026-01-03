@@ -168,8 +168,8 @@ const CONFIGURATION: Record<string, RuleConfig> = {
         trigger: "glob",
         globs: ["src/server/rest-api-controller.ts", "src/types.ts"],
     },
-    "download-tour-docs.md": {
-        docs: ["docs/architecture/download-tour.md"],
+    "download-exports-docs.md": {
+        docs: ["docs/architecture/download-exports.md"],
         trigger: "glob",
         globs: [
             "src/llm/messages.ts",

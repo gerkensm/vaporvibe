@@ -25,6 +25,20 @@ export class GoogleImageGenClient implements ImageGenClient {
     if (useGenerateContent) {
       logger.debug("Using generateContent API");
       // Both Gemini models use generateContent API (2.5 Flash and 3 Pro)
+      const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [
+        { text: opts.prompt },
+      ];
+      if (opts.inputImages?.length) {
+        for (const image of opts.inputImages) {
+          parts.push({
+            inlineData: {
+              mimeType: image.mimeType || "image/png",
+              data: image.base64,
+            },
+          });
+        }
+      }
+
       const response = await withRetry(
         () =>
           client.models.generateContent({
@@ -32,7 +46,7 @@ export class GoogleImageGenClient implements ImageGenClient {
             contents: [
               {
                 role: "user",
-                parts: [{ text: opts.prompt }],
+                parts,
               },
             ],
           }),
@@ -46,8 +60,8 @@ export class GoogleImageGenClient implements ImageGenClient {
       }
 
       const firstCandidate = candidates[0];
-      const parts = firstCandidate.content?.parts;
-      if (!parts || parts.length === 0) {
+      const responseParts = firstCandidate.content?.parts;
+      if (!responseParts || responseParts.length === 0) {
         throw new Error("No parts in candidate content");
       }
 
@@ -55,7 +69,7 @@ export class GoogleImageGenClient implements ImageGenClient {
       let imageData: string | undefined;
       let mimeType = "image/png";
 
-      for (const part of parts) {
+      for (const part of responseParts) {
         if (part.inlineData?.data) {
           imageData = part.inlineData.data;
           mimeType = part.inlineData.mimeType || "image/png";

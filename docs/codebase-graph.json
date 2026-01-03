@@ -1,5 +1,5 @@
 {
-  "generated": "2025-12-24T01:07:12.965Z",
+  "generated": "2026-01-03T15:40:00.354Z",
   "backend": {
     "basePath": "src",
     "totalModules": 60,
@@ -35,16 +35,12 @@
               "LIB_VERSIONS"
             ]
           },
-          "external": {
-            "/libs/three.module.js": [
-              "* as THREE"
-            ]
-          }
+          "external": {}
         },
         "importedBy": [
           "llm/messages.ts"
         ],
-        "importCount": 2
+        "importCount": 1
       },
       "config/runtime-config.ts": {
         "imports": {
@@ -633,7 +629,8 @@
               "BriefAttachment",
               "ChatMessage",
               "HistoryEntry",
-              "GeneratedImage"
+              "GeneratedImage",
+              "RequestFile"
             ]
           },
           "external": {}
@@ -816,6 +813,7 @@
             ],
             "../constants.js": [
               "ADMIN_ROUTE_PREFIX",
+              "MAX_EXPORT_NEW_IMAGES",
               "HISTORY_LIMIT_MIN",
               "HISTORY_LIMIT_MAX",
               "HISTORY_MAX_BYTES_MIN",
@@ -915,7 +913,8 @@
             ],
             "../utils/extract-ai-images.js": [
               "extractAiImageRequests",
-              "findMissingImages"
+              "findMissingImages",
+              "filterImagesByUnused"
             ],
             "../types.js": [
               "BriefAttachment",
@@ -1034,6 +1033,7 @@
               "parseCookies"
             ],
             "../utils/body.js": [
+              "convertParsedFilesToRequestFiles",
               "readBody"
             ],
             "./history-utils.js": [
@@ -1065,6 +1065,7 @@
               "HistoryEntry",
               "ImageAspectRatio",
               "ImageGenProvider",
+              "RequestFile",
               "RestMutationRecord",
               "RestQueryRecord",
               "RuntimeConfig",
@@ -1079,7 +1080,11 @@
           },
           "external": {
             "node:crypto": [
+              "createHash",
               "randomUUID"
+            ],
+            "node:buffer": [
+              "Buffer"
             ],
             "node:fs": [
               "existsSync"
@@ -1090,7 +1095,7 @@
           }
         },
         "importedBy": [],
-        "importCount": 17
+        "importCount": 18
       },
       "server/server.ts": {
         "imports": {
@@ -1128,6 +1133,7 @@
               "parseCookies"
             ],
             "../utils/body.js": [
+              "convertParsedFilesToRequestFiles",
               "readBody"
             ],
             "../utils/html.js": [
@@ -1193,7 +1199,8 @@
               "RuntimeConfig",
               "ProviderSettings",
               "ReasoningMode",
-              "ModelProvider"
+              "ModelProvider",
+              "RequestFile"
             ],
             "../llm/client.js": [
               "LlmClient"
@@ -1321,6 +1328,7 @@
           "server/server.ts",
           "server/session-store.ts",
           "types/admin-api.ts",
+          "utils/body.ts",
           "utils/config-store.ts",
           "utils/extract-ai-images.ts",
           "utils/history-archive.ts",
@@ -1369,10 +1377,17 @@
       },
       "utils/body.ts": {
         "imports": {
-          "internal": {},
+          "internal": {
+            "../types.js": [
+              "RequestFile"
+            ]
+          },
           "external": {
             "node:http": [
               "IncomingMessage"
+            ],
+            "node:crypto": [
+              "default as crypto"
             ],
             "node:querystring": [
               "default as querystring"
@@ -1385,7 +1400,7 @@
           "server/rest-api-controller.ts",
           "server/server.ts"
         ],
-        "importCount": 2
+        "importCount": 4
       },
       "utils/config-store.ts": {
         "imports": {
@@ -1535,7 +1550,8 @@
           "internal": {
             "../image-gen/paths.js": [
               "getGeneratedImagePath",
-              "GENERATED_IMAGES_ROUTE"
+              "GENERATED_IMAGES_ROUTE",
+              "RUNTIME_SOURCE_DIR"
             ],
             "../logger.js": [
               "logger"
@@ -1547,12 +1563,19 @@
               "GeneratedImage"
             ]
           },
-          "external": {}
+          "external": {
+            "node:fs": [
+              "default as fs"
+            ],
+            "node:path": [
+              "default as path"
+            ]
+          }
         },
         "importedBy": [
           "server/admin-controller.ts"
         ],
-        "importCount": 4
+        "importCount": 6
       },
       "utils/html.ts": {
         "imports": {
@@ -1754,10 +1777,11 @@
           "image-gen/paths.ts",
           "server/server.ts",
           "utils/frontend-assets.ts",
+          "utils/html-export-transform.ts",
           "views/loading-shell.ts",
           "views/loading-shell/status-messages.ts"
         ],
-        "count": 6
+        "count": 7
       },
       "node:process": {
         "usedBy": [
@@ -1780,9 +1804,10 @@
           "server/brief-attachments.ts",
           "server/rest-api-controller.ts",
           "server/server.ts",
-          "server/session-store.ts"
+          "server/session-store.ts",
+          "utils/body.ts"
         ],
-        "count": 6
+        "count": 7
       },
       "node:fs": {
         "usedBy": [
@@ -1790,10 +1815,11 @@
           "server/rest-api-controller.ts",
           "server/server.ts",
           "utils/frontend-assets.ts",
+          "utils/html-export-transform.ts",
           "views/loading-shell.ts",
           "views/loading-shell/status-messages.ts"
         ],
-        "count": 6
+        "count": 7
       },
       "node:os": {
         "usedBy": [
@@ -1870,9 +1896,10 @@
       "node:buffer": {
         "usedBy": [
           "server/history-utils.ts",
+          "server/rest-api-controller.ts",
           "server/server.ts"
         ],
-        "count": 2
+        "count": 3
       },
       "node:child_process": {
         "usedBy": [
@@ -2401,6 +2428,7 @@
               "submitRuntimeUpdate",
               "verifyProviderKey",
               "downloadClickthroughPrototype",
+              "downloadShareablePrototype",
               "type ProviderUpdatePayload",
               "type RuntimeUpdatePayload"
             ],
