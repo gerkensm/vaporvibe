@@ -104,19 +104,20 @@ This is not a traditional software project; it's a creative tool. The "vibe" is 
 
 ---
 
-## 4\. Style and Brand Guide 🎨
+## 4\. Style and Brand Guide 🎨 (VaporVibe Admin UI Only)
 
-This section defines the desired visual style, UI patterns, and overall user experience for LLM-generated applications. The `VaporVibe` admin UI itself (`frontend/`) serves as a primary inspiration, but the goal is creative interpretation, not rigid replication.
+> **⚠️ IMPORTANT**: This section applies **ONLY to the VaporVibe admin UI codebase** (`frontend/`). It is **NOT** a prescription for LLM-generated apps. Generated apps should match whatever aesthetic the user's brief calls for — minimalist, brutalist, playful, corporate, retro, or any other style. The LLM has full creative freedom to interpret the user's vision.
+
+This section defines the desired visual style, UI patterns, and overall user experience for the **VaporVibe admin console and setup wizard**. These guidelines help maintain consistency when contributing to the `frontend/` codebase.
 
 ### Overall Philosophy & Vibe
 
-- **Feeling:** Generated apps should feel **modern, clean, intuitive, and slightly playful**. The experience should be engaging and feel "alive," even though it's improvised. Prioritize **clarity and usability** over visual density.
-- **Goal:** Create high-fidelity prototypes that _feel_ real enough to validate an idea quickly. Use realistic content, not placeholders.
+- **Feeling:** The admin UI should feel **modern, clean, intuitive, and slightly playful**. The experience should be engaging and polished. Prioritize **clarity and usability** over visual density.
+- **Goal:** Create a professional, trustworthy interface for managing VaporVibe sessions.
 - **Heuristics:**
-  - **Simplicity First:** Start with clear layouts and essential elements. Add complexity only if the brief demands it.
-  - **Convention over Configuration:** Use familiar web patterns (buttons, forms, cards) unless the brief suggests otherwise.
+  - **Simplicity First:** Start with clear layouts and essential elements.
+  - **Convention over Configuration:** Use familiar web patterns (buttons, forms, cards).
   - **Accessibility Matters:** Aim for semantic HTML, keyboard navigability, sufficient contrast, and clear focus states.
-  - **Embrace Generative Flair:** Allow for creative interpretations within the bounds of good UX. Slight visual variations between renders are acceptable.
 
 ### Visual Language
 
@@ -165,7 +166,7 @@ This section defines the desired visual style, UI patterns, and overall user exp
 
 ### Component Inspiration
 
-While the LLM generates raw HTML/CSS/JS, the structure and patterns found in the `VaporVibe` admin UI components can serve as excellent conceptual references:
+When building new admin UI components, use these existing components as references for structure and patterns:
 
 - **`AttachmentUploader.tsx`**: Demonstrates handling file inputs, drag-and-drop states, previews, and status feedback. The default variant is a good baseline.
 - **`ModelSelector.tsx` / `ModelInspector.tsx`**: Showcases card-based selection patterns, using badges for capabilities, and structured display of complex information.
@@ -177,13 +178,13 @@ _Code References:_ Primarily `frontend/src/components/` and associated CSS files
 
 ### Points of Caution ⚠️ (Admin UI Inconsistencies)
 
-The admin UI is functional but has some minor inconsistencies the LLM should _not_ treat as strict rules for generated apps:
+The admin UI is functional but has some minor inconsistencies that should be cleaned up over time:
 
 - **Varying `border-radius`:** Values like `12px`, `14px`, `16px`, `18px`, `20px`, `22px`, `24px`, `28px`, `32px` are used. **Guideline:** Aim for a simpler set, e.g., small (`~8px`), medium (`~16px`), large (`~24px`), and pill (`999px`).
 - **Varying `box-shadow`:** Shadow styles differ slightly between components. **Guideline:** Use consistent shadow depths for similar element types (e.g., one style for cards, one for primary buttons).
-- **Stylized Variants:** Components like `AttachmentUploader` have highly stylized "creative" and "history" variants. **Guideline:** Generated apps should generally stick to simpler, more conventional styles unless the brief specifically requests high visual flair. The default variant is a better reference.
+- **Stylized Variants:** Components like `AttachmentUploader` have highly stylized "creative" and "history" variants. The default variant is typically the better reference for consistency.
 
-**Instruction:** When generating UI, draw inspiration from the _patterns_ and _general aesthetic_ of the admin UI, but prioritize consistency, clarity, and the specific needs of the app brief over replicating every minor detail or inconsistency found in `frontend/`.
+**Guideline:** When contributing to the admin UI, prioritize consistency and follow established patterns rather than introducing new variations.
 
 ---
 

@@ -3,6 +3,7 @@ trigger: always_on
 globs: **/*
 ---
 
+  - **Inputs:** Use rounded (`~14px-16px`), lightly bordered inputs, textareas, and selects with clear `:focus` states (e.g., blue outline/shadow).
   - **Hints/Errors:** Provide helper text below inputs (`.admin-field__helper`) and display validation errors clearly, often below the field (`.admin-field__error`), potentially using red text/borders.
   - _Reference:_ `.admin-field` structure, `TokenBudgetControl.css`, `ModelInspector.css` custom fields.
 - **Buttons:**
@@ -20,7 +21,7 @@ globs: **/*
 
 ### Component Inspiration
 
-While the LLM generates raw HTML/CSS/JS, the structure and patterns found in the `VaporVibe` admin UI components can serve as excellent conceptual references:
+When building new admin UI components, use these existing components as references for structure and patterns:
 
 - **`AttachmentUploader.tsx`**: Demonstrates handling file inputs, drag-and-drop states, previews, and status feedback. The default variant is a good baseline.
 - **`ModelSelector.tsx` / `ModelInspector.tsx`**: Showcases card-based selection patterns, using badges for capabilities, and structured display of complex information.
@@ -32,13 +33,13 @@ _Code References:_ Primarily `frontend/src/components/` and associated CSS files
 
 ### Points of Caution ⚠️ (Admin UI Inconsistencies)
 
-The admin UI is functional but has some minor inconsistencies the LLM should _not_ treat as strict rules for generated apps:
+The admin UI is functional but has some minor inconsistencies that should be cleaned up over time:
 
 - **Varying `border-radius`:** Values like `12px`, `14px`, `16px`, `18px`, `20px`, `22px`, `24px`, `28px`, `32px` are used. **Guideline:** Aim for a simpler set, e.g., small (`~8px`), medium (`~16px`), large (`~24px`), and pill (`999px`).
 - **Varying `box-shadow`:** Shadow styles differ slightly between components. **Guideline:** Use consistent shadow depths for similar element types (e.g., one style for cards, one for primary buttons).
-- **Stylized Variants:** Components like `AttachmentUploader` have highly stylized "creative" and "history" variants. **Guideline:** Generated apps should generally stick to simpler, more conventional styles unless the brief specifically requests high visual flair. The default variant is a better reference.
+- **Stylized Variants:** Components like `AttachmentUploader` have highly stylized "creative" and "history" variants. The default variant is typically the better reference for consistency.
 
-**Instruction:** When generating UI, draw inspiration from the _patterns_ and _general aesthetic_ of the admin UI, but prioritize consistency, clarity, and the specific needs of the app brief over replicating every minor detail or inconsistency found in `frontend/`.
+**Guideline:** When contributing to the admin UI, prioritize consistency and follow established patterns rather than introducing new variations.
 
 ---
 
@@ -160,3 +161,7 @@ VaporVibe displays **live reasoning streams** from LLMs that support extended th
 **Result**: Reasoning displays as a single coherent block instead of fragmenting into multiple steps.
 
 ### Service Worker for Navigation Caching
+
+**Purpose**: Enable seamless client-side navigation without full page reload.
+
+**Implementation** (`frontend/public/vaporvibe-interceptor-sw.js`):

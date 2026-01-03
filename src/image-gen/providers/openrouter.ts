@@ -12,7 +12,11 @@ export class OpenRouterImageGenClient implements ImageGenClient {
     async generateImage(opts: ImageGenOptions): Promise<ImageGenResult> {
         const model = opts.modelId || "google/gemini-2.0-flash-001";
 
-        logger.info(`OpenRouter generating image with model=${model}`);
+        logger.info({
+            model,
+            hasInputImages: !!(opts.inputImages?.length),
+            inputImagesCount: opts.inputImages?.length ?? 0,
+        }, `OpenRouter generating image`);
 
         const response = await withRetry(
             () => this.fetchImage(opts.apiKey, model, opts.prompt, opts.ratio, opts.inputImages),

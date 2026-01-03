@@ -3,8 +3,6 @@ trigger: always_on
 globs: **/*
 ---
 
-│   ├── utils/            # Shared utilities (credentials, assets, history export)
-│   └── views/            # Server-side view helpers (loading shell)
 ├── scripts/              # Build/utility scripts (dev server, macOS packaging)
 ├── docs/                 # Documentation
 ├── package.json          # Project dependencies & scripts

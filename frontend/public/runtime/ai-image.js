@@ -11,12 +11,45 @@ class AIImage extends HTMLElement {
     this._lastRenderedRatio = null;
     this._lastRenderedInput = null;
     this._isLoading = false;
+    this._abortController = null;
+    this._debounceTimer = null;
+  }
+
+  /**
+   * Parse input-base64 value tolerantly - accepts both raw base64 and data URLs.
+   * Returns { base64, mimeType } with the extracted/inferred values.
+   */
+  #parseInputBase64(value, fallbackMimeType = "image/png") {
+    if (!value) {
+      return { base64: "", mimeType: fallbackMimeType };
+    }
+
+    // Avoid expensive trim on massive strings if not needed
+    // Just check start/end roughly or trust the substring logic
+    const isDataUrl = value.trimStart().startsWith("data:");
+
+    if (isDataUrl) {
+      const commaIndex = value.indexOf(",");
+      if (commaIndex !== -1) {
+        const header = value.substring(0, commaIndex);
+        const base64 = value.substring(commaIndex + 1).trim();
+
+        // Extract mime from header (e.g. "data:image/png;base64")
+        const mimeMatch = header.match(/^data:([^ ;,]+)/);
+        const mimeType = mimeMatch ? mimeMatch[1] : fallbackMimeType;
+
+        return { base64, mimeType };
+      }
+    }
+
+    // Otherwise treat as raw base64
+    return { base64: value.trim(), mimeType: fallbackMimeType };
   }
 
   connectedCallback() {
     const prompt = this.getAttribute("prompt") || "";
     const ratio = this.getAttribute("ratio") || "1:1";
-    const inputBase64 = this.getAttribute("input-base64") || "";
+    const inputBase64Raw = this.getAttribute("input-base64") || "";
     const inputMimeType = this.getAttribute("input-mime-type") || "image/png";
     const inputField = this.getAttribute("input-field") || "";
 
@@ -25,9 +58,12 @@ class AIImage extends HTMLElement {
       return;
     }
 
-    this.#render(prompt, ratio, {
-      base64: inputBase64.trim(),
-      mimeType: inputMimeType.trim() || "image/png",
+    // Parse input tolerantly - handles both raw base64 and data URLs
+    const parsed = this.#parseInputBase64(inputBase64Raw, inputMimeType);
+
+    this.#scheduleRender(prompt, ratio, {
+      base64: parsed.base64,
+      mimeType: parsed.mimeType,
       fieldName: inputField.trim() || undefined,
     });
   }
@@ -40,7 +76,7 @@ class AIImage extends HTMLElement {
 
     const prompt = this.getAttribute("prompt") || "";
     const ratio = this.getAttribute("ratio") || "1:1";
-    const inputBase64 = this.getAttribute("input-base64") || "";
+    const inputBase64Raw = this.getAttribute("input-base64") || "";
     const inputMimeType = this.getAttribute("input-mime-type") || "image/png";
     const inputField = this.getAttribute("input-field") || "";
 
@@ -49,27 +85,49 @@ class AIImage extends HTMLElement {
       return;
     }
 
+    // Parse input tolerantly - handles both raw base64 and data URLs
+    const parsed = this.#parseInputBase64(inputBase64Raw, inputMimeType);
+
     // Only re-render if prompt or ratio actually changed from what we last rendered
     if (
       prompt === this._lastRenderedPrompt &&
       ratio === this._lastRenderedRatio &&
-      inputBase64 === this._lastRenderedInput
+      parsed.base64 === this._lastRenderedInput
     ) {
       return;
     }
 
-    this.#render(prompt, ratio, {
-      base64: inputBase64.trim(),
-      mimeType: inputMimeType.trim() || "image/png",
+    this.#scheduleRender(prompt, ratio, {
+      base64: parsed.base64,
+      mimeType: parsed.mimeType,
       fieldName: inputField.trim() || undefined,
     });
   }
 
-  #render(prompt, ratio, input) {
-    // Avoid concurrent requests for the same element
-    if (this._isLoading) {
-      return;
+  #scheduleRender(prompt, ratio, input) {
+    if (this._debounceTimer) {
+      clearTimeout(this._debounceTimer);
     }
+
+    // Debounce to allow multiple attributes (like Alpine x-binds) to settle
+    // and prevent double-fetching (first empty, then with input)
+    this._debounceTimer = setTimeout(() => {
+      this._debounceTimer = null;
+      this.#render(prompt, ratio, input);
+    }, 50);
+  }
+
+  #render(prompt, ratio, input) {
+    console.log("Rendering image", { prompt, ratio, input });
+
+    // Abort any pending request
+    if (this._abortController) {
+      this._abortController.abort();
+    }
+
+    // Create new controller for this request
+    this._abortController = new AbortController();
+    const signal = this._abortController.signal;
 
     this._lastRenderedPrompt = prompt;
     this._lastRenderedRatio = ratio;
@@ -114,12 +172,14 @@ class AIImage extends HTMLElement {
           fieldName: input.fieldName,
         },
       ];
+      console.log("[AI-Image] Including input image in payload:", { mimeType: payload.inputImages[0].mimeType, base64Length: payload.inputImages[0].base64.length });
     }
 
     fetch("/rest_api/image/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      signal,
     })
       .then((response) => response.json())
       .then((data) => {
@@ -171,8 +231,14 @@ class AIImage extends HTMLElement {
         this.innerHTML = "";
         this.appendChild(img);
         this._isLoading = false;
+        this._abortController = null;
       })
       .catch((err) => {
+        if (err.name === 'AbortError') {
+          console.log("Image generation aborted due to new request");
+          return;
+        }
+
         console.error("AI Image Generation Error:", err);
 
         // Extract colors for error state too
@@ -240,6 +306,7 @@ class AIImage extends HTMLElement {
             </div>
           </div>`;
         this._isLoading = false;
+        this._abortController = null;
       });
   }
 

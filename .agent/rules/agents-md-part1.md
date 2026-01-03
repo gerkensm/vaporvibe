@@ -111,19 +111,20 @@ This is not a traditional software project; it's a creative tool. The "vibe" is 
 
 ---
 
-## 4\. Style and Brand Guide 🎨
+## 4\. Style and Brand Guide 🎨 (VaporVibe Admin UI Only)
 
-This section defines the desired visual style, UI patterns, and overall user experience for LLM-generated applications. The `VaporVibe` admin UI itself (`frontend/`) serves as a primary inspiration, but the goal is creative interpretation, not rigid replication.
+> **⚠️ IMPORTANT**: This section applies **ONLY to the VaporVibe admin UI codebase** (`frontend/`). It is **NOT** a prescription for LLM-generated apps. Generated apps should match whatever aesthetic the user's brief calls for — minimalist, brutalist, playful, corporate, retro, or any other style. The LLM has full creative freedom to interpret the user's vision.
+
+This section defines the desired visual style, UI patterns, and overall user experience for the **VaporVibe admin console and setup wizard**. These guidelines help maintain consistency when contributing to the `frontend/` codebase.
 
 ### Overall Philosophy & Vibe
 
-- **Feeling:** Generated apps should feel **modern, clean, intuitive, and slightly playful**. The experience should be engaging and feel "alive," even though it's improvised. Prioritize **clarity and usability** over visual density.
-- **Goal:** Create high-fidelity prototypes that _feel_ real enough to validate an idea quickly. Use realistic content, not placeholders.
+- **Feeling:** The admin UI should feel **modern, clean, intuitive, and slightly playful**. The experience should be engaging and polished. Prioritize **clarity and usability** over visual density.
+- **Goal:** Create a professional, trustworthy interface for managing VaporVibe sessions.
 - **Heuristics:**
-  - **Simplicity First:** Start with clear layouts and essential elements. Add complexity only if the brief demands it.
-  - **Convention over Configuration:** Use familiar web patterns (buttons, forms, cards) unless the brief suggests otherwise.
+  - **Simplicity First:** Start with clear layouts and essential elements.
+  - **Convention over Configuration:** Use familiar web patterns (buttons, forms, cards).
   - **Accessibility Matters:** Aim for semantic HTML, keyboard navigability, sufficient contrast, and clear focus states.
-  - **Embrace Generative Flair:** Allow for creative interpretations within the bounds of good UX. Slight visual variations between renders are acceptable.
 
 ### Visual Language
 
@@ -154,4 +155,3 @@ This section defines the desired visual style, UI patterns, and overall user exp
   - _Reference:_ `.admin-card`, `.panel`, `.setup-card`.
 - **Forms:**
   - **Layout:** Stack labels clearly above their corresponding inputs. Group related fields logically.
-  - **Inputs:** Use rounded (`~14px-16px`), lightly bordered inputs, textareas, and selects with clear `:focus` states (e.g., blue outline/shadow).

@@ -147,6 +147,14 @@ export class RestApiController {
     );
     const inputHash = this.buildInputImageHash(inputImages);
 
+    // Debug logging for input images
+    reqLogger.debug({
+      inputImagesCount: inputImages.length,
+      hasInputImages: inputImages.length > 0,
+      inputImageMimeTypes: inputImages.map((img) => img.mimeType),
+      inputImageBase64Lengths: inputImages.map((img) => img.base64?.length ?? 0),
+    }, "Image generation request received");
+
     const rawQueryEntries = Array.from(url.searchParams.entries());
     let branchId = context.branchId;
     for (const [key, value] of rawQueryEntries) {

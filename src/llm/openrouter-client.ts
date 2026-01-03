@@ -49,6 +49,8 @@ export class OpenRouterClient implements LlmClient {
         options: LlmGenerateOptions = {}
     ): Promise<LlmResult> {
         // Convert internal ChatMessage format to OpenRouter API format
+        // IMPORTANT: OpenRouter only supports ContentPart arrays (multimodal) for "user" role!
+        // System and assistant messages must use plain string content.
         const apiMessages = messages.map((message) => {
             // Text-only: simpler content structure
             if (!message.attachments?.length) {
@@ -58,8 +60,28 @@ export class OpenRouterClient implements LlmClient {
                 };
             }
 
-            // Multimodal content
-            const content: Array<{ type: "text" | "image_url"; text?: string; image_url?: { url: string } }> = [
+            // For non-user roles, we cannot use multimodal format - flatten to text
+            if (message.role !== "user") {
+                let textContent = message.content;
+                for (const attachment of message.attachments) {
+                    if (!attachment.base64) continue;
+                    const mimeType = attachment.mimeType.toLowerCase();
+                    if (mimeType.startsWith("image/")) {
+                        // Describe image in text since we can't include it
+                        textContent += `\n[Image attachment: ${attachment.name} (${attachment.mimeType})]`;
+                    } else {
+                        textContent += `\n[Attachment: ${attachment.name} (${attachment.mimeType}, ${attachment.size} bytes)]`;
+                    }
+                }
+                return {
+                    role: message.role,
+                    content: textContent,
+                };
+            }
+
+            // Multimodal content (user role only)
+            // Note: OpenRouter SDK uses camelCase internally (imageUrl) and transforms to snake_case when sending
+            const content: Array<{ type: "text"; text: string } | { type: "image_url"; imageUrl: { url: string; detail?: string } }> = [
                 { type: "text", text: message.content },
             ];
 
@@ -70,8 +92,9 @@ export class OpenRouterClient implements LlmClient {
                 if (mimeType.startsWith("image/")) {
                     content.push({
                         type: "image_url",
-                        image_url: {
+                        imageUrl: {
                             url: `data:${attachment.mimeType};base64,${attachment.base64}`,
+                            detail: "auto",
                         },
                     });
                 } else {
